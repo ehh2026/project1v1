@@ -13,12 +13,13 @@ That's it! The application will build and launch automatically.
 ## What You'll See
 
 1. **Full-screen world map** with a black background
-2. **5 interactive markers** at major cities:
+2. **6 interactive markers** at major cities and locations:
    - New York City (USA)
    - London (UK)
    - Tokyo (Japan)
    - Sydney (Australia)
    - Paris (France)
+   - 405 Farnsworth Ave, Bordentown, NJ (USA)
 
 ## How to Use
 
@@ -31,7 +32,7 @@ That's it! The application will build and launch automatically.
 
 All required files are present and configured:
 - ✓ World map image: `Large_World_Map_bright.jpg`
-- ✓ Location data: `locations.json` (5 locations)
+- ✓ Location data: `locations.json` (6 locations)
 - ✓ Content images: 2 sample images
 - ✓ Files copied to output directory
 - ✓ All tests passing (32/32)

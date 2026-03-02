@@ -38,5 +38,13 @@
     "Longitude": 2.3522,
     "ContentFilePath": "letter-product-pic.jpg",
     "ContentType": 0
+  },
+  {
+    "Id": "loc_006",
+    "Name": "405 Farnsworth Ave, Bordentown, NJ",
+    "Latitude": 40.1505,
+    "Longitude": -74.7150,
+    "ContentFilePath": "letter-product-pic.jpg",
+    "ContentType": 0
   }
 ]

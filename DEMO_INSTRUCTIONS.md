@@ -84,12 +84,13 @@ notepad %APPDATA%\InteractiveWorldMap\logs\app.log
 
 ## Sample Locations
 
-The demo includes 5 locations:
+The demo includes 6 locations:
 - **New York City** (40.71°N, 74.01°W)
 - **London** (51.51°N, 0.13°W)
 - **Tokyo** (35.68°N, 139.65°E)
 - **Sydney** (33.87°S, 151.21°E)
 - **Paris** (48.86°N, 2.35°E)
+- **405 Farnsworth Ave, Bordentown, NJ** (40.15°N, 74.72°W)
 
 ## Known Limitations
 

@@ -13,6 +13,13 @@ namespace InteractiveWorldMap.Views;
 /// </summary>
 public partial class ContentSubwindow : Window
 {
+    private const double MaxWindowWidth = 800;
+    private const double MaxWindowHeight = 600;
+    private const double MinWindowWidth = 300;
+    private const double MinWindowHeight = 200;
+    private const double TitleBarHeight = 40;
+    private const double ContentPadding = 20;
+
     /// <summary>
     /// Gets or sets the location associated with this subwindow.
     /// </summary>
@@ -21,7 +28,7 @@ public partial class ContentSubwindow : Window
     /// <summary>
     /// Gets the preferred size of the subwindow.
     /// </summary>
-    public Size PreferredSize => new Size(400, 300);
+    public Size PreferredSize { get; private set; }
 
     public ContentSubwindow()
     {
@@ -29,6 +36,7 @@ public partial class ContentSubwindow : Window
         
         // Start with opacity 0 for animation
         Opacity = 0;
+        PreferredSize = new Size(400, 300);
     }
 
     /// <summary>
@@ -44,7 +52,7 @@ public partial class ContentSubwindow : Window
 
         TitleText.Text = locationName ?? "Location";
 
-        // Render content based on type
+        // Render content based on type and calculate size
         if (content is ImageSource imageSource)
         {
             var image = new Image
@@ -55,6 +63,9 @@ public partial class ContentSubwindow : Window
                 VerticalAlignment = VerticalAlignment.Center
             };
             ContentArea.Content = image;
+
+            // Calculate window size based on image dimensions
+            CalculateSizeForImage(imageSource);
         }
         else if (content is string text)
         {
@@ -66,7 +77,14 @@ public partial class ContentSubwindow : Window
                 LineHeight = 20
             };
             ContentArea.Content = textBlock;
+
+            // Calculate window size based on text length
+            CalculateSizeForText(text);
         }
+
+        // Apply the calculated size
+        Width = PreferredSize.Width;
+        Height = PreferredSize.Height;
 
         // Position the window
         PositionWindow(anchorPosition);
@@ -74,6 +92,59 @@ public partial class ContentSubwindow : Window
         // Show and animate
         Show();
         AnimateOpen();
+    }
+
+    /// <summary>
+    /// Calculates the optimal window size for an image.
+    /// </summary>
+    private void CalculateSizeForImage(ImageSource imageSource)
+    {
+        var imageWidth = imageSource.Width;
+        var imageHeight = imageSource.Height;
+
+        // Calculate aspect ratio
+        var aspectRatio = imageWidth / imageHeight;
+
+        // Start with image dimensions plus padding and title
+        var targetWidth = imageWidth + ContentPadding;
+        var targetHeight = imageHeight + TitleBarHeight + ContentPadding;
+
+        // Constrain to max dimensions while preserving aspect ratio
+        if (targetWidth > MaxWindowWidth)
+        {
+            targetWidth = MaxWindowWidth;
+            targetHeight = (targetWidth - ContentPadding) / aspectRatio + TitleBarHeight + ContentPadding;
+        }
+
+        if (targetHeight > MaxWindowHeight)
+        {
+            targetHeight = MaxWindowHeight;
+            targetWidth = (targetHeight - TitleBarHeight - ContentPadding) * aspectRatio + ContentPadding;
+        }
+
+        // Ensure minimum dimensions
+        targetWidth = Math.Max(MinWindowWidth, targetWidth);
+        targetHeight = Math.Max(MinWindowHeight, targetHeight);
+
+        PreferredSize = new Size(targetWidth, targetHeight);
+    }
+
+    /// <summary>
+    /// Calculates the optimal window size for text content.
+    /// </summary>
+    private void CalculateSizeForText(string text)
+    {
+        // Estimate size based on text length
+        var charCount = text.Length;
+        
+        // Rough estimate: 10 chars per line, 20px per line
+        var estimatedLines = Math.Max(5, Math.Min(20, charCount / 50));
+        var estimatedHeight = estimatedLines * 20 + TitleBarHeight + ContentPadding;
+        
+        var targetWidth = 400;
+        var targetHeight = Math.Min(MaxWindowHeight, Math.Max(MinWindowHeight, estimatedHeight));
+
+        PreferredSize = new Size(targetWidth, targetHeight);
     }
 
     /// <summary>

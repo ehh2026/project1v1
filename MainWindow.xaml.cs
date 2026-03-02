@@ -35,7 +35,7 @@ namespace InteractiveWorldMap
             MarkerLayer.MarkerClicked += OnMarkerClicked;
             Loaded += OnWindowLoaded;
             KeyDown += OnKeyDown;
-            MouseLeftButtonDown += OnMouseLeftButtonDown;
+            PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
             SizeChanged += OnSizeChanged;
         }
 
@@ -106,8 +106,11 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo($"Opening content for location: {location.Name}");
 
-                // Close existing subwindow if any
-                CloseActiveSubwindow();
+                // Close existing subwindow if any and wait for it to complete
+                if (_activeSubwindow != null)
+                {
+                    await CloseActiveSubwindowAsync();
+                }
 
                 // Load content
                 object content;
@@ -149,12 +152,37 @@ namespace InteractiveWorldMap
             if (_activeSubwindow != null)
             {
                 _logger.LogInfo("Closing active subwindow");
-                _activeSubwindow.AnimateClose(() =>
+                var windowToClose = _activeSubwindow;
+                _activeSubwindow = null;
+                
+                windowToClose.AnimateClose(() =>
                 {
-                    _activeSubwindow = null;
                     Focus(); // Return focus to main window
                 });
             }
+        }
+
+        /// <summary>
+        /// Closes the active content subwindow asynchronously and waits for completion.
+        /// </summary>
+        private Task CloseActiveSubwindowAsync()
+        {
+            if (_activeSubwindow == null)
+                return Task.CompletedTask;
+
+            _logger.LogInfo("Closing active subwindow (async)");
+            
+            var tcs = new TaskCompletionSource<bool>();
+            var windowToClose = _activeSubwindow;
+            _activeSubwindow = null;
+
+            windowToClose.AnimateClose(() =>
+            {
+                Focus(); // Return focus to main window
+                tcs.SetResult(true);
+            });
+
+            return tcs.Task;
         }
 
         /// <summary>
@@ -209,10 +237,30 @@ namespace InteractiveWorldMap
             }
         }
 
-        private void OnMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
+            // Only handle if there's an active subwindow
+            if (_activeSubwindow == null)
+                return;
+
+            // Get the click position relative to the window
             var position = e.GetPosition(this);
-            HandleOutsideClick(position);
+            var screenPoint = PointToScreen(position);
+
+            // Check if click is outside the subwindow
+            if (!_activeSubwindow.ContainsPoint(screenPoint))
+            {
+                // Check if the click was on a marker (which will open a new subwindow)
+                var markerPosition = e.GetPosition(MarkerLayer);
+                var clickedMarker = MarkerLayer.HitTest(markerPosition);
+                
+                // Only close if not clicking on a marker
+                if (clickedMarker == null)
+                {
+                    CloseActiveSubwindow();
+                    e.Handled = true; // Prevent further processing
+                }
+            }
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
