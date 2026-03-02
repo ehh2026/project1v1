@@ -31,7 +31,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - Implement Clamp method to constrain coordinates to valid ranges
     - _Requirements: 2.2, 2.5_
 
-  - [ ]* 2.4 Write unit tests for CoordinateValidator
+  - [x] 2.4 Write unit tests for CoordinateValidator
     - Test edge cases: poles, date line, out-of-range values
     - Test clamping behavior
     - _Requirements: 2.2_
@@ -55,7 +55,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - _Requirements: 2.2, 2.5_
 
 - [ ] 4. Implement content loading system
-  - [ ] 4.1 Create ContentLoader service class
+  - [x] 4.1 Create ContentLoader service class
     - Implement LoadMapImageAsync method to load world map from Content_Folder
     - Implement LoadLocationsAsync method to parse locations.json
     - Implement LoadLocationContentAsync method with caching
@@ -63,7 +63,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - Add ContentFolderPath property and IsInitialized flag
     - _Requirements: 5.1, 5.2, 5.5_
 
-  - [ ] 4.2 Implement StartupValidator class
+  - [x] 4.2 Implement StartupValidator class
     - Implement ValidateEnvironment method to check folder structure
     - Check for Content_Folder existence
     - Check for world_map.png existence
@@ -86,7 +86,7 @@ This implementation plan breaks down the Interactive World Map application into 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 6. Implement MapDisplayControl component
-  - [ ] 6.1 Create MapDisplayControl UserControl
+  - [x] 6.1 Create MapDisplayControl UserControl
     - Create XAML layout with Image control using Stretch.Uniform
     - Implement MapImage property (ImageSource)
     - Implement LoadMapImage method
@@ -106,7 +106,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - _Requirements: 1.2, 1.3_
 
 - [ ] 7. Implement LocationMarker component
-  - [ ] 7.1 Create LocationMarker custom control
+  - [x] 7.1 Create LocationMarker custom control
     - Create XAML template with Ellipse shape (12x12 pixels)
     - Apply radial gradient brush (white center, accent edge)
     - Implement Location and ScreenPosition properties
@@ -114,7 +114,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - Implement ContainsPoint method for hit testing
     - _Requirements: 2.1, 2.3_
 
-  - [ ] 7.2 Implement marker animations
+  - [x] 7.2 Implement marker animations
     - Create AnimateHover method with 200ms ease-out scale to 1.2x
     - Create AnimateClick method with 100ms pulse effect
     - Use WPF Storyboard and DoubleAnimation
@@ -135,7 +135,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - _Requirements: 2.4, 6.2_
 
 - [ ] 8. Implement MarkerLayerControl component
-  - [ ] 8.1 Create MarkerLayerControl Canvas control
+  - [x] 8.1 Create MarkerLayerControl Canvas control
     - Create XAML Canvas for absolute positioning
     - Implement Markers ObservableCollection property
     - Implement AddMarker method to create and position markers
@@ -144,7 +144,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - Wire up CoordinateMapper for positioning
     - _Requirements: 2.1, 2.2_
 
-  - [ ] 8.2 Implement marker interaction handling
+  - [x] 8.2 Implement marker interaction handling
     - Implement HitTest method using VisualTreeHelper
     - Wire up mouse click events to MarkerClicked event
     - Wire up mouse hover events to MarkerHovered event
@@ -164,7 +164,7 @@ This implementation plan breaks down the Interactive World Map application into 
   - Ensure all tests pass, ask the user if questions arise.
 
 - [ ] 10. Implement ContentSubwindow component
-  - [ ] 10.1 Create ContentSubwindow Window class
+  - [x] 10.1 Create ContentSubwindow Window class
     - Create XAML with borderless window style and drop shadow
     - Set window size to 400x300 pixels
     - Implement Content property for dynamic content
@@ -172,14 +172,14 @@ This implementation plan breaks down the Interactive World Map application into 
     - Implement ContainsPoint method for click detection
     - _Requirements: 3.2, 3.5_
 
-  - [ ] 10.2 Implement content rendering logic
+  - [x] 10.2 Implement content rendering logic
     - Implement ShowContent method to load content based on type
     - Use Image control for LocationContentType.Image
     - Use TextBlock for LocationContentType.Text
     - Implement positioning logic to center on screen or near marker
     - _Requirements: 3.3, 3.4_
 
-  - [ ] 10.3 Implement subwindow animations
+  - [x] 10.3 Implement subwindow animations
     - Create AnimateOpen method with 150ms fade-in and scale (0.9 to 1.0)
     - Create AnimateClose method with 100ms fade-out
     - Use WPF Storyboard with DoubleAnimation for opacity and scale
