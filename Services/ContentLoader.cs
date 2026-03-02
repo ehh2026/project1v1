@@ -32,6 +32,7 @@ public class ContentLoader
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentCache = new Dictionary<string, BitmapImage>();
         ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content");
+        _logger.LogInfo($"ContentLoader initialized with path: {ContentFolderPath}");
     }
 
     /// <summary>

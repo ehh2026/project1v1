@@ -204,7 +204,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - _Requirements: 3.3, 3.4, 6.3_
 
 - [ ] 11. Implement MainWindow component
-  - [ ] 11.1 Create MainWindow XAML and code-behind
+  - [x] 11.1 Create MainWindow XAML and code-behind
     - Set WindowState to Maximized and WindowStyle to None for full-screen
     - Add MapDisplayControl to window
     - Add MarkerLayerControl overlay
@@ -212,14 +212,14 @@ This implementation plan breaks down the Interactive World Map application into 
     - Implement MapDisplay, MarkerLayer, and ActiveSubwindow properties
     - _Requirements: 1.1, 3.2_
 
-  - [ ] 11.2 Implement window initialization logic
+  - [x] 11.2 Implement window initialization logic
     - Create Initialize method to load map and locations
     - Call ContentLoader to load map image and location data
     - Populate MarkerLayer with location markers
     - Handle startup validation errors
     - _Requirements: 5.1, 5.2, 5.3, 5.4_
 
-  - [ ] 11.3 Implement subwindow management
+  - [x] 11.3 Implement subwindow management
     - Create ShowContentForLocation method to open subwindow
     - Create CloseActiveSubwindow method
     - Implement HandleOutsideClick method for click detection
@@ -227,7 +227,7 @@ This implementation plan breaks down the Interactive World Map application into 
     - Implement focus management on subwindow close
     - _Requirements: 3.1, 4.1, 4.2, 4.3_
 
-  - [ ] 11.4 Implement keyboard shortcuts
+  - [x] 11.4 Implement keyboard shortcuts
     - Handle Escape key to close application
     - Handle Alt+F4 to close application
     - _Requirements: 8.3_

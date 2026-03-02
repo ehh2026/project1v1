@@ -1,20 +1,42 @@
-{
-  "locations": [
-    {
-      "id": "loc_001",
-      "name": "Sample Location 1",
-      "latitude": 40.7128,
-      "longitude": -74.0060,
-      "contentFile": "letter-product-pic.jpg",
-      "contentType": "image"
-    },
-    {
-      "id": "loc_002",
-      "name": "Sample Location 2",
-      "latitude": 51.5074,
-      "longitude": -0.1278,
-      "contentFile": "v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg",
-      "contentType": "image"
-    }
-  ]
-}
+[
+  {
+    "Id": "loc_001",
+    "Name": "New York City",
+    "Latitude": 40.7128,
+    "Longitude": -74.0060,
+    "ContentFilePath": "letter-product-pic.jpg",
+    "ContentType": 0
+  },
+  {
+    "Id": "loc_002",
+    "Name": "London",
+    "Latitude": 51.5074,
+    "Longitude": -0.1278,
+    "ContentFilePath": "v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg",
+    "ContentType": 0
+  },
+  {
+    "Id": "loc_003",
+    "Name": "Tokyo",
+    "Latitude": 35.6762,
+    "Longitude": 139.6503,
+    "ContentFilePath": "letter-product-pic.jpg",
+    "ContentType": 0
+  },
+  {
+    "Id": "loc_004",
+    "Name": "Sydney",
+    "Latitude": -33.8688,
+    "Longitude": 151.2093,
+    "ContentFilePath": "v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg",
+    "ContentType": 0
+  },
+  {
+    "Id": "loc_005",
+    "Name": "Paris",
+    "Latitude": 48.8566,
+    "Longitude": 2.3522,
+    "ContentFilePath": "letter-product-pic.jpg",
+    "ContentType": 0
+  }
+]
