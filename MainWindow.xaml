@@ -1,0 +1,14 @@
+<Window x:Class="InteractiveWorldMap.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Interactive World Map" 
+        Height="450" 
+        Width="800">
+    <Grid>
+        <!-- Main window content will be implemented in later tasks -->
+        <TextBlock Text="Interactive World Map - Setup Complete" 
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Center"
+                   FontSize="24"/>
+    </Grid>
+</Window>
