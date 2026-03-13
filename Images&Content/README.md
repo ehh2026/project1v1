@@ -4,7 +4,7 @@ This folder contains the world map image and location-specific content for the I
 
 ## Required Files
 
-- **world_map.png** (or Large_World_Map_bright.jpg): The main world map image displayed in full-screen
+- **world_map.png** (or World Map 1976.jpg): The main world map image displayed in full-screen
 - **locations.json**: Configuration file defining all interactive locations
 
 ## locations.json Format

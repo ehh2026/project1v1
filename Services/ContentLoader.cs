@@ -43,7 +43,7 @@ public class ContentLoader
     {
         try
         {
-            var mapPath = Path.Combine(ContentFolderPath, "Large_World_Map_bright.jpg");
+            var mapPath = Path.Combine(ContentFolderPath, "World Map 1976.jpg");
             
             if (!File.Exists(mapPath))
             {
@@ -182,7 +182,7 @@ public class ContentLoader
                 return false;
             }
 
-            var mapPath = Path.Combine(ContentFolderPath, "Large_World_Map_bright.jpg");
+            var mapPath = Path.Combine(ContentFolderPath, "World Map 1976.jpg");
             if (!File.Exists(mapPath))
             {
                 _logger.LogError($"World map image not found: {mapPath}");

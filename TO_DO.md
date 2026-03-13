@@ -10,12 +10,14 @@ The application is functional and ready for demo! Core features are implemented 
 
 - [ ] Make possible to zoom in on World Map?
 - [ ] Consider how to handle multiple images/content for one location (thumbnails? next/previous buttons?)
-- [ ] FIX - New York window did not close when clicking outside it
 - [ ] Instead of always opening subwindow at center of screen, have it open close to (but not on top of) the location pin
 - [ ] Add and wire in actual locations and content
 - [ ] Make home screen that has text explaining what the application is/does and shows some pictures of the artist/collector, then a button to open the map. Closing the map then should take the user back to the home screen
 - [ ] make popup windows larger?
 - [ ] Make UI look better
+- [ ] Converting list of people/addresses to Excel file or table with column headings like "Address", "Pixel Coordinates", anything else useful (eg, "Accession Numbers")
+- [ ] Recommend putting all images/content in subfolders grouped by Accession Number or some other key, then copy to subfolder of code
+- [ ] Get map file decided so you can get pixel coordinates
 
 ---
 

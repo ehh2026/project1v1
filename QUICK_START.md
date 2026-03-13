@@ -31,7 +31,7 @@ That's it! The application will build and launch automatically.
 ## Files Verified ✓
 
 All required files are present and configured:
-- ✓ World map image: `Large_World_Map_bright.jpg`
+- ✓ World map image: `World Map 1976.jpg`
 - ✓ Location data: `locations.json` (6 locations)
 - ✓ Content images: 2 sample images
 - ✓ Files copied to output directory

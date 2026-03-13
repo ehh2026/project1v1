@@ -60,7 +60,7 @@ dotnet run --project InteractiveWorldMap.csproj
 1. Make sure you've built the project at least once: `dotnet build`
 2. Verify the `Images&Content` folder exists in `bin/Debug/net6.0-windows/`
 3. Check that all image files are present:
-   - Large_World_Map_bright.jpg
+   - World Map 1976.jpg
    - letter-product-pic.jpg
    - v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg
    - locations.json
@@ -114,7 +114,7 @@ To complete the full implementation:
 1. Make sure you've built the project at least once: `dotnet build`
 2. Verify the `Images&Content` folder exists in `bin/Debug/net6.0-windows/`
 3. Check that all image files are present:
-   - Large_World_Map_bright.jpg
+   - World Map 1976.jpg
    - letter-product-pic.jpg
    - v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg
    - locations.json
