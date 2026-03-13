@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Utilities;
 using Newtonsoft.Json;
 
 namespace InteractiveWorldMap.Services;
@@ -84,6 +85,23 @@ public class ContentLoader
             if (!File.Exists(locationsPath))
             {
                 _logger.LogWarning($"Locations file not found at: {locationsPath}");
+                _logger.LogInfo("Attempting to load from Excel file instead");
+                
+                // Try to load from Excel file
+                var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
+                if (File.Exists(excelPath))
+                {
+                    var reader = new ExcelCoordinateReader(_logger);
+                    var locationsFromExcel = reader.ReadLocationsFromExcel(excelPath);
+                    
+                    if (locationsFromExcel.Any())
+                    {
+                        _logger.LogInfo($"Successfully loaded {locationsFromExcel.Count} locations from Excel");
+                        IsInitialized = true;
+                        return locationsFromExcel;
+                    }
+                }
+                
                 return new List<Location>();
             }
 
@@ -96,7 +114,7 @@ public class ContentLoader
                 return new List<Location>();
             }
 
-            _logger.LogInfo($"Successfully loaded {locations.Count} locations");
+            _logger.LogInfo($"Successfully loaded {locations.Count} locations from JSON");
             IsInitialized = true;
             return locations;
         }
@@ -114,6 +132,7 @@ public class ContentLoader
 
     /// <summary>
     /// Loads content for a specific location with caching support.
+    /// Content is expected to be in a subfolder named after the location.
     /// </summary>
     /// <param name="location">The location to load content for</param>
     /// <returns>BitmapImage for image content, or null for text content</returns>
@@ -124,46 +143,55 @@ public class ContentLoader
 
         try
         {
+            _logger.LogInfo($"Loading content for location: {location.Name}");
+
             // Return cached content if available
-            if (_contentCache.TryGetValue(location.ContentFilePath, out var cachedImage))
+            if (_contentCache.TryGetValue(location.Name, out var cachedImage))
             {
                 _logger.LogInfo($"Returning cached content for location: {location.Name}");
                 return cachedImage;
             }
 
-            var contentPath = Path.Combine(ContentFolderPath, location.ContentFilePath);
+            // Look for content in a subfolder named after the location
+            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
             
-            if (!File.Exists(contentPath))
+            if (!Directory.Exists(locationFolder))
             {
-                _logger.LogWarning($"Content file not found for location {location.Name}: {contentPath}");
+                _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
                 return null;
             }
 
-            // Only load images, text content is handled separately
-            if (location.ContentType == LocationContentType.Image)
-            {
-                var bitmap = await Task.Run(() =>
-                {
-                    var img = new BitmapImage();
-                    img.BeginInit();
-                    img.UriSource = new Uri(contentPath, UriKind.Absolute);
-                    img.CacheOption = BitmapCacheOption.OnLoad;
-                    img.EndInit();
-                    img.Freeze(); // Make it thread-safe
-                    return img;
-                });
+            // Find the first image file in the location folder
+            var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
+                .Concat(Directory.GetFiles(locationFolder, "*.png"))
+                .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
+                .FirstOrDefault();
 
-                // Cache the loaded image
-                _contentCache[location.ContentFilePath] = bitmap;
-                _logger.LogInfo($"Successfully loaded and cached content for location: {location.Name}");
-                return bitmap;
+            if (string.IsNullOrEmpty(imageFiles))
+            {
+                _logger.LogWarning($"No image files found in location folder: {locationFolder}");
+                return null;
             }
 
-            return null;
+            var bitmap = await Task.Run(() =>
+            {
+                var img = new BitmapImage();
+                img.BeginInit();
+                img.UriSource = new Uri(imageFiles, UriKind.Absolute);
+                img.CacheOption = BitmapCacheOption.OnLoad;
+                img.EndInit();
+                img.Freeze(); // Make it thread-safe
+                return img;
+            });
+
+            // Cache the loaded image
+            _contentCache[location.Name] = bitmap;
+            _logger.LogInfo($"Successfully loaded and cached content for location: {location.Name}");
+            return bitmap;
         }
         catch (Exception ex)
         {
-            _logger.LogError($"Failed to load content for location {location.Name}: {ex.Message}");
+            _logger.LogError($"Failed to load content for location {location.Name}: {ex.Message}\n{ex.StackTrace}");
             return null;
         }
     }

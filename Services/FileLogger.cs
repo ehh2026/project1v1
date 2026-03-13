@@ -66,13 +66,18 @@ namespace InteractiveWorldMap.Services
             {
                 try
                 {
+                    // Write to file
                     _writer?.WriteLine(message);
+                    
+                    // Write to console
+                    Console.WriteLine(message);
                     
                     // Also write to debug output in debug builds
                     System.Diagnostics.Debug.WriteLine(message);
                 }
                 catch (Exception ex)
                 {
+                    Console.WriteLine($"Failed to write log: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"Failed to write log: {ex.Message}");
                 }
             }

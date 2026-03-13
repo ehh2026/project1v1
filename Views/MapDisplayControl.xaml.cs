@@ -72,26 +72,26 @@ public partial class MapDisplayControl : UserControl
     }
 
     /// <summary>
-    /// Converts geographic coordinates to screen position on the map.
+    /// Converts pixel coordinates on the original image to screen position on the map.
     /// </summary>
-    /// <param name="latitude">Latitude in degrees (-90 to 90)</param>
-    /// <param name="longitude">Longitude in degrees (-180 to 180)</param>
+    /// <param name="pixelX">X pixel coordinate on the original image</param>
+    /// <param name="pixelY">Y pixel coordinate on the original image</param>
+    /// <param name="imageWidth">Width of the original image in pixels</param>
+    /// <param name="imageHeight">Height of the original image in pixels</param>
     /// <returns>Screen position as a Point</returns>
-    public Point GetMapPosition(double latitude, double longitude)
+    public Point GetMapPosition(double pixelX, double pixelY, double imageWidth, double imageHeight)
     {
         var bounds = MapBounds;
         if (bounds.IsEmpty)
             return new Point(0, 0);
 
-        // Normalize latitude from [-90, 90] to [0, 1]
-        var normalizedLat = (90.0 - latitude) / 180.0;
-
-        // Normalize longitude from [-180, 180] to [0, 1]
-        var normalizedLon = (longitude + 180.0) / 360.0;
+        // Normalize pixel coordinates to [0, 1]
+        var normalizedX = pixelX / imageWidth;
+        var normalizedY = pixelY / imageHeight;
 
         // Map to screen coordinates within MapBounds
-        var x = bounds.Left + (normalizedLon * bounds.Width);
-        var y = bounds.Top + (normalizedLat * bounds.Height);
+        var x = bounds.Left + (normalizedX * bounds.Width);
+        var y = bounds.Top + (normalizedY * bounds.Height);
 
         return new Point(x, y);
     }

@@ -1,7 +1,7 @@
 namespace InteractiveWorldMap.Models
 {
     /// <summary>
-    /// Represents a geographic location with associated content.
+    /// Represents a location on the map with associated content.
     /// </summary>
     public class Location
     {
@@ -16,14 +16,14 @@ namespace InteractiveWorldMap.Models
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// Latitude coordinate (-90 to +90 degrees).
+        /// X pixel coordinate on the map image.
         /// </summary>
-        public double Latitude { get; set; }
+        public double PixelX { get; set; }
 
         /// <summary>
-        /// Longitude coordinate (-180 to +180 degrees).
+        /// Y pixel coordinate on the map image.
         /// </summary>
-        public double Longitude { get; set; }
+        public double PixelY { get; set; }
 
         /// <summary>
         /// Path to the content file associated with this location.

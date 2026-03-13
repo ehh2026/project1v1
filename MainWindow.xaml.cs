@@ -25,18 +25,41 @@ namespace InteractiveWorldMap
 
         public MainWindow()
         {
-            InitializeComponent();
+            try
+            {
+                InitializeComponent();
 
-            // Initialize services
-            _logger = new FileLogger();
-            _contentLoader = new ContentLoader(_logger);
+                // Initialize services
+                _logger = new FileLogger();
+                _logger.LogInfo("=== MainWindow Constructor Started ===");
+                
+                _contentLoader = new ContentLoader(_logger);
+                _logger.LogInfo("ContentLoader created");
 
-            // Wire up events
-            MarkerLayer.MarkerClicked += OnMarkerClicked;
-            Loaded += OnWindowLoaded;
-            KeyDown += OnKeyDown;
-            PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
-            SizeChanged += OnSizeChanged;
+                // Wire up events
+                MarkerLayer.MarkerClicked += OnMarkerClicked;
+                _logger.LogInfo("MarkerClicked event wired");
+                
+                Loaded += OnWindowLoaded;
+                _logger.LogInfo("Loaded event wired");
+                
+                KeyDown += OnKeyDown;
+                _logger.LogInfo("KeyDown event wired");
+                
+                PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
+                _logger.LogInfo("PreviewMouseLeftButtonDown event wired");
+                
+                SizeChanged += OnSizeChanged;
+                _logger.LogInfo("SizeChanged event wired");
+                
+                _logger.LogInfo("=== MainWindow Constructor Completed ===");
+            }
+            catch (Exception ex)
+            {
+                var logger = new FileLogger();
+                logger.LogError($"FATAL ERROR in MainWindow constructor: {ex.Message}\n{ex.StackTrace}");
+                throw;
+            }
         }
 
         /// <summary>
@@ -46,11 +69,13 @@ namespace InteractiveWorldMap
         {
             try
             {
+                _logger.LogInfo("=== InitializeAsync Started ===");
                 _logger.LogInfo("Initializing Interactive World Map application");
                 _logger.LogInfo($"Base directory: {AppDomain.CurrentDomain.BaseDirectory}");
                 _logger.LogInfo($"Content folder path: {_contentLoader.ContentFolderPath}");
 
                 // Validate content folder
+                _logger.LogInfo("Step 1: Validating content folder");
                 if (!_contentLoader.ValidateContentFolder())
                 {
                     var errorMsg = $"Content folder validation failed.\nExpected path: {_contentLoader.ContentFolderPath}\nPlease ensure the Images&Content folder exists with the required files.";
@@ -58,26 +83,36 @@ namespace InteractiveWorldMap
                     ShowError(errorMsg);
                     return;
                 }
+                _logger.LogInfo("Content folder validation passed");
 
                 // Load map image
-                _logger.LogInfo("Loading world map image");
+                _logger.LogInfo("Step 2: Loading world map image");
                 var mapImage = await _contentLoader.LoadMapImageAsync();
+                _logger.LogInfo("Map image loaded, calling MapDisplay.LoadMapImage");
+                
                 MapDisplay.LoadMapImage(mapImage);
+                _logger.LogInfo("MapDisplay.LoadMapImage completed");
 
                 // Wait for layout to complete
+                _logger.LogInfo("Step 3: Waiting for layout");
                 await Task.Delay(100);
 
                 // Update marker layer with map bounds
+                _logger.LogInfo("Step 4: Updating marker layer bounds");
                 UpdateMarkerLayerBounds();
+                _logger.LogInfo("Marker layer bounds updated");
 
                 // Load locations
-                _logger.LogInfo("Loading location data");
+                _logger.LogInfo("Step 5: Loading location data");
                 var locations = await _contentLoader.LoadLocationsAsync();
+                _logger.LogInfo($"Loaded {locations.Count} locations");
                 
                 if (locations.Any())
                 {
+                    _logger.LogInfo("Step 6: Adding markers");
                     foreach (var location in locations)
                     {
+                        _logger.LogInfo($"Adding marker for: {location.Name} at ({location.PixelX}, {location.PixelY})");
                         MarkerLayer.AddMarker(location);
                     }
                     _logger.LogInfo($"Added {locations.Count} location markers");
@@ -87,7 +122,7 @@ namespace InteractiveWorldMap
                     _logger.LogWarning("No locations found to display");
                 }
 
-                _logger.LogInfo("Application initialization complete");
+                _logger.LogInfo("=== Application initialization complete ===");
             }
             catch (Exception ex)
             {
@@ -133,7 +168,7 @@ namespace InteractiveWorldMap
                     Owner = this
                 };
 
-                var markerPosition = MapDisplay.GetMapPosition(location.Latitude, location.Longitude);
+                var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, 16397, 11085);
                 _activeSubwindow.ShowContent(content, location.Name, markerPosition);
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");

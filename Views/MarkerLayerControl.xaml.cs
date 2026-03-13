@@ -15,7 +15,9 @@ namespace InteractiveWorldMap.Views;
 /// </summary>
 public partial class MarkerLayerControl : Canvas
 {
-    private readonly CoordinateMapper _coordinateMapper;
+    private double _imageWidth = 16397;
+    private double _imageHeight = 11085;
+    private Rect _mapBounds = Rect.Empty;
 
     /// <summary>
     /// Gets the collection of markers displayed on the map.
@@ -37,7 +39,6 @@ public partial class MarkerLayerControl : Canvas
         InitializeComponent();
         
         Markers = new ObservableCollection<LocationMarker>();
-        _coordinateMapper = new CoordinateMapper();
 
         // Wire up mouse events
         MouseLeftButtonDown += OnMouseLeftButtonDown;
@@ -45,7 +46,7 @@ public partial class MarkerLayerControl : Canvas
     }
 
     /// <summary>
-    /// Adds a marker for the specified location.
+    /// Adds a marker for the specified location using pixel coordinates.
     /// </summary>
     /// <param name="location">The location to add a marker for</param>
     public void AddMarker(Location location)
@@ -58,10 +59,16 @@ public partial class MarkerLayerControl : Canvas
             Location = location
         };
 
-        // Position the marker
-        var position = _coordinateMapper.LatLongToScreen(location.Latitude, location.Longitude);
-        marker.ScreenPosition = position;
+        // Position the marker based on pixel coordinates
+        var mapBounds = _mapBounds.IsEmpty ? new Rect(0, 0, ActualWidth, ActualHeight) : _mapBounds;
+        var normalizedX = location.PixelX / _imageWidth;
+        var normalizedY = location.PixelY / _imageHeight;
+        
+        var x = mapBounds.Left + (normalizedX * mapBounds.Width);
+        var y = mapBounds.Top + (normalizedY * mapBounds.Height);
+        var position = new Point(x, y);
 
+        marker.ScreenPosition = position;
         SetLeft(marker, position.X - marker.Width / 2);
         SetTop(marker, position.Y - marker.Height / 2);
 
@@ -108,16 +115,21 @@ public partial class MarkerLayerControl : Canvas
     }
 
     /// <summary>
-    /// Updates the positions of all markers based on current coordinate mapping.
+    /// Updates the positions of all markers based on current map bounds.
     /// </summary>
     public void UpdateMarkerPositions()
     {
+        var mapBounds = _mapBounds.IsEmpty ? new Rect(0, 0, ActualWidth, ActualHeight) : _mapBounds;
+        
         foreach (var marker in Markers)
         {
-            var position = _coordinateMapper.LatLongToScreen(
-                marker.Location.Latitude, 
-                marker.Location.Longitude);
+            var normalizedX = marker.Location.PixelX / _imageWidth;
+            var normalizedY = marker.Location.PixelY / _imageHeight;
             
+            var x = mapBounds.Left + (normalizedX * mapBounds.Width);
+            var y = mapBounds.Top + (normalizedY * mapBounds.Height);
+            var position = new Point(x, y);
+
             marker.ScreenPosition = position;
             SetLeft(marker, position.X - marker.Width / 2);
             SetTop(marker, position.Y - marker.Height / 2);
@@ -125,13 +137,12 @@ public partial class MarkerLayerControl : Canvas
     }
 
     /// <summary>
-    /// Updates the coordinate mapper with new map bounds.
+    /// Updates the map bounds for marker positioning.
     /// </summary>
     /// <param name="mapBounds">The new map bounds</param>
     public void UpdateMapBounds(Rect mapBounds)
     {
-        _coordinateMapper.MapBounds = mapBounds;
-        _coordinateMapper.ScreenSize = new Size(ActualWidth, ActualHeight);
+        _mapBounds = mapBounds;
         UpdateMarkerPositions();
     }
 

@@ -31,6 +31,10 @@ public class StartupValidator
 
         try
         {
+            _logger.LogInfo("=== Starting Environment Validation ===");
+            _logger.LogInfo($"Base directory: {AppDomain.CurrentDomain.BaseDirectory}");
+            _logger.LogInfo($"Content folder path: {_contentFolderPath}");
+
             // Check Content_Folder existence
             if (!Directory.Exists(_contentFolderPath))
             {
@@ -39,47 +43,65 @@ public class StartupValidator
                 return result; // Cannot continue validation without the folder
             }
 
-            _logger.LogInfo($"Content folder found: {_contentFolderPath}");
+            _logger.LogInfo($"✓ Content folder found: {_contentFolderPath}");
 
             // Check for world map image
             var mapPath = Path.Combine(_contentFolderPath, "World Map 1976.jpg");
             if (!File.Exists(mapPath))
             {
                 result.Errors.Add($"World map image not found: {mapPath}");
-                _logger.LogError($"World map image not found: {mapPath}");
+                _logger.LogError($"✗ World map image not found: {mapPath}");
             }
             else
             {
-                _logger.LogInfo($"World map image found: {mapPath}");
+                _logger.LogInfo($"✓ World map image found: {mapPath}");
             }
 
             // Check for locations.json
             var locationsPath = Path.Combine(_contentFolderPath, "locations.json");
             if (!File.Exists(locationsPath))
             {
-                result.Warnings.Add($"Locations file not found: {locationsPath}");
-                _logger.LogWarning($"Locations file not found: {locationsPath}");
+                _logger.LogInfo($"locations.json not found at: {locationsPath}");
+                _logger.LogInfo("Will attempt to load from Excel file instead");
             }
             else
             {
+                _logger.LogInfo($"✓ locations.json found: {locationsPath}");
                 // Validate locations.json format
                 ValidateLocationsJson(locationsPath, result);
+            }
+
+            // Check for Excel file
+            var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
+            if (File.Exists(excelPath))
+            {
+                _logger.LogInfo($"✓ Excel file found: {excelPath}");
+            }
+            else
+            {
+                _logger.LogInfo($"Excel file not found at: {excelPath}");
             }
 
             // Log validation summary
             if (result.IsValid)
             {
-                _logger.LogInfo("Environment validation passed");
+                _logger.LogInfo("✓ Environment validation passed");
             }
             else
             {
-                _logger.LogError($"Environment validation failed with {result.Errors.Count} errors and {result.Warnings.Count} warnings");
+                _logger.LogError($"✗ Environment validation failed with {result.Errors.Count} errors and {result.Warnings.Count} warnings");
+                foreach (var error in result.Errors)
+                {
+                    _logger.LogError($"  - {error}");
+                }
             }
+
+            _logger.LogInfo("=== Environment Validation Complete ===");
         }
         catch (Exception ex)
         {
             result.Errors.Add($"Unexpected error during validation: {ex.Message}");
-            _logger.LogError($"Unexpected error during validation: {ex.Message}");
+            _logger.LogError($"✗ Unexpected error during validation: {ex.Message}\n{ex.StackTrace}");
         }
 
         return result;
@@ -121,25 +143,25 @@ public class StartupValidator
                 if (!location.ContainsKey("Name"))
                     result.Warnings.Add($"Location at index {i} is missing 'Name' field");
                 
-                if (!location.ContainsKey("Latitude"))
-                    result.Warnings.Add($"Location at index {i} is missing 'Latitude' field");
+                if (!location.ContainsKey("PixelX"))
+                    result.Warnings.Add($"Location at index {i} is missing 'PixelX' field");
                 
-                if (!location.ContainsKey("Longitude"))
-                    result.Warnings.Add($"Location at index {i} is missing 'Longitude' field");
+                if (!location.ContainsKey("PixelY"))
+                    result.Warnings.Add($"Location at index {i} is missing 'PixelY' field");
 
-                // Validate coordinate ranges
-                if (location.TryGetValue("Latitude", out var latToken))
+                // Validate pixel coordinates are positive
+                if (location.TryGetValue("PixelX", out var pixelXToken))
                 {
-                    var lat = latToken.Value<double>();
-                    if (lat < -90 || lat > 90)
-                        result.Warnings.Add($"Location at index {i} has invalid latitude: {lat} (must be between -90 and 90)");
+                    var pixelX = pixelXToken.Value<double>();
+                    if (pixelX < 0 || pixelX > 16397)
+                        result.Warnings.Add($"Location at index {i} has invalid PixelX: {pixelX} (must be between 0 and 16397)");
                 }
 
-                if (location.TryGetValue("Longitude", out var lonToken))
+                if (location.TryGetValue("PixelY", out var pixelYToken))
                 {
-                    var lon = lonToken.Value<double>();
-                    if (lon < -180 || lon > 180)
-                        result.Warnings.Add($"Location at index {i} has invalid longitude: {lon} (must be between -180 and 180)");
+                    var pixelY = pixelYToken.Value<double>();
+                    if (pixelY < 0 || pixelY > 11085)
+                        result.Warnings.Add($"Location at index {i} has invalid PixelY: {pixelY} (must be between 0 and 11085)");
                 }
             }
         }
