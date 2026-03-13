@@ -73,38 +73,50 @@ public class ContentLoader
     }
 
     /// <summary>
-    /// Loads location data from locations.json in the Content_Folder.
+    /// Loads location data from Excel file first, then falls back to locations.json.
     /// </summary>
     /// <returns>List of Location objects</returns>
     public async Task<List<Location>> LoadLocationsAsync()
     {
         try
         {
+            // Try to load from Excel file first
+            var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
+            _logger.LogInfo($"Checking for Excel file at: {excelPath}");
+            
+            if (File.Exists(excelPath))
+            {
+                _logger.LogInfo("Excel file found, attempting to load locations from Excel");
+                var reader = new ExcelCoordinateReader(_logger);
+                var locationsFromExcel = reader.ReadLocationsFromExcel(excelPath);
+                
+                if (locationsFromExcel.Any())
+                {
+                    _logger.LogInfo($"Successfully loaded {locationsFromExcel.Count} locations from Excel");
+                    IsInitialized = true;
+                    return locationsFromExcel;
+                }
+                else
+                {
+                    _logger.LogWarning("Excel file exists but no locations were parsed");
+                }
+            }
+            else
+            {
+                _logger.LogInfo("Excel file not found, will try locations.json");
+            }
+
+            // Fall back to locations.json
             var locationsPath = Path.Combine(ContentFolderPath, "locations.json");
+            _logger.LogInfo($"Checking for locations.json at: {locationsPath}");
             
             if (!File.Exists(locationsPath))
             {
-                _logger.LogWarning($"Locations file not found at: {locationsPath}");
-                _logger.LogInfo("Attempting to load from Excel file instead");
-                
-                // Try to load from Excel file
-                var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
-                if (File.Exists(excelPath))
-                {
-                    var reader = new ExcelCoordinateReader(_logger);
-                    var locationsFromExcel = reader.ReadLocationsFromExcel(excelPath);
-                    
-                    if (locationsFromExcel.Any())
-                    {
-                        _logger.LogInfo($"Successfully loaded {locationsFromExcel.Count} locations from Excel");
-                        IsInitialized = true;
-                        return locationsFromExcel;
-                    }
-                }
-                
+                _logger.LogWarning($"Neither Excel file nor locations.json found");
                 return new List<Location>();
             }
 
+            _logger.LogInfo("Loading locations from locations.json");
             var json = await File.ReadAllTextAsync(locationsPath);
             var locations = JsonConvert.DeserializeObject<List<Location>>(json);
             
