@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Views;
@@ -16,7 +19,13 @@ namespace InteractiveWorldMap
     {
         private readonly ContentLoader _contentLoader;
         private readonly ILogger _logger;
+        private readonly MapNavigationService _navigationService;
         private ContentSubwindow? _activeSubwindow;
+        private List<LocationCluster> _clusters = new List<LocationCluster>();
+        
+        // Zoom configuration
+        private const double ZoomScale = 3.5; // 3.5x magnification when zoomed
+        private const int AnimationDurationMs = 400;
 
         /// <summary>
         /// Gets the active content subwindow, if any.
@@ -35,10 +44,16 @@ namespace InteractiveWorldMap
                 
                 _contentLoader = new ContentLoader(_logger);
                 _logger.LogInfo("ContentLoader created");
+                
+                _navigationService = new MapNavigationService();
+                _logger.LogInfo("MapNavigationService created");
 
                 // Wire up events
                 MarkerLayer.MarkerClicked += OnMarkerClicked;
                 _logger.LogInfo("MarkerClicked event wired");
+                
+                MarkerLayer.ClusterClicked += OnClusterClicked;
+                _logger.LogInfo("ClusterClicked event wired");
                 
                 Loaded += OnWindowLoaded;
                 _logger.LogInfo("Loaded event wired");
@@ -102,24 +117,20 @@ namespace InteractiveWorldMap
                 UpdateMarkerLayerBounds();
                 _logger.LogInfo("Marker layer bounds updated");
 
-                // Load locations
-                _logger.LogInfo("Step 5: Loading location data");
-                var locations = await _contentLoader.LoadLocationsAsync();
-                _logger.LogInfo($"Loaded {locations.Count} locations");
+                // Load and cluster locations
+                _logger.LogInfo("Step 5: Loading and clustering location data");
+                _clusters = await _contentLoader.LoadClustersAsync();
+                _logger.LogInfo($"Loaded {_clusters.Count} clusters");
                 
-                if (locations.Any())
+                if (_clusters.Any())
                 {
-                    _logger.LogInfo("Step 6: Adding markers");
-                    foreach (var location in locations)
-                    {
-                        _logger.LogInfo($"Adding marker for: {location.Name} at ({location.PixelX}, {location.PixelY})");
-                        MarkerLayer.AddMarker(location);
-                    }
-                    _logger.LogInfo($"Added {locations.Count} location markers");
+                    _logger.LogInfo("Step 6: Adding cluster markers");
+                    MarkerLayer.AddClusters(_clusters);
+                    _logger.LogInfo($"Added markers for {_clusters.Count} clusters");
                 }
                 else
                 {
-                    _logger.LogWarning("No locations found to display");
+                    _logger.LogWarning("No clusters found to display");
                 }
 
                 _logger.LogInfo("=== Application initialization complete ===");
@@ -252,23 +263,224 @@ namespace InteractiveWorldMap
 
         private void OnMarkerClicked(object? sender, LocationClickedEventArgs e)
         {
+            _logger.LogInfo($"Individual marker clicked: {e.Location.Name}");
             ShowContentForLocation(e.Location);
+        }
+
+        private void OnClusterClicked(object? sender, ClusterClickedEventArgs e)
+        {
+            _logger.LogInfo($"Cluster clicked: {e.Cluster.Count} locations");
+            AnimateZoomToCluster(e.Cluster);
+            
+            // Show Back button
+            BackButton.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Animates zooming into a cluster.
+        /// </summary>
+        private void AnimateZoomToCluster(LocationCluster cluster)
+        {
+            try
+            {
+                _logger.LogInfo($"Zooming to cluster with {cluster.Count} locations");
+
+                // Save current state before zooming
+                var currentState = ZoomState.CreateFullMapView();
+                _navigationService.PushState(currentState);
+
+                // Calculate the center point in screen coordinates
+                var mapBounds = MapDisplay.MapBounds;
+                var imageWidth = 16397.0;
+                var imageHeight = 11085.0;
+
+                var normalizedX = cluster.CenterPoint.X / imageWidth;
+                var normalizedY = cluster.CenterPoint.Y / imageHeight;
+
+                var centerX = mapBounds.Left + (normalizedX * mapBounds.Width);
+                var centerY = mapBounds.Top + (normalizedY * mapBounds.Height);
+
+                // Calculate the center of the screen
+                var screenCenterX = ActualWidth / 2;
+                var screenCenterY = ActualHeight / 2;
+
+                // Calculate translation needed to center the cluster
+                var translateX = screenCenterX - (centerX * ZoomScale);
+                var translateY = screenCenterY - (centerY * ZoomScale);
+
+                // Create animations
+                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
+                var easing = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+
+                var scaleXAnim = new DoubleAnimation(ZoomScale, duration) { EasingFunction = easing };
+                var scaleYAnim = new DoubleAnimation(ZoomScale, duration) { EasingFunction = easing };
+                var translateXAnim = new DoubleAnimation(translateX, duration) { EasingFunction = easing };
+                var translateYAnim = new DoubleAnimation(translateY, duration) { EasingFunction = easing };
+
+                // Handle animation completion
+                scaleXAnim.Completed += (s, e) =>
+                {
+                    _logger.LogInfo("Zoom animation completed");
+                    ShowZoomedView(cluster);
+                };
+
+                // Apply animations
+                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
+                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
+
+                _logger.LogInfo($"Zoom animation started: scale={ZoomScale}, translate=({translateX}, {translateY})");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error zooming to cluster: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows cluster markers and hides individual markers (full map view).
+        /// </summary>
+        private void ShowClusterView()
+        {
+            try
+            {
+                _logger.LogInfo("Showing cluster view (full map)");
+
+                // Clear all individual markers
+                MarkerLayer.ClearMarkers();
+
+                // Clear existing cluster markers
+                MarkerLayer.ClearClusterMarkers();
+
+                // Add cluster markers
+                MarkerLayer.AddClusters(_clusters);
+
+                // Update positions
+                MarkerLayer.UpdateMarkerPositions();
+
+                _logger.LogInfo($"Cluster view displayed with {_clusters.Count} clusters");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error showing cluster view: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows individual markers for the zoomed cluster and hides cluster markers.
+        /// </summary>
+        private void ShowZoomedView(LocationCluster cluster)
+        {
+            try
+            {
+                _logger.LogInfo($"Showing zoomed view for cluster with {cluster.Count} locations");
+
+                // Hide all cluster markers
+                MarkerLayer.ClearClusterMarkers();
+
+                // Clear any existing individual markers
+                MarkerLayer.ClearMarkers();
+
+                // Show individual markers for this cluster's locations
+                foreach (var location in cluster.Locations)
+                {
+                    MarkerLayer.AddMarker(location);
+                }
+
+                // Update marker positions with current transform
+                MarkerLayer.UpdateMarkerPositions();
+
+                _logger.LogInfo($"Zoomed view displayed with {cluster.Count} individual markers");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error showing zoomed view: {ex.Message}");
+            }
         }
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            // Handle Escape key to close subwindow or exit application
+            // Handle Escape key to close subwindow, go back, or exit application
             if (e.Key == Key.Escape)
             {
                 if (_activeSubwindow != null)
                 {
                     CloseActiveSubwindow();
                 }
+                else if (_navigationService.CanGoBack)
+                {
+                    AnimateZoomOut();
+                }
                 else
                 {
                     _logger.LogInfo("Application closing via Escape key");
                     Close();
                 }
+            }
+        }
+
+        private void OnBackButtonClick(object sender, RoutedEventArgs e)
+        {
+            AnimateZoomOut();
+        }
+
+        /// <summary>
+        /// Animates zooming out to the full map view.
+        /// </summary>
+        private void AnimateZoomOut()
+        {
+            if (!_navigationService.CanGoBack)
+            {
+                _logger.LogWarning("Cannot go back - navigation stack is empty");
+                return;
+            }
+
+            try
+            {
+                _logger.LogInfo("Zooming out to full map view");
+
+                // Pop the previous state
+                var previousState = _navigationService.PopState();
+                if (previousState == null)
+                {
+                    _logger.LogWarning("Previous state is null");
+                    return;
+                }
+
+                // Create animations to return to full map view
+                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
+                var easing = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+
+                var scaleXAnim = new DoubleAnimation(1.0, duration) { EasingFunction = easing };
+                var scaleYAnim = new DoubleAnimation(1.0, duration) { EasingFunction = easing };
+                var translateXAnim = new DoubleAnimation(0.0, duration) { EasingFunction = easing };
+                var translateYAnim = new DoubleAnimation(0.0, duration) { EasingFunction = easing };
+
+                // Handle animation completion
+                scaleXAnim.Completed += (s, e) =>
+                {
+                    _logger.LogInfo("Zoom-out animation completed");
+                    ShowClusterView();
+                    
+                    // Hide Back button if at root level
+                    if (!_navigationService.CanGoBack)
+                    {
+                        BackButton.Visibility = Visibility.Collapsed;
+                    }
+                };
+
+                // Apply animations
+                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
+                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
+                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
+                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
+
+                _logger.LogInfo("Zoom-out animation started");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error zooming out: {ex.Message}");
             }
         }
 
@@ -287,10 +499,10 @@ namespace InteractiveWorldMap
             {
                 // Check if the click was on a marker (which will open a new subwindow)
                 var markerPosition = e.GetPosition(MarkerLayer);
-                var clickedMarker = MarkerLayer.HitTest(markerPosition);
+                var clickedObject = MarkerLayer.HitTest(markerPosition);
                 
-                // Only close if not clicking on a marker
-                if (clickedMarker == null)
+                // Only close if not clicking on any marker
+                if (clickedObject == null)
                 {
                     CloseActiveSubwindow();
                     e.Handled = true; // Prevent further processing

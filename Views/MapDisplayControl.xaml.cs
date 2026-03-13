@@ -54,6 +54,21 @@ public partial class MapDisplayControl : UserControl
         }
     }
 
+    /// <summary>
+    /// Gets the scale transform applied to the map.
+    /// </summary>
+    public ScaleTransform ScaleTransform => MapScaleTransform;
+
+    /// <summary>
+    /// Gets the translate transform applied to the map.
+    /// </summary>
+    public TranslateTransform TranslateTransform => MapTranslateTransform;
+
+    /// <summary>
+    /// Gets whether the map is currently zoomed in.
+    /// </summary>
+    public bool IsZoomed => Math.Abs(MapScaleTransform.ScaleX - 1.0) > 0.01;
+
     public MapDisplayControl()
     {
         InitializeComponent();

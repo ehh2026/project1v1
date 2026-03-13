@@ -11,6 +11,13 @@
                Stretch="Uniform" 
                HorizontalAlignment="Center" 
                VerticalAlignment="Center"
-               RenderOptions.BitmapScalingMode="HighQuality" />
+               RenderOptions.BitmapScalingMode="HighQuality">
+            <Image.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="MapScaleTransform" ScaleX="1" ScaleY="1" CenterX="0" CenterY="0"/>
+                    <TranslateTransform x:Name="MapTranslateTransform" X="0" Y="0"/>
+                </TransformGroup>
+            </Image.RenderTransform>
+        </Image>
     </Grid>
 </UserControl>

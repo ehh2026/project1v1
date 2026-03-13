@@ -17,6 +17,17 @@ public class ContentLoader
 {
     private readonly ILogger _logger;
     private readonly Dictionary<string, BitmapImage> _contentCache;
+    private readonly LocationClusterer _clusterer;
+
+    /// <summary>
+    /// Gets or sets the distance threshold for clustering locations (in pixels).
+    /// Default is 300 pixels.
+    /// </summary>
+    public double ClusterDistanceThreshold
+    {
+        get => _clusterer.DistanceThreshold;
+        set => _clusterer.DistanceThreshold = value;
+    }
 
     /// <summary>
     /// Gets or sets the path to the Content_Folder.
@@ -32,6 +43,7 @@ public class ContentLoader
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentCache = new Dictionary<string, BitmapImage>();
+        _clusterer = new LocationClusterer();
         ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content");
         _logger.LogInfo($"ContentLoader initialized with path: {ContentFolderPath}");
     }
@@ -68,6 +80,42 @@ public class ContentLoader
         catch (Exception ex)
         {
             _logger.LogError($"Failed to load world map image: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Loads location data and clusters them based on proximity.
+    /// </summary>
+    /// <returns>List of LocationCluster objects</returns>
+    public async Task<List<LocationCluster>> LoadClustersAsync()
+    {
+        try
+        {
+            _logger.LogInfo("Loading and clustering locations");
+            
+            // Load locations
+            var locations = await LoadLocationsAsync();
+            
+            if (!locations.Any())
+            {
+                _logger.LogWarning("No locations to cluster");
+                return new List<LocationCluster>();
+            }
+
+            // Cluster the locations
+            var clusters = _clusterer.ClusterLocations(locations);
+            var stats = _clusterer.GetClusteringStats(clusters);
+            
+            _logger.LogInfo($"Clustering complete: {stats.TotalClusters} clusters " +
+                          $"({stats.SingleLocationClusters} single, {stats.MultiLocationClusters} multi) " +
+                          $"from {stats.TotalLocations} locations");
+            
+            return clusters;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to load and cluster locations: {ex.Message}");
             throw;
         }
     }

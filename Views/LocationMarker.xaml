@@ -9,11 +9,11 @@
                 <Setter.Value>
                     <RadialGradientBrush>
                         <GradientStop Color="White" Offset="0.0"/>
-                        <GradientStop Color="#FF4A90E2" Offset="1.0"/>
+                        <GradientStop Color="#FFE53935" Offset="1.0"/>
                     </RadialGradientBrush>
                 </Setter.Value>
             </Setter>
-            <Setter Property="Stroke" Value="#FF2E5C8A"/>
+            <Setter Property="Stroke" Value="#FFC62828"/>
             <Setter Property="StrokeThickness" Value="1"/>
         </Style>
     </UserControl.Resources>
