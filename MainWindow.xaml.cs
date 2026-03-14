@@ -28,6 +28,7 @@ namespace InteractiveWorldMap
         private readonly AnimationFrameCache _frameCache;
         private readonly ZoomedRegionCache _zoomedRegionCache;
         private ContentSubwindow? _activeSubwindow;
+        private ThumbnailBrowserWindow? _activeThumbnailBrowser;
         private List<LocationCluster> _clusters = new List<LocationCluster>();
         
         // Collections to track markers
@@ -167,41 +168,90 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo($"Opening content for location: {location.Name}");
 
-                // Close existing subwindow if any and wait for it to complete
+                // Close existing subwindow and thumbnail browser if any
                 if (_activeSubwindow != null)
                 {
                     await CloseActiveSubwindowAsync();
                 }
-
-                // Load content
-                object content;
-                var imageContent = await _contentLoader.LoadLocationContentAsync(location);
                 
-                if (imageContent == null)
+                if (_activeThumbnailBrowser != null)
                 {
-                    // Show text message if content not available
-                    content = $"Content not available for {location.Name}";
+                    _activeThumbnailBrowser.Close();
+                    _activeThumbnailBrowser = null;
+                }
+
+                // Load all images for this location
+                var allImages = await _contentLoader.LoadAllLocationImagesAsync(location);
+                
+                if (allImages.Length == 0)
+                {
+                    // Show text message if no content available
+                    var content = $"Content not available for {location.Name}";
+                    
+                    _activeSubwindow = new ContentSubwindow
+                    {
+                        AssociatedLocation = location,
+                        Owner = this
+                    };
+                    
+                    var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
+                    _activeSubwindow.ShowContent(content, location.Name, markerPosition);
                 }
                 else
                 {
-                    content = imageContent;
+                    // Show first image
+                    ShowImageAtIndex(location, allImages, 0);
                 }
-
-                // Create and show subwindow
-                _activeSubwindow = new ContentSubwindow
-                {
-                    AssociatedLocation = location,
-                    Owner = this
-                };
-
-                var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-                _activeSubwindow.ShowContent(content, location.Name, markerPosition);
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Failed to show content for location {location.Name}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Shows a specific image from a location's image collection.
+        /// </summary>
+        private void ShowImageAtIndex(Location location, BitmapImage[] allImages, int index)
+        {
+            // Create and show content subwindow
+            _activeSubwindow = new ContentSubwindow
+            {
+                AssociatedLocation = location,
+                Owner = this
+            };
+
+            var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
+            _activeSubwindow.ShowContent(allImages[index], location.Name, markerPosition);
+
+            // If there are multiple images, show thumbnail browser
+            if (allImages.Length > 1)
+            {
+                _activeThumbnailBrowser = new ThumbnailBrowserWindow
+                {
+                    Owner = this
+                };
+                
+                _activeThumbnailBrowser.LoadThumbnails(allImages, index);
+                _activeThumbnailBrowser.PositionRelativeTo(_activeSubwindow);
+                
+                // Handle thumbnail selection
+                _activeThumbnailBrowser.ThumbnailSelected += (s, selectedIndex) =>
+                {
+                    if (_activeSubwindow != null)
+                    {
+                        var newMarkerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
+                        _activeSubwindow.ShowContent(allImages[selectedIndex], location.Name, newMarkerPosition);
+                        _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
+                    }
+                };
+                
+                _activeThumbnailBrowser.Show();
+                _activeThumbnailBrowser.AnimateOpen();
+                
+                _logger.LogInfo($"Thumbnail browser opened with {allImages.Length} images");
             }
         }
 
@@ -221,6 +271,13 @@ namespace InteractiveWorldMap
                     Focus(); // Return focus to main window
                 });
             }
+            
+            // Also close thumbnail browser
+            if (_activeThumbnailBrowser != null)
+            {
+                _activeThumbnailBrowser.Close();
+                _activeThumbnailBrowser = null;
+            }
         }
 
         /// <summary>
@@ -228,7 +285,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private Task CloseActiveSubwindowAsync()
         {
-            if (_activeSubwindow == null)
+            if (_activeSubwindow == null && _activeThumbnailBrowser == null)
                 return Task.CompletedTask;
 
             _logger.LogInfo("Closing active subwindow (async)");
@@ -237,11 +294,25 @@ namespace InteractiveWorldMap
             var windowToClose = _activeSubwindow;
             _activeSubwindow = null;
 
-            windowToClose.AnimateClose(() =>
+            // Close thumbnail browser immediately
+            if (_activeThumbnailBrowser != null)
             {
-                Focus(); // Return focus to main window
+                _activeThumbnailBrowser.Close();
+                _activeThumbnailBrowser = null;
+            }
+
+            if (windowToClose != null)
+            {
+                windowToClose.AnimateClose(() =>
+                {
+                    Focus(); // Return focus to main window
+                    tcs.SetResult(true);
+                });
+            }
+            else
+            {
                 tcs.SetResult(true);
-            });
+            }
 
             return tcs.Task;
         }

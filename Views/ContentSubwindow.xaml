@@ -10,17 +10,17 @@
         ShowInTaskbar="False"
         Topmost="True">
     <Border x:Name="ContentBorder"
-            Background="White"
-            CornerRadius="8"
-            Padding="10"
-            BorderThickness="1"
-            BorderBrush="#CCCCCC">
+            Background="#A61E1E1E"
+            CornerRadius="12"
+            Padding="15"
+            BorderThickness="2"
+            BorderBrush="#FFFFFFFF">
         <Border.Effect>
             <DropShadowEffect Color="Black" 
                             Direction="270" 
-                            ShadowDepth="4" 
-                            BlurRadius="10" 
-                            Opacity="0.3"/>
+                            ShadowDepth="6" 
+                            BlurRadius="20" 
+                            Opacity="0.25"/>
         </Border.Effect>
         
         <Grid>
@@ -32,17 +32,17 @@
             <!-- Title Bar -->
             <TextBlock x:Name="TitleText"
                       Grid.Row="0"
-                      FontSize="16"
+                      FontSize="18"
                       FontWeight="SemiBold"
-                      Margin="0,0,0,10"
+                      Foreground="#FFFFFFFF"
+                      Margin="0,0,0,12"
                       TextWrapping="Wrap"/>
             
-            <!-- Content Area -->
-            <ScrollViewer Grid.Row="1" 
-                         VerticalScrollBarVisibility="Auto"
-                         HorizontalScrollBarVisibility="Disabled">
+            <!-- Content Area with proper sizing -->
+            <Viewbox Grid.Row="1"
+                    Stretch="Uniform">
                 <ContentPresenter x:Name="ContentArea"/>
-            </ScrollViewer>
+            </Viewbox>
         </Grid>
     </Border>
 </Window>

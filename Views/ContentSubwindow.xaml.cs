@@ -13,8 +13,8 @@ namespace InteractiveWorldMap.Views;
 /// </summary>
 public partial class ContentSubwindow : Window
 {
-    private const double MaxWindowWidth = 800;
-    private const double MaxWindowHeight = 600;
+    private const double WindowWidthPercent = 0.3375;  // 33.75% of screen width (25% * 1.35)
+    private const double WindowHeightPercent = 0.5906; // 59.06% of screen height (35% * 1.35 * 1.25)
     private const double MinWindowWidth = 300;
     private const double MinWindowHeight = 200;
     private const double TitleBarHeight = 40;
@@ -99,29 +99,13 @@ public partial class ContentSubwindow : Window
     /// </summary>
     private void CalculateSizeForImage(ImageSource imageSource)
     {
-        var imageWidth = imageSource.Width;
-        var imageHeight = imageSource.Height;
-
-        // Calculate aspect ratio
-        var aspectRatio = imageWidth / imageHeight;
-
-        // Start with image dimensions plus padding and title
-        var targetWidth = imageWidth + ContentPadding;
-        var targetHeight = imageHeight + TitleBarHeight + ContentPadding;
-
-        // Constrain to max dimensions while preserving aspect ratio
-        if (targetWidth > MaxWindowWidth)
-        {
-            targetWidth = MaxWindowWidth;
-            targetHeight = (targetWidth - ContentPadding) / aspectRatio + TitleBarHeight + ContentPadding;
-        }
-
-        if (targetHeight > MaxWindowHeight)
-        {
-            targetHeight = MaxWindowHeight;
-            targetWidth = (targetHeight - TitleBarHeight - ContentPadding) * aspectRatio + ContentPadding;
-        }
-
+        var screenWidth = SystemParameters.PrimaryScreenWidth;
+        var screenHeight = SystemParameters.PrimaryScreenHeight;
+        
+        // Calculate target window size based on screen percentages
+        var targetWidth = screenWidth * WindowWidthPercent;
+        var targetHeight = screenHeight * WindowHeightPercent;
+        
         // Ensure minimum dimensions
         targetWidth = Math.Max(MinWindowWidth, targetWidth);
         targetHeight = Math.Max(MinWindowHeight, targetHeight);
@@ -134,15 +118,16 @@ public partial class ContentSubwindow : Window
     /// </summary>
     private void CalculateSizeForText(string text)
     {
-        // Estimate size based on text length
-        var charCount = text.Length;
+        var screenWidth = SystemParameters.PrimaryScreenWidth;
+        var screenHeight = SystemParameters.PrimaryScreenHeight;
         
-        // Rough estimate: 10 chars per line, 20px per line
-        var estimatedLines = Math.Max(5, Math.Min(20, charCount / 50));
-        var estimatedHeight = estimatedLines * 20 + TitleBarHeight + ContentPadding;
+        // Calculate target window size based on screen percentages
+        var targetWidth = screenWidth * WindowWidthPercent;
+        var targetHeight = screenHeight * WindowHeightPercent;
         
-        var targetWidth = 400;
-        var targetHeight = Math.Min(MaxWindowHeight, Math.Max(MinWindowHeight, estimatedHeight));
+        // Ensure minimum dimensions
+        targetWidth = Math.Max(MinWindowWidth, targetWidth);
+        targetHeight = Math.Max(MinWindowHeight, targetHeight);
 
         PreferredSize = new Size(targetWidth, targetHeight);
     }

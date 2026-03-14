@@ -204,6 +204,68 @@ public class ContentLoader
     /// </summary>
     /// <param name="location">The location to load content for</param>
     /// <returns>BitmapImage for image content, or null for text content</returns>
+    public async Task<BitmapImage[]> LoadAllLocationImagesAsync(Location location)
+    {
+        if (location == null)
+            throw new ArgumentNullException(nameof(location));
+
+        try
+        {
+            _logger.LogInfo($"Loading all images for location: {location.Name}");
+
+            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
+            
+            if (!Directory.Exists(locationFolder))
+            {
+                _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
+                return Array.Empty<BitmapImage>();
+            }
+
+            // Find all image files in the location folder
+            var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
+                .Concat(Directory.GetFiles(locationFolder, "*.png"))
+                .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
+                .ToArray();
+
+            if (imageFiles.Length == 0)
+            {
+                _logger.LogWarning($"No image files found in location folder: {locationFolder}");
+                return Array.Empty<BitmapImage>();
+            }
+
+            var images = new BitmapImage[imageFiles.Length];
+            
+            for (int i = 0; i < imageFiles.Length; i++)
+            {
+                var imagePath = imageFiles[i];
+                images[i] = await Task.Run(() =>
+                {
+                    var img = new BitmapImage();
+                    img.BeginInit();
+                    img.UriSource = new Uri(imagePath, UriKind.Absolute);
+                    img.CacheOption = BitmapCacheOption.OnLoad;
+                    img.EndInit();
+                    img.Freeze();
+                    return img;
+                });
+            }
+
+            _logger.LogInfo($"Successfully loaded {images.Length} images for location: {location.Name}");
+            return images;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to load images for location {location.Name}: {ex.Message}\n{ex.StackTrace}");
+            return Array.Empty<BitmapImage>();
+        }
+    }
+
+    /// <summary>
+    /// Loads content for a location.
+    /// Content is expected to be in a subfolder named after the location.
+    /// </summary>
+    /// <param name="location">The location to load content for</param>
+    /// <returns>BitmapImage for image content, or null for text content</returns>
     public async Task<BitmapImage?> LoadLocationContentAsync(Location location)
     {
         if (location == null)
