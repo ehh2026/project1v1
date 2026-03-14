@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -25,6 +26,7 @@ namespace InteractiveWorldMap
         private readonly MapNavigationService _navigationService;
         private readonly ViewportCalculator _viewportCalculator;
         private readonly AnimationFrameCache _frameCache;
+        private readonly ZoomedRegionCache _zoomedRegionCache;
         private ContentSubwindow? _activeSubwindow;
         private List<LocationCluster> _clusters = new List<LocationCluster>();
         
@@ -66,6 +68,11 @@ namespace InteractiveWorldMap
                 
                 _frameCache = new AnimationFrameCache(_logger);
                 _logger.LogInfo("AnimationFrameCache created");
+
+                // Initialize zoomed region cache with full-res image path
+                var fullResPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", "World Map 1976.jpg");
+                _zoomedRegionCache = new ZoomedRegionCache(_logger, fullResPath);
+                _logger.LogInfo("ZoomedRegionCache created");
 
                 // Wire up events
                 Loaded += OnWindowLoaded;
@@ -292,7 +299,26 @@ namespace InteractiveWorldMap
             marker.MouseLeftButtonDown += (s, e) =>
             {
                 marker.AnimateClick();
-                ShowContentForLocation(location);
+                
+                // If we're at full map view (not zoomed), zoom to this location
+                // Otherwise, show content
+                var viewport = MapDisplay.CurrentViewport;
+                if (viewport != null && viewport.ZoomLevel <= 1.0)
+                {
+                    // Create a single-location cluster and zoom to it
+                    var singleCluster = new LocationCluster
+                    {
+                        Locations = new List<Location> { location },
+                        CenterPoint = new Point(location.PixelX, location.PixelY)
+                    };
+                    OnClusterClicked(singleCluster);
+                }
+                else
+                {
+                    // Already zoomed, show content
+                    ShowContentForLocation(location);
+                }
+                
                 e.Handled = true;
             };
             
@@ -645,7 +671,7 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Shows individual markers for the zoomed cluster.
+        /// Shows individual markers for the zoomed cluster and displays high-quality zoomed image.
         /// </summary>
         private void ShowZoomedView(LocationCluster cluster)
         {
@@ -658,6 +684,34 @@ namespace InteractiveWorldMap
                 if (viewport != null)
                 {
                     _logger.LogInfo($"  Current viewport: ({viewport.ViewportX:F2}, {viewport.ViewportY:F2}) {viewport.ViewportWidth:F2}x{viewport.ViewportHeight:F2}, zoom={viewport.ZoomLevel:F2}");
+                    
+                    // Load or generate high-quality zoomed region
+                    var centerX = cluster.CenterPoint.X;
+                    var centerY = cluster.CenterPoint.Y;
+                    var displayWidth = (int)MapDisplay.ActualWidth;
+                    var displayHeight = (int)MapDisplay.ActualHeight;
+                    
+                    var cachedRegion = _zoomedRegionCache.TryLoadRegion(centerX, centerY, ZoomScale, displayWidth, displayHeight);
+                    
+                    if (cachedRegion != null)
+                    {
+                        _logger.LogInfo("  Loaded high-quality zoomed region from cache");
+                        MapDisplay.DisplayImage.Source = cachedRegion;
+                    }
+                    else
+                    {
+                        _logger.LogInfo("  Generating high-quality zoomed region...");
+                        var sourceRect = viewport.GetSourceRect();
+                        var sourceImage = MapDisplay.SourceImage;
+                        
+                        if (sourceImage != null)
+                        {
+                            var highQualityRegion = _zoomedRegionCache.GenerateAndCacheRegion(
+                                sourceImage, sourceRect, centerX, centerY, ZoomScale, displayWidth, displayHeight);
+                            MapDisplay.DisplayImage.Source = highQualityRegion;
+                            _logger.LogInfo("  High-quality zoomed region generated and cached");
+                        }
+                    }
                 }
 
                 // Show only individual markers for this cluster
