@@ -29,6 +29,7 @@ namespace InteractiveWorldMap
         private readonly ZoomedRegionCache _zoomedRegionCache;
         private ContentSubwindow? _activeSubwindow;
         private ThumbnailBrowserWindow? _activeThumbnailBrowser;
+        private DidacticTextWindow? _activeDidacticWindow;
         private List<LocationCluster> _clusters = new List<LocationCluster>();
         
         // Collections to track markers
@@ -40,7 +41,7 @@ namespace InteractiveWorldMap
         private const double ImageHeight = 5542.0;
         
         // Zoom configuration
-        private const double ZoomScale = 10.0; // 10x magnification when zoomed
+        private const double ZoomScale = 30.0; // magnification when zoomed
         private const int AnimationDurationMs = 390; // Animation duration
 
         /// <summary>
@@ -179,6 +180,12 @@ namespace InteractiveWorldMap
                     _activeThumbnailBrowser.Close();
                     _activeThumbnailBrowser = null;
                 }
+                
+                if (_activeDidacticWindow != null)
+                {
+                    _activeDidacticWindow.Close();
+                    _activeDidacticWindow = null;
+                }
 
                 // Load all images with translations for this location
                 var allImagesWithTranslations = await _contentLoader.LoadAllLocationImagesWithTranslationsAsync(location);
@@ -200,7 +207,7 @@ namespace InteractiveWorldMap
                 else
                 {
                     // Show first image
-                    ShowImageAtIndex(location, allImagesWithTranslations, 0);
+                    await ShowImageAtIndexAsync(location, allImagesWithTranslations, 0);
                 }
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");
@@ -214,7 +221,7 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Shows a specific image from a location's image collection.
         /// </summary>
-        private void ShowImageAtIndex(Location location, (BitmapImage Image, string? TranslationText)[] allImagesWithTranslations, int index)
+        private async Task ShowImageAtIndexAsync(Location location, (BitmapImage Image, string? TranslationText)[] allImagesWithTranslations, int index)
         {
             var (image, translationText) = allImagesWithTranslations[index];
             
@@ -228,6 +235,23 @@ namespace InteractiveWorldMap
             var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
             _activeSubwindow.ShowContent(image, location.Name, markerPosition, translationText);
 
+            // Load and show didactic text if available
+            var didacticText = await _contentLoader.LoadDidacticTextAsync(location);
+            if (!string.IsNullOrEmpty(didacticText))
+            {
+                _activeDidacticWindow = new DidacticTextWindow
+                {
+                    Owner = this
+                };
+                
+                _activeDidacticWindow.SetContent(didacticText);
+                _activeDidacticWindow.PositionRelativeTo(_activeSubwindow);
+                _activeDidacticWindow.Show();
+                _activeDidacticWindow.AnimateOpen();
+                
+                _logger.LogInfo($"Didactic text window opened for location: {location.Name}");
+            }
+
             // If there are multiple images, show thumbnail browser
             if (allImagesWithTranslations.Length > 1)
             {
@@ -239,6 +263,9 @@ namespace InteractiveWorldMap
                 };
                 
                 _activeThumbnailBrowser.LoadThumbnails(images, index);
+                
+                // Position thumbnail browser to the right of content window
+                // If didactic window exists, it's already on the left
                 _activeThumbnailBrowser.PositionRelativeTo(_activeSubwindow);
                 
                 // Handle thumbnail selection
@@ -283,6 +310,13 @@ namespace InteractiveWorldMap
                 _activeThumbnailBrowser.Close();
                 _activeThumbnailBrowser = null;
             }
+            
+            // Also close didactic window
+            if (_activeDidacticWindow != null)
+            {
+                _activeDidacticWindow.Close();
+                _activeDidacticWindow = null;
+            }
         }
 
         /// <summary>
@@ -290,7 +324,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private Task CloseActiveSubwindowAsync()
         {
-            if (_activeSubwindow == null && _activeThumbnailBrowser == null)
+            if (_activeSubwindow == null && _activeThumbnailBrowser == null && _activeDidacticWindow == null)
                 return Task.CompletedTask;
 
             _logger.LogInfo("Closing active subwindow (async)");
@@ -304,6 +338,13 @@ namespace InteractiveWorldMap
             {
                 _activeThumbnailBrowser.Close();
                 _activeThumbnailBrowser = null;
+            }
+            
+            // Close didactic window immediately
+            if (_activeDidacticWindow != null)
+            {
+                _activeDidacticWindow.Close();
+                _activeDidacticWindow = null;
             }
 
             if (windowToClose != null)

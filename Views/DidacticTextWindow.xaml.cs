@@ -1,0 +1,90 @@
+using System;
+using System.Windows;
+
+namespace InteractiveWorldMap.Views;
+
+/// <summary>
+/// Displays didactic text information for a location.
+/// </summary>
+public partial class DidacticTextWindow : Window
+{
+    public DidacticTextWindow()
+    {
+        InitializeComponent();
+        
+        // Start with opacity 0 for animation
+        Opacity = 0;
+    }
+
+    /// <summary>
+    /// Sets the didactic text content to display.
+    /// </summary>
+    public void SetContent(string text)
+    {
+        DidacticTextBlock.Text = text;
+    }
+
+    /// <summary>
+    /// Positions the window to the left of the content window.
+    /// </summary>
+    public void PositionRelativeTo(Window contentWindow)
+    {
+        // Position to the left of the content window
+        Left = contentWindow.Left - Width - 10;
+        Top = contentWindow.Top;
+        
+        // Ensure it stays on screen
+        if (Left < 0)
+        {
+            // If it doesn't fit on the left, put it on the right of the main window
+            Left = contentWindow.Left + contentWindow.Width + 10;
+        }
+        
+        // Ensure minimum left position
+        Left = Math.Max(0, Left);
+        
+        // Ensure the window doesn't go off the bottom of the screen
+        var screenHeight = SystemParameters.PrimaryScreenHeight;
+        if (Top + Height > screenHeight)
+        {
+            Top = Math.Max(0, screenHeight - Height - 10);
+        }
+    }
+
+    /// <summary>
+    /// Animates the window opening.
+    /// </summary>
+    public void AnimateOpen()
+    {
+        var duration = TimeSpan.FromMilliseconds(150);
+        var fadeIn = new System.Windows.Media.Animation.DoubleAnimation
+        {
+            From = 0,
+            To = 1,
+            Duration = duration
+        };
+        BeginAnimation(OpacityProperty, fadeIn);
+    }
+
+    /// <summary>
+    /// Animates the window closing.
+    /// </summary>
+    public void AnimateClose(Action? onComplete = null)
+    {
+        var duration = TimeSpan.FromMilliseconds(100);
+        var fadeOut = new System.Windows.Media.Animation.DoubleAnimation
+        {
+            From = 1,
+            To = 0,
+            Duration = duration
+        };
+        
+        fadeOut.Completed += (s, e) =>
+        {
+            Close();
+            onComplete?.Invoke();
+        };
+        
+        BeginAnimation(OpacityProperty, fadeOut);
+    }
+}

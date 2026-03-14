@@ -221,10 +221,11 @@ public class ContentLoader
                 return Array.Empty<(BitmapImage, string?)>();
             }
 
-            // Find all image files in the location folder
+            // Find all image files in the location folder and sort by filename
             var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
                 .Concat(Directory.GetFiles(locationFolder, "*.png"))
                 .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
+                .OrderBy(f => Path.GetFileName(f))
                 .ToArray();
 
             if (imageFiles.Length == 0)
@@ -445,6 +446,37 @@ public class ContentLoader
         {
             _logger.LogError($"Content folder validation failed: {ex.Message}");
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Loads didactic text from a location's folder if it exists.
+    /// </summary>
+    /// <param name="location">The location to load didactic text for</param>
+    /// <returns>The didactic text content, or null if not found</returns>
+    public async Task<string?> LoadDidacticTextAsync(Location location)
+    {
+        if (location == null)
+            throw new ArgumentNullException(nameof(location));
+
+        try
+        {
+            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
+            var didacticPath = Path.Combine(locationFolder, "didactic.txt");
+
+            if (File.Exists(didacticPath))
+            {
+                var text = await File.ReadAllTextAsync(didacticPath);
+                _logger.LogInfo($"Loaded didactic text for location: {location.Name}");
+                return text;
+            }
+
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to load didactic text for location {location.Name}: {ex.Message}");
+            return null;
         }
     }
 }

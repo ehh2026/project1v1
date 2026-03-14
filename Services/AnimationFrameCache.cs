@@ -14,7 +14,7 @@ public class AnimationFrameCache
 {
     private readonly string _cacheDirectory;
     private readonly ILogger _logger;
-    private const int CacheVersion = 11; // Increment when interpolation algorithm changes
+    private const int CacheVersion = 15; // Increment when interpolation algorithm changes
 
     public AnimationFrameCache(ILogger logger)
     {

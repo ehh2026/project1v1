@@ -13,8 +13,8 @@ namespace InteractiveWorldMap.Views;
 /// </summary>
 public partial class ContentSubwindow : Window
 {
-    private const double WindowWidthPercent = 0.3375;  // 33.75% of screen width (25% * 1.35)
-    private const double WindowHeightPercent = 0.5906; // 59.06% of screen height (35% * 1.35 * 1.25)
+    private const double WindowWidthPercent = 0.37125;  // 37.125% of screen width (increased by 10%)
+    private const double WindowHeightPercent = 0.70872; // 70.872% of screen height (increased by 20%)
     private const double MinWindowWidth = 300;
     private const double MinWindowHeight = 200;
     private const double TitleBarHeight = 40;

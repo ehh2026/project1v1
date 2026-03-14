@@ -18,9 +18,10 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Converting list of people/addresses to Excel file or table with column headings like "Address", "Pixel Coordinates", anything else useful (eg, "Accession Numbers")
 - [ ] Recommend putting all images/content in subfolders grouped by Accession Number or some other key, then copy to subfolder of code
 - [ ] Get map file decided so you can get pixel coordinates
-- [ ] Use animations rather than abrupt transitions
 - [ ] consider addressing issues in REFACTOR ASSESSMENT
-- [ ] Enable arbitrary / continuous zoom/pan?
+- [ ] *Add welcome / instructions screen*
+- [ ] Add support for ordering images/content
+- [ ] Add explanatory/bio popup window per marker
 
 ---
 

@@ -16,7 +16,7 @@ public class ZoomedRegionCache
     private readonly string _cacheDirectory;
     private readonly ILogger _logger;
     private readonly string _fullResolutionImagePath;
-    private const int CacheVersion = 2;
+    private const int CacheVersion = 6;
 
     public ZoomedRegionCache(ILogger logger, string fullResolutionImagePath)
     {
