@@ -46,7 +46,6 @@
         
         <!-- Stamp image -->
         <Image x:Name="StampImage"
-               Source="/Images&amp;Content/stamp_demo.png"
                Width="40" Height="40"
                Stretch="Uniform">
             <Image.Effect>

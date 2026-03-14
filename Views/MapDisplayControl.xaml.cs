@@ -65,6 +65,11 @@ public partial class MapDisplayControl : UserControl
     public TranslateTransform TranslateTransform => MapTranslateTransform;
 
     /// <summary>
+    /// Gets the marker canvas where markers should be added.
+    /// </summary>
+    public Canvas Markers => MarkerCanvas;
+
+    /// <summary>
     /// Gets whether the map is currently zoomed in.
     /// </summary>
     public bool IsZoomed => Math.Abs(MapScaleTransform.ScaleX - 1.0) > 0.01;

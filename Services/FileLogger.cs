@@ -5,36 +5,62 @@ namespace InteractiveWorldMap.Services
 {
     /// <summary>
     /// File-based logger implementation that writes to %APPDATA%/InteractiveWorldMap/logs/app.log
+    /// Uses a shared file writer to avoid file locking issues.
     /// </summary>
     public class FileLogger : ILogger, IDisposable
     {
-        private readonly string _logFilePath;
-        private readonly object _lockObject = new object();
-        private StreamWriter? _writer;
+        private static readonly object _globalLockObject = new object();
+        private static StreamWriter? _sharedWriter;
+        private static int _instanceCount = 0;
+        private static string? _logFilePath;
 
         public FileLogger()
         {
-            var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var logDirectory = Path.Combine(appDataPath, "InteractiveWorldMap", "logs");
-            
-            Directory.CreateDirectory(logDirectory);
-            
-            _logFilePath = Path.Combine(logDirectory, "app.log");
-            InitializeWriter();
+            lock (_globalLockObject)
+            {
+                _instanceCount++;
+                
+                if (_sharedWriter == null)
+                {
+                    var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    var logDirectory = Path.Combine(appDataPath, "InteractiveWorldMap", "logs");
+                    
+                    try
+                    {
+                        Directory.CreateDirectory(logDirectory);
+                        _logFilePath = Path.Combine(logDirectory, "app.log");
+                        
+                        Console.WriteLine($"Log file path: {_logFilePath}");
+                        
+                        InitializeSharedWriter();
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Failed to initialize logger: {ex.Message}");
+                        _logFilePath = Path.Combine(Path.GetTempPath(), "InteractiveWorldMap_app.log");
+                        Console.WriteLine($"Using fallback log path: {_logFilePath}");
+                        InitializeSharedWriter();
+                    }
+                }
+            }
         }
 
-        private void InitializeWriter()
+        private static void InitializeSharedWriter()
         {
             try
             {
-                _writer = new StreamWriter(_logFilePath, append: true)
+                _sharedWriter?.Dispose();
+                
+                _sharedWriter = new StreamWriter(_logFilePath!, append: true)
                 {
                     AutoFlush = true
                 };
+                
+                Console.WriteLine($"Log writer initialized successfully");
             }
             catch (Exception ex)
             {
-                // If we can't create the log file, write to console in debug builds
+                Console.WriteLine($"Failed to initialize log file writer: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"Failed to initialize log file: {ex.Message}");
             }
         }
@@ -62,33 +88,53 @@ namespace InteractiveWorldMap.Services
 
         private void WriteLog(string message)
         {
-            lock (_lockObject)
+            lock (_globalLockObject)
             {
                 try
                 {
-                    // Write to file
-                    _writer?.WriteLine(message);
-                    
-                    // Write to console
+                    // Write to console first (always works)
                     Console.WriteLine(message);
                     
-                    // Also write to debug output in debug builds
+                    // Write to debug output
                     System.Diagnostics.Debug.WriteLine(message);
+                    
+                    // Write to file if writer is available
+                    if (_sharedWriter != null)
+                    {
+                        _sharedWriter.WriteLine(message);
+                        _sharedWriter.Flush(); // Explicit flush to ensure it's written
+                    }
                 }
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Failed to write log: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"Failed to write log: {ex.Message}");
+                    
+                    // Try to reinitialize the writer
+                    try
+                    {
+                        InitializeSharedWriter();
+                    }
+                    catch
+                    {
+                        // Ignore reinitialization errors
+                    }
                 }
             }
         }
 
         public void Dispose()
         {
-            lock (_lockObject)
+            lock (_globalLockObject)
             {
-                _writer?.Dispose();
-                _writer = null;
+                _instanceCount--;
+                
+                // Only dispose the shared writer when the last instance is disposed
+                if (_instanceCount == 0 && _sharedWriter != null)
+                {
+                    _sharedWriter.Dispose();
+                    _sharedWriter = null;
+                }
             }
         }
     }

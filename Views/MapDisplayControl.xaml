@@ -7,17 +7,27 @@
              d:DesignHeight="1080" d:DesignWidth="1920"
              Background="Black">
     <Grid>
-        <Image x:Name="MapImage" 
-               Stretch="Uniform" 
-               HorizontalAlignment="Center" 
-               VerticalAlignment="Center"
-               RenderOptions.BitmapScalingMode="HighQuality">
-            <Image.RenderTransform>
+        <!-- Container that will be transformed (map + markers together) -->
+        <Grid x:Name="TransformContainer">
+            <Grid.RenderTransform>
                 <TransformGroup>
                     <ScaleTransform x:Name="MapScaleTransform" ScaleX="1" ScaleY="1" CenterX="0" CenterY="0"/>
                     <TranslateTransform x:Name="MapTranslateTransform" X="0" Y="0"/>
                 </TransformGroup>
-            </Image.RenderTransform>
-        </Image>
+            </Grid.RenderTransform>
+            
+            <!-- Map Image -->
+            <Image x:Name="MapImage" 
+                   Stretch="Uniform" 
+                   HorizontalAlignment="Center" 
+                   VerticalAlignment="Center"
+                   RenderOptions.BitmapScalingMode="HighQuality"/>
+            
+            <!-- Marker Canvas - transforms with the map, aligned to match image -->
+            <Canvas x:Name="MarkerCanvas"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Background="Transparent"/>
+        </Grid>
     </Grid>
 </UserControl>

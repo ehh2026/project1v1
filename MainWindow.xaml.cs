@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
@@ -22,6 +23,14 @@ namespace InteractiveWorldMap
         private readonly MapNavigationService _navigationService;
         private ContentSubwindow? _activeSubwindow;
         private List<LocationCluster> _clusters = new List<LocationCluster>();
+        
+        // Collections to track markers
+        private readonly List<LocationMarker> _individualMarkers = new List<LocationMarker>();
+        private readonly List<ClusterMarker> _clusterMarkers = new List<ClusterMarker>();
+        
+        // Map image dimensions
+        private const double ImageWidth = 16397.0;
+        private const double ImageHeight = 11085.0;
         
         // Zoom configuration
         private const double ZoomScale = 3.5; // 3.5x magnification when zoomed
@@ -49,12 +58,6 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("MapNavigationService created");
 
                 // Wire up events
-                MarkerLayer.MarkerClicked += OnMarkerClicked;
-                _logger.LogInfo("MarkerClicked event wired");
-                
-                MarkerLayer.ClusterClicked += OnClusterClicked;
-                _logger.LogInfo("ClusterClicked event wired");
-                
                 Loaded += OnWindowLoaded;
                 _logger.LogInfo("Loaded event wired");
                 
@@ -112,20 +115,15 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("Step 3: Waiting for layout");
                 await Task.Delay(100);
 
-                // Update marker layer with map bounds
-                _logger.LogInfo("Step 4: Updating marker layer bounds");
-                UpdateMarkerLayerBounds();
-                _logger.LogInfo("Marker layer bounds updated");
-
                 // Load and cluster locations
-                _logger.LogInfo("Step 5: Loading and clustering location data");
+                _logger.LogInfo("Step 4: Loading and clustering location data");
                 _clusters = await _contentLoader.LoadClustersAsync();
                 _logger.LogInfo($"Loaded {_clusters.Count} clusters");
                 
                 if (_clusters.Any())
                 {
-                    _logger.LogInfo("Step 6: Adding cluster markers");
-                    MarkerLayer.AddClusters(_clusters);
+                    _logger.LogInfo("Step 5: Adding cluster markers to map");
+                    AddClustersToMap(_clusters);
                     _logger.LogInfo($"Added markers for {_clusters.Count} clusters");
                 }
                 else
@@ -232,6 +230,249 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
+        /// Adds clusters to the map canvas.
+        /// </summary>
+        private void AddClustersToMap(List<LocationCluster> clusters)
+        {
+            _logger.LogInfo($"[AddClustersToMap] Adding {clusters.Count} clusters");
+            
+            var mapBounds = MapDisplay.MapBounds;
+            var canvas = MapDisplay.Markers;
+            
+            // Set canvas size to match map bounds (it's centered, so no need to set position)
+            canvas.Width = mapBounds.Width;
+            canvas.Height = mapBounds.Height;
+            
+            _logger.LogInfo($"  Canvas size: {mapBounds.Width:F2} x {mapBounds.Height:F2}");
+            _logger.LogInfo($"  Map bounds: {mapBounds}");
+            
+            foreach (var cluster in clusters)
+            {
+                if (cluster.IsSingleLocation)
+                {
+                    // Add individual marker
+                    AddIndividualMarker(cluster.Locations[0], mapBounds);
+                }
+                else
+                {
+                    // Add cluster marker
+                    AddClusterMarker(cluster, mapBounds);
+                }
+            }
+            
+            _logger.LogInfo($"[AddClustersToMap] Complete - {_individualMarkers.Count} individual, {_clusterMarkers.Count} cluster markers");
+            
+            // Log initial screen positions after layout
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                _logger.LogInfo("  Initial screen positions:");
+                foreach (var marker in _clusterMarkers.Where(m => m.Visibility == Visibility.Visible))
+                {
+                    try
+                    {
+                        var canvasPos = new Point(Canvas.GetLeft(marker) + marker.Width / 2, Canvas.GetTop(marker) + marker.Height / 2);
+                        var screenPos = marker.TransformToAncestor(this).Transform(new Point(marker.Width / 2, marker.Height / 2));
+                        _logger.LogInfo($"    Cluster ({marker.Cluster.Count}): canvas({canvasPos.X:F2}, {canvasPos.Y:F2}) -> screen({screenPos.X:F2}, {screenPos.Y:F2})");
+                    }
+                    catch { }
+                }
+                foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+                {
+                    try
+                    {
+                        var canvasPos = new Point(Canvas.GetLeft(marker) + marker.Width / 2, Canvas.GetTop(marker) + marker.Height / 2);
+                        var screenPos = marker.TransformToAncestor(this).Transform(new Point(marker.Width / 2, marker.Height / 2));
+                        _logger.LogInfo($"    Individual '{marker.Location.Name}': canvas({canvasPos.X:F2}, {canvasPos.Y:F2}) -> screen({screenPos.X:F2}, {screenPos.Y:F2})");
+                    }
+                    catch { }
+                }
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        /// <summary>
+        /// Adds an individual location marker to the canvas.
+        /// </summary>
+        private void AddIndividualMarker(Location location, Rect mapBounds)
+        {
+            var marker = new LocationMarker { Location = location };
+            
+            // Calculate position in canvas coordinates (0 to canvas width/height)
+            var normalizedX = location.PixelX / ImageWidth;
+            var normalizedY = location.PixelY / ImageHeight;
+            
+            var x = normalizedX * mapBounds.Width;
+            var y = normalizedY * mapBounds.Height;
+            
+            // Position marker (centered on point)
+            Canvas.SetLeft(marker, x - marker.Width / 2);
+            Canvas.SetTop(marker, y - marker.Height / 2);
+            
+            // Add click handler
+            marker.MouseLeftButtonDown += (s, e) =>
+            {
+                marker.AnimateClick();
+                ShowContentForLocation(location);
+                e.Handled = true;
+            };
+            
+            _individualMarkers.Add(marker);
+            MapDisplay.Markers.Children.Add(marker);
+            
+            // Log coordinates
+            _logger.LogInfo($"  Individual marker '{location.Name}':");
+            _logger.LogInfo($"    Image coords: ({location.PixelX}, {location.PixelY})");
+            _logger.LogInfo($"    Normalized: ({normalizedX:F4}, {normalizedY:F4})");
+            _logger.LogInfo($"    Canvas pos: ({x:F2}, {y:F2})");
+        }
+
+        /// <summary>
+        /// Adds a cluster marker to the canvas.
+        /// </summary>
+        private void AddClusterMarker(LocationCluster cluster, Rect mapBounds)
+        {
+            var marker = new ClusterMarker { Cluster = cluster };
+            marker.UpdateDisplay();
+            
+            // Calculate position in canvas coordinates (0 to canvas width/height)
+            var normalizedX = cluster.CenterPoint.X / ImageWidth;
+            var normalizedY = cluster.CenterPoint.Y / ImageHeight;
+            
+            var x = normalizedX * mapBounds.Width;
+            var y = normalizedY * mapBounds.Height;
+            
+            // Position marker (centered on point)
+            Canvas.SetLeft(marker, x - marker.Width / 2);
+            Canvas.SetTop(marker, y - marker.Height / 2);
+            
+            // Add click handler
+            marker.MouseLeftButtonDown += (s, e) =>
+            {
+                marker.AnimateClick();
+                OnClusterClicked(cluster);
+                e.Handled = true;
+            };
+            
+            _clusterMarkers.Add(marker);
+            MapDisplay.Markers.Children.Add(marker);
+            
+            // Log coordinates
+            _logger.LogInfo($"  Cluster marker ({cluster.Count} locations):");
+            _logger.LogInfo($"    Image coords: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
+            _logger.LogInfo($"    Normalized: ({normalizedX:F4}, {normalizedY:F4})");
+            _logger.LogInfo($"    Canvas pos: ({x:F2}, {y:F2})");
+        }
+
+        /// <summary>
+        /// Clears all markers from the canvas.
+        /// </summary>
+        private void ClearAllMarkers()
+        {
+            _logger.LogInfo($"[ClearAllMarkers] Clearing {_individualMarkers.Count} individual and {_clusterMarkers.Count} cluster markers");
+            
+            foreach (var marker in _individualMarkers)
+            {
+                MapDisplay.Markers.Children.Remove(marker);
+            }
+            _individualMarkers.Clear();
+            
+            foreach (var marker in _clusterMarkers)
+            {
+                MapDisplay.Markers.Children.Remove(marker);
+            }
+            _clusterMarkers.Clear();
+        }
+
+        /// <summary>
+        /// Shows only cluster markers (hides individual markers).
+        /// </summary>
+        private void ShowOnlyClusterMarkers()
+        {
+            _logger.LogInfo("[ShowOnlyClusterMarkers]");
+            
+            // Show all individual markers that are single-location clusters
+            foreach (var marker in _individualMarkers)
+            {
+                // Check if this individual marker is from a single-location cluster
+                var isSingleCluster = _clusters.Any(c => c.IsSingleLocation && c.Locations[0] == marker.Location);
+                marker.Visibility = isSingleCluster ? Visibility.Visible : Visibility.Collapsed;
+            }
+            
+            // Show all cluster markers
+            foreach (var marker in _clusterMarkers)
+            {
+                marker.Visibility = Visibility.Visible;
+            }
+        }
+
+        /// <summary>
+        /// Counter-scales all markers to maintain their visual size when the map is zoomed.
+        /// </summary>
+        /// <param name="scale">The scale factor to apply (1/zoomScale to counter the zoom)</param>
+        private void CounterScaleMarkers(double scale)
+        {
+            _logger.LogInfo($"[CounterScaleMarkers] Applying scale: {scale:F2}");
+            
+            var scaleTransform = new ScaleTransform(scale, scale);
+            
+            foreach (var marker in _individualMarkers)
+            {
+                marker.RenderTransform = scaleTransform;
+                marker.RenderTransformOrigin = new Point(0.5, 0.5);
+            }
+            
+            foreach (var marker in _clusterMarkers)
+            {
+                marker.RenderTransform = scaleTransform;
+                marker.RenderTransformOrigin = new Point(0.5, 0.5);
+            }
+        }
+
+        /// <summary>
+        /// Shows only individual markers for a specific cluster (hides cluster markers).
+        /// </summary>
+        private void ShowOnlyIndividualMarkers(LocationCluster cluster)
+        {
+            _logger.LogInfo($"[ShowOnlyIndividualMarkers] Showing markers for cluster with {cluster.Count} locations");
+            
+            // Hide all cluster markers
+            foreach (var marker in _clusterMarkers)
+            {
+                marker.Visibility = Visibility.Collapsed;
+            }
+            
+            var mapBounds = MapDisplay.MapBounds;
+            
+            // For each location in the cluster, ensure we have an individual marker
+            foreach (var location in cluster.Locations)
+            {
+                // Check if marker already exists
+                var existingMarker = _individualMarkers.FirstOrDefault(m => m.Location == location);
+                
+                if (existingMarker != null)
+                {
+                    // Show existing marker
+                    existingMarker.Visibility = Visibility.Visible;
+                    _logger.LogInfo($"  Showing existing marker: {location.Name}");
+                }
+                else
+                {
+                    // Create new individual marker for this location
+                    _logger.LogInfo($"  Creating new marker for: {location.Name}");
+                    AddIndividualMarker(location, mapBounds);
+                }
+            }
+            
+            // Hide all other individual markers not in this cluster
+            foreach (var marker in _individualMarkers)
+            {
+                if (!cluster.Locations.Contains(marker.Location))
+                {
+                    marker.Visibility = Visibility.Collapsed;
+                }
+            }
+        }
+
+        /// <summary>
         /// Handles clicks outside the subwindow.
         /// </summary>
         public void HandleOutsideClick(Point clickPosition)
@@ -248,12 +489,7 @@ namespace InteractiveWorldMap
 
         private void UpdateMarkerLayerBounds()
         {
-            var mapBounds = MapDisplay.MapBounds;
-            if (!mapBounds.IsEmpty)
-            {
-                MarkerLayer.UpdateMapBounds(mapBounds);
-                _logger.LogInfo($"Updated marker layer bounds: {mapBounds}");
-            }
+            // No longer needed - markers are in the map canvas
         }
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -261,19 +497,28 @@ namespace InteractiveWorldMap
             await InitializeAsync();
         }
 
-        private void OnMarkerClicked(object? sender, LocationClickedEventArgs e)
+        private void OnClusterClicked(LocationCluster cluster)
         {
-            _logger.LogInfo($"Individual marker clicked: {e.Location.Name}");
-            ShowContentForLocation(e.Location);
-        }
-
-        private void OnClusterClicked(object? sender, ClusterClickedEventArgs e)
-        {
-            _logger.LogInfo($"Cluster clicked: {e.Cluster.Count} locations");
-            AnimateZoomToCluster(e.Cluster);
+            _logger.LogInfo($"Cluster clicked: {cluster.Count} locations");
+            AnimateZoomToCluster(cluster);
             
             // Show Back button
             BackButton.Visibility = Visibility.Visible;
+        }
+
+        private void OnMapMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // Handle clicks on the map (for closing subwindow)
+            if (_activeSubwindow != null)
+            {
+                var position = e.GetPosition(this);
+                HandleOutsideClick(position);
+            }
+        }
+
+        private void OnMapMouseMove(object sender, MouseEventArgs e)
+        {
+            // Can be used for hover effects in the future
         }
 
         /// <summary>
@@ -283,44 +528,94 @@ namespace InteractiveWorldMap
         {
             try
             {
-                _logger.LogInfo($"Zooming to cluster with {cluster.Count} locations");
+                _logger.LogInfo("=== AnimateZoomToCluster START ===");
+                _logger.LogInfo($"  Cluster: {cluster.Count} locations");
+                _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
 
                 // Save current state before zooming
                 var currentState = ZoomState.CreateFullMapView();
                 _navigationService.PushState(currentState);
+                _logger.LogInfo("  Current state saved to navigation stack");
 
                 // Calculate the center point in screen coordinates
                 var mapBounds = MapDisplay.MapBounds;
                 var imageWidth = 16397.0;
                 var imageHeight = 11085.0;
 
+                _logger.LogInfo($"  Map bounds: {mapBounds}");
+                _logger.LogInfo($"  Image size: {imageWidth} x {imageHeight}");
+
                 var normalizedX = cluster.CenterPoint.X / imageWidth;
                 var normalizedY = cluster.CenterPoint.Y / imageHeight;
 
+                _logger.LogInfo($"  Normalized center: ({normalizedX:F4}, {normalizedY:F4})");
+
                 var centerX = mapBounds.Left + (normalizedX * mapBounds.Width);
                 var centerY = mapBounds.Top + (normalizedY * mapBounds.Height);
+
+                _logger.LogInfo($"  Screen center: ({centerX:F2}, {centerY:F2})");
 
                 // Calculate the center of the screen
                 var screenCenterX = ActualWidth / 2;
                 var screenCenterY = ActualHeight / 2;
 
+                _logger.LogInfo($"  Window center: ({screenCenterX:F2}, {screenCenterY:F2})");
+
                 // Calculate translation needed to center the cluster
                 var translateX = screenCenterX - (centerX * ZoomScale);
                 var translateY = screenCenterY - (centerY * ZoomScale);
 
-                // Create animations
-                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
-                var easing = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+                _logger.LogInfo($"  Calculated translation: ({translateX:F2}, {translateY:F2})");
+                _logger.LogInfo($"  Zoom scale: {ZoomScale}");
 
-                var scaleXAnim = new DoubleAnimation(ZoomScale, duration) { EasingFunction = easing };
-                var scaleYAnim = new DoubleAnimation(ZoomScale, duration) { EasingFunction = easing };
-                var translateXAnim = new DoubleAnimation(translateX, duration) { EasingFunction = easing };
-                var translateYAnim = new DoubleAnimation(translateY, duration) { EasingFunction = easing };
+                // Create animations with smoother easing
+                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
+                var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+                var scaleXAnim = new DoubleAnimation(ZoomScale, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                var scaleYAnim = new DoubleAnimation(ZoomScale, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                var translateXAnim = new DoubleAnimation(translateX, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                var translateYAnim = new DoubleAnimation(translateY, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
 
                 // Handle animation completion
                 scaleXAnim.Completed += (s, e) =>
                 {
-                    _logger.LogInfo("Zoom animation completed");
+                    _logger.LogInfo("=== Zoom animation COMPLETED ===");
+                    _logger.LogInfo($"  Final scale: ({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2})");
+                    _logger.LogInfo($"  Final translate: ({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                    
+                    // Stop all animations and set final values explicitly
+                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, null);
+                    
+                    MapDisplay.ScaleTransform.ScaleX = ZoomScale;
+                    MapDisplay.ScaleTransform.ScaleY = ZoomScale;
+                    MapDisplay.TranslateTransform.X = translateX;
+                    MapDisplay.TranslateTransform.Y = translateY;
+                    
+                    _logger.LogInfo($"  Values set to: scale({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2}), translate({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                    
+                    // Counter-scale all markers to keep them the same visual size
+                    CounterScaleMarkers(1.0 / ZoomScale);
+                    
                     ShowZoomedView(cluster);
                 };
 
@@ -330,72 +625,70 @@ namespace InteractiveWorldMap
                 MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
                 MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
 
-                _logger.LogInfo($"Zoom animation started: scale={ZoomScale}, translate=({translateX}, {translateY})");
+                _logger.LogInfo("=== Zoom animations STARTED ===");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error zooming to cluster: {ex.Message}");
+                _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
         /// <summary>
-        /// Shows cluster markers and hides individual markers (full map view).
+        /// Shows the cluster view (full map with cluster markers).
         /// </summary>
         private void ShowClusterView()
         {
             try
             {
-                _logger.LogInfo("Showing cluster view (full map)");
+                _logger.LogInfo("=== ShowClusterView START ===");
+                _logger.LogInfo($"  Total clusters: {_clusters.Count}");
 
-                // Clear all individual markers
-                MarkerLayer.ClearMarkers();
+                // Show cluster markers, hide individual markers
+                ShowOnlyClusterMarkers();
 
-                // Clear existing cluster markers
-                MarkerLayer.ClearClusterMarkers();
-
-                // Add cluster markers
-                MarkerLayer.AddClusters(_clusters);
-
-                // Update positions
-                MarkerLayer.UpdateMarkerPositions();
-
-                _logger.LogInfo($"Cluster view displayed with {_clusters.Count} clusters");
+                _logger.LogInfo($"=== ShowClusterView COMPLETE ===");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error showing cluster view: {ex.Message}");
+                _logger.LogError($"Error showing cluster view: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
         /// <summary>
-        /// Shows individual markers for the zoomed cluster and hides cluster markers.
+        /// Shows individual markers for the zoomed cluster.
         /// </summary>
         private void ShowZoomedView(LocationCluster cluster)
         {
             try
             {
-                _logger.LogInfo($"Showing zoomed view for cluster with {cluster.Count} locations");
+                _logger.LogInfo("=== ShowZoomedView START ===");
+                _logger.LogInfo($"  Cluster has {cluster.Count} locations");
+                _logger.LogInfo($"  Current transform: scale({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2}), translate({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
 
-                // Hide all cluster markers
-                MarkerLayer.ClearClusterMarkers();
-
-                // Clear any existing individual markers
-                MarkerLayer.ClearMarkers();
-
-                // Show individual markers for this cluster's locations
-                foreach (var location in cluster.Locations)
+                // Show only individual markers for this cluster
+                ShowOnlyIndividualMarkers(cluster);
+                
+                // Log screen coordinates of visible markers
+                _logger.LogInfo("  Visible marker screen positions:");
+                foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
                 {
-                    MarkerLayer.AddMarker(location);
+                    try
+                    {
+                        var canvasPos = new Point(Canvas.GetLeft(marker) + marker.Width / 2, Canvas.GetTop(marker) + marker.Height / 2);
+                        var screenPos = marker.TransformToAncestor(this).Transform(new Point(marker.Width / 2, marker.Height / 2));
+                        _logger.LogInfo($"    {marker.Location.Name}: canvas({canvasPos.X:F2}, {canvasPos.Y:F2}) -> screen({screenPos.X:F2}, {screenPos.Y:F2})");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"    {marker.Location.Name}: Could not calculate screen position - {ex.Message}");
+                    }
                 }
 
-                // Update marker positions with current transform
-                MarkerLayer.UpdateMarkerPositions();
-
-                _logger.LogInfo($"Zoomed view displayed with {cluster.Count} individual markers");
+                _logger.LogInfo($"=== ShowZoomedView COMPLETE ===");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error showing zoomed view: {ex.Message}");
+                _logger.LogError($"Error showing zoomed view: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
@@ -438,7 +731,9 @@ namespace InteractiveWorldMap
 
             try
             {
-                _logger.LogInfo("Zooming out to full map view");
+                _logger.LogInfo("=== AnimateZoomOut START ===");
+                _logger.LogInfo($"  Current scale: ({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2})");
+                _logger.LogInfo($"  Current translate: ({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
 
                 // Pop the previous state
                 var previousState = _navigationService.PopState();
@@ -448,24 +743,64 @@ namespace InteractiveWorldMap
                     return;
                 }
 
-                // Create animations to return to full map view
-                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
-                var easing = new QuadraticEase { EasingMode = EasingMode.EaseInOut };
+                _logger.LogInfo("  Previous state popped from navigation stack");
 
-                var scaleXAnim = new DoubleAnimation(1.0, duration) { EasingFunction = easing };
-                var scaleYAnim = new DoubleAnimation(1.0, duration) { EasingFunction = easing };
-                var translateXAnim = new DoubleAnimation(0.0, duration) { EasingFunction = easing };
-                var translateYAnim = new DoubleAnimation(0.0, duration) { EasingFunction = easing };
+                // Create animations to return to full map view with smoother easing
+                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
+                var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+
+                var scaleXAnim = new DoubleAnimation(1.0, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                var scaleYAnim = new DoubleAnimation(1.0, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                var translateXAnim = new DoubleAnimation(0.0, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+                var translateYAnim = new DoubleAnimation(0.0, duration) 
+                { 
+                    EasingFunction = easing,
+                    FillBehavior = FillBehavior.HoldEnd
+                };
+
+                _logger.LogInfo("  Target: scale(1.0, 1.0), translate(0.0, 0.0)");
 
                 // Handle animation completion
                 scaleXAnim.Completed += (s, e) =>
                 {
-                    _logger.LogInfo("Zoom-out animation completed");
+                    _logger.LogInfo("=== Zoom-out animation COMPLETED ===");
+                    _logger.LogInfo($"  Final scale: ({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2})");
+                    _logger.LogInfo($"  Final translate: ({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                    
+                    // Stop all animations and set final values explicitly
+                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
+                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, null);
+                    
+                    MapDisplay.ScaleTransform.ScaleX = 1.0;
+                    MapDisplay.ScaleTransform.ScaleY = 1.0;
+                    MapDisplay.TranslateTransform.X = 0.0;
+                    MapDisplay.TranslateTransform.Y = 0.0;
+                    
+                    _logger.LogInfo($"  Values set to: scale({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2}), translate({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                    
+                    // Reset marker scales to normal
+                    CounterScaleMarkers(1.0);
+                    
                     ShowClusterView();
                     
                     // Hide Back button if at root level
                     if (!_navigationService.CanGoBack)
                     {
+                        _logger.LogInfo("  Hiding Back button (at root level)");
                         BackButton.Visibility = Visibility.Collapsed;
                     }
                 };
@@ -476,11 +811,11 @@ namespace InteractiveWorldMap
                 MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
                 MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
 
-                _logger.LogInfo("Zoom-out animation started");
+                _logger.LogInfo("=== Zoom-out animations STARTED ===");
             }
             catch (Exception ex)
             {
-                _logger.LogError($"Error zooming out: {ex.Message}");
+                _logger.LogError($"Error zooming out: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
@@ -498,11 +833,11 @@ namespace InteractiveWorldMap
             if (!_activeSubwindow.ContainsPoint(screenPoint))
             {
                 // Check if the click was on a marker (which will open a new subwindow)
-                var markerPosition = e.GetPosition(MarkerLayer);
-                var clickedObject = MarkerLayer.HitTest(markerPosition);
+                var markerPosition = e.GetPosition(MapDisplay.Markers);
+                var hitResult = VisualTreeHelper.HitTest(MapDisplay.Markers, markerPosition);
                 
                 // Only close if not clicking on any marker
-                if (clickedObject == null)
+                if (hitResult == null)
                 {
                     CloseActiveSubwindow();
                     e.Handled = true; // Prevent further processing
@@ -512,8 +847,7 @@ namespace InteractiveWorldMap
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            // Update marker positions when window is resized
-            UpdateMarkerLayerBounds();
+            // No longer needed - markers transform automatically with map
         }
 
         private void ShowError(string message)

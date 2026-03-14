@@ -19,7 +19,7 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Recommend putting all images/content in subfolders grouped by Accession Number or some other key, then copy to subfolder of code
 - [ ] Get map file decided so you can get pixel coordinates
 - [ ] Use animations rather than abrupt transitions
-- [ ] Use stamp for cluster markers
+- [ ] consider addressing issues in REFACTOR ASSESSMENT
 
 ---
 

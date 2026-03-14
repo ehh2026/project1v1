@@ -19,6 +19,7 @@ public partial class MarkerLayerControl : Canvas
     private double _imageWidth = 16397;
     private double _imageHeight = 11085;
     private Rect _mapBounds = Rect.Empty;
+    private readonly Services.ILogger _logger;
 
     /// <summary>
     /// Gets the collection of individual location markers displayed on the map.
@@ -49,12 +50,15 @@ public partial class MarkerLayerControl : Canvas
     {
         InitializeComponent();
         
+        _logger = new Services.FileLogger();
         Markers = new ObservableCollection<LocationMarker>();
         ClusterMarkers = new ObservableCollection<ClusterMarker>();
 
         // Wire up mouse events
         MouseLeftButtonDown += OnMouseLeftButtonDown;
         MouseMove += OnMouseMove;
+        
+        _logger.LogInfo("MarkerLayerControl initialized");
     }
 
     /// <summary>
@@ -66,6 +70,9 @@ public partial class MarkerLayerControl : Canvas
         if (location == null)
             throw new ArgumentNullException(nameof(location));
 
+        _logger.LogInfo($"[AddMarker] Adding marker for: {location.Name}");
+        _logger.LogInfo($"  Pixel coords: ({location.PixelX}, {location.PixelY})");
+
         var marker = new LocationMarker
         {
             Location = location
@@ -76,9 +83,15 @@ public partial class MarkerLayerControl : Canvas
         var normalizedX = location.PixelX / _imageWidth;
         var normalizedY = location.PixelY / _imageHeight;
         
+        _logger.LogInfo($"  Map bounds: {mapBounds}");
+        _logger.LogInfo($"  Normalized: ({normalizedX:F4}, {normalizedY:F4})");
+        
         var x = mapBounds.Left + (normalizedX * mapBounds.Width);
         var y = mapBounds.Top + (normalizedY * mapBounds.Height);
         var position = new Point(x, y);
+
+        _logger.LogInfo($"  Screen position: ({position.X:F2}, {position.Y:F2})");
+        _logger.LogInfo($"  Canvas position: ({position.X - marker.Width / 2:F2}, {position.Y - marker.Height / 2:F2})");
 
         marker.ScreenPosition = position;
         SetLeft(marker, position.X - marker.Width / 2);
@@ -86,6 +99,8 @@ public partial class MarkerLayerControl : Canvas
 
         Markers.Add(marker);
         Children.Add(marker);
+        
+        _logger.LogInfo($"  Marker added. Total markers: {Markers.Count}, Total children: {Children.Count}");
     }
 
     /// <summary>
@@ -97,6 +112,9 @@ public partial class MarkerLayerControl : Canvas
         if (cluster == null)
             throw new ArgumentNullException(nameof(cluster));
 
+        _logger.LogInfo($"[AddClusterMarker] Adding cluster with {cluster.Count} locations");
+        _logger.LogInfo($"  Center point: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
+
         var marker = new ClusterMarker
         {
             Cluster = cluster
@@ -107,9 +125,15 @@ public partial class MarkerLayerControl : Canvas
         var normalizedX = cluster.CenterPoint.X / _imageWidth;
         var normalizedY = cluster.CenterPoint.Y / _imageHeight;
         
+        _logger.LogInfo($"  Map bounds: {mapBounds}");
+        _logger.LogInfo($"  Normalized: ({normalizedX:F4}, {normalizedY:F4})");
+        
         var x = mapBounds.Left + (normalizedX * mapBounds.Width);
         var y = mapBounds.Top + (normalizedY * mapBounds.Height);
         var position = new Point(x, y);
+
+        _logger.LogInfo($"  Screen position: ({position.X:F2}, {position.Y:F2})");
+        _logger.LogInfo($"  Canvas position: ({position.X - marker.Width / 2:F2}, {position.Y - marker.Height / 2:F2})");
 
         marker.ScreenPosition = position;
         SetLeft(marker, position.X - marker.Width / 2);
@@ -119,6 +143,8 @@ public partial class MarkerLayerControl : Canvas
 
         ClusterMarkers.Add(marker);
         Children.Add(marker);
+        
+        _logger.LogInfo($"  Cluster marker added. Total clusters: {ClusterMarkers.Count}, Total children: {Children.Count}");
     }
 
     /// <summary>
@@ -139,11 +165,13 @@ public partial class MarkerLayerControl : Canvas
     /// </summary>
     public void ClearClusterMarkers()
     {
+        _logger.LogInfo($"[ClearClusterMarkers] Clearing {ClusterMarkers.Count} cluster markers");
         foreach (var marker in ClusterMarkers.ToList())
         {
             Children.Remove(marker);
         }
         ClusterMarkers.Clear();
+        _logger.LogInfo($"  Cluster markers cleared. Remaining children: {Children.Count}");
     }
 
     /// <summary>
@@ -151,11 +179,13 @@ public partial class MarkerLayerControl : Canvas
     /// </summary>
     public void ClearMarkers()
     {
+        _logger.LogInfo($"[ClearMarkers] Clearing {Markers.Count} individual markers");
         foreach (var marker in Markers.ToList())
         {
             Children.Remove(marker);
         }
         Markers.Clear();
+        _logger.LogInfo($"  Individual markers cleared. Remaining children: {Children.Count}");
     }
 
     /// <summary>
@@ -227,7 +257,11 @@ public partial class MarkerLayerControl : Canvas
     /// </summary>
     public void UpdateMarkerPositions()
     {
+        _logger.LogInfo($"[UpdateMarkerPositions] Updating positions for {Markers.Count} markers and {ClusterMarkers.Count} clusters");
+        
         var mapBounds = _mapBounds.IsEmpty ? new Rect(0, 0, ActualWidth, ActualHeight) : _mapBounds;
+        _logger.LogInfo($"  Map bounds: {mapBounds}");
+        _logger.LogInfo($"  Canvas size: {ActualWidth} x {ActualHeight}");
         
         // Get the parent window to access map transforms
         var window = Window.GetWindow(this);
@@ -236,54 +270,73 @@ public partial class MarkerLayerControl : Canvas
             var scaleTransform = mainWindow.MapDisplay.ScaleTransform;
             var translateTransform = mainWindow.MapDisplay.TranslateTransform;
             
+            _logger.LogInfo($"  Transform - Scale: ({scaleTransform.ScaleX:F2}, {scaleTransform.ScaleY:F2}), Translate: ({translateTransform.X:F2}, {translateTransform.Y:F2})");
+            
             // Update individual markers
-            foreach (var marker in Markers)
+            if (Markers.Count > 0)
             {
-                var normalizedX = marker.Location.PixelX / _imageWidth;
-                var normalizedY = marker.Location.PixelY / _imageHeight;
-                
-                var x = mapBounds.Left + (normalizedX * mapBounds.Width);
-                var y = mapBounds.Top + (normalizedY * mapBounds.Height);
-                
-                // Apply transforms
-                var transformedX = (x * scaleTransform.ScaleX) + translateTransform.X;
-                var transformedY = (y * scaleTransform.ScaleY) + translateTransform.Y;
-                
-                var position = new Point(transformedX, transformedY);
+                _logger.LogInfo($"  Updating {Markers.Count} individual markers:");
+                foreach (var marker in Markers)
+                {
+                    var normalizedX = marker.Location.PixelX / _imageWidth;
+                    var normalizedY = marker.Location.PixelY / _imageHeight;
+                    
+                    // Calculate base position in map coordinates
+                    var baseX = mapBounds.Left + (normalizedX * mapBounds.Width);
+                    var baseY = mapBounds.Top + (normalizedY * mapBounds.Height);
+                    
+                    // Apply the map's transform to get screen position
+                    var screenX = (baseX * scaleTransform.ScaleX) + translateTransform.X;
+                    var screenY = (baseY * scaleTransform.ScaleY) + translateTransform.Y;
+                    
+                    var position = new Point(screenX, screenY);
 
-                marker.ScreenPosition = position;
-                SetLeft(marker, position.X - marker.Width / 2);
-                SetTop(marker, position.Y - marker.Height / 2);
+                    _logger.LogInfo($"    {marker.Location.Name}: pixel({marker.Location.PixelX}, {marker.Location.PixelY}) -> base({baseX:F2}, {baseY:F2}) -> screen({screenX:F2}, {screenY:F2})");
+
+                    marker.ScreenPosition = position;
+                    SetLeft(marker, position.X - marker.Width / 2);
+                    SetTop(marker, position.Y - marker.Height / 2);
+                }
             }
             
             // Update cluster markers
-            foreach (var marker in ClusterMarkers)
+            if (ClusterMarkers.Count > 0)
             {
-                if (marker.Cluster == null)
-                    continue;
+                _logger.LogInfo($"  Updating {ClusterMarkers.Count} cluster markers:");
+                foreach (var marker in ClusterMarkers)
+                {
+                    if (marker.Cluster == null)
+                        continue;
+                        
+                    var normalizedX = marker.Cluster.CenterPoint.X / _imageWidth;
+                    var normalizedY = marker.Cluster.CenterPoint.Y / _imageHeight;
                     
-                var normalizedX = marker.Cluster.CenterPoint.X / _imageWidth;
-                var normalizedY = marker.Cluster.CenterPoint.Y / _imageHeight;
-                
-                var x = mapBounds.Left + (normalizedX * mapBounds.Width);
-                var y = mapBounds.Top + (normalizedY * mapBounds.Height);
-                
-                // Apply transforms
-                var transformedX = (x * scaleTransform.ScaleX) + translateTransform.X;
-                var transformedY = (y * scaleTransform.ScaleY) + translateTransform.Y;
-                
-                var position = new Point(transformedX, transformedY);
+                    // Calculate base position in map coordinates
+                    var baseX = mapBounds.Left + (normalizedX * mapBounds.Width);
+                    var baseY = mapBounds.Top + (normalizedY * mapBounds.Height);
+                    
+                    // Apply the map's transform to get screen position
+                    var screenX = (baseX * scaleTransform.ScaleX) + translateTransform.X;
+                    var screenY = (baseY * scaleTransform.ScaleY) + translateTransform.Y;
+                    
+                    var position = new Point(screenX, screenY);
 
-                marker.ScreenPosition = position;
-                SetLeft(marker, position.X - marker.Width / 2);
-                SetTop(marker, position.Y - marker.Height / 2);
+                    _logger.LogInfo($"    Cluster({marker.Cluster.Count}): center({marker.Cluster.CenterPoint.X:F2}, {marker.Cluster.CenterPoint.Y:F2}) -> base({baseX:F2}, {baseY:F2}) -> screen({screenX:F2}, {screenY:F2})");
+
+                    marker.ScreenPosition = position;
+                    SetLeft(marker, position.X - marker.Width / 2);
+                    SetTop(marker, position.Y - marker.Height / 2);
+                }
             }
         }
         else
         {
+            _logger.LogWarning("  MainWindow not found, using fallback positioning");
             // Fallback: no transforms applied
             UpdateMarkerPositionsWithoutTransform();
         }
+        
+        _logger.LogInfo($"[UpdateMarkerPositions] Complete");
     }
 
     /// <summary>
@@ -333,6 +386,7 @@ public partial class MarkerLayerControl : Canvas
     /// <param name="mapBounds">The new map bounds</param>
     public void UpdateMapBounds(Rect mapBounds)
     {
+        _logger.LogInfo($"[UpdateMapBounds] New bounds: {mapBounds}");
         _mapBounds = mapBounds;
         UpdateMarkerPositions();
     }

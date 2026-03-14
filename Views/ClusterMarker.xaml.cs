@@ -36,6 +36,44 @@ namespace InteractiveWorldMap.Views
         {
             InitializeComponent();
             
+            // Load stamp image from file
+            try
+            {
+                var basePath = AppDomain.CurrentDomain.BaseDirectory;
+                var imagePath = System.IO.Path.Combine(basePath, "Images&Content", "stamp_demo.png");
+                
+                if (System.IO.File.Exists(imagePath))
+                {
+                    var bitmap = new System.Windows.Media.Imaging.BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                    bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
+                    bitmap.EndInit();
+                    StampImage.Source = bitmap;
+                }
+                else
+                {
+                    // Fallback: create a blue circle if stamp image not found
+                    var ellipse = new System.Windows.Shapes.Ellipse
+                    {
+                        Width = 40,
+                        Height = 40,
+                        Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
+                        Stroke = System.Windows.Media.Brushes.White,
+                        StrokeThickness = 3
+                    };
+                    
+                    // Replace the image with the ellipse
+                    var grid = (Grid)Content;
+                    grid.Children.Remove(StampImage);
+                    grid.Children.Insert(0, ellipse);
+                }
+            }
+            catch
+            {
+                // If anything fails, the image will just be empty
+            }
+            
             // Load storyboards
             _hoverInStoryboard = (Storyboard)Resources["HoverInStoryboard"];
             _hoverOutStoryboard = (Storyboard)Resources["HoverOutStoryboard"];

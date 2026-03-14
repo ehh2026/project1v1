@@ -6,12 +6,13 @@
         WindowState="Maximized"
         WindowStyle="None"
         Background="Black">
-    <Grid x:Name="RootGrid">
-        <!-- Map Display Layer -->
-        <views:MapDisplayControl x:Name="MapDisplay" />
-        
-        <!-- Marker Layer (overlay) -->
-        <views:MarkerLayerControl x:Name="MarkerLayer" />
+    <Grid x:Name="RootGrid" RenderOptions.BitmapScalingMode="HighQuality">
+        <!-- Map Display with integrated markers -->
+        <views:MapDisplayControl x:Name="MapDisplay" 
+                                RenderOptions.CachingHint="Cache"
+                                CacheMode="BitmapCache"
+                                MouseLeftButtonDown="OnMapMouseLeftButtonDown"
+                                MouseMove="OnMapMouseMove" />
         
         <!-- Back Button -->
         <Button x:Name="BackButton"
