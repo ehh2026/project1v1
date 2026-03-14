@@ -37,8 +37,8 @@ namespace InteractiveWorldMap
         private const double ImageHeight = 5542.0;
         
         // Zoom configuration
-        private const double ZoomScale = 3.5; // 3.5x magnification when zoomed
-        private const int AnimationDurationMs = 320; // Reduced from 400ms for smoother animation
+        private const double ZoomScale = 10.0; // 10x magnification when zoomed
+        private const int AnimationDurationMs = 390; // Animation duration
 
         /// <summary>
         /// Gets the active content subwindow, if any.
@@ -539,15 +539,19 @@ namespace InteractiveWorldMap
                         _logger.LogInfo($"  Start viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}");
                         _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
+                        // Pre-render keyframes with caching - more frames = smoother animation
+                        const int keyframeCount = 30;
+                        var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
+
+                        // Display first frame immediately to avoid delay
+                        MapDisplay.DisplayImage.Source = prerenderedFrames[0];
+                        MapDisplay.SetCurrentViewport(startViewport);
+                        UpdateMarkerPositions();
+
+                        // Start animation timer AFTER pre-rendering
                         var animStart = DateTime.Now;
                         var frameCount = 0;
                         var lastFrameTime = animStart;
-                        var lastUpdateTime = animStart;
-                        const double minFrameIntervalMs = 40.0; // 25 FPS (320ms / 40ms = 8 frames)
-
-                        // Pre-render keyframes with caching
-                        const int keyframeCount = 8;
-                        var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
 
                         EventHandler? renderHandler = null;
                         renderHandler = (s, e) =>
@@ -556,13 +560,6 @@ namespace InteractiveWorldMap
                             var now = DateTime.Now;
                             var frameDelta = (now - lastFrameTime).TotalMilliseconds;
                             lastFrameTime = now;
-
-                            // Throttle updates
-                            var timeSinceLastUpdate = (now - lastUpdateTime).TotalMilliseconds;
-                            if (timeSinceLastUpdate < minFrameIntervalMs)
-                                return;
-
-                            lastUpdateTime = now;
 
                             // Calculate current progress (0.0 to 1.0)
                             var elapsed = (now - animStart).TotalMilliseconds;
@@ -591,8 +588,12 @@ namespace InteractiveWorldMap
                             // Update marker positions
                             UpdateMarkerPositions();
 
-                            if (frameCount <= 5 || frameCount % 5 == 0)
-                                _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, keyframe={frameIndex}");
+                            if (frameCount <= 3 || frameCount % 3 == 0)
+                            {
+                                var centerX = currentViewport.ViewportX + (currentViewport.ViewportWidth / 2.0);
+                                var centerY = currentViewport.ViewportY + (currentViewport.ViewportHeight / 2.0);
+                                _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, keyframe={frameIndex}, center=({centerX:F1},{centerY:F1}), zoom={currentViewport.ZoomLevel:F2}");
+                            }
 
                             // Check if animation is complete
                             if (progress >= 1.0)
@@ -740,15 +741,19 @@ namespace InteractiveWorldMap
 
                 _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
+                // Pre-render keyframes with caching - more frames = smoother animation
+                const int keyframeCount = 30;
+                var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
+
+                // Display first frame immediately to avoid delay
+                MapDisplay.DisplayImage.Source = prerenderedFrames[0];
+                MapDisplay.SetCurrentViewport(startViewport);
+                UpdateMarkerPositions();
+
+                // Start animation timer AFTER pre-rendering
                 var animStart = DateTime.Now;
                 var frameCount = 0;
                 var lastFrameTime = animStart;
-                var lastUpdateTime = animStart;
-                const double minFrameIntervalMs = 40.0; // 25 FPS (320ms / 40ms = 8 frames)
-                
-                // Pre-render keyframes with caching
-                const int keyframeCount = 8;
-                var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
 
                 EventHandler? renderHandler = null;
                 renderHandler = (s, e) =>
@@ -757,13 +762,6 @@ namespace InteractiveWorldMap
                     var now = DateTime.Now;
                     var frameDelta = (now - lastFrameTime).TotalMilliseconds;
                     lastFrameTime = now;
-
-                    // Throttle updates
-                    var timeSinceLastUpdate = (now - lastUpdateTime).TotalMilliseconds;
-                    if (timeSinceLastUpdate < minFrameIntervalMs)
-                        return;
-                    
-                    lastUpdateTime = now;
 
                     // Calculate current progress (0.0 to 1.0)
                     var elapsed = (now - animStart).TotalMilliseconds;
@@ -792,8 +790,12 @@ namespace InteractiveWorldMap
                     // Update marker positions
                     UpdateMarkerPositions();
 
-                    if (frameCount <= 5 || frameCount % 5 == 0)
-                        _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, keyframe={frameIndex}");
+                    if (frameCount <= 3 || frameCount % 3 == 0)
+                    {
+                        var centerX = currentViewport.ViewportX + (currentViewport.ViewportWidth / 2.0);
+                        var centerY = currentViewport.ViewportY + (currentViewport.ViewportHeight / 2.0);
+                        _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, keyframe={frameIndex}, center=({centerX:F1},{centerY:F1}), zoom={currentViewport.ZoomLevel:F2}");
+                    }
 
                     // Check if animation is complete
                     if (progress >= 1.0)
@@ -871,7 +873,6 @@ namespace InteractiveWorldMap
             keyframeProgress = new double[keyframeCount];
             
             _logger.LogInfo($"  Pre-rendering {keyframeCount} keyframes...");
-            var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
             var sourceImage = MapDisplay.SourceImage;
             
             if (sourceImage == null)
@@ -886,8 +887,8 @@ namespace InteractiveWorldMap
             
             for (int i = 0; i < keyframeCount; i++)
             {
-                double rawProgress = i / (double)(keyframeCount - 1);
-                keyframeProgress[i] = easing.Ease(rawProgress);
+                // Linear interpolation - no easing for smooth consistent motion
+                keyframeProgress[i] = i / (double)(keyframeCount - 1);
                 
                 var viewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[i]);
                 var sourceRect = viewport.GetSourceRect();

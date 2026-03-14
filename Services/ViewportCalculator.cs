@@ -10,6 +10,8 @@ namespace InteractiveWorldMap.Services
     {
         /// <summary>
         /// Interpolates between two viewport states for smooth animation.
+        /// Maintains aspect ratio and provides linear visual scaling.
+        /// Pan speed is adjusted for zoom level to maintain constant visual velocity.
         /// </summary>
         /// <param name="start">Starting viewport state</param>
         /// <param name="end">Ending viewport state</param>
@@ -20,16 +22,67 @@ namespace InteractiveWorldMap.Services
             // Clamp progress to [0, 1]
             progress = Math.Max(0.0, Math.Min(1.0, progress));
 
-            // Linear interpolation for all viewport properties
+            // Interpolate zoom level linearly for controlled zoom feel
+            var currentZoom = Lerp(start.ZoomLevel, end.ZoomLevel, progress);
+            
+            // Calculate viewport size based on interpolated zoom level
+            // This ensures aspect ratio is maintained and scaling is visually linear
+            var baseViewportWidth = start.ViewportWidth * start.ZoomLevel; // Full map viewport width
+            var baseViewportHeight = start.ViewportHeight * start.ZoomLevel; // Full map viewport height
+            
+            var currentViewportWidth = baseViewportWidth / currentZoom;
+            var currentViewportHeight = baseViewportHeight / currentZoom;
+            
+            // For pan interpolation, we want constant VISUAL velocity, not constant source velocity
+            // To achieve this, we need to account for the zoom level when interpolating position
+            
+            // Calculate start and end centers
+            var startCenterX = start.ViewportX + (start.ViewportWidth / 2.0);
+            var startCenterY = start.ViewportY + (start.ViewportHeight / 2.0);
+            var endCenterX = end.ViewportX + (end.ViewportWidth / 2.0);
+            var endCenterY = end.ViewportY + (end.ViewportHeight / 2.0);
+            
+            // Calculate the total distance to travel in source coordinates
+            var totalDeltaX = endCenterX - startCenterX;
+            var totalDeltaY = endCenterY - startCenterY;
+            
+            // To maintain constant visual velocity, we need to adjust pan speed based on zoom
+            // The idea: when more zoomed in, pan slower in source coordinates
+            // We'll use a weighted interpolation where the weight accounts for zoom level
+            
+            // Calculate the "visual distance" traveled by integrating 1/zoom over the path
+            // For linear zoom interpolation, this gives us a logarithmic position curve
+            // But we'll use a simpler approximation: weight by average zoom factor
+            
+            // Simple approach: interpolate in "zoom-normalized" space
+            // This makes pan speed inversely proportional to zoom level
+            var startZoomWeight = 1.0 / start.ZoomLevel;
+            var endZoomWeight = 1.0 / end.ZoomLevel;
+            var totalZoomWeight = startZoomWeight + endZoomWeight;
+            
+            // Calculate weighted progress for position
+            // This makes panning slower when zoomed in, maintaining visual velocity
+            var currentZoomWeight = 1.0 / currentZoom;
+            var normalizedProgress = (startZoomWeight - currentZoomWeight) / (startZoomWeight - endZoomWeight);
+            normalizedProgress = Math.Max(0.0, Math.Min(1.0, normalizedProgress));
+            
+            // Interpolate center using zoom-adjusted progress
+            var currentCenterX = Lerp(startCenterX, endCenterX, normalizedProgress);
+            var currentCenterY = Lerp(startCenterY, endCenterY, normalizedProgress);
+            
+            // Calculate viewport position from center
+            var currentViewportX = currentCenterX - (currentViewportWidth / 2.0);
+            var currentViewportY = currentCenterY - (currentViewportHeight / 2.0);
+
             return new ViewportState
             {
                 SourceImageWidth = start.SourceImageWidth,
                 SourceImageHeight = start.SourceImageHeight,
-                ViewportX = Lerp(start.ViewportX, end.ViewportX, progress),
-                ViewportY = Lerp(start.ViewportY, end.ViewportY, progress),
-                ViewportWidth = Lerp(start.ViewportWidth, end.ViewportWidth, progress),
-                ViewportHeight = Lerp(start.ViewportHeight, end.ViewportHeight, progress),
-                ZoomLevel = Lerp(start.ZoomLevel, end.ZoomLevel, progress)
+                ViewportX = currentViewportX,
+                ViewportY = currentViewportY,
+                ViewportWidth = currentViewportWidth,
+                ViewportHeight = currentViewportHeight,
+                ZoomLevel = currentZoom
             };
         }
 

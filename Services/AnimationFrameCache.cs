@@ -14,6 +14,7 @@ public class AnimationFrameCache
 {
     private readonly string _cacheDirectory;
     private readonly ILogger _logger;
+    private const int CacheVersion = 11; // Increment when interpolation algorithm changes
 
     public AnimationFrameCache(ILogger logger)
     {
@@ -24,16 +25,88 @@ public class AnimationFrameCache
         _cacheDirectory = Path.Combine(appDataPath, "InteractiveWorldMap", "frame_cache");
         
         Directory.CreateDirectory(_cacheDirectory);
+        
+        // Check cache version and clear if outdated
+        ValidateCacheVersion();
+    }
+
+    /// <summary>
+    /// Validates the cache version and clears if outdated.
+    /// </summary>
+    private void ValidateCacheVersion()
+    {
+        var versionFile = Path.Combine(_cacheDirectory, "cache_version.txt");
+        
+        try
+        {
+            if (File.Exists(versionFile))
+            {
+                var storedVersion = int.Parse(File.ReadAllText(versionFile));
+                if (storedVersion != CacheVersion)
+                {
+                    _logger.LogInfo($"Cache version mismatch (stored: {storedVersion}, current: {CacheVersion}). Clearing old cache files.");
+                    CleanupOldCacheFiles();
+                }
+            }
+            else
+            {
+                // First run with versioning - clean up any old unversioned cache
+                _logger.LogInfo("First run with cache versioning. Cleaning up old cache files.");
+                CleanupOldCacheFiles();
+            }
+            
+            // Write current version
+            File.WriteAllText(versionFile, CacheVersion.ToString());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to validate cache version: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Removes old cache files that don't match the current version.
+    /// </summary>
+    private void CleanupOldCacheFiles()
+    {
+        try
+        {
+            if (!Directory.Exists(_cacheDirectory))
+                return;
+
+            var files = Directory.GetFiles(_cacheDirectory, "*.png");
+            int deletedCount = 0;
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    File.Delete(file);
+                    deletedCount++;
+                }
+                catch
+                {
+                    // Ignore individual file deletion errors
+                }
+            }
+
+            _logger.LogInfo($"Cleaned up {deletedCount} old cache files");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to cleanup old cache files: {ex.Message}");
+        }
     }
 
     /// <summary>
     /// Generates a cache key based on animation parameters.
+    /// Includes cache version to auto-invalidate when algorithm changes.
     /// </summary>
     private string GetCacheKey(double startX, double startY, double startW, double startH,
                                double endX, double endY, double endW, double endH,
                                int displayWidth, int displayHeight, int frameIndex)
     {
-        var key = $"{startX:F1}_{startY:F1}_{startW:F1}_{startH:F1}_" +
+        var key = $"v{CacheVersion}_{startX:F1}_{startY:F1}_{startW:F1}_{startH:F1}_" +
                   $"{endX:F1}_{endY:F1}_{endW:F1}_{endH:F1}_" +
                   $"{displayWidth}x{displayHeight}_f{frameIndex}";
         
