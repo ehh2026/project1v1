@@ -1,0 +1,256 @@
+// NEW VIEWPORT-BASED ZOOM METHODS FOR MainWindow.xaml.cs
+// These replace the transform-based AnimateZoomToCluster and AnimateZoomOut methods
+
+using InteractiveWorldMap.Services;
+
+// Add this field to MainWindow class:
+private readonly ViewportCalculator _viewportCalculator = new ViewportCalculator();
+
+// Remove WarmUpAnimationPipeline() method entirely - not needed with viewport approach
+
+/// <summary>
+/// Animates zooming into a cluster using viewport-based rendering.
+/// </summary>
+private void AnimateZoomToCluster(LocationCluster cluster)
+{
+    try
+    {
+        _logger.LogInfo("=== AnimateZoomToCluster START (Viewport) ===");
+        _logger.LogInfo($"  Cluster: {cluster.Count} locations");
+        _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
+
+        // Save current state before zooming
+        var currentState = ZoomState.CreateFullMapView();
+        _navigationService.PushState(currentState);
+        _logger.LogInfo("  Current state saved to navigation stack");
+
+        // Get current viewport
+        var startViewport = MapDisplay.CurrentViewport;
+        if (startViewport == null)
+        {
+            _logger.LogError("Current viewport is null");
+            return;
+        }
+
+        // Calculate target viewport centered on cluster
+        var targetViewport = ViewportState.CreateZoomedView(
+            cluster.CenterPoint.X,
+            cluster.CenterPoint.Y,
+            ZoomScale,
+            ImageWidth,
+            ImageHeight,
+            MapDisplay.ActualWidth,
+            MapDisplay.ActualHeight);
+
+        _logger.LogInfo($"  Start viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}");
+        _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
+
+        // Create animation
+        var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
+        var progressAnimation = new DoubleAnimation(0.0, 1.0, duration)
+        {
+            EasingFunction = new CubicEase { EasingMode = EasingMode.EaseInOut }
+        };
+
+        var animStart = DateTime.Now;
+        var frameCount = 0;
+        var lastFrameTime = animStart;
+
+        EventHandler? renderHandler = null;
+        renderHandler = (s, e) =>
+        {
+            frameCount++;
+            var now = DateTime.Now;
+            var frameDelta = (now - lastFrameTime).TotalMilliseconds;
+            lastFrameTime = now;
+
+            // Calculate current progress (0.0 to 1.0)
+            var elapsed = (now - animStart).TotalMilliseconds;
+            var progress = Math.Min(1.0, elapsed / AnimationDurationMs);
+
+            // Apply easing
+            var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+            progress = easing.Ease(progress);
+
+            // Interpolate viewport
+            var currentViewport = _viewportCalculator.Interpolate(startViewport, targetViewport, progress);
+            MapDisplay.UpdateViewport(currentViewport);
+
+            // Update marker positions
+            UpdateMarkerPositions();
+
+            if (frameCount <= 5 || frameCount % 5 == 0)
+                _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, zoom={currentViewport.ZoomLevel:F2}");
+
+            // Check if animation is complete
+            if (progress >= 1.0)
+            {
+                CompositionTarget.Rendering -= renderHandler;
+                _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
+                _logger.LogInfo("=== Zoom animation COMPLETED (Viewport) ===");
+
+                // Ensure final viewport is set
+                MapDisplay.UpdateViewport(targetViewport);
+                UpdateMarkerPositions();
+
+                ShowZoomedView(cluster);
+            }
+        };
+
+        CompositionTarget.Rendering += renderHandler;
+        _logger.LogInfo("=== Zoom animations STARTED (Viewport) ===");
+
+        // Show Back button
+        BackButton.Visibility = Visibility.Visible;
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
+    }
+}
+
+/// <summary>
+/// Animates zooming out to the full map view using viewport-based rendering.
+/// </summary>
+private void AnimateZoomOut()
+{
+    if (!_navigationService.CanGoBack)
+    {
+        _logger.LogWarning("Cannot go back - navigation stack is empty");
+        return;
+    }
+
+    try
+    {
+        _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
+
+        // Get current viewport
+        var startViewport = MapDisplay.CurrentViewport;
+        if (startViewport == null)
+        {
+            _logger.LogError("Current viewport is null");
+            return;
+        }
+
+        _logger.LogInfo($"  Current viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}, zoom={startViewport.ZoomLevel:F2}");
+
+        // Pop the previous state
+        var previousState = _navigationService.PopState();
+        if (previousState == null)
+        {
+            _logger.LogWarning("Previous state is null");
+            return;
+        }
+
+        _logger.LogInfo("  Previous state popped from navigation stack");
+
+        // Calculate target viewport (full map view)
+        var targetViewport = ViewportState.CreateFullMapView(
+            ImageWidth,
+            ImageHeight,
+            MapDisplay.ActualWidth,
+            MapDisplay.ActualHeight);
+
+        _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
+
+        // Create animation
+        var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
+
+        var animStart = DateTime.Now;
+        var frameCount = 0;
+        var lastFrameTime = animStart;
+
+        EventHandler? renderHandler = null;
+        renderHandler = (s, e) =>
+        {
+            frameCount++;
+            var now = DateTime.Now;
+            var frameDelta = (now - lastFrameTime).TotalMilliseconds;
+            lastFrameTime = now;
+
+            // Calculate current progress (0.0 to 1.0)
+            var elapsed = (now - animStart).TotalMilliseconds;
+            var progress = Math.Min(1.0, elapsed / AnimationDurationMs);
+
+            // Apply easing
+            var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+            progress = easing.Ease(progress);
+
+            // Interpolate viewport
+            var currentViewport = _viewportCalculator.Interpolate(startViewport, targetViewport, progress);
+            MapDisplay.UpdateViewport(currentViewport);
+
+            // Update marker positions
+            UpdateMarkerPositions();
+
+            if (frameCount <= 5 || frameCount % 5 == 0)
+                _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, zoom={currentViewport.ZoomLevel:F2}");
+
+            // Check if animation is complete
+            if (progress >= 1.0)
+            {
+                CompositionTarget.Rendering -= renderHandler;
+                _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
+                _logger.LogInfo("=== Zoom-out animation COMPLETED (Viewport) ===");
+
+                // Ensure final viewport is set
+                MapDisplay.UpdateViewport(targetViewport);
+                UpdateMarkerPositions();
+
+                ShowClusterView();
+
+                if (!_navigationService.CanGoBack)
+                {
+                    _logger.LogInfo("  Hiding Back button (at root level)");
+                    BackButton.Visibility = Visibility.Collapsed;
+                }
+            }
+        };
+
+        CompositionTarget.Rendering += renderHandler;
+        _logger.LogInfo("=== Zoom-out animations STARTED (Viewport) ===");
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError($"Error zooming out: {ex.Message}\n{ex.StackTrace}");
+    }
+}
+
+/// <summary>
+/// Updates all marker positions based on the current viewport.
+/// </summary>
+private void UpdateMarkerPositions()
+{
+    if (MapDisplay.CurrentViewport == null)
+        return;
+
+    var viewport = MapDisplay.CurrentViewport;
+    var containerWidth = MapDisplay.ActualWidth;
+    var containerHeight = MapDisplay.ActualHeight;
+
+    // Update individual markers
+    foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+    {
+        var screenPos = viewport.SourceToScreen(
+            marker.Location.PixelX,
+            marker.Location.PixelY,
+            containerWidth,
+            containerHeight);
+
+        Canvas.SetLeft(marker, screenPos.X - marker.Width / 2);
+        Canvas.SetTop(marker, screenPos.Y - marker.Height / 2);
+    }
+
+    // Update cluster markers
+    foreach (var marker in _clusterMarkers.Where(m => m.Visibility == Visibility.Visible))
+    {
+        var screenPos = viewport.SourceToScreen(
+            marker.Cluster.CenterPoint.X,
+            marker.Cluster.CenterPoint.Y,
+            containerWidth,
+            containerHeight);
+
+        Canvas.SetLeft(marker, screenPos.X - marker.Width / 2);
+        Canvas.SetTop(marker, screenPos.Y - marker.Height / 2);
+    }
+}

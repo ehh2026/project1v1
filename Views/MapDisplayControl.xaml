@@ -7,27 +7,19 @@
              d:DesignHeight="1080" d:DesignWidth="1920"
              Background="Black">
     <Grid>
-        <!-- Container that will be transformed (map + markers together) -->
-        <Grid x:Name="TransformContainer">
-            <Grid.RenderTransform>
-                <TransformGroup>
-                    <ScaleTransform x:Name="MapScaleTransform" ScaleX="1" ScaleY="1" CenterX="0" CenterY="0"/>
-                    <TranslateTransform x:Name="MapTranslateTransform" X="0" Y="0"/>
-                </TransformGroup>
-            </Grid.RenderTransform>
-            
-            <!-- Map Image -->
-            <Image x:Name="MapImage" 
-                   Stretch="Uniform" 
-                   HorizontalAlignment="Center" 
-                   VerticalAlignment="Center"
-                   RenderOptions.BitmapScalingMode="HighQuality"/>
-            
-            <!-- Marker Canvas - transforms with the map, aligned to match image -->
-            <Canvas x:Name="MarkerCanvas"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
-                    Background="Transparent"/>
-        </Grid>
+        <!-- Map Image - displays viewport crop -->
+        <Image x:Name="MapImage" 
+               Stretch="Fill" 
+               HorizontalAlignment="Stretch" 
+               VerticalAlignment="Stretch"
+               RenderOptions.BitmapScalingMode="NearestNeighbor"
+               RenderOptions.EdgeMode="Aliased"
+               SnapsToDevicePixels="True"/>
+        
+        <!-- Marker Canvas - fills entire control, markers positioned in screen space -->
+        <Canvas x:Name="MarkerCanvas"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"
+                Background="Transparent"/>
     </Grid>
 </UserControl>

@@ -7,6 +7,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Imaging;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Views;
@@ -15,12 +16,15 @@ namespace InteractiveWorldMap
 {
     /// <summary>
     /// Main window that hosts all UI components and manages application lifecycle.
+    /// Uses viewport-based rendering for efficient zoom/pan operations.
     /// </summary>
     public partial class MainWindow : Window
     {
         private readonly ContentLoader _contentLoader;
         private readonly ILogger _logger;
         private readonly MapNavigationService _navigationService;
+        private readonly ViewportCalculator _viewportCalculator;
+        private readonly AnimationFrameCache _frameCache;
         private ContentSubwindow? _activeSubwindow;
         private List<LocationCluster> _clusters = new List<LocationCluster>();
         
@@ -29,12 +33,12 @@ namespace InteractiveWorldMap
         private readonly List<ClusterMarker> _clusterMarkers = new List<ClusterMarker>();
         
         // Map image dimensions
-        private const double ImageWidth = 16397.0;
-        private const double ImageHeight = 11085.0;
+        private const double ImageWidth = 8198.0;
+        private const double ImageHeight = 5542.0;
         
         // Zoom configuration
         private const double ZoomScale = 3.5; // 3.5x magnification when zoomed
-        private const int AnimationDurationMs = 400;
+        private const int AnimationDurationMs = 320; // Reduced from 400ms for smoother animation
 
         /// <summary>
         /// Gets the active content subwindow, if any.
@@ -56,6 +60,12 @@ namespace InteractiveWorldMap
                 
                 _navigationService = new MapNavigationService();
                 _logger.LogInfo("MapNavigationService created");
+
+                _viewportCalculator = new ViewportCalculator();
+                _logger.LogInfo("ViewportCalculator created");
+                
+                _frameCache = new AnimationFrameCache(_logger);
+                _logger.LogInfo("AnimationFrameCache created");
 
                 // Wire up events
                 Loaded += OnWindowLoaded;
@@ -109,7 +119,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("Map image loaded, calling MapDisplay.LoadMapImage");
                 
                 MapDisplay.LoadMapImage(mapImage);
-                _logger.LogInfo("MapDisplay.LoadMapImage completed");
+                _logger.LogInfo("MapDisplay.LoadMapImage completed - viewport initialized");
 
                 // Wait for layout to complete
                 _logger.LogInfo("Step 3: Waiting for layout");
@@ -177,7 +187,7 @@ namespace InteractiveWorldMap
                     Owner = this
                 };
 
-                var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, 16397, 11085);
+                var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
                 _activeSubwindow.ShowContent(content, location.Name, markerPosition);
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");
@@ -230,82 +240,53 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Adds clusters to the map canvas.
+        /// Adds clusters to the map canvas using viewport coordinates.
         /// </summary>
         private void AddClustersToMap(List<LocationCluster> clusters)
         {
             _logger.LogInfo($"[AddClustersToMap] Adding {clusters.Count} clusters");
             
-            var mapBounds = MapDisplay.MapBounds;
             var canvas = MapDisplay.Markers;
+            var viewport = MapDisplay.CurrentViewport;
             
-            // Set canvas size to match map bounds (it's centered, so no need to set position)
-            canvas.Width = mapBounds.Width;
-            canvas.Height = mapBounds.Height;
+            if (viewport == null)
+            {
+                _logger.LogError("Current viewport is null");
+                return;
+            }
             
-            _logger.LogInfo($"  Canvas size: {mapBounds.Width:F2} x {mapBounds.Height:F2}");
-            _logger.LogInfo($"  Map bounds: {mapBounds}");
+            _logger.LogInfo($"  Viewport: ({viewport.ViewportX:F2}, {viewport.ViewportY:F2}) {viewport.ViewportWidth:F2}x{viewport.ViewportHeight:F2}");
             
             foreach (var cluster in clusters)
             {
                 if (cluster.IsSingleLocation)
                 {
                     // Add individual marker
-                    AddIndividualMarker(cluster.Locations[0], mapBounds);
+                    AddIndividualMarker(cluster.Locations[0]);
                 }
                 else
                 {
                     // Add cluster marker
-                    AddClusterMarker(cluster, mapBounds);
+                    AddClusterMarker(cluster);
                 }
             }
             
             _logger.LogInfo($"[AddClustersToMap] Complete - {_individualMarkers.Count} individual, {_clusterMarkers.Count} cluster markers");
             
-            // Log initial screen positions after layout
-            Dispatcher.BeginInvoke(new Action(() =>
-            {
-                _logger.LogInfo("  Initial screen positions:");
-                foreach (var marker in _clusterMarkers.Where(m => m.Visibility == Visibility.Visible))
-                {
-                    try
-                    {
-                        var canvasPos = new Point(Canvas.GetLeft(marker) + marker.Width / 2, Canvas.GetTop(marker) + marker.Height / 2);
-                        var screenPos = marker.TransformToAncestor(this).Transform(new Point(marker.Width / 2, marker.Height / 2));
-                        _logger.LogInfo($"    Cluster ({marker.Cluster.Count}): canvas({canvasPos.X:F2}, {canvasPos.Y:F2}) -> screen({screenPos.X:F2}, {screenPos.Y:F2})");
-                    }
-                    catch { }
-                }
-                foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
-                {
-                    try
-                    {
-                        var canvasPos = new Point(Canvas.GetLeft(marker) + marker.Width / 2, Canvas.GetTop(marker) + marker.Height / 2);
-                        var screenPos = marker.TransformToAncestor(this).Transform(new Point(marker.Width / 2, marker.Height / 2));
-                        _logger.LogInfo($"    Individual '{marker.Location.Name}': canvas({canvasPos.X:F2}, {canvasPos.Y:F2}) -> screen({screenPos.X:F2}, {screenPos.Y:F2})");
-                    }
-                    catch { }
-                }
-            }), System.Windows.Threading.DispatcherPriority.Loaded);
+            // Update marker positions based on current viewport
+            UpdateMarkerPositions();
         }
 
         /// <summary>
-        /// Adds an individual location marker to the canvas.
+        /// Adds an individual location marker to the canvas using viewport coordinates.
         /// </summary>
-        private void AddIndividualMarker(Location location, Rect mapBounds)
+        private LocationMarker AddIndividualMarker(Location location)
         {
             var marker = new LocationMarker { Location = location };
             
-            // Calculate position in canvas coordinates (0 to canvas width/height)
-            var normalizedX = location.PixelX / ImageWidth;
-            var normalizedY = location.PixelY / ImageHeight;
-            
-            var x = normalizedX * mapBounds.Width;
-            var y = normalizedY * mapBounds.Height;
-            
-            // Position marker (centered on point)
-            Canvas.SetLeft(marker, x - marker.Width / 2);
-            Canvas.SetTop(marker, y - marker.Height / 2);
+            // Position will be updated by UpdateMarkerPositions()
+            Canvas.SetLeft(marker, 0);
+            Canvas.SetTop(marker, 0);
             
             // Add click handler
             marker.MouseLeftButtonDown += (s, e) =>
@@ -318,31 +299,22 @@ namespace InteractiveWorldMap
             _individualMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
             
-            // Log coordinates
-            _logger.LogInfo($"  Individual marker '{location.Name}':");
-            _logger.LogInfo($"    Image coords: ({location.PixelX}, {location.PixelY})");
-            _logger.LogInfo($"    Normalized: ({normalizedX:F4}, {normalizedY:F4})");
-            _logger.LogInfo($"    Canvas pos: ({x:F2}, {y:F2})");
+            _logger.LogInfo($"  Individual marker '{location.Name}' added at source ({location.PixelX}, {location.PixelY})");
+            
+            return marker;
         }
 
         /// <summary>
-        /// Adds a cluster marker to the canvas.
+        /// Adds a cluster marker to the canvas using viewport coordinates.
         /// </summary>
-        private void AddClusterMarker(LocationCluster cluster, Rect mapBounds)
+        private void AddClusterMarker(LocationCluster cluster)
         {
             var marker = new ClusterMarker { Cluster = cluster };
             marker.UpdateDisplay();
             
-            // Calculate position in canvas coordinates (0 to canvas width/height)
-            var normalizedX = cluster.CenterPoint.X / ImageWidth;
-            var normalizedY = cluster.CenterPoint.Y / ImageHeight;
-            
-            var x = normalizedX * mapBounds.Width;
-            var y = normalizedY * mapBounds.Height;
-            
-            // Position marker (centered on point)
-            Canvas.SetLeft(marker, x - marker.Width / 2);
-            Canvas.SetTop(marker, y - marker.Height / 2);
+            // Position will be updated by UpdateMarkerPositions()
+            Canvas.SetLeft(marker, 0);
+            Canvas.SetTop(marker, 0);
             
             // Add click handler
             marker.MouseLeftButtonDown += (s, e) =>
@@ -355,11 +327,46 @@ namespace InteractiveWorldMap
             _clusterMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
             
-            // Log coordinates
-            _logger.LogInfo($"  Cluster marker ({cluster.Count} locations):");
-            _logger.LogInfo($"    Image coords: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
-            _logger.LogInfo($"    Normalized: ({normalizedX:F4}, {normalizedY:F4})");
-            _logger.LogInfo($"    Canvas pos: ({x:F2}, {y:F2})");
+            _logger.LogInfo($"  Cluster marker ({cluster.Count} locations) added at source ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
+        }
+
+        /// <summary>
+        /// Updates all marker positions based on the current viewport.
+        /// </summary>
+        private void UpdateMarkerPositions()
+        {
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null)
+                return;
+
+            var containerWidth = MapDisplay.ActualWidth;
+            var containerHeight = MapDisplay.ActualHeight;
+
+            // Update individual markers
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                var screenPos = viewport.SourceToScreen(
+                    marker.Location.PixelX,
+                    marker.Location.PixelY,
+                    containerWidth,
+                    containerHeight);
+
+                Canvas.SetLeft(marker, screenPos.X - marker.Width / 2);
+                Canvas.SetTop(marker, screenPos.Y - marker.Height / 2);
+            }
+
+            // Update cluster markers
+            foreach (var marker in _clusterMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                var screenPos = viewport.SourceToScreen(
+                    marker.Cluster.CenterPoint.X,
+                    marker.Cluster.CenterPoint.Y,
+                    containerWidth,
+                    containerHeight);
+
+                Canvas.SetLeft(marker, screenPos.X - marker.Width / 2);
+                Canvas.SetTop(marker, screenPos.Y - marker.Height / 2);
+            }
         }
 
         /// <summary>
@@ -402,29 +409,9 @@ namespace InteractiveWorldMap
             {
                 marker.Visibility = Visibility.Visible;
             }
-        }
 
-        /// <summary>
-        /// Counter-scales all markers to maintain their visual size when the map is zoomed.
-        /// </summary>
-        /// <param name="scale">The scale factor to apply (1/zoomScale to counter the zoom)</param>
-        private void CounterScaleMarkers(double scale)
-        {
-            _logger.LogInfo($"[CounterScaleMarkers] Applying scale: {scale:F2}");
-            
-            var scaleTransform = new ScaleTransform(scale, scale);
-            
-            foreach (var marker in _individualMarkers)
-            {
-                marker.RenderTransform = scaleTransform;
-                marker.RenderTransformOrigin = new Point(0.5, 0.5);
-            }
-            
-            foreach (var marker in _clusterMarkers)
-            {
-                marker.RenderTransform = scaleTransform;
-                marker.RenderTransformOrigin = new Point(0.5, 0.5);
-            }
+            // Update positions for visible markers
+            UpdateMarkerPositions();
         }
 
         /// <summary>
@@ -439,8 +426,6 @@ namespace InteractiveWorldMap
             {
                 marker.Visibility = Visibility.Collapsed;
             }
-            
-            var mapBounds = MapDisplay.MapBounds;
             
             // For each location in the cluster, ensure we have an individual marker
             foreach (var location in cluster.Locations)
@@ -458,7 +443,8 @@ namespace InteractiveWorldMap
                 {
                     // Create new individual marker for this location
                     _logger.LogInfo($"  Creating new marker for: {location.Name}");
-                    AddIndividualMarker(location, mapBounds);
+                    var newMarker = AddIndividualMarker(location);
+                    newMarker.Visibility = Visibility.Visible;
                 }
             }
             
@@ -470,6 +456,9 @@ namespace InteractiveWorldMap
                     marker.Visibility = Visibility.Collapsed;
                 }
             }
+
+            // Update positions for visible markers
+            UpdateMarkerPositions();
         }
 
         /// <summary>
@@ -487,11 +476,6 @@ namespace InteractiveWorldMap
             }
         }
 
-        private void UpdateMarkerLayerBounds()
-        {
-            // No longer needed - markers are in the map canvas
-        }
-
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
             await InitializeAsync();
@@ -501,9 +485,6 @@ namespace InteractiveWorldMap
         {
             _logger.LogInfo($"Cluster clicked: {cluster.Count} locations");
             AnimateZoomToCluster(cluster);
-            
-            // Show Back button
-            BackButton.Visibility = Visibility.Visible;
         }
 
         private void OnMapMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -522,116 +503,124 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Animates zooming into a cluster.
+        /// Animates zooming into a cluster using viewport-based rendering.
         /// </summary>
         private void AnimateZoomToCluster(LocationCluster cluster)
-        {
-            try
-            {
-                _logger.LogInfo("=== AnimateZoomToCluster START ===");
-                _logger.LogInfo($"  Cluster: {cluster.Count} locations");
-                _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
-
-                // Save current state before zooming
-                var currentState = ZoomState.CreateFullMapView();
-                _navigationService.PushState(currentState);
-                _logger.LogInfo("  Current state saved to navigation stack");
-
-                // Calculate the center point in screen coordinates
-                var mapBounds = MapDisplay.MapBounds;
-                var imageWidth = 16397.0;
-                var imageHeight = 11085.0;
-
-                _logger.LogInfo($"  Map bounds: {mapBounds}");
-                _logger.LogInfo($"  Image size: {imageWidth} x {imageHeight}");
-
-                var normalizedX = cluster.CenterPoint.X / imageWidth;
-                var normalizedY = cluster.CenterPoint.Y / imageHeight;
-
-                _logger.LogInfo($"  Normalized center: ({normalizedX:F4}, {normalizedY:F4})");
-
-                var centerX = mapBounds.Left + (normalizedX * mapBounds.Width);
-                var centerY = mapBounds.Top + (normalizedY * mapBounds.Height);
-
-                _logger.LogInfo($"  Screen center: ({centerX:F2}, {centerY:F2})");
-
-                // Calculate the center of the screen
-                var screenCenterX = ActualWidth / 2;
-                var screenCenterY = ActualHeight / 2;
-
-                _logger.LogInfo($"  Window center: ({screenCenterX:F2}, {screenCenterY:F2})");
-
-                // Calculate translation needed to center the cluster
-                var translateX = screenCenterX - (centerX * ZoomScale);
-                var translateY = screenCenterY - (centerY * ZoomScale);
-
-                _logger.LogInfo($"  Calculated translation: ({translateX:F2}, {translateY:F2})");
-                _logger.LogInfo($"  Zoom scale: {ZoomScale}");
-
-                // Create animations with smoother easing
-                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
-                var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
-
-                var scaleXAnim = new DoubleAnimation(ZoomScale, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-                var scaleYAnim = new DoubleAnimation(ZoomScale, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-                var translateXAnim = new DoubleAnimation(translateX, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-                var translateYAnim = new DoubleAnimation(translateY, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-
-                // Handle animation completion
-                scaleXAnim.Completed += (s, e) =>
                 {
-                    _logger.LogInfo("=== Zoom animation COMPLETED ===");
-                    _logger.LogInfo($"  Final scale: ({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2})");
-                    _logger.LogInfo($"  Final translate: ({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
-                    
-                    // Stop all animations and set final values explicitly
-                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
-                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, null);
-                    
-                    MapDisplay.ScaleTransform.ScaleX = ZoomScale;
-                    MapDisplay.ScaleTransform.ScaleY = ZoomScale;
-                    MapDisplay.TranslateTransform.X = translateX;
-                    MapDisplay.TranslateTransform.Y = translateY;
-                    
-                    _logger.LogInfo($"  Values set to: scale({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2}), translate({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
-                    
-                    // Counter-scale all markers to keep them the same visual size
-                    CounterScaleMarkers(1.0 / ZoomScale);
-                    
-                    ShowZoomedView(cluster);
-                };
+                    try
+                    {
+                        _logger.LogInfo("=== AnimateZoomToCluster START (Viewport) ===");
+                        _logger.LogInfo($"  Cluster: {cluster.Count} locations");
+                        _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
 
-                // Apply animations
-                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
-                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
-                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
-                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
+                        // Save current state before zooming
+                        var currentState = ZoomState.CreateFullMapView();
+                        _navigationService.PushState(currentState);
+                        _logger.LogInfo("  Current state saved to navigation stack");
 
-                _logger.LogInfo("=== Zoom animations STARTED ===");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
-            }
-        }
+                        // Get current viewport
+                        var startViewport = MapDisplay.CurrentViewport;
+                        if (startViewport == null)
+                        {
+                            _logger.LogError("Current viewport is null");
+                            return;
+                        }
+
+                        // Calculate target viewport centered on cluster
+                        var targetViewport = ViewportState.CreateZoomedView(
+                            cluster.CenterPoint.X,
+                            cluster.CenterPoint.Y,
+                            ZoomScale,
+                            ImageWidth,
+                            ImageHeight,
+                            MapDisplay.ActualWidth,
+                            MapDisplay.ActualHeight);
+
+                        _logger.LogInfo($"  Start viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}");
+                        _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
+
+                        var animStart = DateTime.Now;
+                        var frameCount = 0;
+                        var lastFrameTime = animStart;
+                        var lastUpdateTime = animStart;
+                        const double minFrameIntervalMs = 40.0; // 25 FPS (320ms / 40ms = 8 frames)
+
+                        // Pre-render keyframes with caching
+                        const int keyframeCount = 8;
+                        var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
+
+                        EventHandler? renderHandler = null;
+                        renderHandler = (s, e) =>
+                        {
+                            frameCount++;
+                            var now = DateTime.Now;
+                            var frameDelta = (now - lastFrameTime).TotalMilliseconds;
+                            lastFrameTime = now;
+
+                            // Throttle updates
+                            var timeSinceLastUpdate = (now - lastUpdateTime).TotalMilliseconds;
+                            if (timeSinceLastUpdate < minFrameIntervalMs)
+                                return;
+
+                            lastUpdateTime = now;
+
+                            // Calculate current progress (0.0 to 1.0)
+                            var elapsed = (now - animStart).TotalMilliseconds;
+                            var progress = Math.Min(1.0, elapsed / AnimationDurationMs);
+
+                            // Find closest pre-rendered frame
+                            int frameIndex = 0;
+                            double minDiff = double.MaxValue;
+                            for (int i = 0; i < keyframeCount; i++)
+                            {
+                                double diff = Math.Abs(keyframeProgress[i] - progress);
+                                if (diff < minDiff)
+                                {
+                                    minDiff = diff;
+                                    frameIndex = i;
+                                }
+                            }
+
+                            // Display pre-rendered frame
+                            MapDisplay.DisplayImage.Source = prerenderedFrames[frameIndex];
+
+                            // Update viewport state for marker positioning
+                            var currentViewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[frameIndex]);
+                            MapDisplay.SetCurrentViewport(currentViewport);
+
+                            // Update marker positions
+                            UpdateMarkerPositions();
+
+                            if (frameCount <= 5 || frameCount % 5 == 0)
+                                _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, keyframe={frameIndex}");
+
+                            // Check if animation is complete
+                            if (progress >= 1.0)
+                            {
+                                CompositionTarget.Rendering -= renderHandler;
+                                _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
+                                _logger.LogInfo("=== Zoom animation COMPLETED (Viewport) ===");
+
+                                // Ensure final viewport is set
+                                MapDisplay.UpdateViewport(targetViewport);
+                                UpdateMarkerPositions();
+
+                                ShowZoomedView(cluster);
+
+                                // Show Back button
+                                BackButton.Visibility = Visibility.Visible;
+                            }
+                        };
+
+                        CompositionTarget.Rendering += renderHandler;
+                        _logger.LogInfo("=== Zoom animations STARTED (Viewport) ===");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
+                    }
+                }
+
 
         /// <summary>
         /// Shows the cluster view (full map with cluster markers).
@@ -663,27 +652,16 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== ShowZoomedView START ===");
                 _logger.LogInfo($"  Cluster has {cluster.Count} locations");
-                _logger.LogInfo($"  Current transform: scale({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2}), translate({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                
+                var viewport = MapDisplay.CurrentViewport;
+                if (viewport != null)
+                {
+                    _logger.LogInfo($"  Current viewport: ({viewport.ViewportX:F2}, {viewport.ViewportY:F2}) {viewport.ViewportWidth:F2}x{viewport.ViewportHeight:F2}, zoom={viewport.ZoomLevel:F2}");
+                }
 
                 // Show only individual markers for this cluster
                 ShowOnlyIndividualMarkers(cluster);
                 
-                // Log screen coordinates of visible markers
-                _logger.LogInfo("  Visible marker screen positions:");
-                foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
-                {
-                    try
-                    {
-                        var canvasPos = new Point(Canvas.GetLeft(marker) + marker.Width / 2, Canvas.GetTop(marker) + marker.Height / 2);
-                        var screenPos = marker.TransformToAncestor(this).Transform(new Point(marker.Width / 2, marker.Height / 2));
-                        _logger.LogInfo($"    {marker.Location.Name}: canvas({canvasPos.X:F2}, {canvasPos.Y:F2}) -> screen({screenPos.X:F2}, {screenPos.Y:F2})");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning($"    {marker.Location.Name}: Could not calculate screen position - {ex.Message}");
-                    }
-                }
-
                 _logger.LogInfo($"=== ShowZoomedView COMPLETE ===");
             }
             catch (Exception ex)
@@ -719,7 +697,7 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Animates zooming out to the full map view.
+        /// Animates zooming out to the full map view using viewport-based rendering.
         /// </summary>
         private void AnimateZoomOut()
         {
@@ -731,9 +709,17 @@ namespace InteractiveWorldMap
 
             try
             {
-                _logger.LogInfo("=== AnimateZoomOut START ===");
-                _logger.LogInfo($"  Current scale: ({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2})");
-                _logger.LogInfo($"  Current translate: ({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
+
+                // Get current viewport
+                var startViewport = MapDisplay.CurrentViewport;
+                if (startViewport == null)
+                {
+                    _logger.LogError("Current viewport is null");
+                    return;
+                }
+
+                _logger.LogInfo($"  Current viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}, zoom={startViewport.ZoomLevel:F2}");
 
                 // Pop the previous state
                 var previousState = _navigationService.PopState();
@@ -745,73 +731,93 @@ namespace InteractiveWorldMap
 
                 _logger.LogInfo("  Previous state popped from navigation stack");
 
-                // Create animations to return to full map view with smoother easing
-                var duration = new Duration(TimeSpan.FromMilliseconds(AnimationDurationMs));
-                var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+                // Calculate target viewport (full map view)
+                var targetViewport = ViewportState.CreateFullMapView(
+                    ImageWidth,
+                    ImageHeight,
+                    MapDisplay.ActualWidth,
+                    MapDisplay.ActualHeight);
 
-                var scaleXAnim = new DoubleAnimation(1.0, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-                var scaleYAnim = new DoubleAnimation(1.0, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-                var translateXAnim = new DoubleAnimation(0.0, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
-                var translateYAnim = new DoubleAnimation(0.0, duration) 
-                { 
-                    EasingFunction = easing,
-                    FillBehavior = FillBehavior.HoldEnd
-                };
+                _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
-                _logger.LogInfo("  Target: scale(1.0, 1.0), translate(0.0, 0.0)");
+                var animStart = DateTime.Now;
+                var frameCount = 0;
+                var lastFrameTime = animStart;
+                var lastUpdateTime = animStart;
+                const double minFrameIntervalMs = 40.0; // 25 FPS (320ms / 40ms = 8 frames)
+                
+                // Pre-render keyframes with caching
+                const int keyframeCount = 8;
+                var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
 
-                // Handle animation completion
-                scaleXAnim.Completed += (s, e) =>
+                EventHandler? renderHandler = null;
+                renderHandler = (s, e) =>
                 {
-                    _logger.LogInfo("=== Zoom-out animation COMPLETED ===");
-                    _logger.LogInfo($"  Final scale: ({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2})");
-                    _logger.LogInfo($"  Final translate: ({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
+                    frameCount++;
+                    var now = DateTime.Now;
+                    var frameDelta = (now - lastFrameTime).TotalMilliseconds;
+                    lastFrameTime = now;
+
+                    // Throttle updates
+                    var timeSinceLastUpdate = (now - lastUpdateTime).TotalMilliseconds;
+                    if (timeSinceLastUpdate < minFrameIntervalMs)
+                        return;
                     
-                    // Stop all animations and set final values explicitly
-                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, null);
-                    MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, null);
-                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, null);
-                    MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, null);
-                    
-                    MapDisplay.ScaleTransform.ScaleX = 1.0;
-                    MapDisplay.ScaleTransform.ScaleY = 1.0;
-                    MapDisplay.TranslateTransform.X = 0.0;
-                    MapDisplay.TranslateTransform.Y = 0.0;
-                    
-                    _logger.LogInfo($"  Values set to: scale({MapDisplay.ScaleTransform.ScaleX:F2}, {MapDisplay.ScaleTransform.ScaleY:F2}), translate({MapDisplay.TranslateTransform.X:F2}, {MapDisplay.TranslateTransform.Y:F2})");
-                    
-                    // Reset marker scales to normal
-                    CounterScaleMarkers(1.0);
-                    
-                    ShowClusterView();
-                    
-                    // Hide Back button if at root level
-                    if (!_navigationService.CanGoBack)
+                    lastUpdateTime = now;
+
+                    // Calculate current progress (0.0 to 1.0)
+                    var elapsed = (now - animStart).TotalMilliseconds;
+                    var progress = Math.Min(1.0, elapsed / AnimationDurationMs);
+
+                    // Find closest pre-rendered frame
+                    int frameIndex = 0;
+                    double minDiff = double.MaxValue;
+                    for (int i = 0; i < keyframeCount; i++)
                     {
-                        _logger.LogInfo("  Hiding Back button (at root level)");
-                        BackButton.Visibility = Visibility.Collapsed;
+                        double diff = Math.Abs(keyframeProgress[i] - progress);
+                        if (diff < minDiff)
+                        {
+                            minDiff = diff;
+                            frameIndex = i;
+                        }
+                    }
+                    
+                    // Display pre-rendered frame
+                    MapDisplay.DisplayImage.Source = prerenderedFrames[frameIndex];
+                    
+                    // Update viewport state for marker positioning
+                    var currentViewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[frameIndex]);
+                    MapDisplay.SetCurrentViewport(currentViewport);
+
+                    // Update marker positions
+                    UpdateMarkerPositions();
+
+                    if (frameCount <= 5 || frameCount % 5 == 0)
+                        _logger.LogInfo($"  [FRAME {frameCount}] +{elapsed:F0}ms, delta={frameDelta:F1}ms, progress={progress:F3}, keyframe={frameIndex}");
+
+                    // Check if animation is complete
+                    if (progress >= 1.0)
+                    {
+                        CompositionTarget.Rendering -= renderHandler;
+                        _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
+                        _logger.LogInfo("=== Zoom-out animation COMPLETED (Viewport) ===");
+
+                        // Ensure final viewport is set
+                        MapDisplay.UpdateViewport(targetViewport);
+                        UpdateMarkerPositions();
+
+                        ShowClusterView();
+
+                        if (!_navigationService.CanGoBack)
+                        {
+                            _logger.LogInfo("  Hiding Back button (at root level)");
+                            BackButton.Visibility = Visibility.Collapsed;
+                        }
                     }
                 };
 
-                // Apply animations
-                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleXProperty, scaleXAnim);
-                MapDisplay.ScaleTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleYAnim);
-                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.XProperty, translateXAnim);
-                MapDisplay.TranslateTransform.BeginAnimation(TranslateTransform.YProperty, translateYAnim);
-
-                _logger.LogInfo("=== Zoom-out animations STARTED ===");
+                CompositionTarget.Rendering += renderHandler;
+                _logger.LogInfo("=== Zoom-out animations STARTED (Viewport) ===");
             }
             catch (Exception ex)
             {
@@ -847,7 +853,77 @@ namespace InteractiveWorldMap
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            // No longer needed - markers transform automatically with map
+            // Viewport handles size changes automatically in MapDisplayControl
+            // Just update marker positions if we have a viewport
+            if (MapDisplay.CurrentViewport != null)
+            {
+                UpdateMarkerPositions();
+            }
+        }
+
+        /// <summary>
+        /// Pre-renders animation keyframes with caching support.
+        /// </summary>
+        private WriteableBitmap[] PreRenderKeyframes(ViewportState startViewport, ViewportState targetViewport, 
+                                                      int keyframeCount, out double[] keyframeProgress)
+        {
+            var prerenderedFrames = new WriteableBitmap[keyframeCount];
+            keyframeProgress = new double[keyframeCount];
+            
+            _logger.LogInfo($"  Pre-rendering {keyframeCount} keyframes...");
+            var easing = new CubicEase { EasingMode = EasingMode.EaseInOut };
+            var sourceImage = MapDisplay.SourceImage;
+            
+            if (sourceImage == null)
+            {
+                _logger.LogError("Source image is null, cannot pre-render");
+                return prerenderedFrames;
+            }
+            
+            int displayWidth = (int)MapDisplay.ActualWidth;
+            int displayHeight = (int)MapDisplay.ActualHeight;
+            int cachedCount = 0;
+            
+            for (int i = 0; i < keyframeCount; i++)
+            {
+                double rawProgress = i / (double)(keyframeCount - 1);
+                keyframeProgress[i] = easing.Ease(rawProgress);
+                
+                var viewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[i]);
+                var sourceRect = viewport.GetSourceRect();
+                
+                // Try to load from cache first
+                var cachedFrame = _frameCache.TryLoadFrame(
+                    startViewport.ViewportX, startViewport.ViewportY, startViewport.ViewportWidth, startViewport.ViewportHeight,
+                    targetViewport.ViewportX, targetViewport.ViewportY, targetViewport.ViewportWidth, targetViewport.ViewportHeight,
+                    displayWidth, displayHeight, i);
+                
+                if (cachedFrame != null)
+                {
+                    prerenderedFrames[i] = new WriteableBitmap(cachedFrame);
+                    prerenderedFrames[i].Freeze();
+                    cachedCount++;
+                }
+                else
+                {
+                    // Create pre-rendered bitmap
+                    var croppedBitmap = new CroppedBitmap(sourceImage, sourceRect);
+                    var scaledBitmap = new TransformedBitmap(croppedBitmap,
+                        new ScaleTransform(displayWidth / (double)sourceRect.Width, displayHeight / (double)sourceRect.Height));
+                    
+                    prerenderedFrames[i] = new WriteableBitmap(scaledBitmap);
+                    prerenderedFrames[i].Freeze();
+                    
+                    // Save to cache for next time
+                    _frameCache.SaveFrame(prerenderedFrames[i],
+                        startViewport.ViewportX, startViewport.ViewportY, startViewport.ViewportWidth, startViewport.ViewportHeight,
+                        targetViewport.ViewportX, targetViewport.ViewportY, targetViewport.ViewportWidth, targetViewport.ViewportHeight,
+                        displayWidth, displayHeight, i);
+                }
+            }
+            _logger.LogInfo($"  Pre-rendering complete ({cachedCount}/{keyframeCount} from cache)");
+            
+            return prerenderedFrames;
         }
 
         private void ShowError(string message)

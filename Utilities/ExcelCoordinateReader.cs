@@ -142,26 +142,49 @@ public class ExcelCoordinateReader
         try
         {
             var cells = row.GetElementsByTagName("c");
-            if (cells.Count < 4)
+            
+            // Build a dictionary of column -> cell value
+            var cellValues = new Dictionary<string, string>();
+            foreach (XmlElement cell in cells)
             {
-                _logger.LogWarning($"Row {rowIndex} has fewer than 4 cells, skipping");
+                var cellRef = cell.GetAttribute("r"); // e.g., "A2", "D2"
+                if (string.IsNullOrEmpty(cellRef))
+                    continue;
+                    
+                // Extract column letter (e.g., "A" from "A2")
+                var column = new string(cellRef.TakeWhile(char.IsLetter).ToArray());
+                cellValues[column] = GetCellValue(cell, sharedStrings);
+            }
+
+            // Column A: Name
+            if (!cellValues.TryGetValue("A", out var name) || string.IsNullOrEmpty(name))
+            {
+                _logger.LogWarning($"Row {rowIndex}: Missing name in column A");
                 return null;
             }
 
-            var name = GetCellValue((XmlElement)cells[0]!, sharedStrings);
-            var pixelXStr = GetCellValue((XmlElement)cells[1]!, sharedStrings);
-            var pixelYStr = GetCellValue((XmlElement)cells[2]!, sharedStrings);
-            var address = GetCellValue((XmlElement)cells[3]!, sharedStrings);
-
-            if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(pixelXStr) || string.IsNullOrEmpty(pixelYStr))
+            // Columns E & F: Half size coordinates (Coordinate X halfsize, Coordinate Y halfsize)
+            if (!cellValues.TryGetValue("E", out var pixelXStr) || string.IsNullOrEmpty(pixelXStr))
             {
-                _logger.LogWarning($"Row {rowIndex} has missing required fields");
+                _logger.LogWarning($"Row {rowIndex}: Missing X coordinate in column E (available columns: {string.Join(", ", cellValues.Keys)})");
                 return null;
             }
+
+            if (!cellValues.TryGetValue("F", out var pixelYStr) || string.IsNullOrEmpty(pixelYStr))
+            {
+                _logger.LogWarning($"Row {rowIndex}: Missing Y coordinate in column F (available columns: {string.Join(", ", cellValues.Keys)})");
+                return null;
+            }
+
+            // Column D: Address (optional)
+            cellValues.TryGetValue("D", out var address);
+
+            // Log what we're trying to parse
+            _logger.LogInfo($"Row {rowIndex}: Attempting to parse X='{pixelXStr}', Y='{pixelYStr}'");
 
             if (!double.TryParse(pixelXStr, out var pixelX) || !double.TryParse(pixelYStr, out var pixelY))
             {
-                _logger.LogWarning($"Row {rowIndex}: Could not parse pixel coordinates");
+                _logger.LogWarning($"Row {rowIndex}: Could not parse pixel coordinates (X='{pixelXStr}', Y='{pixelYStr}')");
                 return null;
             }
 

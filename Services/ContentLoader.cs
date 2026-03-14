@@ -18,6 +18,7 @@ public class ContentLoader
     private readonly ILogger _logger;
     private readonly Dictionary<string, BitmapImage> _contentCache;
     private readonly LocationClusterer _clusterer;
+    private readonly ClusterCache _clusterCache;
 
     /// <summary>
     /// Gets or sets the distance threshold for clustering locations (in pixels).
@@ -44,6 +45,7 @@ public class ContentLoader
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentCache = new Dictionary<string, BitmapImage>();
         _clusterer = new LocationClusterer();
+        _clusterCache = new ClusterCache(logger);
         ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content");
         _logger.LogInfo($"ContentLoader initialized with path: {ContentFolderPath}");
     }
@@ -56,7 +58,7 @@ public class ContentLoader
     {
         try
         {
-            var mapPath = Path.Combine(ContentFolderPath, "World Map 1976.jpg");
+            var mapPath = Path.Combine(ContentFolderPath, "World Map Extra Large.jpg");
             
             if (!File.Exists(mapPath))
             {
@@ -94,7 +96,6 @@ public class ContentLoader
         {
             _logger.LogInfo("Loading and clustering locations");
             
-            // Load locations
             var locations = await LoadLocationsAsync();
             
             if (!locations.Any())
@@ -103,13 +104,20 @@ public class ContentLoader
                 return new List<LocationCluster>();
             }
 
-            // Cluster the locations
+            // Try cache first
+            var cached = _clusterCache.TryLoad(locations);
+            if (cached != null)
+                return cached;
+
+            // Compute clusters and save to cache
             var clusters = _clusterer.ClusterLocations(locations);
             var stats = _clusterer.GetClusteringStats(clusters);
             
             _logger.LogInfo($"Clustering complete: {stats.TotalClusters} clusters " +
                           $"({stats.SingleLocationClusters} single, {stats.MultiLocationClusters} multi) " +
                           $"from {stats.TotalLocations} locations");
+
+            _clusterCache.Save(locations, clusters);
             
             return clusters;
         }
@@ -270,7 +278,7 @@ public class ContentLoader
                 return false;
             }
 
-            var mapPath = Path.Combine(ContentFolderPath, "World Map 1976.jpg");
+            var mapPath = Path.Combine(ContentFolderPath, "World Map Extra Large.jpg");
             if (!File.Exists(mapPath))
             {
                 _logger.LogError($"World map image not found: {mapPath}");

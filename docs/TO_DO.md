@@ -20,6 +20,7 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Get map file decided so you can get pixel coordinates
 - [ ] Use animations rather than abrupt transitions
 - [ ] consider addressing issues in REFACTOR ASSESSMENT
+- [ ] Enable arbitrary / continuous zoom/pan?
 
 ---
 

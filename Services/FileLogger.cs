@@ -1,140 +1,99 @@
 using System;
+using System.Collections.Concurrent;
 using System.IO;
+using System.Threading;
 
 namespace InteractiveWorldMap.Services
 {
     /// <summary>
-    /// File-based logger implementation that writes to %APPDATA%/InteractiveWorldMap/logs/app.log
-    /// Uses a shared file writer to avoid file locking issues.
+    /// Non-blocking logger that queues messages and writes on a background thread.
     /// </summary>
     public class FileLogger : ILogger, IDisposable
     {
-        private static readonly object _globalLockObject = new object();
-        private static StreamWriter? _sharedWriter;
-        private static int _instanceCount = 0;
+        private static readonly BlockingCollection<string> _queue = new BlockingCollection<string>(boundedCapacity: 2000);
+        private static Thread? _writerThread;
         private static string? _logFilePath;
+        private static int _instanceCount = 0;
+        private static readonly object _initLock = new object();
 
         public FileLogger()
         {
-            lock (_globalLockObject)
+            lock (_initLock)
             {
                 _instanceCount++;
-                
-                if (_sharedWriter == null)
-                {
-                    var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-                    var logDirectory = Path.Combine(appDataPath, "InteractiveWorldMap", "logs");
-                    
-                    try
-                    {
-                        Directory.CreateDirectory(logDirectory);
-                        _logFilePath = Path.Combine(logDirectory, "app.log");
-                        
-                        Console.WriteLine($"Log file path: {_logFilePath}");
-                        
-                        InitializeSharedWriter();
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"Failed to initialize logger: {ex.Message}");
-                        _logFilePath = Path.Combine(Path.GetTempPath(), "InteractiveWorldMap_app.log");
-                        Console.WriteLine($"Using fallback log path: {_logFilePath}");
-                        InitializeSharedWriter();
-                    }
-                }
+                if (_writerThread == null)
+                    Initialize();
             }
         }
 
-        private static void InitializeSharedWriter()
+        private static void Initialize()
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+            var logDir = Path.Combine(appData, "InteractiveWorldMap", "logs");
+
+            try { Directory.CreateDirectory(logDir); } catch { }
+
+            _logFilePath = Path.Combine(logDir, "app.log");
+            Console.WriteLine($"Log file path: {_logFilePath}");
+
+            _writerThread = new Thread(WriterLoop)
+            {
+                IsBackground = true,
+                Name = "LogWriter"
+            };
+            _writerThread.Start();
+            Console.WriteLine("Log writer initialized successfully");
+        }
+
+        private static void WriterLoop()
         {
             try
             {
-                _sharedWriter?.Dispose();
-                
-                _sharedWriter = new StreamWriter(_logFilePath!, append: true)
+                using var writer = new StreamWriter(_logFilePath!, append: true) { AutoFlush = false };
+                foreach (var message in _queue.GetConsumingEnumerable())
                 {
-                    AutoFlush = true
-                };
-                
-                Console.WriteLine($"Log writer initialized successfully");
+                    writer.WriteLine(message);
+                    // Flush only when queue is momentarily empty (batches writes)
+                    if (_queue.Count == 0)
+                        writer.Flush();
+                }
+                writer.Flush();
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Failed to initialize log file writer: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"Failed to initialize log file: {ex.Message}");
+                Console.WriteLine($"Log writer thread failed: {ex.Message}");
             }
         }
 
         public void LogError(string message, Exception? ex = null)
         {
-            var logMessage = ex != null 
-                ? $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message} | Exception: {ex.Message}\n{ex.StackTrace}"
-                : $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}";
-            
-            WriteLog(logMessage);
+            var msg = ex != null
+                ? $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message} | {ex.Message}"
+                : $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}";
+            WriteLog(msg);
         }
 
-        public void LogWarning(string message)
-        {
-            var logMessage = $"[WARNING] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}";
-            WriteLog(logMessage);
-        }
+        public void LogWarning(string message) =>
+            WriteLog($"[WARN]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}");
 
-        public void LogInfo(string message)
-        {
-            var logMessage = $"[INFO] {DateTime.Now:yyyy-MM-dd HH:mm:ss} - {message}";
-            WriteLog(logMessage);
-        }
+        public void LogInfo(string message) =>
+            WriteLog($"[INFO]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {message}");
 
-        private void WriteLog(string message)
+        private static void WriteLog(string message)
         {
-            lock (_globalLockObject)
-            {
-                try
-                {
-                    // Write to console first (always works)
-                    Console.WriteLine(message);
-                    
-                    // Write to debug output
-                    System.Diagnostics.Debug.WriteLine(message);
-                    
-                    // Write to file if writer is available
-                    if (_sharedWriter != null)
-                    {
-                        _sharedWriter.WriteLine(message);
-                        _sharedWriter.Flush(); // Explicit flush to ensure it's written
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to write log: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"Failed to write log: {ex.Message}");
-                    
-                    // Try to reinitialize the writer
-                    try
-                    {
-                        InitializeSharedWriter();
-                    }
-                    catch
-                    {
-                        // Ignore reinitialization errors
-                    }
-                }
-            }
+            // Non-blocking: just enqueue. Console write is fast enough.
+            Console.WriteLine(message);
+            System.Diagnostics.Debug.WriteLine(message);
+            _queue.TryAdd(message); // drops if queue is full (shouldn't happen)
         }
 
         public void Dispose()
         {
-            lock (_globalLockObject)
+            lock (_initLock)
             {
                 _instanceCount--;
-                
-                // Only dispose the shared writer when the last instance is disposed
-                if (_instanceCount == 0 && _sharedWriter != null)
-                {
-                    _sharedWriter.Dispose();
-                    _sharedWriter = null;
-                }
+                if (_instanceCount == 0)
+                    _queue.CompleteAdding();
             }
         }
     }
