@@ -21,7 +21,6 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Use animations rather than abrupt transitions
 - [ ] consider addressing issues in REFACTOR ASSESSMENT
 - [ ] Enable arbitrary / continuous zoom/pan?
-- [ ] Zoom in on individual markers also?
 
 ---
 

@@ -203,6 +203,90 @@ public class ContentLoader
     /// Content is expected to be in a subfolder named after the location.
     /// </summary>
     /// <param name="location">The location to load content for</param>
+    /// <returns>Array of tuples containing BitmapImage and optional translation text</returns>
+    public async Task<(BitmapImage Image, string? TranslationText)[]> LoadAllLocationImagesWithTranslationsAsync(Location location)
+    {
+        if (location == null)
+            throw new ArgumentNullException(nameof(location));
+
+        try
+        {
+            _logger.LogInfo($"Loading all images with translations for location: {location.Name}");
+
+            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
+            
+            if (!Directory.Exists(locationFolder))
+            {
+                _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
+                return Array.Empty<(BitmapImage, string?)>();
+            }
+
+            // Find all image files in the location folder
+            var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
+                .Concat(Directory.GetFiles(locationFolder, "*.png"))
+                .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
+                .ToArray();
+
+            if (imageFiles.Length == 0)
+            {
+                _logger.LogWarning($"No image files found in location folder: {locationFolder}");
+                return Array.Empty<(BitmapImage, string?)>();
+            }
+
+            var results = new (BitmapImage, string?)[imageFiles.Length];
+            
+            for (int i = 0; i < imageFiles.Length; i++)
+            {
+                var imagePath = imageFiles[i];
+                
+                // Load image
+                var image = await Task.Run(() =>
+                {
+                    var img = new BitmapImage();
+                    img.BeginInit();
+                    img.UriSource = new Uri(imagePath, UriKind.Absolute);
+                    img.CacheOption = BitmapCacheOption.OnLoad;
+                    img.EndInit();
+                    img.Freeze();
+                    return img;
+                });
+
+                // Look for corresponding translation text file
+                var imageFileNameWithoutExt = Path.GetFileNameWithoutExtension(imagePath);
+                var translationPath = Path.Combine(locationFolder, imageFileNameWithoutExt + ".txt");
+                
+                string? translationText = null;
+                if (File.Exists(translationPath))
+                {
+                    try
+                    {
+                        translationText = await File.ReadAllTextAsync(translationPath);
+                        _logger.LogInfo($"  Found translation for: {imageFileNameWithoutExt}");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning($"Failed to read translation file {translationPath}: {ex.Message}");
+                    }
+                }
+
+                results[i] = (image, translationText);
+            }
+
+            _logger.LogInfo($"Successfully loaded {results.Length} images with translations for location: {location.Name}");
+            return results;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError($"Failed to load images with translations for location {location.Name}: {ex.Message}\n{ex.StackTrace}");
+            return Array.Empty<(BitmapImage, string?)>();
+        }
+    }
+
+    /// <summary>
+    /// Loads all images from a location's folder.
+    /// Content is expected to be in a subfolder named after the location.
+    /// </summary>
+    /// <param name="location">The location to load content for</param>
     /// <returns>BitmapImage for image content, or null for text content</returns>
     public async Task<BitmapImage[]> LoadAllLocationImagesAsync(Location location)
     {

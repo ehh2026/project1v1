@@ -180,10 +180,10 @@ namespace InteractiveWorldMap
                     _activeThumbnailBrowser = null;
                 }
 
-                // Load all images for this location
-                var allImages = await _contentLoader.LoadAllLocationImagesAsync(location);
+                // Load all images with translations for this location
+                var allImagesWithTranslations = await _contentLoader.LoadAllLocationImagesWithTranslationsAsync(location);
                 
-                if (allImages.Length == 0)
+                if (allImagesWithTranslations.Length == 0)
                 {
                     // Show text message if no content available
                     var content = $"Content not available for {location.Name}";
@@ -200,7 +200,7 @@ namespace InteractiveWorldMap
                 else
                 {
                     // Show first image
-                    ShowImageAtIndex(location, allImages, 0);
+                    ShowImageAtIndex(location, allImagesWithTranslations, 0);
                 }
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");
@@ -214,8 +214,10 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Shows a specific image from a location's image collection.
         /// </summary>
-        private void ShowImageAtIndex(Location location, BitmapImage[] allImages, int index)
+        private void ShowImageAtIndex(Location location, (BitmapImage Image, string? TranslationText)[] allImagesWithTranslations, int index)
         {
+            var (image, translationText) = allImagesWithTranslations[index];
+            
             // Create and show content subwindow
             _activeSubwindow = new ContentSubwindow
             {
@@ -224,17 +226,19 @@ namespace InteractiveWorldMap
             };
 
             var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-            _activeSubwindow.ShowContent(allImages[index], location.Name, markerPosition);
+            _activeSubwindow.ShowContent(image, location.Name, markerPosition, translationText);
 
             // If there are multiple images, show thumbnail browser
-            if (allImages.Length > 1)
+            if (allImagesWithTranslations.Length > 1)
             {
+                var images = allImagesWithTranslations.Select(x => x.Image).ToArray();
+                
                 _activeThumbnailBrowser = new ThumbnailBrowserWindow
                 {
                     Owner = this
                 };
                 
-                _activeThumbnailBrowser.LoadThumbnails(allImages, index);
+                _activeThumbnailBrowser.LoadThumbnails(images, index);
                 _activeThumbnailBrowser.PositionRelativeTo(_activeSubwindow);
                 
                 // Handle thumbnail selection
@@ -242,8 +246,9 @@ namespace InteractiveWorldMap
                 {
                     if (_activeSubwindow != null)
                     {
+                        var (selectedImage, selectedTranslation) = allImagesWithTranslations[selectedIndex];
                         var newMarkerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-                        _activeSubwindow.ShowContent(allImages[selectedIndex], location.Name, newMarkerPosition);
+                        _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation);
                         _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
                     }
                 };
@@ -251,7 +256,7 @@ namespace InteractiveWorldMap
                 _activeThumbnailBrowser.Show();
                 _activeThumbnailBrowser.AnimateOpen();
                 
-                _logger.LogInfo($"Thumbnail browser opened with {allImages.Length} images");
+                _logger.LogInfo($"Thumbnail browser opened with {allImagesWithTranslations.Length} images");
             }
         }
 

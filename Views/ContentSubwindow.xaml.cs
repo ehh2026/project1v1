@@ -30,6 +30,9 @@ public partial class ContentSubwindow : Window
     /// </summary>
     public Size PreferredSize { get; private set; }
 
+    private string? _currentTranslationText;
+    private bool _isTranslationVisible;
+
     public ContentSubwindow()
     {
         InitializeComponent();
@@ -45,12 +48,28 @@ public partial class ContentSubwindow : Window
     /// <param name="content">The content to display (ImageSource or string)</param>
     /// <param name="locationName">The name of the location</param>
     /// <param name="anchorPosition">The position to anchor the window near</param>
-    public void ShowContent(object content, string locationName, Point anchorPosition)
+    /// <param name="translationText">Optional translation text for the content</param>
+    public void ShowContent(object content, string locationName, Point anchorPosition, string? translationText = null)
     {
         if (content == null)
             throw new ArgumentNullException(nameof(content));
 
         TitleText.Text = locationName ?? "Location";
+        _currentTranslationText = translationText;
+        _isTranslationVisible = false;
+        TranslationOverlay.Visibility = Visibility.Collapsed;
+
+        // Show/hide translate button based on whether translation is available
+        if (!string.IsNullOrWhiteSpace(translationText))
+        {
+            TranslateButton.Visibility = Visibility.Visible;
+            TranslateButton.Content = "Translate";
+            TranslationText.Text = translationText;
+        }
+        else
+        {
+            TranslateButton.Visibility = Visibility.Collapsed;
+        }
 
         // Render content based on type and calculate size
         if (content is ImageSource imageSource)
@@ -92,6 +111,22 @@ public partial class ContentSubwindow : Window
         // Show and animate
         Show();
         AnimateOpen();
+    }
+
+    private void TranslateButton_Click(object sender, RoutedEventArgs e)
+    {
+        _isTranslationVisible = !_isTranslationVisible;
+        
+        if (_isTranslationVisible)
+        {
+            TranslationOverlay.Visibility = Visibility.Visible;
+            TranslateButton.Content = "Hide Translation";
+        }
+        else
+        {
+            TranslationOverlay.Visibility = Visibility.Collapsed;
+            TranslateButton.Content = "Translate";
+        }
     }
 
     /// <summary>
