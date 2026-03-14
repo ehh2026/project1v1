@@ -2,6 +2,18 @@
 
 A Windows desktop application that displays a full-screen, high-resolution world map with interactive location markers. Users can click on geographic locations to view detailed content in popup subwindows.
 
+## How to Use
+
+Use Excel file with labeled locations/people and add pixel coordinates.
+
+Name subfolders in Images&Content to match.
+
+Put content in there.
+
+Currently if an image and a txt file have the same name and are in the same folder, it will register as a translation. It respects line breaks in the txt file. Could probably enrich formatting if necessary.
+
+Run run-demo.bat in main directory - eventually can make an exe file.
+
 ## System Requirements
 
 - **Operating System**: Windows 10 or later
