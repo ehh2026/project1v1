@@ -1,59 +1,59 @@
 # Quick Start Guide
 
-## Ready to Run! 🚀
+## Running the Application
 
-All files are in place and the application is ready for demo.
+To run the application with your updated coordinates:
 
-## Fastest Way to Run
-
-**Double-click `run-demo.bat`** in the project folder.
-
-That's it! The application will build and launch automatically.
-
-## What You'll See
-
-1. **Full-screen world map** with a black background
-2. **6 interactive markers** at major cities and locations:
-   - New York City (USA)
-   - London (UK)
-   - Tokyo (Japan)
-   - Sydney (Australia)
-   - Paris (France)
-   - 405 Farnsworth Ave, Bordentown, NJ (USA)
-
-## How to Use
-
-- **Hover** over a marker → It scales up
-- **Click** a marker → Opens a content window with an image
-- **Click outside** the content window → Closes it
-- **Press Escape** → Closes content window or exits app
-
-## Files Verified ✓
-
-All required files are present and configured:
-- ✓ World map image: `World Map 1976.jpg`
-- ✓ Location data: `locations.json` (6 locations)
-- ✓ Content images: 2 sample images
-- ✓ Files copied to output directory
-- ✓ All tests passing (32/32)
-
-## If Something Goes Wrong
-
-Check the log file:
-```
-%APPDATA%\InteractiveWorldMap\logs\app.log
+```bash
+dotnet run
 ```
 
-The log will show:
-- Content folder path being used
-- Which files were loaded successfully
-- Any errors that occurred
+The application will automatically:
+1. Read coordinates from `Coordinates for map.xlsx`
+2. Generate location clusters
+3. Display markers on the map
 
-## Technical Details
+## What's New
 
-- **Framework**: .NET 6.0 WPF
-- **Resolution**: Adapts to your screen (tested up to 4K)
-- **Performance**: 30+ FPS with smooth animations
-- **Architecture**: MVVM pattern with clean separation
+### Recent Updates
 
-Enjoy the demo! 🗺️
+1. **Zoom Level**: Markers now zoom to 12x (increased from 10x)
+2. **Content Window**: 10% wider and 20% taller for better viewing
+3. **Image Ordering**: Images are sorted by filename (use numeric prefixes like `1-`, `2-`, `3-`)
+4. **Didactic Text**: Automatic display of `didactic.txt` content in a side window
+5. **Dynamic Sizing**: Didactic window automatically sizes to fit content
+
+### Coordinate Updates
+
+Your new coordinates from the Excel spreadsheet will be loaded automatically when you run the application. No manual JSON editing required!
+
+## Testing Your Changes
+
+1. Run the application: `dotnet run`
+2. Verify markers appear at the correct locations
+3. Click markers to test zoom and content display
+4. Check that clustering works for nearby locations
+
+## File Structure
+
+```
+Project1v1/
+├── Coordinates for map.xlsx          # Your coordinate data (auto-loaded)
+├── Images&Content/
+│   ├── locations.json                # Backup (Excel takes priority)
+│   ├── [LocationName]/               # Content folders
+│   │   ├── 1-first-image.jpg        # Numbered images
+│   │   ├── 2-second-image.jpg
+│   │   ├── didactic.txt             # Optional info text
+│   │   └── 1-first-image.txt        # Optional translation
+│   └── World Map Extra Large.jpg     # Main map image
+└── docs/
+    ├── UPDATING_COORDINATES.md       # Detailed coordinate guide
+    └── CONTENT_FEATURES.md           # Content display features
+```
+
+## Need Help?
+
+- See `docs/UPDATING_COORDINATES.md` for coordinate details
+- See `docs/CONTENT_FEATURES.md` for content setup
+- Check application logs for any errors during startup
