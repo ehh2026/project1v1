@@ -8,9 +8,7 @@ The application is functional and ready for demo! Core features are implemented 
 
 ## USER-ADDED TO-DO ITEMS
 
-- [ ] Make possible to zoom in on World Map?
-- [ ] Consider how to handle multiple images/content for one location (thumbnails? next/previous buttons?)
-- [ ] Instead of always opening subwindow at center of screen, have it open close to (but not on top of) the location pin
+- [ ] Instead of always opening subwindow at center of screen, have it open close to (but not on top of) the location pin?
 - [ ] Add and wire in actual locations and content
 - [ ] Make home screen that has text explaining what the application is/does and shows some pictures of the artist/collector, then a button to open the map. Closing the map then should take the user back to the home screen
 - [ ] make popup windows larger?
@@ -22,6 +20,8 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] *Add welcome / instructions screen*
 - [ ] Add support for ordering images/content
 - [ ] Add explanatory/bio popup window per marker
+- [ ] Fix marker distortion when highly zoomed (50x+)
+- [ ] Fix some markers being misplaced on zoomed-out map
 
 ---
 

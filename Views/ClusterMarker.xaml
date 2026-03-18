@@ -47,6 +47,7 @@
         
         <!-- Stamp image -->
         <Image x:Name="StampImage"
+               RenderOptions.BitmapScalingMode="HighQuality"
                Stretch="Uniform">
             <Image.Effect>
                 <DropShadowEffect Color="Black" 
@@ -60,6 +61,7 @@
         <!-- Count badge background -->
         <Ellipse x:Name="BadgeEllipse"
                  Fill="White"
+                 RenderOptions.EdgeMode="Aliased"
                  HorizontalAlignment="Center"
                  VerticalAlignment="Center">
             <Ellipse.Effect>
