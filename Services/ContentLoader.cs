@@ -105,7 +105,7 @@ public class ContentLoader
             }
 
             // Try cache first
-            var cached = _clusterCache.TryLoad(locations);
+            var cached = _clusterCache.TryLoad(locations, ClusterDistanceThreshold);
             if (cached != null)
                 return cached;
 
@@ -117,7 +117,7 @@ public class ContentLoader
                           $"({stats.SingleLocationClusters} single, {stats.MultiLocationClusters} multi) " +
                           $"from {stats.TotalLocations} locations");
 
-            _clusterCache.Save(locations, clusters);
+            _clusterCache.Save(locations, clusters, ClusterDistanceThreshold);
             
             return clusters;
         }

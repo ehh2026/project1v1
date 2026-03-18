@@ -29,7 +29,7 @@ namespace InteractiveWorldMap.Services
         /// <summary>
         /// Tries to load cached clusters. Returns null if cache is missing or stale.
         /// </summary>
-        public List<LocationCluster>? TryLoad(List<Location> locations)
+        public List<LocationCluster>? TryLoad(List<Location> locations, double threshold)
         {
             try
             {
@@ -45,7 +45,7 @@ namespace InteractiveWorldMap.Services
                 if (cached == null)
                     return null;
 
-                var currentHash = ComputeHash(locations);
+                var currentHash = ComputeHash(locations, threshold);
                 if (cached.LocationHash != currentHash)
                 {
                     _logger.LogInfo($"[ClusterCache] Cache stale (hash mismatch), will recompute");
@@ -91,13 +91,13 @@ namespace InteractiveWorldMap.Services
         /// <summary>
         /// Saves clustering results to disk.
         /// </summary>
-        public void Save(List<Location> locations, List<LocationCluster> clusters)
+        public void Save(List<Location> locations, List<LocationCluster> clusters, double threshold)
         {
             try
             {
                 var cacheFile = new CacheFile
                 {
-                    LocationHash = ComputeHash(locations),
+                    LocationHash = ComputeHash(locations, threshold),
                     Clusters = clusters.Select(c => new CachedCluster
                     {
                         Id = c.Id,
@@ -120,13 +120,14 @@ namespace InteractiveWorldMap.Services
         }
 
         /// <summary>
-        /// Computes a hash of location names and coordinates to detect data changes.
+        /// Computes a hash of location names, coordinates, and threshold to detect data changes.
         /// </summary>
-        private static string ComputeHash(List<Location> locations)
+        private static string ComputeHash(List<Location> locations, double threshold)
         {
             // Sort by name so order doesn't matter
             var sorted = locations.OrderBy(l => l.Name).ThenBy(l => l.PixelX).ThenBy(l => l.PixelY);
             var sb = new StringBuilder();
+            sb.Append($"threshold:{threshold:F1};");
             foreach (var l in sorted)
                 sb.Append($"{l.Name}:{l.PixelX:F2},{l.PixelY:F2};");
 
