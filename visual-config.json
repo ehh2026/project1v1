@@ -22,6 +22,15 @@
     "ZoomThresholdForExtensions": 10.0
   },
 
+  "ManualLayoutEditor": {
+    "Enabled": true,
+    "ShowEditButton": true,
+    "LayoutStoragePath": "Images&Content/manual-layouts.json",
+    "EnableSnapToGrid": false,
+    "GridSize": 5.0,
+    "ShowLayoutIndicator": true
+  },
+
   "Debug": {
     "LogRadialExtensionCalculation": true,
     "LogRadialExtensionAngles": true,

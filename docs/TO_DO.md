@@ -22,7 +22,9 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Add explanatory/bio popup window per marker
 - [ ] Fix marker distortion when highly zoomed (50x+)
 - [ ] Fix some markers being misplaced on zoomed-out map
-- [ ] could we make a capability for an "edit mode" where after initial calculation of lines/angles/marker positions, the user can click and drag a marker (with the line moving with it, with one end fixed at the actual coordinate location) and then click a "Save Layout" button to save the configuration of marker positions (and line endpoints)? it would need to be keyed by all relevant data, including the list of coordinates, the minlocationsforthreshold, proximitythreshold pixels, the zoom level, the displayed image size, the centered coordinate, maybe others. there should also be a "Delete and Recalculate" button. Then when zooming in on a cluster, we should check if a matching saved configuration exists and load it if so.
+- [ ] Don't animate extension lines being drawn until fully zoomed in
+- [ ] Improve smoothness and quickness of zooming
+
 
 ---
 

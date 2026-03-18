@@ -67,8 +67,32 @@ InteractiveWorldMap/
 ## Logging
 
 Application logs are written to:
-- **Location**: `%APPDATA%/InteractiveWorldMap/logs/app.log`
+- **Location**: `%APPDATA%\InteractiveWorldMap\logs\app.log`
 - **Levels**: ERROR, WARNING, INFO
+- **Console**: Logs are also output to console during development
+
+To view logs:
+```bash
+# Windows Command Prompt
+type "%APPDATA%\InteractiveWorldMap\logs\app.log"
+
+# PowerShell
+Get-Content "$env:APPDATA\InteractiveWorldMap\logs\app.log" | Select-Object -Last 50
+```
+
+## Debugging
+
+For troubleshooting issues:
+1. Check the log file at `%APPDATA%\InteractiveWorldMap\logs\app.log`
+2. Console output is available when running from terminal
+3. Enable debug logging in `visual-config.json`:
+   ```json
+   {
+     "Debug": {
+       "LogRadialExtensionCalculation": true
+     }
+   }
+   ```
 
 ## Content Folder Structure
 
