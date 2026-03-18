@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
@@ -8,10 +7,14 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using System.Windows.Shapes;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
 using InteractiveWorldMap.Views;
+using IOPath = System.IO.Path;
 
 namespace InteractiveWorldMap
 {
@@ -35,6 +38,12 @@ namespace InteractiveWorldMap
         // Collections to track markers
         private readonly List<LocationMarker> _individualMarkers = new List<LocationMarker>();
         private readonly List<ClusterMarker> _clusterMarkers = new List<ClusterMarker>();
+        
+        // Radial extension support
+        private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
+        private List<Line> _extensionLines = new List<Line>();
+        private RadialExtensionCalculator? _extensionCalculator;
+        private bool _isAnimating = false; // Track if we're in an animation
         
         // Map image dimensions
         private const double ImageWidth = 8198.0;
@@ -69,7 +78,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
                 // Load visual configuration
-                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
+                var configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
                 VisualConfig.EnsureConfigExists(configPath);
                 _visualConfig = VisualConfig.Load(configPath);
                 _logger.LogInfo($"Visual config loaded from: {configPath}");
@@ -80,6 +89,10 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  ClusterCountFontSize: {_visualConfig.ClusterCountFontSize}");
                 _logger.LogInfo($"  ZoomScale: {_visualConfig.ZoomScale}");
                 _logger.LogInfo($"  AnimationDurationMs: {_visualConfig.AnimationDurationMs}");
+                _logger.LogInfo($"  RadialExtension.Enabled: {_visualConfig.RadialExtension.Enabled}");
+                _logger.LogInfo($"  RadialExtension.MinLocationsForExtension: {_visualConfig.RadialExtension.MinLocationsForExtension}");
+                _logger.LogInfo($"  RadialExtension.ProximityThresholdPixels: {_visualConfig.RadialExtension.ProximityThresholdPixels}");
+                _logger.LogInfo($"  RadialExtension.ExtensionLineLength: {_visualConfig.RadialExtension.ExtensionLineLength}");
                 
                 Console.WriteLine($"=== Visual Config Loaded ===");
                 Console.WriteLine($"Config Path: {configPath}");
@@ -107,6 +120,13 @@ namespace InteractiveWorldMap
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
                 _logger.LogInfo("ContentLoader created");
                 
+                // Initialize radial extension calculator if enabled
+                if (_visualConfig.RadialExtension.Enabled)
+                {
+                    _extensionCalculator = new RadialExtensionCalculator(_visualConfig.RadialExtension);
+                    _logger.LogInfo("RadialExtensionCalculator initialized");
+                }
+                
                 _navigationService = new MapNavigationService();
                 _logger.LogInfo("MapNavigationService created");
 
@@ -117,7 +137,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("AnimationFrameCache created");
 
                 // Initialize zoomed region cache with full-res image path
-                var fullResPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", "World Map 1976.jpg");
+                var fullResPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", "World Map 1976.jpg");
                 _zoomedRegionCache = new ZoomedRegionCache(_logger, fullResPath);
                 _logger.LogInfo("ZoomedRegionCache created");
 
@@ -520,6 +540,7 @@ namespace InteractiveWorldMap
 
         /// <summary>
         /// Updates all marker positions based on the current viewport.
+        /// Applies radial extensions for dense marker groups when enabled.
         /// </summary>
         private void UpdateMarkerPositions()
         {
@@ -530,7 +551,136 @@ namespace InteractiveWorldMap
             var containerWidth = MapDisplay.ActualWidth;
             var containerHeight = MapDisplay.ActualHeight;
 
-            // Update individual markers
+            // Clear existing extensions only when not animating
+            if (!_isAnimating)
+            {
+                ClearExtensionLines();
+            }
+
+            // Skip radial extension logic entirely during animation
+            // Extensions will be applied after animation completes
+            if (_isAnimating)
+            {
+                // During animation, just position markers normally
+                foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+                {
+                    PositionMarkerNormally(marker, viewport, containerWidth, containerHeight);
+                }
+
+                foreach (var marker in _clusterMarkers.Where(m => m.Visibility == Visibility.Visible))
+                {
+                    var screenPos = viewport.SourceToScreen(
+                        marker.Cluster.CenterPoint.X,
+                        marker.Cluster.CenterPoint.Y,
+                        containerWidth,
+                        containerHeight);
+
+                    var markerSize = _visualConfig.ClusterMarkerSize;
+                    Canvas.SetLeft(marker, screenPos.X - markerSize / 2);
+                    Canvas.SetTop(marker, screenPos.Y - markerSize / 2);
+                }
+                return;
+            }
+
+            // Check if we should apply radial extensions (only after animation completes)
+            bool shouldApplyExtensions = _visualConfig.RadialExtension.Enabled &&
+                                          _extensionCalculator != null &&
+                                          viewport.ZoomLevel >= _visualConfig.RadialExtension.ZoomThresholdForExtensions;
+
+            _logger.LogInfo($"[UpdateMarkerPositions] ZoomLevel={viewport.ZoomLevel:F2}, Threshold={_visualConfig.RadialExtension.ZoomThresholdForExtensions}, ShouldApply={shouldApplyExtensions}");
+
+            if (shouldApplyExtensions)
+            {
+                // Calculate SOURCE positions for dense group detection (in image pixel space)
+                var markerSourcePositions = CalculateMarkerSourcePositions();
+                
+                // Calculate SCREEN positions for rendering (in viewport space)
+                var markerScreenPositions = CalculateMarkerScreenPositions(viewport, containerWidth, containerHeight);
+
+                _logger.LogInfo($"[UpdateMarkerPositions] Calculated {markerScreenPositions.Count} marker positions");
+
+                // Detect dense groups using SOURCE positions (proximity in image space)
+                _denseGroups = _extensionCalculator.DetectDenseGroups(markerSourcePositions);
+
+                _logger.LogInfo($"[UpdateMarkerPositions] Detected {_denseGroups.Count} dense groups");
+
+                if (_denseGroups.Any())
+                {
+                    _logger.LogInfo($"Detected {_denseGroups.Count} dense marker groups");
+
+                    var markersInGroups = new HashSet<Location>();
+
+                    foreach (var group in _denseGroups)
+                    {
+                        _logger.LogInfo($"  Processing group with {group.Count} locations at center ({group.CenterPoint.X:F2}, {group.CenterPoint.Y:F2})");
+                        
+                        // Calculate extensions using SCREEN positions (for rendering)
+                        var extensions = _extensionCalculator.CalculateRadialExtensions(
+                            group,
+                            markerScreenPositions,
+                            containerWidth,
+                            containerHeight);
+
+                        _logger.LogInfo($"  Calculated {extensions.Count} extensions");
+
+                        // Validate no crossings
+                        if (_extensionCalculator.ValidateNoCrossings(extensions))
+                        {
+                            _logger.LogInfo($"  Validation passed, applying extensions");
+                            group.Extensions = extensions;
+                            ApplyRadialExtensions(group, viewport, containerWidth, containerHeight);
+                            
+                            // Track which markers are in groups
+                            foreach (var loc in group.Locations)
+                            {
+                                markersInGroups.Add(loc);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Line crossings detected for group with {group.Count} markers, using normal positioning");
+                            // Fall back to normal positioning for this group
+                            ApplyNormalPositioning(group.Locations, viewport, containerWidth, containerHeight);
+                            
+                            foreach (var loc in group.Locations)
+                            {
+                                markersInGroups.Add(loc);
+                            }
+                        }
+                    }
+
+                    // Position markers not in dense groups normally
+                    foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+                    {
+                        if (!markersInGroups.Contains(marker.Location))
+                        {
+                            PositionMarkerNormally(marker, viewport, containerWidth, containerHeight);
+                        }
+                    }
+
+                    // Update cluster markers normally
+                    foreach (var marker in _clusterMarkers.Where(m => m.Visibility == Visibility.Visible))
+                    {
+                        var screenPos = viewport.SourceToScreen(
+                            marker.Cluster.CenterPoint.X,
+                            marker.Cluster.CenterPoint.Y,
+                            containerWidth,
+                            containerHeight);
+
+                        var markerSize = _visualConfig.ClusterMarkerSize;
+                        Canvas.SetLeft(marker, screenPos.X - markerSize / 2);
+                        Canvas.SetTop(marker, screenPos.Y - markerSize / 2);
+                    }
+
+                    return;
+                }
+                else
+                {
+                    _logger.LogInfo("[UpdateMarkerPositions] No dense groups detected, using normal positioning");
+                }
+            }
+
+            // Normal positioning (no extensions)
             foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
             {
                 var screenPos = viewport.SourceToScreen(
@@ -705,6 +855,9 @@ namespace InteractiveWorldMap
                         _logger.LogInfo($"  Cluster: {cluster.Count} locations");
                         _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
 
+                        // Set animation flag to prevent clearing radial extensions during animation
+                        _isAnimating = true;
+
                         // Save current state before zooming
                         var currentState = ZoomState.CreateFullMapView();
                         _navigationService.PushState(currentState);
@@ -791,6 +944,7 @@ namespace InteractiveWorldMap
                             if (progress >= 1.0)
                             {
                                 CompositionTarget.Rendering -= renderHandler;
+                                _isAnimating = false; // Animation complete, allow radial extensions to be cleared if needed
                                 _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
                                 _logger.LogInfo("=== Zoom animation COMPLETED (Viewport) ===");
 
@@ -932,6 +1086,9 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
 
+                // Set animation flag to prevent clearing radial extensions during animation
+                _isAnimating = true;
+
                 // Get current viewport
                 var startViewport = MapDisplay.CurrentViewport;
                 if (startViewport == null)
@@ -1021,6 +1178,7 @@ namespace InteractiveWorldMap
                     if (progress >= 1.0)
                     {
                         CompositionTarget.Rendering -= renderHandler;
+                        _isAnimating = false; // Animation complete, allow radial extensions to be cleared if needed
                         _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
                         _logger.LogInfo("=== Zoom-out animation COMPLETED (Viewport) ===");
 
@@ -1151,5 +1309,245 @@ namespace InteractiveWorldMap
         {
             MessageBox.Show(message, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
         }
+
+        #region Radial Extension Methods
+
+        /// <summary>
+        /// Calculates source image positions for all visible markers.
+        /// Used for dense group detection in image pixel space.
+        /// </summary>
+        private Dictionary<Location, Point> CalculateMarkerSourcePositions()
+        {
+            var positions = new Dictionary<Location, Point>();
+
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                var sourcePos = new Point(marker.Location.PixelX, marker.Location.PixelY);
+                positions[marker.Location] = sourcePos;
+            }
+
+            return positions;
+        }
+
+        /// <summary>
+        /// Calculates screen positions for all visible markers.
+        /// Used for rendering radial extensions in viewport space.
+        /// </summary>
+        private Dictionary<Location, Point> CalculateMarkerScreenPositions(
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight)
+        {
+            var positions = new Dictionary<Location, Point>();
+
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                var screenPos = viewport.SourceToScreen(
+                    marker.Location.PixelX,
+                    marker.Location.PixelY,
+                    containerWidth,
+                    containerHeight);
+
+                positions[marker.Location] = screenPos;
+            }
+
+            return positions;
+        }
+
+        /// <summary>
+        /// Clears all extension lines from the canvas.
+        /// </summary>
+        private void ClearExtensionLines()
+        {
+            foreach (var line in _extensionLines)
+            {
+                MapDisplay.Markers.Children.Remove(line);
+            }
+            _extensionLines.Clear();
+        }
+
+        /// <summary>
+        /// Applies radial extensions to a dense marker group.
+        /// </summary>
+        private void ApplyRadialExtensions(DenseMarkerGroup group, ViewportState viewport, double containerWidth, double containerHeight)
+        {
+            _logger.LogInfo($"[ApplyRadialExtensions] Applying {group.Extensions.Count} extensions");
+            _logger.LogInfo($"[ApplyRadialExtensions] Canvas children before: {MapDisplay.Markers.Children.Count}");
+            
+            foreach (var extension in group.Extensions)
+            {
+                // Convert extension positions from source to screen coordinates
+                var originalScreenPos = viewport.SourceToScreen(
+                    extension.Location.PixelX,
+                    extension.Location.PixelY,
+                    containerWidth,
+                    containerHeight);
+
+                var extendedScreenPos = extension.ExtendedPosition;
+
+                _logger.LogInfo($"  Extension: {extension.Location.Name} from ({originalScreenPos.X:F1},{originalScreenPos.Y:F1}) to ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1})");
+
+                // Create extension line
+                var line = CreateExtensionLine(originalScreenPos, extendedScreenPos);
+                _extensionLines.Add(line);
+                MapDisplay.Markers.Children.Add(line);
+                
+                _logger.LogInfo($"    Line added to canvas, total lines: {_extensionLines.Count}, canvas children: {MapDisplay.Markers.Children.Count}");
+
+                // Position marker at extended location
+                var marker = FindMarkerForLocation(extension.Location);
+                if (marker != null)
+                {
+                    Panel.SetZIndex(marker, 2000); // Markers on top of lines
+                    Canvas.SetLeft(marker, extendedScreenPos.X - marker.Width / 2);
+                    Canvas.SetTop(marker, extendedScreenPos.Y - marker.Height / 2);
+                    _logger.LogInfo($"    Marker positioned at ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1}), ZIndex=2000");
+                }
+                else
+                {
+                    _logger.LogWarning($"    Marker not found for location: {extension.Location.Name}");
+                }
+            }
+
+            _logger.LogInfo($"[ApplyRadialExtensions] Canvas children after: {MapDisplay.Markers.Children.Count}");
+            _logger.LogInfo($"[ApplyRadialExtensions] Total extension lines in list: {_extensionLines.Count}");
+
+            // Animate if configured
+            if (_visualConfig.RadialExtension.AnimateExtension)
+            {
+                var linesToAnimate = _extensionLines.Skip(_extensionLines.Count - group.Extensions.Count).ToList();
+                _logger.LogInfo($"[ApplyRadialExtensions] Animating {linesToAnimate.Count} lines");
+                AnimateExtensionLines(linesToAnimate);
+            }
+        }
+
+        /// <summary>
+        /// Creates a visual extension line.
+        /// </summary>
+        private Line CreateExtensionLine(Point start, Point end)
+        {
+            var line = new Line
+            {
+                X1 = start.X,
+                Y1 = start.Y,
+                X2 = end.X,
+                Y2 = end.Y,
+                Stroke = new SolidColorBrush(Colors.Red), // Bright red for debugging
+                StrokeThickness = 3.0, // Thicker for visibility
+                StrokeDashArray = new DoubleCollection { 2, 2 },
+                Opacity = 1.0, // Full opacity for debugging
+                IsHitTestVisible = false
+            };
+
+            // Add subtle shadow
+            line.Effect = new DropShadowEffect
+            {
+                Color = Colors.Black,
+                Direction = 270,
+                ShadowDepth = 1,
+                BlurRadius = 2,
+                Opacity = 0.3
+            };
+            
+            Panel.SetZIndex(line, 1000); // Ensure lines are on top
+
+            _logger.LogInfo($"    Created line: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), Stroke=Red, Thickness=3");
+
+            return line;
+        }
+
+        /// <summary>
+        /// Finds the LocationMarker for a given Location.
+        /// </summary>
+        private LocationMarker? FindMarkerForLocation(Location location)
+        {
+            return _individualMarkers.FirstOrDefault(m => m.Location == location);
+        }
+
+        /// <summary>
+        /// Positions a marker at its normal (non-extended) location.
+        /// </summary>
+        private void PositionMarkerNormally(
+            LocationMarker marker,
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight)
+        {
+            var screenPos = viewport.SourceToScreen(
+                marker.Location.PixelX,
+                marker.Location.PixelY,
+                containerWidth,
+                containerHeight);
+
+            var markerSize = _visualConfig.LocationMarkerSize;
+            Canvas.SetLeft(marker, screenPos.X - markerSize / 2);
+            Canvas.SetTop(marker, screenPos.Y - markerSize / 2);
+        }
+
+        /// <summary>
+        /// Applies normal positioning to a list of locations (fallback).
+        /// </summary>
+        private void ApplyNormalPositioning(
+            List<Location> locations,
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight)
+        {
+            foreach (var location in locations)
+            {
+                var marker = FindMarkerForLocation(location);
+                if (marker != null)
+                {
+                    PositionMarkerNormally(marker, viewport, containerWidth, containerHeight);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Animates extension lines growing from center.
+        /// </summary>
+        private void AnimateExtensionLines(List<Line> lines)
+        {
+            var duration = TimeSpan.FromMilliseconds(_visualConfig.RadialExtension.ExtensionAnimationMs);
+            var easing = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                var line = lines[i];
+
+                // Store final positions
+                var finalX2 = line.X2;
+                var finalY2 = line.Y2;
+
+                // Set initial positions (line starts at zero length)
+                line.X2 = line.X1;
+                line.Y2 = line.Y1;
+
+                // Create animations
+                var animX2 = new DoubleAnimation
+                {
+                    From = line.X1,
+                    To = finalX2,
+                    Duration = duration,
+                    EasingFunction = easing,
+                    BeginTime = TimeSpan.FromMilliseconds(i * 10) // Stagger by 10ms
+                };
+
+                var animY2 = new DoubleAnimation
+                {
+                    From = line.Y1,
+                    To = finalY2,
+                    Duration = duration,
+                    EasingFunction = easing,
+                    BeginTime = TimeSpan.FromMilliseconds(i * 10)
+                };
+
+                // Apply animations
+                line.BeginAnimation(Line.X2Property, animX2);
+                line.BeginAnimation(Line.Y2Property, animY2);
+            }
+        }
+
+        #endregion
     }
 }

@@ -15,6 +15,11 @@ namespace InteractiveWorldMap.Models
         public double ClusterDistanceThreshold { get; set; } = 300.0;
 
         /// <summary>
+        /// Configuration for radial extension lines.
+        /// </summary>
+        public RadialExtensionConfig RadialExtension { get; set; } = new RadialExtensionConfig();
+
+        /// <summary>
         /// Size of individual location markers in pixels.
         /// </summary>
         public double LocationMarkerSize { get; set; } = 16.0;

@@ -1,0 +1,16 @@
+<UserControl x:Class="InteractiveWorldMap.Views.ExtensionLine"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             IsHitTestVisible="False">
+    <Line x:Name="LineElement"
+          StrokeDashArray="2,2"
+          Opacity="0.8">
+        <Line.Effect>
+            <DropShadowEffect Color="Black" 
+                            Direction="270" 
+                            ShadowDepth="1" 
+                            BlurRadius="2" 
+                            Opacity="0.3"/>
+        </Line.Effect>
+    </Line>
+</UserControl>
