@@ -42,6 +42,7 @@ namespace InteractiveWorldMap
         // Radial extension support
         private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
         private List<Line> _extensionLines = new List<Line>();
+        private Dictionary<LocationMarker, Line> _markerToLineMap = new Dictionary<LocationMarker, Line>();
         private RadialExtensionCalculator? _extensionCalculator;
         private bool _isAnimating = false; // Track if we're in an animation
         
@@ -1391,6 +1392,7 @@ namespace InteractiveWorldMap
                 MapDisplay.Markers.Children.Remove(line);
             }
             _extensionLines.Clear();
+            _markerToLineMap.Clear();
         }
 
         /// <summary>
@@ -1447,6 +1449,13 @@ namespace InteractiveWorldMap
                 var marker = FindMarkerForLocation(extension.Location);
                 if (marker != null)
                 {
+                    // Map marker to its extension line for hover highlighting
+                    _markerToLineMap[marker] = line;
+                    
+                    // Wire up hover events for line highlighting
+                    marker.MouseEnter += OnMarkerMouseEnter;
+                    marker.MouseLeave += OnMarkerMouseLeave;
+                    
                     Panel.SetZIndex(marker, 2000); // Markers on top of lines
                     Canvas.SetLeft(marker, extendedScreenPos.X - marker.Width / 2);
                     Canvas.SetTop(marker, extendedScreenPos.Y - marker.Height / 2);
@@ -1842,6 +1851,38 @@ namespace InteractiveWorldMap
                 // Apply animations
                 line.BeginAnimation(Line.X2Property, animX2);
                 line.BeginAnimation(Line.Y2Property, animY2);
+            }
+        }
+
+        #endregion
+
+        #region Extension Line Hover Highlighting
+
+        /// <summary>
+        /// Highlights the extension line when mouse enters a marker.
+        /// </summary>
+        private void OnMarkerMouseEnter(object sender, MouseEventArgs e)
+        {
+            if (sender is LocationMarker marker && _markerToLineMap.TryGetValue(marker, out Line? line))
+            {
+                // Highlight the line - make it thicker and change to lighter red
+                line.StrokeThickness = 5.0;
+                line.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 100)); // Light red
+                Panel.SetZIndex(line, 1999); // Just below markers but above other lines
+            }
+        }
+
+        /// <summary>
+        /// Restores the extension line to normal when mouse leaves a marker.
+        /// </summary>
+        private void OnMarkerMouseLeave(object sender, MouseEventArgs e)
+        {
+            if (sender is LocationMarker marker && _markerToLineMap.TryGetValue(marker, out Line? line))
+            {
+                // Restore normal appearance
+                line.StrokeThickness = 3.0;
+                line.Stroke = new SolidColorBrush(Colors.Red);
+                Panel.SetZIndex(line, 0); // Back to default layer
             }
         }
 

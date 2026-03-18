@@ -148,6 +148,9 @@ namespace InteractiveWorldMap.Utilities
             // Nudge angles apart if they're too close together
             NudgeAnglesApart(locationsWithAngles);
 
+            // Check for converging lines and nudge them to diverge
+            PreventConvergingLines(locationsWithAngles, screenCenter);
+
             // Use natural angles - extend each marker outward from its actual position
             for (int i = 0; i < markerCount; i++)
             {
@@ -304,29 +307,227 @@ namespace InteractiveWorldMap.Utilities
 
         /// <summary>
         /// Nudges angles apart if they're within the threshold.
-        /// Modifies the list in place.
+        /// Modifies the list in place. Iterates until all angles meet the threshold or max iterations reached.
+        /// Checks all pairs within angular range, not just adjacent pairs.
         /// </summary>
         private void NudgeAnglesApart(List<(Location location, Point screenPosition, double naturalAngle)> locationsWithAngles)
         {
             if (locationsWithAngles.Count < 2)
                 return;
 
-            // Check each pair of adjacent angles
-            for (int i = 0; i < locationsWithAngles.Count - 1; i++)
+            const int maxIterations = 10; // Prevent infinite loops
+            const double maxAngleRangeToCheck = 45.0; // Check pairs within 45° for angle separation
+            int iteration = 0;
+            bool needsAdjustment = true;
+
+            while (needsAdjustment && iteration < maxIterations)
             {
-                var current = locationsWithAngles[i];
-                var next = locationsWithAngles[i + 1];
+                needsAdjustment = false;
+                iteration++;
 
-                double angleDiff = (next.naturalAngle - current.naturalAngle + 360.0) % 360.0;
-
-                if (angleDiff < _config.AngleNudgeThreshold && angleDiff > 0.01)
+                // Check all pairs within angular range
+                for (int i = 0; i < locationsWithAngles.Count; i++)
                 {
-                    // Nudge them apart
-                    double nudge = _config.AngleNudgeAmount / 2.0;
-                    
-                    // Update the angles
-                    locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
-                    locationsWithAngles[i + 1] = (next.location, next.screenPosition, next.naturalAngle + nudge);
+                    var current = locationsWithAngles[i];
+
+                    for (int j = i + 1; j < locationsWithAngles.Count; j++)
+                    {
+                        var other = locationsWithAngles[j];
+
+                        double angleDiff = (other.naturalAngle - current.naturalAngle + 360.0) % 360.0;
+                        
+                        // Only check pairs within the angular range
+                        if (angleDiff > maxAngleRangeToCheck)
+                            break; // Since list is sorted, no need to check further
+
+                        if (angleDiff < _config.AngleNudgeThreshold && angleDiff > 0.01)
+                        {
+                            needsAdjustment = true;
+                            
+                            // Nudge them apart
+                            double nudge = _config.AngleNudgeAmount / 2.0;
+                            
+                            // Update the angles
+                            locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
+                            locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                        }
+                    }
+                }
+
+                // Also check wrap-around (markers near 360° with markers near 0°)
+                if (locationsWithAngles.Count > 2)
+                {
+                    for (int i = 0; i < locationsWithAngles.Count; i++)
+                    {
+                        var current = locationsWithAngles[i];
+                        
+                        // Only check markers in the last 45° (315° to 360°)
+                        if (current.naturalAngle < 315.0)
+                            continue;
+
+                        for (int j = 0; j < locationsWithAngles.Count; j++)
+                        {
+                            var other = locationsWithAngles[j];
+                            
+                            // Only check markers in the first 45° (0° to 45°)
+                            if (other.naturalAngle > 45.0)
+                                break;
+
+                            double wrapDiff = (other.naturalAngle + 360.0 - current.naturalAngle) % 360.0;
+                            
+                            if (wrapDiff > maxAngleRangeToCheck)
+                                continue;
+                            
+                            if (wrapDiff < _config.AngleNudgeThreshold && wrapDiff > 0.01)
+                            {
+                                needsAdjustment = true;
+                                
+                                double nudge = _config.AngleNudgeAmount / 2.0;
+                                
+                                locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
+                                locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Checks if adjacent extension lines are converging (getting closer as they extend outward)
+        /// and nudges them apart to ensure they diverge from the center.
+        /// </summary>
+        private void PreventConvergingLines(List<(Location location, Point screenPosition, double naturalAngle)> locationsWithAngles, Point center)
+        {
+            if (locationsWithAngles.Count < 2)
+                return;
+
+            const int maxIterations = 5;
+            const double maxAngleRangeToCheck = 90.0; // Check pairs within 90° of each other
+            int iteration = 0;
+            bool needsAdjustment = true;
+
+            while (needsAdjustment && iteration < maxIterations)
+            {
+                needsAdjustment = false;
+                iteration++;
+
+                // Check all pairs within angular range, not just adjacent
+                for (int i = 0; i < locationsWithAngles.Count; i++)
+                {
+                    var current = locationsWithAngles[i];
+
+                    // Check this marker against all others within angular range
+                    for (int j = i + 1; j < locationsWithAngles.Count; j++)
+                    {
+                        var other = locationsWithAngles[j];
+
+                        // Calculate angular difference
+                        double angleDiff = (other.naturalAngle - current.naturalAngle + 360.0) % 360.0;
+                        
+                        // Only check pairs within the angular range
+                        if (angleDiff > maxAngleRangeToCheck)
+                            break; // Since list is sorted, no need to check further
+
+                        // Calculate distance between markers at their current positions
+                        double distanceAtOrigin = CalculateDistance(current.screenPosition, other.screenPosition);
+
+                        // Project both lines outward by the extension length
+                        double currentAngleRad = current.naturalAngle * (Math.PI / 180.0);
+                        double otherAngleRad = other.naturalAngle * (Math.PI / 180.0);
+
+                        Point currentExtended = new Point(
+                            current.screenPosition.X + _config.ExtensionLineLength * Math.Sin(currentAngleRad),
+                            current.screenPosition.Y - _config.ExtensionLineLength * Math.Cos(currentAngleRad)
+                        );
+
+                        Point otherExtended = new Point(
+                            other.screenPosition.X + _config.ExtensionLineLength * Math.Sin(otherAngleRad),
+                            other.screenPosition.Y - _config.ExtensionLineLength * Math.Cos(otherAngleRad)
+                        );
+
+                        // Calculate distance at extended positions
+                        double distanceAtExtension = CalculateDistance(currentExtended, otherExtended);
+
+                        // If lines are converging (distance decreases), nudge them apart
+                        if (distanceAtExtension < distanceAtOrigin * 0.95) // 5% tolerance
+                        {
+                            needsAdjustment = true;
+                            double nudge = _config.AngleNudgeAmount;
+
+                            System.Diagnostics.Debug.WriteLine(
+                                $"Converging lines detected: {current.location.Name} ({current.naturalAngle:F1}°) and " +
+                                $"{other.location.Name} ({other.naturalAngle:F1}°) - " +
+                                $"Angular diff: {angleDiff:F1}°, " +
+                                $"Distance at origin: {distanceAtOrigin:F1}px, at extension: {distanceAtExtension:F1}px. " +
+                                $"Nudging apart by {nudge}°");
+
+                            // Nudge them apart proportionally based on their positions
+                            locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
+                            locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                        }
+                    }
+                }
+
+                // Also check wrap-around: compare markers near 360° with markers near 0°
+                if (locationsWithAngles.Count > 2)
+                {
+                    for (int i = 0; i < locationsWithAngles.Count; i++)
+                    {
+                        var current = locationsWithAngles[i];
+                        
+                        // Only check markers in the last 90° (270° to 360°)
+                        if (current.naturalAngle < 270.0)
+                            continue;
+
+                        for (int j = 0; j < locationsWithAngles.Count; j++)
+                        {
+                            var other = locationsWithAngles[j];
+                            
+                            // Only check markers in the first 90° (0° to 90°)
+                            if (other.naturalAngle > 90.0)
+                                break;
+
+                            // Calculate wrap-around angular difference
+                            double angleDiff = (other.naturalAngle + 360.0 - current.naturalAngle) % 360.0;
+                            
+                            if (angleDiff > maxAngleRangeToCheck)
+                                continue;
+
+                            double distanceAtOrigin = CalculateDistance(current.screenPosition, other.screenPosition);
+
+                            double currentAngleRad = current.naturalAngle * (Math.PI / 180.0);
+                            double otherAngleRad = other.naturalAngle * (Math.PI / 180.0);
+
+                            Point currentExtended = new Point(
+                                current.screenPosition.X + _config.ExtensionLineLength * Math.Sin(currentAngleRad),
+                                current.screenPosition.Y - _config.ExtensionLineLength * Math.Cos(currentAngleRad)
+                            );
+
+                            Point otherExtended = new Point(
+                                other.screenPosition.X + _config.ExtensionLineLength * Math.Sin(otherAngleRad),
+                                other.screenPosition.Y - _config.ExtensionLineLength * Math.Cos(otherAngleRad)
+                            );
+
+                            double distanceAtExtension = CalculateDistance(currentExtended, otherExtended);
+
+                            if (distanceAtExtension < distanceAtOrigin * 0.95)
+                            {
+                                needsAdjustment = true;
+                                double nudge = _config.AngleNudgeAmount;
+
+                                System.Diagnostics.Debug.WriteLine(
+                                    $"Converging lines detected (wrap-around): {current.location.Name} ({current.naturalAngle:F1}°) and " +
+                                    $"{other.location.Name} ({other.naturalAngle:F1}°) - " +
+                                    $"Angular diff: {angleDiff:F1}°, " +
+                                    $"Distance at origin: {distanceAtOrigin:F1}px, at extension: {distanceAtExtension:F1}px. " +
+                                    $"Nudging apart by {nudge}°");
+
+                                locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
+                                locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                            }
+                        }
+                    }
                 }
             }
         }
