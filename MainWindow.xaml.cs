@@ -661,10 +661,10 @@ namespace InteractiveWorldMap
                         groupId++;
                     }
 
-                    // Second pass: Adjust for marker overlaps across all groups
+                    // Second pass: Iteratively adjust for overlaps and intersections until stable
                     if (allExtensions.Any())
                     {
-                        AdjustForMarkerOverlaps(allExtensions, _visualConfig.LocationMarkerSize);
+                        IterativelyAdjustExtensions(allExtensions, _visualConfig.LocationMarkerSize);
                     }
 
                     // Third pass: Apply the extensions (now with adjusted lengths)
@@ -1576,8 +1576,9 @@ namespace InteractiveWorldMap
         /// Adjusts extension line lengths to prevent marker overlaps.
         /// Checks all pairs of extended marker positions and adjusts lengths if they would overlap.
         /// Uses multiple passes to handle cascading adjustments.
+        /// Returns true if any adjustments were made.
         /// </summary>
-        private void AdjustForMarkerOverlaps(List<RadialExtension> allExtensions, double markerSize)
+        private bool AdjustForMarkerOverlaps(List<RadialExtension> allExtensions, double markerSize, HashSet<string>? protectedLocations = null)
         {
             double minGap = markerSize * 2.5; // Minimum gap: 2.5x marker width for comfortable spacing
             double minAngleDiff = _visualConfig.RadialExtension.AngleNudgeThreshold; // Minimum angle separation
@@ -1588,6 +1589,11 @@ namespace InteractiveWorldMap
 
             bool logAngles = _visualConfig.Debug.LogRadialExtensionAngles;
             bool logOverlaps = _visualConfig.Debug.LogRadialExtensionOverlaps;
+            
+            if (protectedLocations != null && protectedLocations.Count > 0 && logOverlaps)
+            {
+                _logger.LogInfo($"[AdjustForMarkerOverlaps] Protected locations (won't adjust angles): {string.Join(", ", protectedLocations)}");
+            }
 
             if (logOverlaps)
             {
@@ -1644,6 +1650,20 @@ namespace InteractiveWorldMap
                             // Special handling for exactly equal angles (0.0°)
                             if (angleDiff < minAngleDiff)
                             {
+                                // Check if either location is protected from angle adjustment
+                                bool ext1Protected = protectedLocations != null && protectedLocations.Contains(ext1.Location.Name);
+                                bool ext2Protected = protectedLocations != null && protectedLocations.Contains(ext2.Location.Name);
+                                
+                                if (ext1Protected && ext2Protected)
+                                {
+                                    // Both protected - skip angle adjustment
+                                    if (pass == 1 && logAngles)
+                                    {
+                                        _logger.LogInfo($"  Group {ext1.GroupId}: SKIPPING angle adjustment (both protected): {ext1.Location.Name} and {ext2.Location.Name}");
+                                    }
+                                    continue;
+                                }
+                                
                                 if (pass == 1 && logAngles)
                                 {
                                     _logger.LogInfo($"  Group {ext1.GroupId}: Close angles: {ext1.Location.Name} ({ext1.Angle:F1}°) and {ext2.Location.Name} ({ext2.Angle:F1}°), diff={angleDiff:F1}°");
@@ -1653,8 +1673,30 @@ namespace InteractiveWorldMap
 
                                 // For exactly equal angles, use a larger nudge
                                 double nudge = (angleDiff < 0.01) ? angleNudge : (angleNudge / 2.0);
-                                ext1.Angle -= nudge;
-                                ext2.Angle += nudge;
+                                
+                                // If one is protected, only adjust the other
+                                if (ext1Protected)
+                                {
+                                    ext2.Angle += nudge * 2.0; // Double nudge since only moving one
+                                    if (pass == 1 && logAngles)
+                                    {
+                                        _logger.LogInfo($"    {ext1.Location.Name} protected, only nudging {ext2.Location.Name}");
+                                    }
+                                }
+                                else if (ext2Protected)
+                                {
+                                    ext1.Angle -= nudge * 2.0; // Double nudge since only moving one
+                                    if (pass == 1 && logAngles)
+                                    {
+                                        _logger.LogInfo($"    {ext2.Location.Name} protected, only nudging {ext1.Location.Name}");
+                                    }
+                                }
+                                else
+                                {
+                                    // Neither protected - adjust both
+                                    ext1.Angle -= nudge;
+                                    ext2.Angle += nudge;
+                                }
 
                                 // Recalculate extended positions with new angles
                                 double length1 = CalculateCurrentLength(ext1);
@@ -1663,19 +1705,25 @@ namespace InteractiveWorldMap
                                 double angle1Rad = ext1.Angle * (Math.PI / 180.0);
                                 double angle2Rad = ext2.Angle * (Math.PI / 180.0);
 
-                                ext1.ExtendedPosition = new Point(
-                                    ext1.OriginalPosition.X + length1 * Math.Sin(angle1Rad),
-                                    ext1.OriginalPosition.Y - length1 * Math.Cos(angle1Rad)
-                                );
+                                if (!ext1Protected)
+                                {
+                                    ext1.ExtendedPosition = new Point(
+                                        ext1.OriginalPosition.X + length1 * Math.Sin(angle1Rad),
+                                        ext1.OriginalPosition.Y - length1 * Math.Cos(angle1Rad)
+                                    );
+                                }
 
-                                ext2.ExtendedPosition = new Point(
-                                    ext2.OriginalPosition.X + length2 * Math.Sin(angle2Rad),
-                                    ext2.OriginalPosition.Y - length2 * Math.Cos(angle2Rad)
-                                );
+                                if (!ext2Protected)
+                                {
+                                    ext2.ExtendedPosition = new Point(
+                                        ext2.OriginalPosition.X + length2 * Math.Sin(angle2Rad),
+                                        ext2.OriginalPosition.Y - length2 * Math.Cos(angle2Rad)
+                                    );
+                                }
 
                                 if (pass == 1 && logAngles)
                                 {
-                                    _logger.LogInfo($"    Nudged angles: {ext1.Angle:F1}° and {ext2.Angle:F1}° (nudge={nudge:F1}°)");
+                                    _logger.LogInfo($"    Nudged angles: {ext1.Location.Name}={ext1.Angle:F1}°, {ext2.Location.Name}={ext2.Angle:F1}°");
                                 }
                             }
                         }
@@ -1797,6 +1845,9 @@ namespace InteractiveWorldMap
                     _logger.LogInfo($"  Group {group.Key}: {groupExtensions.Count} markers, smallest angle separation: {minAngleInGroup:F2}°");
                 }
             }
+
+            // Return true if we did more than one pass (meaning adjustments were made)
+            return pass > 1;
         }
 
         /// <summary>
@@ -1852,6 +1903,518 @@ namespace InteractiveWorldMap
                 line.BeginAnimation(Line.X2Property, animX2);
                 line.BeginAnimation(Line.Y2Property, animY2);
             }
+        }
+
+        #endregion
+
+        #region Iterative Extension Adjustment
+
+        /// <summary>
+        /// Iteratively adjusts extensions for both marker overlaps and line intersections
+        /// until the system stabilizes or max iterations reached.
+        /// Detects oscillation and reduces adjustment amounts to help convergence.
+        /// </summary>
+        private void IterativelyAdjustExtensions(List<RadialExtension> allExtensions, double markerSize)
+        {
+            const int maxIterations = 5;
+            int iteration = 0;
+            bool needsAdjustment = true;
+            
+            // Track which pairs keep having issues across ALL iterations
+            var pairAdjustmentCount = new Dictionary<string, int>();
+            double nudgeMultiplier = 1.0; // Start with full nudge amounts
+            
+            // Track which location names should be protected from angle changes by overlap adjustment
+            var protectedFromOverlapAdjustment = new HashSet<string>();
+
+            _logger.LogInfo($"[IterativeAdjustment] Starting iterative adjustment for {allExtensions.Count} extensions");
+
+            while (needsAdjustment && iteration < maxIterations)
+            {
+                iteration++;
+                needsAdjustment = false;
+
+                _logger.LogInfo($"[IterativeAdjustment] === Iteration {iteration} (nudge multiplier: {nudgeMultiplier:F2}) ===");
+
+                // Step 1: Adjust for marker overlaps (but skip protected locations)
+                bool hadOverlaps = AdjustForMarkerOverlaps(allExtensions, markerSize, protectedFromOverlapAdjustment);
+                if (hadOverlaps)
+                {
+                    needsAdjustment = true;
+                    _logger.LogInfo($"[IterativeAdjustment] Overlaps were adjusted");
+                }
+
+                // Step 2: Fix line intersections with adaptive nudging
+                var intersectingPairs = new List<string>();
+                bool hadIntersections = FixLineIntersections(allExtensions, intersectingPairs, nudgeMultiplier);
+                if (hadIntersections)
+                {
+                    needsAdjustment = true;
+                    _logger.LogInfo($"[IterativeAdjustment] Intersections were fixed");
+                    
+                    // Track these pairs and protect them from overlap adjustment
+                    foreach (var pair in intersectingPairs)
+                    {
+                        if (!pairAdjustmentCount.ContainsKey(pair))
+                            pairAdjustmentCount[pair] = 0;
+                        pairAdjustmentCount[pair]++;
+                        
+                        // Add both locations to protected set
+                        var names = pair.Split('-');
+                        protectedFromOverlapAdjustment.Add(names[0]);
+                        protectedFromOverlapAdjustment.Add(names[1]);
+                    }
+                }
+
+                // Detect oscillation: if any pair has been adjusted 3+ times
+                int maxAdjustments = pairAdjustmentCount.Values.Any() ? pairAdjustmentCount.Values.Max() : 0;
+                if (maxAdjustments >= 3)
+                {
+                    // Reduce nudge amounts significantly to help system converge
+                    nudgeMultiplier *= 0.5;
+                    _logger.LogInfo($"[IterativeAdjustment] OSCILLATION DETECTED (max adjustments: {maxAdjustments}), reducing nudge multiplier to {nudgeMultiplier:F2}");
+                    
+                    // Show which pairs are problematic and apply drastic length adjustment
+                    foreach (var kvp in pairAdjustmentCount.Where(x => x.Value >= 3))
+                    {
+                        _logger.LogInfo($"  Problematic pair: {kvp.Key} (adjusted {kvp.Value} times) - applying length separation");
+                        
+                        // Find the extensions for this pair and force length separation
+                        var names = kvp.Key.Split('-');
+                        var ext1 = allExtensions.FirstOrDefault(e => e.Location.Name == names[0]);
+                        var ext2 = allExtensions.FirstOrDefault(e => e.Location.Name == names[1]);
+                        
+                        if (ext1 != null && ext2 != null)
+                        {
+                            // Calculate current lengths
+                            double dx1 = ext1.ExtendedPosition.X - ext1.OriginalPosition.X;
+                            double dy1 = ext1.ExtendedPosition.Y - ext1.OriginalPosition.Y;
+                            double length1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+                            
+                            double dx2 = ext2.ExtendedPosition.X - ext2.OriginalPosition.X;
+                            double dy2 = ext2.ExtendedPosition.Y - ext2.OriginalPosition.Y;
+                            double length2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+                            
+                            double minLength = _visualConfig.RadialExtension.MinimumLineLength;
+                            double maxLength = _visualConfig.RadialExtension.ExtensionLineLength * 1.5; // Cap at 1.5x normal
+                            
+                            // Apply moderate length difference: 20% shorter and 20% longer (not 40%)
+                            double newLength1 = Math.Max(minLength, Math.Min(maxLength, length1 * 0.8));
+                            double newLength2 = Math.Max(minLength, Math.Min(maxLength, length2 * 1.2));
+                            
+                            // Recalculate positions with new lengths
+                            double angle1Rad = ext1.Angle * (Math.PI / 180.0);
+                            double angle2Rad = ext2.Angle * (Math.PI / 180.0);
+                            
+                            ext1.ExtendedPosition = new Point(
+                                ext1.OriginalPosition.X + newLength1 * Math.Sin(angle1Rad),
+                                ext1.OriginalPosition.Y - newLength1 * Math.Cos(angle1Rad)
+                            );
+                            
+                            ext2.ExtendedPosition = new Point(
+                                ext2.OriginalPosition.X + newLength2 * Math.Sin(angle2Rad),
+                                ext2.OriginalPosition.Y - newLength2 * Math.Cos(angle2Rad)
+                            );
+                            
+                            _logger.LogInfo($"    Moderate length separation: {names[0]} {length1:F1}→{newLength1:F1}px, {names[1]} {length2:F1}→{newLength2:F1}px");
+                        }
+                    }
+                }
+
+                if (!needsAdjustment)
+                {
+                    _logger.LogInfo($"[IterativeAdjustment] System stabilized after {iteration} iterations");
+                }
+            }
+
+            if (iteration >= maxIterations)
+            {
+                _logger.LogInfo($"[IterativeAdjustment] Reached max iterations ({maxIterations}), accepting current state");
+            }
+
+            // Log minimum distances between all line pairs
+            _logger.LogInfo($"[IterativeAdjustment] === Final Line Separation Analysis ===");
+            double globalMinDistance = double.MaxValue;
+            string closestPair = "";
+            
+            for (int i = 0; i < allExtensions.Count; i++)
+            {
+                for (int j = i + 1; j < allExtensions.Count; j++)
+                {
+                    var ext1 = allExtensions[i];
+                    var ext2 = allExtensions[j];
+                    
+                    double distance = CalculateMinimumDistanceBetweenLines(
+                        ext1.OriginalPosition, ext1.ExtendedPosition,
+                        ext2.OriginalPosition, ext2.ExtendedPosition);
+                    
+                    if (distance < globalMinDistance)
+                    {
+                        globalMinDistance = distance;
+                        closestPair = $"{ext1.Location.Name} - {ext2.Location.Name}";
+                    }
+                    
+                    // Log pairs that are very close (less than marker size)
+                    if (distance < _visualConfig.LocationMarkerSize)
+                    {
+                        _logger.LogInfo($"  Close pair: {ext1.Location.Name} - {ext2.Location.Name}: {distance:F1}px");
+                    }
+                }
+            }
+            
+            _logger.LogInfo($"[IterativeAdjustment] Minimum line separation: {globalMinDistance:F1}px ({closestPair})");
+            _logger.LogInfo($"[IterativeAdjustment] Marker size: {_visualConfig.LocationMarkerSize:F1}px (radius: {_visualConfig.LocationMarkerSize / 2.0:F1}px)");
+        }
+
+        /// <summary>
+        /// Fixes line intersections by adjusting angles.
+        /// Returns true if any intersections were found and fixed.
+        /// Adds intersecting pairs to the provided list for tracking.
+        /// Uses intelligent space detection to rotate lines into available space.
+        /// </summary>
+        private bool FixLineIntersections(List<RadialExtension> allExtensions, List<string> intersectingPairs, double nudgeMultiplier)
+        {
+            bool foundAny = false;
+            int totalFixed = 0;
+            double markerRadius = _visualConfig.LocationMarkerSize / 2.0;
+
+            // Sort by angle for space detection
+            var sortedExtensions = allExtensions.OrderBy(e => e.Angle).ToList();
+
+            // Check all pairs for intersection or proximity issues
+            for (int i = 0; i < allExtensions.Count; i++)
+            {
+                var ext1 = allExtensions[i];
+                
+                for (int j = i + 1; j < allExtensions.Count; j++)
+                {
+                    var ext2 = allExtensions[j];
+
+                    bool hasIssue = false;
+                    string issueType = "";
+
+                    // Check if these line segments intersect
+                    if (DoLineSegmentsIntersect(
+                        ext1.OriginalPosition, ext1.ExtendedPosition,
+                        ext2.OriginalPosition, ext2.ExtendedPosition))
+                    {
+                        hasIssue = true;
+                        issueType = "INTERSECTION";
+                    }
+                    // Check if ext1's line passes too close to ext2's marker
+                    else if (DoesLinePassTooCloseToMarker(
+                        ext1.OriginalPosition, ext1.ExtendedPosition,
+                        ext2.ExtendedPosition, markerRadius))
+                    {
+                        hasIssue = true;
+                        issueType = "LINE→MARKER";
+                    }
+                    // Check if ext2's line passes too close to ext1's marker
+                    else if (DoesLinePassTooCloseToMarker(
+                        ext2.OriginalPosition, ext2.ExtendedPosition,
+                        ext1.ExtendedPosition, markerRadius))
+                    {
+                        hasIssue = true;
+                        issueType = "MARKER←LINE";
+                    }
+
+                    if (hasIssue)
+                    {
+                        foundAny = true;
+                        totalFixed++;
+
+                        // Create a unique key for this pair (sorted to ensure consistency)
+                        string pairKey = string.Compare(ext1.Location.Name, ext2.Location.Name) < 0
+                            ? $"{ext1.Location.Name}-{ext2.Location.Name}"
+                            : $"{ext2.Location.Name}-{ext1.Location.Name}";
+
+                        // Track this pair
+                        intersectingPairs.Add(pairKey);
+
+                        _logger.LogInfo($"  [{issueType} #{totalFixed}] {ext1.Location.Name} ({ext1.Angle:F1}°) and {ext2.Location.Name} ({ext2.Angle:F1}°)");
+
+                        // Use geometric testing to find actual safe rotation amounts
+                        double maxTestRotation = 30.0; // Test up to 30 degrees
+                        double safeRotation1CW = FindSafeAngleRotation(ext1, allExtensions, clockwise: true, maxTestRotation);
+                        double safeRotation1CCW = FindSafeAngleRotation(ext1, allExtensions, clockwise: false, maxTestRotation);
+                        double safeRotation2CW = FindSafeAngleRotation(ext2, allExtensions, clockwise: true, maxTestRotation);
+                        double safeRotation2CCW = FindSafeAngleRotation(ext2, allExtensions, clockwise: false, maxTestRotation);
+
+                        _logger.LogInfo($"    Safe rotations - {ext1.Location.Name}: CW={safeRotation1CW:F1}° CCW={safeRotation1CCW:F1}°, {ext2.Location.Name}: CW={safeRotation2CW:F1}° CCW={safeRotation2CCW:F1}°");
+
+                        // Determine best rotation strategy based on actual geometric space
+                        double baseNudge = 3.0 * nudgeMultiplier;
+                        bool rotationApplied = false;
+                        
+                        // Prioritize the line with the most safe rotation space
+                        if (safeRotation1CW > 5.0 && safeRotation1CW > safeRotation1CCW && safeRotation1CW > safeRotation2CW && safeRotation1CW > safeRotation2CCW)
+                        {
+                            double nudge = Math.Min(baseNudge * 4, safeRotation1CW * 0.8);
+                            ext1.Angle += nudge;
+                            _logger.LogInfo($"    Strategy: Rotate {ext1.Location.Name} CW by {nudge:F1}° (safe space: {safeRotation1CW:F1}°)");
+                            rotationApplied = true;
+                        }
+                        else if (safeRotation1CCW > 5.0 && safeRotation1CCW > safeRotation2CW && safeRotation1CCW > safeRotation2CCW)
+                        {
+                            double nudge = Math.Min(baseNudge * 4, safeRotation1CCW * 0.8);
+                            ext1.Angle -= nudge;
+                            _logger.LogInfo($"    Strategy: Rotate {ext1.Location.Name} CCW by {nudge:F1}° (safe space: {safeRotation1CCW:F1}°)");
+                            rotationApplied = true;
+                        }
+                        else if (safeRotation2CW > 5.0 && safeRotation2CW > safeRotation2CCW)
+                        {
+                            double nudge = Math.Min(baseNudge * 4, safeRotation2CW * 0.8);
+                            ext2.Angle += nudge;
+                            _logger.LogInfo($"    Strategy: Rotate {ext2.Location.Name} CW by {nudge:F1}° (safe space: {safeRotation2CW:F1}°)");
+                            rotationApplied = true;
+                        }
+                        else if (safeRotation2CCW > 5.0)
+                        {
+                            double nudge = Math.Min(baseNudge * 4, safeRotation2CCW * 0.8);
+                            ext2.Angle -= nudge;
+                            _logger.LogInfo($"    Strategy: Rotate {ext2.Location.Name} CCW by {nudge:F1}° (safe space: {safeRotation2CCW:F1}°)");
+                            rotationApplied = true;
+                        }
+                        
+                        if (!rotationApplied)
+                        {
+                            // No safe rotation found - use small default nudge
+                            ext1.Angle -= baseNudge * 0.5;
+                            ext2.Angle += baseNudge * 0.5;
+                            _logger.LogInfo($"    Strategy: Minimal nudge apart (no safe rotation space found)");
+                        }
+
+                        // Recalculate extended positions with new angles
+                        double angle1Rad = ext1.Angle * (Math.PI / 180.0);
+                        double angle2Rad = ext2.Angle * (Math.PI / 180.0);
+
+                        // Calculate current line lengths
+                        double dx1 = ext1.ExtendedPosition.X - ext1.OriginalPosition.X;
+                        double dy1 = ext1.ExtendedPosition.Y - ext1.OriginalPosition.Y;
+                        double length1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
+
+                        double dx2 = ext2.ExtendedPosition.X - ext2.OriginalPosition.X;
+                        double dy2 = ext2.ExtendedPosition.Y - ext2.OriginalPosition.Y;
+                        double length2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
+
+                        // Apply new angles with same lengths
+                        ext1.ExtendedPosition = new Point(
+                            ext1.OriginalPosition.X + length1 * Math.Sin(angle1Rad),
+                            ext1.OriginalPosition.Y - length1 * Math.Cos(angle1Rad)
+                        );
+
+                        ext2.ExtendedPosition = new Point(
+                            ext2.OriginalPosition.X + length2 * Math.Sin(angle2Rad),
+                            ext2.OriginalPosition.Y - length2 * Math.Cos(angle2Rad)
+                        );
+
+                        _logger.LogInfo($"    Result: {ext1.Location.Name} now at {ext1.Angle:F1}°, {ext2.Location.Name} now at {ext2.Angle:F1}°");
+                    }
+                }
+            }
+
+            if (foundAny)
+            {
+                _logger.LogInfo($"  Fixed {totalFixed} intersections");
+            }
+
+            return foundAny;
+        }
+
+        /// <summary>
+        /// Calculates available angular space in a given direction for a line.
+        /// </summary>
+        private double CalculateAngularSpace(RadialExtension ext, List<RadialExtension> sortedExtensions, bool clockwise)
+        {
+            // This is a simplified angular space calculation
+            // It doesn't account for different origin points, so it's only an approximation
+            int index = sortedExtensions.FindIndex(e => e.Location.Name == ext.Location.Name);
+            if (index == -1) return 30.0; // Default if not found
+
+            if (clockwise)
+            {
+                // Check space to the next marker (higher angle)
+                int nextIndex = (index + 1) % sortedExtensions.Count;
+                double nextAngle = sortedExtensions[nextIndex].Angle;
+                double space = (nextAngle - ext.Angle + 360.0) % 360.0;
+                return space;
+            }
+            else
+            {
+                // Check space to the previous marker (lower angle)
+                int prevIndex = (index - 1 + sortedExtensions.Count) % sortedExtensions.Count;
+                double prevAngle = sortedExtensions[prevIndex].Angle;
+                double space = (ext.Angle - prevAngle + 360.0) % 360.0;
+                return space;
+            }
+        }
+
+        private double FindSafeAngleRotation(RadialExtension ext, List<RadialExtension> allExtensions, bool clockwise, double maxRotation)
+        {
+            // Test incremental rotations to find the maximum safe rotation
+            // that doesn't cause intersections with other lines
+            
+            double testIncrement = 1.0; // Test in 1-degree increments
+            double safeRotation = 0.0;
+            double markerRadius = _visualConfig.LocationMarkerSize / 2.0;
+            
+            // Calculate current line length
+            double dx = ext.ExtendedPosition.X - ext.OriginalPosition.X;
+            double dy = ext.ExtendedPosition.Y - ext.OriginalPosition.Y;
+            double lineLength = Math.Sqrt(dx * dx + dy * dy);
+            
+            for (double testRotation = testIncrement; testRotation <= maxRotation; testRotation += testIncrement)
+            {
+                double testAngle = ext.Angle + (clockwise ? testRotation : -testRotation);
+                double testAngleRad = testAngle * (Math.PI / 180.0);
+                
+                // Calculate test extended position
+                Point testExtendedPos = new Point(
+                    ext.OriginalPosition.X + lineLength * Math.Sin(testAngleRad),
+                    ext.OriginalPosition.Y - lineLength * Math.Cos(testAngleRad)
+                );
+                
+                // Check if this test position would intersect with any other line
+                bool wouldIntersect = false;
+                foreach (var other in allExtensions)
+                {
+                    if (other.Location.Name == ext.Location.Name)
+                        continue;
+                    
+                    // Check line-to-line intersection
+                    if (DoLineSegmentsIntersect(
+                        ext.OriginalPosition, testExtendedPos,
+                        other.OriginalPosition, other.ExtendedPosition))
+                    {
+                        wouldIntersect = true;
+                        break;
+                    }
+                    
+                    // Check if test line passes too close to other marker
+                    if (DoesLinePassTooCloseToMarker(
+                        ext.OriginalPosition, testExtendedPos,
+                        other.ExtendedPosition, markerRadius))
+                    {
+                        wouldIntersect = true;
+                        break;
+                    }
+                    
+                    // Check if other line passes too close to test marker
+                    if (DoesLinePassTooCloseToMarker(
+                        other.OriginalPosition, other.ExtendedPosition,
+                        testExtendedPos, markerRadius))
+                    {
+                        wouldIntersect = true;
+                        break;
+                    }
+                }
+                
+                if (wouldIntersect)
+                {
+                    // Can't rotate any further in this direction
+                    break;
+                }
+                
+                safeRotation = testRotation;
+            }
+            
+            return safeRotation;
+        }
+
+        /// <summary>
+        /// Checks if two line segments intersect using parametric line intersection.
+        /// </summary>
+        private bool DoLineSegmentsIntersect(Point p1, Point p2, Point p3, Point p4)
+        {
+            double d1x = p2.X - p1.X;
+            double d1y = p2.Y - p1.Y;
+            double d2x = p4.X - p3.X;
+            double d2y = p4.Y - p3.Y;
+
+            double denominator = d1x * d2y - d1y * d2x;
+
+            // Parallel lines
+            if (Math.Abs(denominator) < 0.0001)
+                return false;
+
+            double t1 = ((p3.X - p1.X) * d2y - (p3.Y - p1.Y) * d2x) / denominator;
+            double t2 = ((p3.X - p1.X) * d1y - (p3.Y - p1.Y) * d1x) / denominator;
+
+            // Intersection occurs if both parameters are between 0 and 1
+            // Use small margin to avoid detecting endpoint touches
+            return t1 > 0.01 && t1 < 0.99 && t2 > 0.01 && t2 < 0.99;
+        }
+
+        private bool DoesLinePassTooCloseToMarker(Point lineStart, Point lineEnd, Point markerPos, double markerRadius)
+        {
+            // Calculate the distance from the marker to the line segment
+            double dx = lineEnd.X - lineStart.X;
+            double dy = lineEnd.Y - lineStart.Y;
+            double lengthSquared = dx * dx + dy * dy;
+
+            if (lengthSquared < 0.0001)
+                return false; // Line has no length
+
+            // Calculate the parameter t for the closest point on the line segment
+            double t = ((markerPos.X - lineStart.X) * dx + (markerPos.Y - lineStart.Y) * dy) / lengthSquared;
+
+            // Clamp t to [0, 1] to stay within the line segment
+            t = Math.Max(0, Math.Min(1, t));
+
+            // Calculate the closest point on the line segment
+            double closestX = lineStart.X + t * dx;
+            double closestY = lineStart.Y + t * dy;
+
+            // Calculate distance from marker to closest point
+            double distX = markerPos.X - closestX;
+            double distY = markerPos.Y - closestY;
+            double distance = Math.Sqrt(distX * distX + distY * distY);
+
+            // Check if distance is less than marker radius (with small buffer)
+            return distance < markerRadius + 2.0; // 2px buffer
+        }
+
+        private double CalculateMinimumDistanceBetweenLines(Point line1Start, Point line1End, Point line2Start, Point line2End)
+        {
+            // Calculate minimum distance between two line segments
+            // Check all four endpoint-to-line distances and return the minimum
+            
+            double dist1 = PointToLineSegmentDistance(line1Start, line2Start, line2End);
+            double dist2 = PointToLineSegmentDistance(line1End, line2Start, line2End);
+            double dist3 = PointToLineSegmentDistance(line2Start, line1Start, line1End);
+            double dist4 = PointToLineSegmentDistance(line2End, line1Start, line1End);
+            
+            return Math.Min(Math.Min(dist1, dist2), Math.Min(dist3, dist4));
+        }
+
+        private double PointToLineSegmentDistance(Point point, Point lineStart, Point lineEnd)
+        {
+            double dx = lineEnd.X - lineStart.X;
+            double dy = lineEnd.Y - lineStart.Y;
+            double lengthSquared = dx * dx + dy * dy;
+
+            if (lengthSquared < 0.0001)
+            {
+                // Line segment is essentially a point
+                double ptDistX = point.X - lineStart.X;
+                double ptDistY = point.Y - lineStart.Y;
+                return Math.Sqrt(ptDistX * ptDistX + ptDistY * ptDistY);
+            }
+
+            // Calculate the parameter t for the closest point on the line segment
+            double t = ((point.X - lineStart.X) * dx + (point.Y - lineStart.Y) * dy) / lengthSquared;
+
+            // Clamp t to [0, 1] to stay within the line segment
+            t = Math.Max(0, Math.Min(1, t));
+
+            // Calculate the closest point on the line segment
+            double closestX = lineStart.X + t * dx;
+            double closestY = lineStart.Y + t * dy;
+
+            // Calculate distance from point to closest point
+            double deltaX = point.X - closestX;
+            double deltaY = point.Y - closestY;
+            return Math.Sqrt(deltaX * deltaX + deltaY * deltaY);
         }
 
         #endregion

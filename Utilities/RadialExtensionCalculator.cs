@@ -151,6 +151,9 @@ namespace InteractiveWorldMap.Utilities
             // Check for converging lines and nudge them to diverge
             PreventConvergingLines(locationsWithAngles, screenCenter);
 
+            // Final check: detect and fix any actual line intersections
+            PreventLineIntersections(locationsWithAngles);
+
             // Use natural angles - extend each marker outward from its actual position
             for (int i = 0; i < markerCount; i++)
             {
@@ -344,12 +347,26 @@ namespace InteractiveWorldMap.Utilities
                         {
                             needsAdjustment = true;
                             
-                            // Nudge them apart
+                            // Nudge them apart, but ensure we don't reverse their order
                             double nudge = _config.AngleNudgeAmount / 2.0;
                             
+                            // Make sure nudging won't cause them to cross over
+                            double newCurrentAngle = current.naturalAngle - nudge;
+                            double newOtherAngle = other.naturalAngle + nudge;
+                            
+                            // Verify the order is maintained after nudging
+                            double newDiff = (newOtherAngle - newCurrentAngle + 360.0) % 360.0;
+                            if (newDiff > 180.0) // They would cross over
+                            {
+                                // Reduce nudge to prevent crossover
+                                nudge = Math.Min(nudge, angleDiff / 3.0);
+                                newCurrentAngle = current.naturalAngle - nudge;
+                                newOtherAngle = other.naturalAngle + nudge;
+                            }
+                            
                             // Update the angles
-                            locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
-                            locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                            locationsWithAngles[i] = (current.location, current.screenPosition, newCurrentAngle);
+                            locationsWithAngles[j] = (other.location, other.screenPosition, newOtherAngle);
                         }
                     }
                 }
@@ -384,11 +401,29 @@ namespace InteractiveWorldMap.Utilities
                                 
                                 double nudge = _config.AngleNudgeAmount / 2.0;
                                 
-                                locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
-                                locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                                // Prevent crossover for wrap-around case
+                                double newCurrentAngle = current.naturalAngle - nudge;
+                                double newOtherAngle = other.naturalAngle + nudge;
+                                double newWrapDiff = (newOtherAngle + 360.0 - newCurrentAngle) % 360.0;
+                                
+                                if (newWrapDiff > 180.0)
+                                {
+                                    nudge = Math.Min(nudge, wrapDiff / 3.0);
+                                    newCurrentAngle = current.naturalAngle - nudge;
+                                    newOtherAngle = other.naturalAngle + nudge;
+                                }
+                                
+                                locationsWithAngles[i] = (current.location, current.screenPosition, newCurrentAngle);
+                                locationsWithAngles[j] = (other.location, other.screenPosition, newOtherAngle);
                             }
                         }
                     }
+                }
+                
+                // Re-sort after nudging to maintain angular order
+                if (needsAdjustment)
+                {
+                    locationsWithAngles.Sort((a, b) => a.naturalAngle.CompareTo(b.naturalAngle));
                 }
             }
         }
@@ -455,6 +490,18 @@ namespace InteractiveWorldMap.Utilities
                             needsAdjustment = true;
                             double nudge = _config.AngleNudgeAmount;
 
+                            // Prevent crossover
+                            double newCurrentAngle = current.naturalAngle - nudge;
+                            double newOtherAngle = other.naturalAngle + nudge;
+                            double newDiff = (newOtherAngle - newCurrentAngle + 360.0) % 360.0;
+                            
+                            if (newDiff > 180.0) // Would cause crossover
+                            {
+                                nudge = Math.Min(nudge, angleDiff / 3.0);
+                                newCurrentAngle = current.naturalAngle - nudge;
+                                newOtherAngle = other.naturalAngle + nudge;
+                            }
+
                             System.Diagnostics.Debug.WriteLine(
                                 $"Converging lines detected: {current.location.Name} ({current.naturalAngle:F1}°) and " +
                                 $"{other.location.Name} ({other.naturalAngle:F1}°) - " +
@@ -462,9 +509,8 @@ namespace InteractiveWorldMap.Utilities
                                 $"Distance at origin: {distanceAtOrigin:F1}px, at extension: {distanceAtExtension:F1}px. " +
                                 $"Nudging apart by {nudge}°");
 
-                            // Nudge them apart proportionally based on their positions
-                            locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
-                            locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                            locationsWithAngles[i] = (current.location, current.screenPosition, newCurrentAngle);
+                            locationsWithAngles[j] = (other.location, other.screenPosition, newOtherAngle);
                         }
                     }
                 }
@@ -516,6 +562,18 @@ namespace InteractiveWorldMap.Utilities
                                 needsAdjustment = true;
                                 double nudge = _config.AngleNudgeAmount;
 
+                                // Prevent crossover for wrap-around
+                                double newCurrentAngle = current.naturalAngle - nudge;
+                                double newOtherAngle = other.naturalAngle + nudge;
+                                double newWrapDiff = (newOtherAngle + 360.0 - newCurrentAngle) % 360.0;
+                                
+                                if (newWrapDiff > 180.0)
+                                {
+                                    nudge = Math.Min(nudge, angleDiff / 3.0);
+                                    newCurrentAngle = current.naturalAngle - nudge;
+                                    newOtherAngle = other.naturalAngle + nudge;
+                                }
+
                                 System.Diagnostics.Debug.WriteLine(
                                     $"Converging lines detected (wrap-around): {current.location.Name} ({current.naturalAngle:F1}°) and " +
                                     $"{other.location.Name} ({other.naturalAngle:F1}°) - " +
@@ -523,13 +581,117 @@ namespace InteractiveWorldMap.Utilities
                                     $"Distance at origin: {distanceAtOrigin:F1}px, at extension: {distanceAtExtension:F1}px. " +
                                     $"Nudging apart by {nudge}°");
 
-                                locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
-                                locationsWithAngles[j] = (other.location, other.screenPosition, other.naturalAngle + nudge);
+                                locationsWithAngles[i] = (current.location, current.screenPosition, newCurrentAngle);
+                                locationsWithAngles[j] = (other.location, other.screenPosition, newOtherAngle);
                             }
                         }
                     }
                 }
+                
+                // Re-sort after nudging to maintain angular order
+                if (needsAdjustment)
+                {
+                    locationsWithAngles.Sort((a, b) => a.naturalAngle.CompareTo(b.naturalAngle));
+                }
             }
+        }
+
+        /// <summary>
+        /// Detects actual line intersections and nudges angles to prevent them.
+        /// This is the final check after angle and convergence adjustments.
+        /// </summary>
+        private void PreventLineIntersections(List<(Location location, Point screenPosition, double naturalAngle)> locationsWithAngles)
+        {
+            if (locationsWithAngles.Count < 2)
+                return;
+
+            Console.WriteLine($"[PreventLineIntersections] Checking {locationsWithAngles.Count} lines for intersections");
+
+            const int maxIterations = 10;
+            int iteration = 0;
+            bool foundIntersection = true;
+            int totalIntersectionsFound = 0;
+
+            while (foundIntersection && iteration < maxIterations)
+            {
+                foundIntersection = false;
+                iteration++;
+
+                // Check all pairs of lines for intersection
+                for (int i = 0; i < locationsWithAngles.Count; i++)
+                {
+                    var line1 = locationsWithAngles[i];
+                    double angle1Rad = line1.naturalAngle * (Math.PI / 180.0);
+                    Point line1End = new Point(
+                        line1.screenPosition.X + _config.ExtensionLineLength * Math.Sin(angle1Rad),
+                        line1.screenPosition.Y - _config.ExtensionLineLength * Math.Cos(angle1Rad)
+                    );
+
+                    for (int j = i + 1; j < locationsWithAngles.Count; j++)
+                    {
+                        var line2 = locationsWithAngles[j];
+                        double angle2Rad = line2.naturalAngle * (Math.PI / 180.0);
+                        Point line2End = new Point(
+                            line2.screenPosition.X + _config.ExtensionLineLength * Math.Sin(angle2Rad),
+                            line2.screenPosition.Y - _config.ExtensionLineLength * Math.Cos(angle2Rad)
+                        );
+
+                        // Check if line segments intersect
+                        if (DoLinesIntersect(line1.screenPosition, line1End, line2.screenPosition, line2End))
+                        {
+                            foundIntersection = true;
+                            totalIntersectionsFound++;
+                            double nudge = _config.AngleNudgeAmount * 2.0; // Larger nudge for intersections
+
+                            Console.WriteLine(
+                                $"  [INTERSECTION #{totalIntersectionsFound}] {line1.location.Name} ({line1.naturalAngle:F1}°) and " +
+                                $"{line2.location.Name} ({line2.naturalAngle:F1}°). " +
+                                $"Line1: ({line1.screenPosition.X:F0},{line1.screenPosition.Y:F0})->({line1End.X:F0},{line1End.Y:F0}), " +
+                                $"Line2: ({line2.screenPosition.X:F0},{line2.screenPosition.Y:F0})->({line2End.X:F0},{line2End.Y:F0}). " +
+                                $"Nudging by {nudge}°");
+
+                            // Nudge them apart
+                            locationsWithAngles[i] = (line1.location, line1.screenPosition, line1.naturalAngle - nudge);
+                            locationsWithAngles[j] = (line2.location, line2.screenPosition, line2.naturalAngle + nudge);
+                        }
+                    }
+                }
+
+                // Re-sort after nudging
+                if (foundIntersection)
+                {
+                    locationsWithAngles.Sort((a, b) => a.naturalAngle.CompareTo(b.naturalAngle));
+                    Console.WriteLine($"  [PreventLineIntersections] Iteration {iteration}: Found intersections, re-sorted angles");
+                }
+            }
+
+            Console.WriteLine($"[PreventLineIntersections] Complete. Total intersections: {totalIntersectionsFound}, Iterations: {iteration}");
+        }
+
+        /// <summary>
+        /// Checks if two line segments intersect.
+        /// </summary>
+        private bool DoLinesIntersect(Point p1, Point p2, Point p3, Point p4)
+        {
+            // Calculate direction vectors
+            double d1x = p2.X - p1.X;
+            double d1y = p2.Y - p1.Y;
+            double d2x = p4.X - p3.X;
+            double d2y = p4.Y - p3.Y;
+
+            // Calculate denominator for intersection formula
+            double denominator = d1x * d2y - d1y * d2x;
+
+            // Lines are parallel if denominator is zero
+            if (Math.Abs(denominator) < 0.0001)
+                return false;
+
+            // Calculate parameters for intersection point
+            double t1 = ((p3.X - p1.X) * d2y - (p3.Y - p1.Y) * d2x) / denominator;
+            double t2 = ((p3.X - p1.X) * d1y - (p3.Y - p1.Y) * d1x) / denominator;
+
+            // Lines intersect if both parameters are between 0 and 1
+            return t1 > 0.01 && t1 < 0.99 && t2 > 0.01 && t2 < 0.99;
         }
     }
 }
