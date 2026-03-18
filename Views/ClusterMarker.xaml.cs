@@ -36,6 +36,44 @@ namespace InteractiveWorldMap.Views
         {
             InitializeComponent();
             
+            // Set sizes from config
+            var mainWindow = Application.Current.MainWindow as MainWindow;
+            double markerSize = 40;
+            double badgeSize = 20;
+            double fontSize = 12;
+            
+            if (mainWindow != null)
+            {
+                markerSize = mainWindow.ClusterMarkerSize;
+                badgeSize = mainWindow.ClusterBadgeSize;
+                fontSize = mainWindow.ClusterCountFontSize;
+                Console.WriteLine($"ClusterMarker: Got sizes from MainWindow - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
+                System.Diagnostics.Debug.WriteLine($"ClusterMarker: Got sizes from MainWindow - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
+            }
+            else
+            {
+                Console.WriteLine($"ClusterMarker: MainWindow not available, using defaults - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
+                System.Diagnostics.Debug.WriteLine($"ClusterMarker: MainWindow not available, using defaults - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
+            }
+            
+            Width = markerSize;
+            Height = markerSize;
+            StampImage.Width = markerSize;
+            StampImage.Height = markerSize;
+            BadgeEllipse.Width = badgeSize;
+            BadgeEllipse.Height = badgeSize;
+            CountText.FontSize = fontSize;
+            
+            Console.WriteLine($"ClusterMarker: Set control size to {Width}x{Height}");
+            System.Diagnostics.Debug.WriteLine($"ClusterMarker: Set control size to {Width}x{Height}");
+            
+            // Update ScaleTransform center when size changes
+            SizeChanged += (s, e) =>
+            {
+                ScaleTransform.CenterX = ActualWidth / 2;
+                ScaleTransform.CenterY = ActualHeight / 2;
+            };
+            
             // Load stamp image from file
             try
             {
@@ -56,8 +94,8 @@ namespace InteractiveWorldMap.Views
                     // Fallback: create a blue circle if stamp image not found
                     var ellipse = new System.Windows.Shapes.Ellipse
                     {
-                        Width = 40,
-                        Height = 40,
+                        Width = markerSize,
+                        Height = markerSize,
                         Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
                         Stroke = System.Windows.Media.Brushes.White,
                         StrokeThickness = 3

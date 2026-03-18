@@ -43,6 +43,24 @@ public partial class LocationMarker : UserControl
     {
         InitializeComponent();
         
+        // Set size from config
+        var mainWindow = Application.Current.MainWindow as MainWindow;
+        if (mainWindow != null)
+        {
+            Width = mainWindow.LocationMarkerSize;
+            Height = mainWindow.LocationMarkerSize;
+            Console.WriteLine($"LocationMarker: Set size to {Width}x{Height} from MainWindow config");
+            System.Diagnostics.Debug.WriteLine($"LocationMarker: Set size to {Width}x{Height} from MainWindow config");
+        }
+        else
+        {
+            // Fallback to default
+            Width = 16;
+            Height = 16;
+            Console.WriteLine($"LocationMarker: MainWindow not available, using default size 16x16");
+            System.Diagnostics.Debug.WriteLine($"LocationMarker: MainWindow not available, using default size 16x16");
+        }
+        
         // Wire up mouse events
         MouseEnter += (s, e) => IsHovered = true;
         MouseLeave += (s, e) => IsHovered = false;

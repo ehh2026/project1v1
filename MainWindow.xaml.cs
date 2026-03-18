@@ -40,9 +40,18 @@ namespace InteractiveWorldMap
         private const double ImageWidth = 8198.0;
         private const double ImageHeight = 5542.0;
         
-        // Zoom configuration
-        private const double ZoomScale = 30.0; // magnification when zoomed
-        private const int AnimationDurationMs = 390; // Animation duration
+        // Visual configuration
+        private VisualConfig _visualConfig = new VisualConfig();
+        
+        // Expose config properties for marker access
+        public double LocationMarkerSize => _visualConfig.LocationMarkerSize;
+        public double ClusterMarkerSize => _visualConfig.ClusterMarkerSize;
+        public double ClusterBadgeSize => _visualConfig.ClusterBadgeSize;
+        public double ClusterCountFontSize => _visualConfig.ClusterCountFontSize;
+        
+        // Zoom configuration from config
+        private double ZoomScale => _visualConfig.ZoomScale;
+        private int AnimationDurationMs => _visualConfig.AnimationDurationMs;
 
         /// <summary>
         /// Gets the active content subwindow, if any.
@@ -59,7 +68,43 @@ namespace InteractiveWorldMap
                 _logger = new FileLogger();
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
+                // Load visual configuration
+                var configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
+                VisualConfig.EnsureConfigExists(configPath);
+                _visualConfig = VisualConfig.Load(configPath);
+                _logger.LogInfo($"Visual config loaded from: {configPath}");
+                _logger.LogInfo($"  ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
+                _logger.LogInfo($"  LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
+                _logger.LogInfo($"  ClusterMarkerSize: {_visualConfig.ClusterMarkerSize}");
+                _logger.LogInfo($"  ClusterBadgeSize: {_visualConfig.ClusterBadgeSize}");
+                _logger.LogInfo($"  ClusterCountFontSize: {_visualConfig.ClusterCountFontSize}");
+                _logger.LogInfo($"  ZoomScale: {_visualConfig.ZoomScale}");
+                _logger.LogInfo($"  AnimationDurationMs: {_visualConfig.AnimationDurationMs}");
+                
+                Console.WriteLine($"=== Visual Config Loaded ===");
+                Console.WriteLine($"Config Path: {configPath}");
+                Console.WriteLine($"ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
+                Console.WriteLine($"LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
+                Console.WriteLine($"ClusterMarkerSize: {_visualConfig.ClusterMarkerSize}");
+                Console.WriteLine($"ClusterBadgeSize: {_visualConfig.ClusterBadgeSize}");
+                Console.WriteLine($"ClusterCountFontSize: {_visualConfig.ClusterCountFontSize}");
+                Console.WriteLine($"ZoomScale: {_visualConfig.ZoomScale}");
+                Console.WriteLine($"AnimationDurationMs: {_visualConfig.AnimationDurationMs}");
+                Console.WriteLine($"===========================");
+                
+                System.Diagnostics.Debug.WriteLine($"=== Visual Config Loaded ===");
+                System.Diagnostics.Debug.WriteLine($"Config Path: {configPath}");
+                System.Diagnostics.Debug.WriteLine($"ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
+                System.Diagnostics.Debug.WriteLine($"LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
+                System.Diagnostics.Debug.WriteLine($"ClusterMarkerSize: {_visualConfig.ClusterMarkerSize}");
+                System.Diagnostics.Debug.WriteLine($"ClusterBadgeSize: {_visualConfig.ClusterBadgeSize}");
+                System.Diagnostics.Debug.WriteLine($"ClusterCountFontSize: {_visualConfig.ClusterCountFontSize}");
+                System.Diagnostics.Debug.WriteLine($"ZoomScale: {_visualConfig.ZoomScale}");
+                System.Diagnostics.Debug.WriteLine($"AnimationDurationMs: {_visualConfig.AnimationDurationMs}");
+                System.Diagnostics.Debug.WriteLine($"===========================");
+                
                 _contentLoader = new ContentLoader(_logger);
+                _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
                 _logger.LogInfo("ContentLoader created");
                 
                 _navigationService = new MapNavigationService();
@@ -494,8 +539,10 @@ namespace InteractiveWorldMap
                     containerWidth,
                     containerHeight);
 
-                Canvas.SetLeft(marker, screenPos.X - marker.Width / 2);
-                Canvas.SetTop(marker, screenPos.Y - marker.Height / 2);
+                // Use config size for centering (ActualWidth/Height may be 0 before layout)
+                var markerSize = _visualConfig.LocationMarkerSize;
+                Canvas.SetLeft(marker, screenPos.X - markerSize / 2);
+                Canvas.SetTop(marker, screenPos.Y - markerSize / 2);
             }
 
             // Update cluster markers
@@ -507,8 +554,10 @@ namespace InteractiveWorldMap
                     containerWidth,
                     containerHeight);
 
-                Canvas.SetLeft(marker, screenPos.X - marker.Width / 2);
-                Canvas.SetTop(marker, screenPos.Y - marker.Height / 2);
+                // Use config size for centering (ActualWidth/Height may be 0 before layout)
+                var markerSize = _visualConfig.ClusterMarkerSize;
+                Canvas.SetLeft(marker, screenPos.X - markerSize / 2);
+                Canvas.SetTop(marker, screenPos.Y - markerSize / 2);
             }
         }
 

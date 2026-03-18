@@ -13,9 +13,9 @@ namespace InteractiveWorldMap.Utilities
     {
         /// <summary>
         /// Distance threshold in pixels for clustering locations together.
-        /// Default is 300 pixels.
+        /// Default is set here in terms of pixels.
         /// </summary>
-        public double DistanceThreshold { get; set; } = 300.0;
+        public double DistanceThreshold { get; set; } = 150.0;
 
         /// <summary>
         /// Clusters locations using simple Euclidean distance-based algorithm.

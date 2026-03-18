@@ -1,0 +1,9 @@
+{
+  "ClusterDistanceThreshold": 150.0,
+  "LocationMarkerSize": 12.0,
+  "ClusterMarkerSize": 25.0,
+  "ClusterBadgeSize": 12.0,
+  "ClusterCountFontSize": 12.0,
+  "ZoomScale": 55.0,
+  "AnimationDurationMs": 390
+}
