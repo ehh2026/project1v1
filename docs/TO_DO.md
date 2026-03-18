@@ -23,7 +23,8 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Fix marker distortion when highly zoomed (50x+)
 - [ ] Fix some markers being misplaced on zoomed-out map
 - [ ] Don't animate extension lines being drawn until fully zoomed in
-- [ ] Improve smoothness and quickness of zooming
+- [ ] Improve filtering of logging for easier debugging
+- [ ] Improve smoothness and quickness of zooming (check logs, cache/load, deltas; increase number of frames, decrease interval if rate is throttled?)
 
 
 ---

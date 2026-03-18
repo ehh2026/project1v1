@@ -14,6 +14,8 @@ Currently if an image and a txt file have the same name and are in the same fold
 
 Run run-demo.bat in main directory - eventually can make an exe file.
 
+Set parameters in visual-config.json - now includes a manal layout mode where you can drag markers for extended lines and save layout (keyed to zoom level, pixel threshold, other parameters).
+
 ## System Requirements
 
 - **Operating System**: Windows 10 or later
