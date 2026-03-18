@@ -26,5 +26,11 @@ namespace InteractiveWorldMap.Models
         /// Angle in degrees from center (0° = north, clockwise).
         /// </summary>
         public double Angle { get; set; }
+
+        /// <summary>
+        /// Group identifier to track which dense group this extension belongs to.
+        /// Used for angle checking within groups.
+        /// </summary>
+        public int GroupId { get; set; }
     }
 }

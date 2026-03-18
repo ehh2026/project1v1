@@ -145,11 +145,14 @@ namespace InteractiveWorldMap.Utilities
             // Sort by natural angle to maintain order (prevents crossings)
             locationsWithAngles.Sort((a, b) => a.naturalAngle.CompareTo(b.naturalAngle));
 
+            // Nudge angles apart if they're too close together
+            NudgeAnglesApart(locationsWithAngles);
+
             // Use natural angles - extend each marker outward from its actual position
             for (int i = 0; i < markerCount; i++)
             {
                 var (location, screenPosition, naturalAngle) = locationsWithAngles[i];
-                double extensionAngle = naturalAngle; // Use the marker's natural angle
+                double extensionAngle = naturalAngle; // Use the marker's natural angle (possibly nudged)
 
                 // Calculate extended position from the marker's ACTUAL screen position
                 // Move outward along the angle from center
@@ -297,6 +300,35 @@ namespace InteractiveWorldMap.Utilities
             }
 
             return Math.Max(20.0, maxLength * 0.9); // 90% of max to add margin
+        }
+
+        /// <summary>
+        /// Nudges angles apart if they're within the threshold.
+        /// Modifies the list in place.
+        /// </summary>
+        private void NudgeAnglesApart(List<(Location location, Point screenPosition, double naturalAngle)> locationsWithAngles)
+        {
+            if (locationsWithAngles.Count < 2)
+                return;
+
+            // Check each pair of adjacent angles
+            for (int i = 0; i < locationsWithAngles.Count - 1; i++)
+            {
+                var current = locationsWithAngles[i];
+                var next = locationsWithAngles[i + 1];
+
+                double angleDiff = (next.naturalAngle - current.naturalAngle + 360.0) % 360.0;
+
+                if (angleDiff < _config.AngleNudgeThreshold && angleDiff > 0.01)
+                {
+                    // Nudge them apart
+                    double nudge = _config.AngleNudgeAmount / 2.0;
+                    
+                    // Update the angles
+                    locationsWithAngles[i] = (current.location, current.screenPosition, current.naturalAngle - nudge);
+                    locationsWithAngles[i + 1] = (next.location, next.screenPosition, next.naturalAngle + nudge);
+                }
+            }
         }
     }
 }

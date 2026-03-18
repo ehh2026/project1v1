@@ -11,13 +11,24 @@
     "Enabled": true,
     "MinLocationsForExtension": 3,
     "ProximityThresholdPixels": 5.0,
-    "ExtensionLineLength": 40.0,
+    "ExtensionLineLength": 45.0,
+    "MinimumLineLength": 13.0,
     "MinimumAngleSeparation": 15.0,
     "HardMinimumAngleSeparation": 5.0,
+    "AngleNudgeThreshold": 10.0,
+    "AngleNudgeAmount": 3.0,
     "LineColor": "#80808080",
     "LineThickness": 1.5,
     "AnimateExtension": true,
     "ExtensionAnimationMs": 250,
     "ZoomThresholdForExtensions": 10.0
+  },
+
+  "Debug": {
+    "LogRadialExtensionCalculation": true,
+    "LogRadialExtensionAngles": true,
+    "LogRadialExtensionOverlaps": true,
+    "LogMarkerPositioning": true,
+    "LogAnimationFrames": false
   }
 }

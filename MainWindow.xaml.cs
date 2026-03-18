@@ -609,10 +609,13 @@ namespace InteractiveWorldMap
                     _logger.LogInfo($"Detected {_denseGroups.Count} dense marker groups");
 
                     var markersInGroups = new HashSet<Location>();
+                    var allExtensions = new List<RadialExtension>();
 
+                    // First pass: Calculate extensions for all groups
+                    int groupId = 0;
                     foreach (var group in _denseGroups)
                     {
-                        _logger.LogInfo($"  Processing group with {group.Count} locations at center ({group.CenterPoint.X:F2}, {group.CenterPoint.Y:F2})");
+                        _logger.LogInfo($"  Processing group {groupId} with {group.Count} locations at center ({group.CenterPoint.X:F2}, {group.CenterPoint.Y:F2})");
                         
                         // Calculate extensions using SCREEN positions (for rendering)
                         var extensions = _extensionCalculator.CalculateRadialExtensions(
@@ -623,12 +626,18 @@ namespace InteractiveWorldMap
 
                         _logger.LogInfo($"  Calculated {extensions.Count} extensions");
 
+                        // Assign group ID to all extensions
+                        foreach (var ext in extensions)
+                        {
+                            ext.GroupId = groupId;
+                        }
+
                         // Validate no crossings
                         if (_extensionCalculator.ValidateNoCrossings(extensions))
                         {
-                            _logger.LogInfo($"  Validation passed, applying extensions");
+                            _logger.LogInfo($"  Validation passed");
                             group.Extensions = extensions;
-                            ApplyRadialExtensions(group, viewport, containerWidth, containerHeight);
+                            allExtensions.AddRange(extensions);
                             
                             // Track which markers are in groups
                             foreach (var loc in group.Locations)
@@ -647,6 +656,20 @@ namespace InteractiveWorldMap
                                 markersInGroups.Add(loc);
                             }
                         }
+
+                        groupId++;
+                    }
+
+                    // Second pass: Adjust for marker overlaps across all groups
+                    if (allExtensions.Any())
+                    {
+                        AdjustForMarkerOverlaps(allExtensions, _visualConfig.LocationMarkerSize);
+                    }
+
+                    // Third pass: Apply the extensions (now with adjusted lengths)
+                    foreach (var group in _denseGroups.Where(g => g.Extensions.Any()))
+                    {
+                        ApplyRadialExtensions(group, viewport, containerWidth, containerHeight);
                     }
 
                     // Position markers not in dense groups normally
@@ -1086,6 +1109,10 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
 
+                // Clear radial extension lines before starting zoom-out animation
+                ClearExtensionLines();
+                _logger.LogInfo("  Cleared radial extension lines");
+
                 // Set animation flag to prevent clearing radial extensions during animation
                 _isAnimating = true;
 
@@ -1371,8 +1398,13 @@ namespace InteractiveWorldMap
         /// </summary>
         private void ApplyRadialExtensions(DenseMarkerGroup group, ViewportState viewport, double containerWidth, double containerHeight)
         {
-            _logger.LogInfo($"[ApplyRadialExtensions] Applying {group.Extensions.Count} extensions");
-            _logger.LogInfo($"[ApplyRadialExtensions] Canvas children before: {MapDisplay.Markers.Children.Count}");
+            bool logCalculation = _visualConfig.Debug.LogRadialExtensionCalculation;
+            
+            if (logCalculation)
+            {
+                _logger.LogInfo($"[ApplyRadialExtensions] Applying {group.Extensions.Count} extensions");
+                _logger.LogInfo($"[ApplyRadialExtensions] Canvas children before: {MapDisplay.Markers.Children.Count}");
+            }
             
             foreach (var extension in group.Extensions)
             {
@@ -1385,14 +1417,31 @@ namespace InteractiveWorldMap
 
                 var extendedScreenPos = extension.ExtendedPosition;
 
-                _logger.LogInfo($"  Extension: {extension.Location.Name} from ({originalScreenPos.X:F1},{originalScreenPos.Y:F1}) to ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1})");
+                // Calculate actual rendered slope/angle
+                double dx = extendedScreenPos.X - originalScreenPos.X;
+                double dy = extendedScreenPos.Y - originalScreenPos.Y;
+                double length = Math.Sqrt(dx * dx + dy * dy);
+                
+                // Calculate angle: 0° = north, clockwise (same as our angle system)
+                double angleRadians = Math.Atan2(dx, -dy);
+                double angleDegrees = angleRadians * (180.0 / Math.PI);
+                if (angleDegrees < 0) angleDegrees += 360.0;
+
+                if (logCalculation)
+                {
+                    _logger.LogInfo($"  Extension: {extension.Location.Name} from ({originalScreenPos.X:F1},{originalScreenPos.Y:F1}) to ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1})");
+                    _logger.LogInfo($"    Length: {length:F1}px, Angle: {angleDegrees:F2}° (stored: {extension.Angle:F2}°)");
+                }
 
                 // Create extension line
                 var line = CreateExtensionLine(originalScreenPos, extendedScreenPos);
                 _extensionLines.Add(line);
                 MapDisplay.Markers.Children.Add(line);
                 
-                _logger.LogInfo($"    Line added to canvas, total lines: {_extensionLines.Count}, canvas children: {MapDisplay.Markers.Children.Count}");
+                if (logCalculation)
+                {
+                    _logger.LogInfo($"    Line added to canvas, total lines: {_extensionLines.Count}, canvas children: {MapDisplay.Markers.Children.Count}");
+                }
 
                 // Position marker at extended location
                 var marker = FindMarkerForLocation(extension.Location);
@@ -1401,7 +1450,11 @@ namespace InteractiveWorldMap
                     Panel.SetZIndex(marker, 2000); // Markers on top of lines
                     Canvas.SetLeft(marker, extendedScreenPos.X - marker.Width / 2);
                     Canvas.SetTop(marker, extendedScreenPos.Y - marker.Height / 2);
-                    _logger.LogInfo($"    Marker positioned at ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1}), ZIndex=2000");
+                    
+                    if (logCalculation)
+                    {
+                        _logger.LogInfo($"    Marker positioned at ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1}), ZIndex=2000");
+                    }
                 }
                 else
                 {
@@ -1409,14 +1462,22 @@ namespace InteractiveWorldMap
                 }
             }
 
-            _logger.LogInfo($"[ApplyRadialExtensions] Canvas children after: {MapDisplay.Markers.Children.Count}");
-            _logger.LogInfo($"[ApplyRadialExtensions] Total extension lines in list: {_extensionLines.Count}");
+            if (logCalculation)
+            {
+                _logger.LogInfo($"[ApplyRadialExtensions] Canvas children after: {MapDisplay.Markers.Children.Count}");
+                _logger.LogInfo($"[ApplyRadialExtensions] Total extension lines in list: {_extensionLines.Count}");
+            }
 
             // Animate if configured
             if (_visualConfig.RadialExtension.AnimateExtension)
             {
                 var linesToAnimate = _extensionLines.Skip(_extensionLines.Count - group.Extensions.Count).ToList();
-                _logger.LogInfo($"[ApplyRadialExtensions] Animating {linesToAnimate.Count} lines");
+                
+                if (logCalculation)
+                {
+                    _logger.LogInfo($"[ApplyRadialExtensions] Animating {linesToAnimate.Count} lines");
+                }
+                
                 AnimateExtensionLines(linesToAnimate);
             }
         }
@@ -1434,7 +1495,6 @@ namespace InteractiveWorldMap
                 Y2 = end.Y,
                 Stroke = new SolidColorBrush(Colors.Red), // Bright red for debugging
                 StrokeThickness = 3.0, // Thicker for visibility
-                StrokeDashArray = new DoubleCollection { 2, 2 },
                 Opacity = 1.0, // Full opacity for debugging
                 IsHitTestVisible = false
             };
@@ -1501,6 +1561,243 @@ namespace InteractiveWorldMap
                     PositionMarkerNormally(marker, viewport, containerWidth, containerHeight);
                 }
             }
+        }
+
+        /// <summary>
+        /// Adjusts extension line lengths to prevent marker overlaps.
+        /// Checks all pairs of extended marker positions and adjusts lengths if they would overlap.
+        /// Uses multiple passes to handle cascading adjustments.
+        /// </summary>
+        private void AdjustForMarkerOverlaps(List<RadialExtension> allExtensions, double markerSize)
+        {
+            double minGap = markerSize * 2.5; // Minimum gap: 2.5x marker width for comfortable spacing
+            double minAngleDiff = _visualConfig.RadialExtension.AngleNudgeThreshold; // Minimum angle separation
+            double angleNudge = _visualConfig.RadialExtension.AngleNudgeAmount; // How much to nudge angles
+            int maxPasses = 5; // Maximum number of adjustment passes
+            int pass = 0;
+            bool hadAdjustments;
+
+            bool logAngles = _visualConfig.Debug.LogRadialExtensionAngles;
+            bool logOverlaps = _visualConfig.Debug.LogRadialExtensionOverlaps;
+
+            if (logOverlaps)
+            {
+                _logger.LogInfo($"[AdjustForMarkerOverlaps] Checking {allExtensions.Count} extensions for overlaps (minGap={minGap:F1}px, minAngle={minAngleDiff:F1}°)");
+            }
+
+            // Log initial angles for each group
+            if (logAngles)
+            {
+                var groupedExtensions = allExtensions.GroupBy(e => e.GroupId).ToList();
+                foreach (var group in groupedExtensions)
+                {
+                    var groupExtensions = group.OrderBy(e => e.Angle).ToList();
+                    _logger.LogInfo($"  Group {group.Key} initial angles:");
+                    for (int i = 0; i < groupExtensions.Count; i++)
+                    {
+                        var ext = groupExtensions[i];
+                        double nextAngleDiff = 0;
+                        if (i < groupExtensions.Count - 1)
+                        {
+                            nextAngleDiff = groupExtensions[i + 1].Angle - ext.Angle;
+                        }
+                        _logger.LogInfo($"    {ext.Location.Name}: {ext.Angle:F2}° (next diff: {nextAngleDiff:F2}°)");
+                    }
+                }
+            }
+
+            do
+            {
+                pass++;
+                hadAdjustments = false;
+
+                // First pass: Check and adjust angles within each group
+                // Group extensions by GroupId
+                var groupedExtensions = allExtensions.GroupBy(e => e.GroupId).ToList();
+                
+                foreach (var group in groupedExtensions)
+                {
+                    var groupExtensions = group.OrderBy(e => e.Angle).ToList();
+                    
+                    // Check all pairs within this group
+                    for (int i = 0; i < groupExtensions.Count; i++)
+                    {
+                        for (int j = i + 1; j < groupExtensions.Count; j++)
+                        {
+                            var ext1 = groupExtensions[i];
+                            var ext2 = groupExtensions[j];
+
+                            // Calculate angle difference
+                            double angleDiff = ext2.Angle - ext1.Angle;
+                            if (angleDiff < 0) angleDiff += 360.0;
+
+                            // If angles are too close, nudge them apart
+                            // Special handling for exactly equal angles (0.0°)
+                            if (angleDiff < minAngleDiff)
+                            {
+                                if (pass == 1 && logAngles)
+                                {
+                                    _logger.LogInfo($"  Group {ext1.GroupId}: Close angles: {ext1.Location.Name} ({ext1.Angle:F1}°) and {ext2.Location.Name} ({ext2.Angle:F1}°), diff={angleDiff:F1}°");
+                                }
+
+                                hadAdjustments = true;
+
+                                // For exactly equal angles, use a larger nudge
+                                double nudge = (angleDiff < 0.01) ? angleNudge : (angleNudge / 2.0);
+                                ext1.Angle -= nudge;
+                                ext2.Angle += nudge;
+
+                                // Recalculate extended positions with new angles
+                                double length1 = CalculateCurrentLength(ext1);
+                                double length2 = CalculateCurrentLength(ext2);
+                                
+                                double angle1Rad = ext1.Angle * (Math.PI / 180.0);
+                                double angle2Rad = ext2.Angle * (Math.PI / 180.0);
+
+                                ext1.ExtendedPosition = new Point(
+                                    ext1.OriginalPosition.X + length1 * Math.Sin(angle1Rad),
+                                    ext1.OriginalPosition.Y - length1 * Math.Cos(angle1Rad)
+                                );
+
+                                ext2.ExtendedPosition = new Point(
+                                    ext2.OriginalPosition.X + length2 * Math.Sin(angle2Rad),
+                                    ext2.OriginalPosition.Y - length2 * Math.Cos(angle2Rad)
+                                );
+
+                                if (pass == 1 && logAngles)
+                                {
+                                    _logger.LogInfo($"    Nudged angles: {ext1.Angle:F1}° and {ext2.Angle:F1}° (nudge={nudge:F1}°)");
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Second pass: Check all pairs for position overlaps (across all groups)
+                for (int i = 0; i < allExtensions.Count; i++)
+                {
+                    for (int j = i + 1; j < allExtensions.Count; j++)
+                    {
+                        var ext1 = allExtensions[i];
+                        var ext2 = allExtensions[j];
+
+                        // Calculate distance between extended positions
+                        double dx = ext2.ExtendedPosition.X - ext1.ExtendedPosition.X;
+                        double dy = ext2.ExtendedPosition.Y - ext1.ExtendedPosition.Y;
+                        double distance = Math.Sqrt(dx * dx + dy * dy);
+
+                        // If markers would overlap or be too close
+                        if (distance < minGap)
+                        {
+                            if (pass == 1 && logOverlaps)
+                            {
+                                _logger.LogInfo($"  Found overlap: {ext1.Location.Name} (Group {ext1.GroupId}) and {ext2.Location.Name} (Group {ext2.GroupId}), distance={distance:F1}px");
+                            }
+
+                            hadAdjustments = true;
+
+                            // Calculate how much we need to separate them
+                            double neededSeparation = minGap - distance;
+
+                            // Calculate angles from original positions
+                            double angle1 = ext1.Angle * (Math.PI / 180.0);
+                            double angle2 = ext2.Angle * (Math.PI / 180.0);
+
+                            // Get current lengths
+                            double currentLength1 = CalculateCurrentLength(ext1);
+                            double currentLength2 = CalculateCurrentLength(ext2);
+
+                            // Strategy: Try to lengthen one and shorten the other for better separation
+                            // This works better than shortening both equally
+                            double newLength1, newLength2;
+                            
+                            // Calculate angle between the two lines
+                            double angleDiff = Math.Abs(ext1.Angle - ext2.Angle);
+                            if (angleDiff > 180) angleDiff = 360 - angleDiff;
+
+                            // If lines are pointing in similar directions (< 90 degrees apart),
+                            // lengthen one and shorten the other
+                            double minLineLength = _visualConfig.RadialExtension.MinimumLineLength;
+                            if (angleDiff < 90)
+                            {
+                                // Lengthen the longer one, shorten the shorter one
+                                if (currentLength1 > currentLength2)
+                                {
+                                    newLength1 = currentLength1 + neededSeparation * 0.7;
+                                    newLength2 = Math.Max(minLineLength, currentLength2 - neededSeparation * 0.3);
+                                }
+                                else
+                                {
+                                    newLength1 = Math.Max(minLineLength, currentLength1 - neededSeparation * 0.3);
+                                    newLength2 = currentLength2 + neededSeparation * 0.7;
+                                }
+                            }
+                            else
+                            {
+                                // Lines pointing in opposite directions - shorten both
+                                double adjustmentPerMarker = neededSeparation / 2.0;
+                                newLength1 = Math.Max(minLineLength, currentLength1 - adjustmentPerMarker);
+                                newLength2 = Math.Max(minLineLength, currentLength2 - adjustmentPerMarker);
+                            }
+
+                            if (pass == 1 && logOverlaps)
+                            {
+                                _logger.LogInfo($"    Pass {pass}: Adjusting lengths: {currentLength1:F1}→{newLength1:F1}, {currentLength2:F1}→{newLength2:F1} (angleDiff={angleDiff:F1}°)");
+                            }
+
+                            // Recalculate extended positions
+                            ext1.ExtendedPosition = new Point(
+                                ext1.OriginalPosition.X + newLength1 * Math.Sin(angle1),
+                                ext1.OriginalPosition.Y - newLength1 * Math.Cos(angle1)
+                            );
+
+                            ext2.ExtendedPosition = new Point(
+                                ext2.OriginalPosition.X + newLength2 * Math.Sin(angle2),
+                                ext2.OriginalPosition.Y - newLength2 * Math.Cos(angle2)
+                            );
+                        }
+                    }
+                }
+
+                if (hadAdjustments && pass < maxPasses && logOverlaps)
+                {
+                    _logger.LogInfo($"  Pass {pass} complete, running another pass...");
+                }
+
+            } while (hadAdjustments && pass < maxPasses);
+
+            if (pass > 1 && logOverlaps)
+            {
+                _logger.LogInfo($"[AdjustForMarkerOverlaps] Completed {pass} passes");
+            }
+
+            // Log final angles for each group
+            if (logAngles)
+            {
+                _logger.LogInfo($"[AdjustForMarkerOverlaps] Final angles:");
+                var groupedExtensions = allExtensions.GroupBy(e => e.GroupId).ToList();
+                foreach (var group in groupedExtensions)
+                {
+                    var groupExtensions = group.OrderBy(e => e.Angle).ToList();
+                    double minAngleInGroup = 360.0;
+                    for (int i = 0; i < groupExtensions.Count - 1; i++)
+                    {
+                        double diff = groupExtensions[i + 1].Angle - groupExtensions[i].Angle;
+                        if (diff < minAngleInGroup) minAngleInGroup = diff;
+                    }
+                    _logger.LogInfo($"  Group {group.Key}: {groupExtensions.Count} markers, smallest angle separation: {minAngleInGroup:F2}°");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Calculates the current length of an extension line.
+        /// </summary>
+        private double CalculateCurrentLength(RadialExtension extension)
+        {
+            double dx = extension.ExtendedPosition.X - extension.OriginalPosition.X;
+            double dy = extension.ExtendedPosition.Y - extension.OriginalPosition.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
         /// <summary>

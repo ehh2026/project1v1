@@ -20,6 +20,11 @@ namespace InteractiveWorldMap.Models
         public RadialExtensionConfig RadialExtension { get; set; } = new RadialExtensionConfig();
 
         /// <summary>
+        /// Configuration for debug logging.
+        /// </summary>
+        public DebugConfig Debug { get; set; } = new DebugConfig();
+
+        /// <summary>
         /// Size of individual location markers in pixels.
         /// </summary>
         public double LocationMarkerSize { get; set; } = 16.0;

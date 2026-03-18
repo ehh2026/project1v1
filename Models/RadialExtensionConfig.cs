@@ -26,6 +26,11 @@ namespace InteractiveWorldMap.Models
         public double ExtensionLineLength { get; set; } = 40.0;
 
         /// <summary>
+        /// Minimum length that extension lines can be shortened to during overlap adjustments.
+        /// </summary>
+        public double MinimumLineLength { get; set; } = 10.0;
+
+        /// <summary>
         /// Preferred minimum degrees between adjacent extension lines.
         /// This is a target value; actual separation may be smaller for large groups.
         /// </summary>
@@ -36,6 +41,16 @@ namespace InteractiveWorldMap.Models
         /// Below this value, visual overlap occurs.
         /// </summary>
         public double HardMinimumAngleSeparation { get; set; } = 5.0;
+
+        /// <summary>
+        /// If two markers have angles within this threshold, nudge them apart.
+        /// </summary>
+        public double AngleNudgeThreshold { get; set; } = 2.0;
+
+        /// <summary>
+        /// Amount in degrees to nudge markers apart when they're too close.
+        /// </summary>
+        public double AngleNudgeAmount { get; set; } = 2.0;
 
         /// <summary>
         /// Color of extension lines in ARGB hex format.
