@@ -150,6 +150,54 @@ That means composite-pin rendering should remain downstream of endpoint selectio
 
 The UI work for browsing/selecting multiple variants can remain a later slice, but the storage and runtime model should assume variants exist from the start.
 
+### Canonical endpoint data vs saved composite placement results
+
+The plan should distinguish between:
+
+- canonical saved layout intent
+- derived composite render results
+
+Recommended rule:
+
+- the canonical saved data remains endpoint placement
+  - `OriginalPosition`
+  - `ExtendedPosition`
+  - variant metadata / provenance
+- the composite choice and transforms are derived from that endpoint segment
+
+However, for manual layouts it is reasonable to persist the derived composite result as a cache so the app does not have to rerun candidate matching and transform planning every time the same saved layout is replayed.
+
+Recommended saved derived fields:
+
+- selected pair id
+- selected shaft file
+- selected head file
+- target segment length / angle at time of planning
+- chosen placement mode
+- residual diagnostics from selection
+- exact render-plan outputs needed for replay
+  - head rotation
+  - body stretch factor
+  - local anchors
+  - local bounds
+
+Recommended invalidation inputs for that cache:
+
+- layout variant id
+- layout key / viewport compatibility key
+- window size or other screen-space replay dimensions
+- pin-part geometry metadata version or file hash
+- relevant visual-config fields affecting selection / rendering
+
+Recommended runtime policy:
+
+1. load the manual layout endpoints
+2. try to load a saved composite-placement snapshot compatible with the current viewport/config state
+3. if compatible, replay it directly
+4. if not compatible, rerun planning once and save the new derived result
+
+That keeps user intent stable while still allowing performance optimization and avoiding stale composite placements when geometry/config changes.
+
 ## Current Zoom and Visibility Behavior
 
 The shipped app is not using continuous marker re-clustering by zoom level. It is effectively operating in two display states:
@@ -652,6 +700,8 @@ Tasks:
    - create a default short segment pointing inward from the nearest map edge
 4. Update marker sizing and hit-testing so wrapper bounds match the composed pin bounds.
 5. Preserve existing extension hover highlighting, or redefine it around shaft visuals.
+6. Route manual-layout replay through the same composite planner when composite rendering is active.
+7. Persist derived composite-placement results for saved manual layouts so replay can skip unnecessary recomputation when viewport/config inputs are unchanged.
 
 Acceptance:
 
@@ -663,7 +713,7 @@ Current implementation status:
 - rollout is gated by `PinParts.Enabled` plus `PinParts.UseCompositeRendering`
 - the legacy image-pin path remains available and is still used for non-extended markers, edit mode, and any composite fallback/error case
 - entering edit mode now forces an immediate rebuild onto the legacy draggable path, and exiting edit mode refreshes the current view back to the active non-edit rendering path
-- the remaining Phase 5 work is mostly about hit-testing, drag/edit semantics, and deciding whether any non-extended pins should ever switch to composite rendering
+- the remaining Phase 5 work is mostly about hit-testing, drag/edit semantics, manual-layout replay through the composite path, derived composite-result persistence, and deciding whether any non-extended pins should ever switch to composite rendering
 
 ## Phase 6: Verification and tuning
 
