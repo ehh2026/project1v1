@@ -10,15 +10,25 @@ The configuration is stored in `visual-config.json` in the application root dire
 
 ```json
 {
-  "ClusterDistanceThreshold": 300.0,
-  "LocationMarkerSize": 16.0,
-  "ClusterMarkerSize": 40.0,
-  "ClusterBadgeSize": 20.0,
-  "ClusterCountFontSize": 12.0,
-  "ZoomScale": 30.0,
+  "ClusterDistanceThreshold": 30.0,
+  "LocationMarkerSize": 12.0,
+  "UsePinMarkers": true,
+  "ClusterMarkerSize": 25.0,
+  "ClusterBadgeSize": 12.0,
+  "ClusterCountFontSize": 11.0,
+  "ZoomScale": 55.0,
   "AnimationDurationMs": 390
 }
 ```
+
+This top-level sample is intentionally abbreviated. The actual file also includes nested sections such as:
+
+- `PinImages`
+- `PinParts`
+- `PinMarkers`
+- `RadialExtension`
+- `ManualLayoutEditor`
+- `Debug`
 
 ### Parameters
 
@@ -54,6 +64,95 @@ The configuration is stored in `visual-config.json` in the application root dire
   - Duration of zoom animation in milliseconds
   - Higher values = slower, smoother animation
   - Lower values = faster animation
+
+- **UsePinMarkers** (default: `true`)
+  - Master switch for pin-style markers instead of simple circular location dots
+  - When `false`, locations use the basic circular `LocationMarker` visuals
+
+## Pin Rendering Modes
+
+The app currently has three relevant pin-rendering paths:
+
+1. `UsePinMarkers = false`
+   - Individual locations use the simple circular `LocationMarker`
+   - No `pins.jpg` image pins are used
+
+2. `UsePinMarkers = true` and `PinImages.Enabled = true`
+   - Individual locations use cropped image pins from `pins.jpg`
+   - This is the current default path
+
+3. `UsePinMarkers = true`, `PinImages.Enabled = true`, `PinParts.Enabled = true`, and `PinParts.UseCompositeRendering = true`
+   - Non-extended markers still use the legacy `pins.jpg` path
+   - Extended markers in the radial-extension view switch to composite shaft/head rendering from `Pins_v2/parts`
+   - If composite planning or asset loading fails, the app falls back to the legacy `pins.jpg` extended-marker path
+
+If `UsePinMarkers = true` but `PinImages.Enabled = false`, the app falls back to the older drawn `PinMarker` control rather than `pins.jpg`.
+
+## Current Default Behavior
+
+With the repository's current `visual-config.json` defaults:
+
+- `UsePinMarkers = true`
+- `PinImages.Enabled = true`
+- `PinParts.Enabled = false`
+- `PinParts.UseCompositeRendering = false`
+
+that means:
+
+- normal individual markers use cropped pins from `pins.jpg`
+- extended markers also use that same legacy image-pin path
+- radial extensions draw a separate shaft-like line and then place the image pin at the extended endpoint
+- the composite pin-part renderer is present in code but gated off
+
+## PinImages
+
+`PinImages` config controls the legacy image-pin system based on the master `pins.jpg` sprite sheet.
+
+Key fields:
+
+- `Enabled`
+- `MasterImagePath`
+- `UseRandomSelection`
+- `ScaleFactor`
+- `Pins`
+
+When this section is enabled, the app crops the configured rectangles from `pins.jpg` and uses those bitmaps as marker visuals.
+
+## PinParts
+
+`PinParts` config controls the newer part-based composite renderer.
+
+Key fields:
+
+- `Enabled`
+- `PartsFolderPath`
+- `GeometryMetadataPath`
+- `SelectionMode`
+- `MaxResidualRotationDeg`
+- `MinStretchFactor`
+- `MaxStretchFactor`
+- `UseCompositeRendering`
+
+Important behavior:
+
+- `PinParts.Enabled = true` alone does not turn on composite marker rendering
+- the live renderer is only used when `PinParts.UseCompositeRendering = true`
+- current rollout scope is extended image pins only
+- edit mode currently stays on the legacy marker path even if composite rendering is enabled
+
+## Radial Extension Interaction
+
+When radial extensions are active:
+
+- legacy path:
+  - draw a separate extension line
+  - move the marker to the extended endpoint
+- composite path:
+  - replace the extended image pin with a composite shaft/head marker
+  - anchor the shaft tip at the original map point
+  - anchor the shaft/head join at the extended endpoint
+
+When radial extensions are not active, the app restores the marker's normal non-extended visual path automatically.
 
 ## How to Use
 

@@ -22,7 +22,7 @@ This plan supersedes the single-bitmap assumptions in [docs/PIN_IMAGE_PLACEMENT_
 
 - [x] Phase 1: Metadata completion
 - [ ] Phase 2: Config and loading model
-- [ ] Phase 3: Composite marker rendering
+- [x] Phase 3: Composite marker rendering
 - [ ] Phase 4: Placement calculator
 - [ ] Phase 5: MainWindow integration
 - [ ] Phase 6: Verification and tuning
@@ -31,19 +31,19 @@ This plan supersedes the single-bitmap assumptions in [docs/PIN_IMAGE_PLACEMENT_
 
 - [x] Complete metadata required for deterministic shaft/head alignment and segmented shaft stretching
 - [x] Add runtime/config loading seams for part metadata without breaking current image-pin loading
-- [ ] Render one isolated composite pin correctly in a local test harness or dev-only path
+- [x] Render one isolated composite pin correctly in a local test harness or dev-only path
 - [x] Add deterministic pair/transform selection logic and unit coverage
-- [ ] Integrate composite pins into extended image-pin rendering only
+- [x] Integrate composite pins into extended image-pin rendering only
 - [ ] Preserve edit mode, manual layout replay, and variant-aware auto-load behavior
 - [ ] Add verification overlays and screenshots for common extension angles
 
 ### Transition Strategy
 
-- [ ] Keep the current single-bitmap pin path available during rollout
-- [ ] Gate composite-pin rendering behind an explicit config switch or staged integration seam
-- [ ] Use composite pins first for extended markers only
+- [x] Keep the current single-bitmap pin path available during rollout
+- [x] Gate composite-pin rendering behind an explicit config switch or staged integration seam
+- [x] Use composite pins first for extended markers only
 - [ ] Leave non-extended pins on legacy rendering until extended-marker behavior is stable
-- [ ] Avoid replacing edit-mode or manual-layout workflows until composite hit-testing and anchoring are verified
+- [x] Avoid replacing edit-mode or manual-layout workflows until composite hit-testing and anchoring are verified
 
 ## Goal
 
@@ -594,6 +594,12 @@ Acceptance:
 
 - one composite marker can be placed correctly on an arbitrary start/end segment in isolation without stretching the shaft end caps
 
+Implementation note:
+
+- `CompositePinRenderPlanBuilder` now computes exact tip/join anchoring plus segmented shaft-body stretch and head rotation in isolation.
+- `CompositePinMarker` now renders the shaft as tip/body/head-cap layers plus a rotated head image from that render plan.
+- Live `MainWindow` integration is still pending.
+
 ## Phase 4: Placement calculator
 
 Deliverables:
@@ -618,10 +624,16 @@ Tasks:
   - style compatibility penalty
   - residual transform penalty
 - [x] Clamp rotation and segmented-body stretch in MVP mode.
+- [ ] Reconcile selection-time clamp fields with exact segment-fit rendering output before live integration.
 
 Acceptance:
 
 - for a fixed target segment and asset set, selection is deterministic and testable
+
+Open integration gap:
+
+- the current `PinPartPlacementCalculator` clamp fields are useful for ranking and diagnostics, but the live composite renderer still needs exact target-segment output for the chosen pair
+- before Phase 5, either the calculator should emit both exact-fit render transforms and bounded-fit diagnostics, or the render-plan builder should become the single exact-fit authority downstream of pair selection
 
 ## Phase 5: MainWindow integration
 
@@ -644,6 +656,13 @@ Tasks:
 Acceptance:
 
 - dense-group image pins render as composite shaft + head rather than line + centered bitmap
+
+Current implementation status:
+
+- composite pins are now wired into the live radial-extension path for extended image pins only
+- rollout is gated by `PinParts.Enabled` plus `PinParts.UseCompositeRendering`
+- the legacy image-pin path remains available and is still used for non-extended markers, edit mode, and any composite fallback/error case
+- the remaining Phase 5 work is mostly about hit-testing, drag/edit semantics, and deciding whether any non-extended pins should ever switch to composite rendering
 
 ## Phase 6: Verification and tuning
 

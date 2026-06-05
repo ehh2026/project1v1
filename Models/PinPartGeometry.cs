@@ -58,6 +58,9 @@ namespace InteractiveWorldMap.Models
 
     public class PinPartShaftGeometry
     {
+        [JsonProperty("image_size")]
+        public PinPartImageSize? ImageSize { get; set; }
+
         [JsonProperty("local_tip")]
         public PinPartPoint LocalTip { get; set; } = new PinPartPoint();
 

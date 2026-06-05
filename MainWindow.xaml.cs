@@ -65,6 +65,11 @@ namespace InteractiveWorldMap
         
         // Master pin image for image-based pins
         private BitmapSource? _masterPinImage;
+        private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
+        private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<LocationMarker, MarkerVisualState> _baseMarkerVisuals = new Dictionary<LocationMarker, MarkerVisualState>();
+        private readonly CompositePinPlanningService _compositePinPlanningService =
+            new CompositePinPlanningService(new PinPartPlacementCalculator(), new CompositePinRenderPlanBuilder());
         
         // Expose config properties for marker access
         public double LocationMarkerSize => _visualConfig.LocationMarkerSize;
@@ -80,6 +85,13 @@ namespace InteractiveWorldMap
         /// Gets the active content subwindow, if any.
         /// </summary>
         public ContentSubwindow? ActiveSubwindow => _activeSubwindow;
+
+        private sealed class MarkerVisualState
+        {
+            public object? Content { get; init; }
+            public double Width { get; init; }
+            public double Height { get; init; }
+        }
 
         public MainWindow()
         {
@@ -529,6 +541,7 @@ namespace InteractiveWorldMap
             // Position will be updated by UpdateMarkerPositions()
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
+            CaptureBaseMarkerVisual(marker);
             
             // Add click handler
             marker.MouseLeftButtonDown += (s, e) =>
@@ -539,17 +552,7 @@ namespace InteractiveWorldMap
                     return;
                 }
                 
-                // Animate the appropriate marker type
-                if (marker.Tag is PinMarker pinMarker)
-                {
-                    pinMarker.AnimateClick();
-                    _logger.LogInfo($"Animated PIN marker click for '{location.Name}'");
-                }
-                else
-                {
-                    marker.AnimateClick();
-                    _logger.LogInfo($"Animated REGULAR marker click for '{location.Name}'");
-                }
+                AnimateMarkerClick(marker);
                 
                 // If we're at full map view (not zoomed), zoom to this location
                 // Otherwise, show content
@@ -720,6 +723,8 @@ namespace InteractiveWorldMap
             // Extensions will be applied after animation completes
             if (_isAnimating)
             {
+                RestoreBaseMarkerVisuals();
+
                 // During animation, just position markers normally
                 foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
                 {
@@ -740,6 +745,8 @@ namespace InteractiveWorldMap
                 }
                 return;
             }
+
+            RestoreBaseMarkerVisuals();
 
             // Check if we should apply radial extensions (only after animation completes)
             bool shouldApplyExtensions = _visualConfig.RadialExtension.Enabled &&
@@ -905,6 +912,7 @@ namespace InteractiveWorldMap
                 MapDisplay.Markers.Children.Remove(marker);
             }
             _individualMarkers.Clear();
+            _baseMarkerVisuals.Clear();
             
             foreach (var marker in _clusterMarkers)
             {
@@ -1637,6 +1645,7 @@ namespace InteractiveWorldMap
         private void ApplyRadialExtensions(DenseMarkerGroup group, ViewportState viewport, double containerWidth, double containerHeight)
         {
             bool logCalculation = _visualConfig.Debug.LogRadialExtensionCalculation;
+            int lineCountBeforeGroup = _extensionLines.Count;
             
             if (logCalculation)
             {
@@ -1671,20 +1680,31 @@ namespace InteractiveWorldMap
                     _logger.LogInfo($"    Length: {length:F1}px, Angle: {angleDegrees:F2}° (stored: {extension.Angle:F2}°)");
                 }
 
-                // Create extension line
-                var line = CreateExtensionLine(originalScreenPos, extendedScreenPos);
-                _extensionLines.Add(line);
-                MapDisplay.Markers.Children.Add(line);
-                
-                if (logCalculation)
-                {
-                    _logger.LogInfo($"    Line added to canvas, total lines: {_extensionLines.Count}, canvas children: {MapDisplay.Markers.Children.Count}");
-                }
-
                 // Position marker at extended location
                 var marker = FindMarkerForLocation(extension.Location);
                 if (marker != null)
                 {
+                    if (TryApplyCompositePinMarker(marker, originalScreenPos, extendedScreenPos))
+                    {
+                        _markerToLineMap.Remove(marker);
+
+                        if (logCalculation)
+                        {
+                            _logger.LogInfo($"    Composite marker positioned with tip anchor at ({originalScreenPos.X:F1},{originalScreenPos.Y:F1})");
+                        }
+
+                        continue;
+                    }
+
+                    var line = CreateExtensionLine(originalScreenPos, extendedScreenPos);
+                    _extensionLines.Add(line);
+                    MapDisplay.Markers.Children.Add(line);
+                    
+                    if (logCalculation)
+                    {
+                        _logger.LogInfo($"    Line added to canvas, total lines: {_extensionLines.Count}, canvas children: {MapDisplay.Markers.Children.Count}");
+                    }
+
                     // Map marker to its extension line for hover highlighting
                     _markerToLineMap[marker] = line;
                     
@@ -1716,7 +1736,7 @@ namespace InteractiveWorldMap
             // Animate if configured
             if (_visualConfig.RadialExtension.AnimateExtension)
             {
-                var linesToAnimate = _extensionLines.Skip(_extensionLines.Count - group.Extensions.Count).ToList();
+                var linesToAnimate = _extensionLines.Skip(lineCountBeforeGroup).ToList();
                 
                 if (logCalculation)
                 {
@@ -1818,6 +1838,158 @@ namespace InteractiveWorldMap
         private LocationMarker? FindMarkerForLocation(Location location)
         {
             return _individualMarkers.FirstOrDefault(m => m.Location == location);
+        }
+
+        private void CaptureBaseMarkerVisual(LocationMarker marker)
+        {
+            if (_baseMarkerVisuals.ContainsKey(marker))
+                return;
+
+            _baseMarkerVisuals[marker] = new MarkerVisualState
+            {
+                Content = marker.Content,
+                Width = marker.Width,
+                Height = marker.Height
+            };
+        }
+
+        private void RestoreBaseMarkerVisuals()
+        {
+            foreach (var marker in _individualMarkers)
+            {
+                RestoreBaseMarkerVisual(marker);
+            }
+        }
+
+        private void RestoreBaseMarkerVisual(LocationMarker marker)
+        {
+            if (!_baseMarkerVisuals.TryGetValue(marker, out var state))
+                return;
+
+            if (!ReferenceEquals(marker.Content, state.Content))
+            {
+                marker.Content = state.Content;
+                marker.Width = state.Width;
+                marker.Height = state.Height;
+            }
+        }
+
+        private void AnimateMarkerClick(LocationMarker marker)
+        {
+            switch (marker.Content)
+            {
+                case PinMarker pinMarker:
+                    pinMarker.AnimateClick();
+                    _logger.LogInfo($"Animated PIN marker click for '{marker.Location.Name}'");
+                    break;
+                case ImagePinMarker imagePinMarker:
+                    imagePinMarker.AnimateClick();
+                    _logger.LogInfo($"Animated IMAGE PIN marker click for '{marker.Location.Name}'");
+                    break;
+                case CompositePinMarker compositePinMarker:
+                    compositePinMarker.AnimateClick();
+                    _logger.LogInfo($"Animated COMPOSITE PIN marker click for '{marker.Location.Name}'");
+                    break;
+                default:
+                    marker.AnimateClick();
+                    _logger.LogInfo($"Animated REGULAR marker click for '{marker.Location.Name}'");
+                    break;
+            }
+        }
+
+        private bool CanUseCompositePins()
+        {
+            return _visualConfig.UsePinMarkers &&
+                   _visualConfig.PinImages.Enabled &&
+                   _visualConfig.PinParts.Enabled &&
+                   _visualConfig.PinParts.UseCompositeRendering &&
+                   !_isEditMode;
+        }
+
+        private bool EnsurePinPartGeometryLoaded()
+        {
+            if (_pinPartGeometry != null && _pinPartGeometry.Count > 0)
+                return true;
+
+            try
+            {
+                _pinPartGeometry = _contentLoader.LoadPinPartGeometry(_visualConfig.PinParts.GeometryMetadataPath);
+                return _pinPartGeometry.Count > 0;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to load pin-part geometry metadata: {ex.Message}");
+                _pinPartGeometry = null;
+                return false;
+            }
+        }
+
+        private BitmapSource? LoadPinPartBitmap(string relativePath)
+        {
+            if (_pinPartBitmapCache.TryGetValue(relativePath, out var cached))
+            {
+                return cached;
+            }
+
+            var bitmap = _contentLoader.TryLoadContentBitmap(relativePath);
+            if (bitmap != null)
+            {
+                _pinPartBitmapCache[relativePath] = bitmap;
+            }
+
+            return bitmap;
+        }
+
+        private bool TryApplyCompositePinMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos)
+        {
+            if (!CanUseCompositePins())
+                return false;
+
+            if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
+                return false;
+
+            if (!_baseMarkerVisuals.TryGetValue(marker, out var baseState) || baseState.Content is not ImagePinMarker)
+                return false;
+
+            try
+            {
+                var target = new PinPlacementTarget
+                {
+                    StartScreen = originalScreenPos,
+                    EndScreen = extendedScreenPos,
+                    LocationId = marker.Location.Name,
+                    GroupId = 0
+                };
+
+                var planning = _compositePinPlanningService.BuildPlan(target, _pinPartGeometry, _visualConfig.PinParts);
+                var shaftImage = LoadPinPartBitmap(planning.RenderPlan.ShaftSourcePath);
+                var headImage = LoadPinPartBitmap(planning.RenderPlan.HeadSourcePath);
+                if (shaftImage == null || headImage == null)
+                {
+                    _logger.LogWarning($"Composite pin assets missing for '{marker.Location.Name}', falling back to legacy extension rendering.");
+                    return false;
+                }
+
+                var compositeMarker = new CompositePinMarker { Location = marker.Location };
+                compositeMarker.SetCompositeImages(shaftImage, headImage, planning.RenderPlan);
+
+                marker.Content = compositeMarker;
+                marker.Width = compositeMarker.Width;
+                marker.Height = compositeMarker.Height;
+                Panel.SetZIndex(marker, 2000);
+                Canvas.SetLeft(marker, originalScreenPos.X - planning.RenderPlan.TipAnchorLocal.X);
+                Canvas.SetTop(marker, originalScreenPos.Y - planning.RenderPlan.TipAnchorLocal.Y);
+
+                _logger.LogInfo(
+                    $"Applied composite pin '{planning.Selection.PairId}' for '{marker.Location.Name}' " +
+                    $"targetLength={planning.Selection.TargetLengthPx:F1}px score={planning.Selection.Score:F2}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Failed to apply composite pin for '{marker.Location.Name}': {ex.Message}");
+                return false;
+            }
         }
 
         /// <summary>
