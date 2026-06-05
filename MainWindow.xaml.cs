@@ -141,19 +141,22 @@ namespace InteractiveWorldMap
                     _logger.LogInfo("RadialExtensionCalculator initialized");
                 }
                 
+                var configuredLayoutPath = _visualConfig.ManualLayoutEditor.LayoutStoragePath;
+                var layoutFilePath = IOPath.IsPathRooted(configuredLayoutPath)
+                    ? configuredLayoutPath
+                    : IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+
                 // Initialize manual layout manager if enabled OR if we need to load layouts
                 if (_visualConfig.ManualLayoutEditor.Enabled)
                 {
-                    var layoutFilePath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "manual-layouts.json");
                     _layoutManager = new ManualLayoutManager(layoutFilePath, _logger);
-                    _logger.LogInfo("ManualLayoutManager initialized (edit mode enabled)");
+                    _logger.LogInfo($"ManualLayoutManager initialized (edit mode enabled) at: {layoutFilePath}");
                 }
                 else
                 {
                     // Always initialize layout manager for loading saved layouts, even if editing is disabled
-                    var layoutFilePath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "manual-layouts.json");
                     _layoutManager = new ManualLayoutManager(layoutFilePath, _logger);
-                    _logger.LogInfo("ManualLayoutManager initialized (read-only for loading saved layouts)");
+                    _logger.LogInfo($"ManualLayoutManager initialized (read-only for loading saved layouts) at: {layoutFilePath}");
                 }
                 
                 _navigationService = new MapNavigationService();

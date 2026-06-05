@@ -28,8 +28,12 @@
    - `ExtendedPosition`: where the marker label/head should appear
    - `Angle`: the angle from center (0=north, clockwise)
    - Extension line length: 50px default, 13px minimum
+   - Dense-group endpoint placement is still handled automatically in code, including angle ordering, angle nudging, convergence checks, and line-intersection adjustment passes
 
-4. **Manual layout editor** infrastructure (designed but `manual-layouts.json` doesn't exist yet) that would store per-marker `originalPosition`, `extendedPosition`, `angle`, and `lineLength`
+4. **Manual layout editor** infrastructure that stores per-marker `originalPosition`, `extendedPosition`, `angle`, and `lineLength`
+   - The code path is still present and enabled in config
+   - Saved layouts are loaded when entering a zoomed cluster view and can be edited, saved, re-applied, and deleted
+   - The old statement that `manual-layouts.json` did not exist is stale; the current code can create and persist layouts through `ManualLayoutManager`
 
 5. **Current pin rendering** crops pins from the master `pins.jpg` using rectangles defined in `visual-config.json`, scales them to 3% (ScaleFactor=0.03), and positions them at map coordinates. The "connection point" is hardcoded to bottom-center at 90% height.
 
@@ -107,10 +111,18 @@ Non-uniform scaling (different X and Y factors) to match length while preserving
 ### 3. Annotation effort
 Manually identifying (tipX, tipY) and (headX, headY) for 12 pins is tedious but doable, especially with a small Python script that shows each image and lets you click two points. It's a one-time cost. (Only one threshold variant needs annotation - pick 235 and use that set.)
 
-### 4. The "old drawn pins" endpoint data doesn't exist yet
-The `manual-layouts.json` file referenced in the config doesn't exist in the repo. The manual layout editor is designed but not populated. So there's no saved old-version endpoint data to match against. The radial extension *calculator* generates endpoints algorithmically, but those are ephemeral (computed at runtime, not persisted). You'd need to either:
-- Run the app, manually save a layout, then use that data
-- Or just use the algorithmic endpoints directly (which is the cleaner approach anyway)
+### 4. Existing endpoint data is split between automatic calculation and optional saved layouts
+The repo still has both of these mechanisms:
+
+- automatic runtime endpoint calculation from `RadialExtensionCalculator`
+- optional persisted manual overrides via `ManualLayoutManager`
+
+So the relevant question is no longer "does endpoint data exist at all", but rather which source of truth the new composite-pin pipeline should use in each state:
+
+- default: use the algorithmic endpoints directly
+- when a saved manual layout is active: use the saved `ExtendedPosition` values instead
+
+That means the new part-based pin pipeline should be designed to consume the same endpoint data the drawn-pin system already consumes, rather than inventing a separate layout concept.
 
 ---
 

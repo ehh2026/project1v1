@@ -35,14 +35,72 @@ Replace the current "crop one pin from `pins.jpg` and center it on the extension
 - `MainWindow.xaml.cs`
   - `CreateImagePinMarker()` still crops from `_masterPinImage`
   - `ApplyRadialExtensions()` still draws a `Line` and then centers the marker on `ExtendedPosition`
+- `Utilities/RadialExtensionCalculator.cs`
+  - already contains the current automatic endpoint-distribution logic for dense groups
+  - preserves angular order and performs angle nudging plus anti-convergence / anti-intersection adjustment passes
 - `Models/PinImageConfig.cs`
   - only knows about `pins.jpg` crop rectangles
 - `Models/RadialExtension.cs`
   - already carries `OriginalPosition`, `ExtendedPosition`, and `Angle`
+- `Services/ManualLayoutManager.cs`
+  - saved endpoint overrides still exist and can be loaded, applied, saved, and deleted
+- `MainWindow.xaml.cs`
+  - already loads saved manual layouts for zoomed clusters and applies them after the automatic extension pass
 - `Images&Content/Pins_v2/parts/pin_parts_manifest.json`
   - contains original full-pin head center, shaft tip, and shaft head-side geometry
 - `Images&Content/Pins_v2/parts/pin_part_geometry.json`
   - contains cropped-part local coordinates plus original mapped coordinates
+
+## Existing Placement Intelligence To Preserve
+
+The composite-pin work should reuse the current endpoint-placement workflow rather than replace it conceptually.
+
+The repo still has:
+
+- automatic dense-group endpoint placement
+- optional saved manual endpoint overrides
+- edit mode for dragging visible endpoints and resaving them
+
+So the composite-pin renderer should be downstream of endpoint selection.
+
+In other words:
+
+- the current automatic/manual system should continue deciding `OriginalPosition` and `ExtendedPosition`
+- the new composite-pin renderer should consume those positions and render shaft/head assets onto them
+
+That keeps the old drawn-pin intelligence intact and reduces the risk of regressions in cluster layout behavior.
+
+### Layout variants and provenance must remain explicit
+
+The endpoint system should not assume there is only one saved layout per cluster/view forever.
+
+The storage model should support:
+
+- auto-generated seed layouts
+- manually adjusted user layouts
+- future imported/shared layouts
+
+Those should be separate variants under the same logical layout group, not silent overwrites of one another.
+
+At minimum each saved variant should carry:
+
+- `GroupKey`
+- `VariantId`
+- `DisplayName`
+- `Origin` (`AutoSeed`, `Manual`, `Imported`)
+- `IsDefault`
+- `CreatedUtc`
+- `UpdatedUtc`
+- optional lineage such as `BasedOnVariantId` / `BasedOnKey`
+
+Auto-load policy should prefer:
+
+1. exact default manual variant
+2. exact default auto-seed variant
+3. compatible default manual variant
+4. compatible default auto-seed variant
+
+That gives the app a sensible fallback path while still preserving the distinction between machine-generated starting points and user-curated layouts.
 
 ## Current Zoom and Visibility Behavior
 
@@ -317,6 +375,8 @@ Keep two layers of data distinct:
   - persisted if needed later
 - screen-space render target
   - rebuilt on every viewport update
+
+For saved endpoint data, persist grouped layout variants plus provenance metadata rather than a single ambiguous flat layout entry. That is especially important now that generated seeds and manual edits both need to coexist.
 
 For this work, use a runtime `PinPlacementTarget` dictionary keyed by location id or location reference:
 

@@ -8,6 +8,26 @@ The application is functional and ready for demo! Core features are implemented 
 
 ## USER-ADDED TO-DO ITEMS
 
+- [ ] Make the manual-layout seed generator use the same placement algorithm the app uses at runtime
+  - Current state: `scripts/generate_manual_layout_seeds.ps1` is a PowerShell port of the radial placement logic, not a shared code path
+  - Goal: extract or expose the placement math so runtime placement and seed generation cannot drift
+  - Add verification that generated layout keys and endpoints match the app's current `RadialExtensionCalculator` and `LayoutKeyGenerator` behavior
+- [ ] Make generated manual-layout seeds reliably load in the app
+  - Current state: the app can read saved layouts through `ManualLayoutManager`, and `MainWindow` now respects `ManualLayoutEditor.LayoutStoragePath`
+  - Remaining work: make sure generator output keys are compatible with actual zoomed cluster views and that seeded layouts are found/applied without manual intervention
+  - Verify with `Images&Content/manual-layouts.json` produced by the generator
+- [ ] Implement composite pin rendering from pin parts using the active plan: [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
+  - Replace the current centered single-image pin placement for extended markers with shaft/head compositing
+  - Reuse existing automatic/manual endpoint placement rather than inventing a separate endpoint system
+  - Include segmented shaft stretching, head rotation/alignment, and compatibility metadata from `Pins_v2/parts`
+- [ ] Make manual edit mode available and verified for composite pin layouts
+  - Ensure edit mode still works when pins are rendered as composite shaft/head parts rather than simple line-plus-marker visuals
+  - Verify drag behavior, hit testing, save/load, and visual feedback in zoomed cluster views
+- [ ] Add support for multiple saved layout variants per cluster/viewport and a way to choose between them
+  - Current state: layouts are keyed and persisted, but effectively one saved layout is selected per generated key
+  - Goal: support named alternatives or slots so different pin arrangements can be saved and loaded intentionally
+  - Distinguish `AutoSeed` layouts from user-adjusted `Manual` layouts so generated starting points are never silently treated as user-authored layouts
+  - Add UI and storage model changes for save-as, list available layouts, load selected layout, and delete obsolete variants
 - [ ] Instead of always opening subwindow at center of screen, have it open close to (but not on top of) the location pin?
 - [ ] Add and wire in actual locations and content
 - [ ] Make home screen that has text explaining what the application is/does and shows some pictures of the artist/collector, then a button to open the map. Closing the map then should take the user back to the home screen
@@ -179,4 +199,4 @@ None currently! The application is working as expected.
 - Focus should be on testing and polish for production readiness
 - Optional tasks can be deferred to future releases
 
-**Last Updated:** March 1, 2026
+**Last Updated:** June 5, 2026
