@@ -63,6 +63,9 @@ namespace InteractiveWorldMap
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
         
+        // Master pin image for image-based pins
+        private BitmapSource? _masterPinImage;
+        
         // Expose config properties for marker access
         public double LocationMarkerSize => _visualConfig.LocationMarkerSize;
         public double ClusterMarkerSize => _visualConfig.ClusterMarkerSize;
@@ -497,7 +500,29 @@ namespace InteractiveWorldMap
         /// </summary>
         private LocationMarker AddIndividualMarker(Location location)
         {
-            var marker = new LocationMarker { Location = location };
+            LocationMarker marker;
+            
+            // Use pin markers if enabled in config
+            if (_visualConfig.UsePinMarkers)
+            {
+                var pinMarker = CreatePinMarker(location);
+                marker = new LocationMarker { Location = location };
+                
+                // Replace the default content with a pin marker
+                marker.Content = pinMarker;
+                marker.Width = pinMarker.Width;
+                marker.Height = pinMarker.Height;
+                
+                // Store reference to pin marker for later access
+                marker.Tag = pinMarker;
+                
+                _logger.LogInfo($"  Created PIN marker for '{location.Name}' with size {pinMarker.Width}x{pinMarker.Height}");
+            }
+            else
+            {
+                marker = new LocationMarker { Location = location };
+                _logger.LogInfo($"  Created REGULAR marker for '{location.Name}'");
+            }
             
             // Position will be updated by UpdateMarkerPositions()
             Canvas.SetLeft(marker, 0);
@@ -512,7 +537,17 @@ namespace InteractiveWorldMap
                     return;
                 }
                 
-                marker.AnimateClick();
+                // Animate the appropriate marker type
+                if (marker.Tag is PinMarker pinMarker)
+                {
+                    pinMarker.AnimateClick();
+                    _logger.LogInfo($"Animated PIN marker click for '{location.Name}'");
+                }
+                else
+                {
+                    marker.AnimateClick();
+                    _logger.LogInfo($"Animated REGULAR marker click for '{location.Name}'");
+                }
                 
                 // If we're at full map view (not zoomed), zoom to this location
                 // Otherwise, show content
@@ -540,6 +575,94 @@ namespace InteractiveWorldMap
             MapDisplay.Markers.Children.Add(marker);
             
             _logger.LogInfo($"  Individual marker '{location.Name}' added at source ({location.PixelX}, {location.PixelY})");
+            
+            return marker;
+        }
+
+        /// <summary>
+        /// Creates a pin-style marker for a location.
+        /// </summary>
+        private LocationMarker CreatePinMarker(Location location)
+        {
+            // Check if image-based pins are enabled and available
+            if (_visualConfig.PinImages.Enabled && _visualConfig.PinImages.Pins.Count > 0)
+            {
+                return CreateImagePinMarker(location);
+            }
+            
+            // Fallback to drawn pin markers
+            return CreateDrawnPinMarker(location);
+        }
+
+        /// <summary>
+        /// Creates an image-based pin marker for a location.
+        /// </summary>
+        private LocationMarker CreateImagePinMarker(Location location)
+        {
+            try
+            {
+                // Load master image if not already loaded
+                if (_masterPinImage == null)
+                {
+                    LoadMasterPinImage();
+                }
+
+                if (_masterPinImage == null)
+                {
+                    _logger.LogError("Failed to load master pin image, falling back to drawn pins");
+                    return CreateDrawnPinMarker(location);
+                }
+
+                // Select a random pin variant
+                var pinInfo = ImagePinMarker.SelectRandomPin(_visualConfig.PinImages);
+                
+                // Create cropped image for this pin
+                var croppedPin = ImagePinMarker.CropPinFromMaster(_masterPinImage, pinInfo);
+                
+                // Create the image pin marker
+                var imagePinMarker = new ImagePinMarker { Location = location };
+                imagePinMarker.SetPinImage(croppedPin, pinInfo, _visualConfig.PinImages.ScaleFactor);
+                
+                // Create LocationMarker wrapper
+                var marker = new LocationMarker { Location = location };
+                marker.Content = imagePinMarker;
+                marker.Width = imagePinMarker.Width;
+                marker.Height = imagePinMarker.Height;
+                marker.Tag = imagePinMarker; // Store reference for later access
+                
+                _logger.LogInfo($"Created image pin marker '{pinInfo.Id}' for location '{location.Name}'");
+                
+                return marker;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error creating image pin marker: {ex.Message}");
+                return CreateDrawnPinMarker(location);
+            }
+        }
+
+        /// <summary>
+        /// Creates a drawn pin marker as fallback.
+        /// </summary>
+        private LocationMarker CreateDrawnPinMarker(Location location)
+        {
+            var pinMarker = new PinMarker { Location = location };
+            
+            var pinConfig = _visualConfig.PinMarkers;
+            if (!pinConfig.UseRandomColors)
+            {
+                if (ColorConverter.ConvertFromString(pinConfig.DefaultBallColor) is Color defaultColor)
+                {
+                    pinMarker.SetPinColor(defaultColor);
+                }
+            }
+            
+            // Create LocationMarker wrapper
+            var marker = new LocationMarker { Location = location };
+            marker.Content = pinMarker;
+            marker.Width = pinMarker.Width;
+            marker.Height = pinMarker.Height;
+            marker.Tag = pinMarker; // Store reference for later access
             
             return marker;
         }
@@ -1605,6 +1728,11 @@ namespace InteractiveWorldMap
         /// </summary>
         private Line CreateExtensionLine(Point start, Point end)
         {
+            if (_visualConfig.UsePinMarkers)
+            {
+                return CreatePinExtensionLine(start, end);
+            }
+            
             var line = new Line
             {
                 X1 = start.X,
@@ -1630,6 +1758,52 @@ namespace InteractiveWorldMap
             Panel.SetZIndex(line, 1000); // Ensure lines are on top
 
             _logger.LogInfo($"    Created line: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), Stroke=Red, Thickness=3");
+
+            return line;
+        }
+
+        /// <summary>
+        /// Creates a pin-style extension line that looks like a metal pin shaft.
+        /// </summary>
+        private Line CreatePinExtensionLine(Point start, Point end)
+        {
+            var pinConfig = _visualConfig.PinMarkers;
+            
+            // Parse shaft color from config
+            Color shaftColor = Colors.Gray;
+            if (ColorConverter.ConvertFromString(pinConfig.ShaftColor) is Color configColor)
+            {
+                shaftColor = configColor;
+            }
+
+            var line = new Line
+            {
+                X1 = start.X,
+                Y1 = start.Y,
+                X2 = end.X,
+                Y2 = end.Y,
+                Stroke = new SolidColorBrush(shaftColor),
+                StrokeThickness = pinConfig.ShaftWidth,
+                Opacity = 0.9,
+                IsHitTestVisible = false
+            };
+
+            // Add metallic shadow effect
+            if (pinConfig.ShowShadow)
+            {
+                line.Effect = new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Direction = 270,
+                    ShadowDepth = 0.5,
+                    BlurRadius = 1,
+                    Opacity = pinConfig.ShadowOpacity
+                };
+            }
+            
+            Panel.SetZIndex(line, 1000); // Ensure lines are on top
+
+            _logger.LogInfo($"    Created pin extension line: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), Shaft color, Thickness={pinConfig.ShaftWidth}");
 
             return line;
         }
@@ -3055,6 +3229,48 @@ namespace InteractiveWorldMap
             _draggedMarker = null;
             
             e.Handled = true;
+        }
+
+        #endregion
+
+        #region Master Pin Image Loading
+
+        /// <summary>
+        /// Loads the master pin image from the configured path.
+        /// </summary>
+        private void LoadMasterPinImage()
+        {
+            try
+            {
+                if (!_visualConfig.PinImages.Enabled)
+                {
+                    _logger.LogInfo("Image-based pins are disabled in config");
+                    return;
+                }
+
+                var imagePath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", _visualConfig.PinImages.MasterImagePath);
+                
+                if (!System.IO.File.Exists(imagePath))
+                {
+                    _logger.LogError($"Master pin image not found at: {imagePath}");
+                    return;
+                }
+
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+                bitmap.Freeze();
+
+                _masterPinImage = bitmap;
+                _logger.LogInfo($"Master pin image loaded: {imagePath} ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to load master pin image: {ex.Message}");
+                _masterPinImage = null;
+            }
         }
 
         #endregion

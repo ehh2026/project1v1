@@ -35,6 +35,21 @@ namespace InteractiveWorldMap.Models
         public double LocationMarkerSize { get; set; } = 16.0;
 
         /// <summary>
+        /// Whether to use pin-style markers instead of circular markers.
+        /// </summary>
+        public bool UsePinMarkers { get; set; } = true;
+
+        /// <summary>
+        /// Configuration for pin marker appearance.
+        /// </summary>
+        public PinMarkerConfig PinMarkers { get; set; } = new PinMarkerConfig();
+
+        /// <summary>
+        /// Configuration for image-based pin markers.
+        /// </summary>
+        public PinImageConfig PinImages { get; set; } = new PinImageConfig();
+
+        /// <summary>
         /// Size of cluster markers in pixels.
         /// </summary>
         public double ClusterMarkerSize { get; set; } = 40.0;
