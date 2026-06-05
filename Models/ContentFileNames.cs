@@ -12,6 +12,9 @@ public static class ContentFileNames
     /// <summary>Primary world map image loaded at runtime.</summary>
     public const string WorldMapFileName = "World Map Extra Large.jpg";
 
+    /// <summary>Full-resolution world map image used for high-quality zoomed regions.</summary>
+    public const string FullResolutionWorldMapFileName = "World Map 1976.jpg";
+
     /// <summary>Cluster marker stamp image.</summary>
     public const string ClusterStampFileName = "stamp_demo.png";
 

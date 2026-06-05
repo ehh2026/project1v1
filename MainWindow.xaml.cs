@@ -180,8 +180,8 @@ namespace InteractiveWorldMap
                 _frameCache = new AnimationFrameCache(_logger);
                 _logger.LogInfo("AnimationFrameCache created");
 
-                // Initialize zoomed region cache with full-res image path (via ContentLoader)
-                _zoomedRegionCache = new ZoomedRegionCache(_logger, _contentLoader.GetWorldMapPath());
+                // Initialize zoomed region cache with the full-resolution source image.
+                _zoomedRegionCache = new ZoomedRegionCache(_logger, _contentLoader.GetFullResolutionWorldMapPath());
                 _logger.LogInfo("ZoomedRegionCache created");
 
                 // Wire up events

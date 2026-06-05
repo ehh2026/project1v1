@@ -15,6 +15,12 @@ public class ContentFileNamesTests
     }
 
     [Fact]
+    public void FullResolutionWorldMapFileName_IsCanonical1976Variant()
+    {
+        Assert.Equal("World Map 1976.jpg", ContentFileNames.FullResolutionWorldMapFileName);
+    }
+
+    [Fact]
     public void ContentFolderName_MatchesProjectCopyRoot()
     {
         Assert.Equal("Images&Content", ContentFileNames.ContentFolderName);

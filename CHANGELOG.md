@@ -4,6 +4,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- Dense-region zoom completion now uses `Images&Content/World Map 1976.jpg` as the high-quality source again, scales crop rectangles from actual image dimensions, and invalidates stale zoom-region cache entries.
+- `visual-config.json` keeps the composite pin debug overlay disabled by default so the startup harness passes without developer-only UI enabled.
+- Added zoom-cache regression coverage and documented the March 18 comparison in `docs/ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md`.
+
 ### Added
 
 - `global.json` — pins .NET 6 SDK for local/CI alignment; documents side-by-side install with newer SDKs

@@ -55,6 +55,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) | Historical architecture decisions |
 | [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) | Clustering feature plan |
 | [MARKER_CLUSTERING_ANALYSIS.md](MARKER_CLUSTERING_ANALYSIS.md) | Clustering analysis |
+| [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md) | Dense-region zoom regression assessment |
 | [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) | Viewport zoom design |
 | [ZOOM_REFACTORING_PLAN.md](ZOOM_REFACTORING_PLAN.md) | Zoom refactoring plan |
 | [RADIAL_MARKER_EXTENSION_PLAN.md](RADIAL_MARKER_EXTENSION_PLAN.md) | Radial extension plan |

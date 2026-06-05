@@ -16,7 +16,7 @@ public class ZoomedRegionCache
     private readonly string _cacheDirectory;
     private readonly ILogger _logger;
     private readonly string _fullResolutionImagePath;
-    private const int CacheVersion = 6;
+    private const int CacheVersion = 7;
 
     public ZoomedRegionCache(ILogger logger, string fullResolutionImagePath)
     {
@@ -149,12 +149,16 @@ public class ZoomedRegionCache
                 
                 _logger.LogInfo($"  Full-res loaded: {fullResBitmap.PixelWidth}x{fullResBitmap.PixelHeight}");
                 
-                // Coordinates need to be doubled since full-res is 2x the half-res
+                var scaleX = fullResBitmap.PixelWidth / (double)halfResSource.PixelWidth;
+                var scaleY = fullResBitmap.PixelHeight / (double)halfResSource.PixelHeight;
+
+                _logger.LogInfo($"  Full-res scale factors: x={scaleX:F4}, y={scaleY:F4}");
+
                 var fullResRect = new System.Windows.Int32Rect(
-                    halfResRect.X * 2,
-                    halfResRect.Y * 2,
-                    halfResRect.Width * 2,
-                    halfResRect.Height * 2);
+                    (int)Math.Round(halfResRect.X * scaleX),
+                    (int)Math.Round(halfResRect.Y * scaleY),
+                    Math.Max(1, (int)Math.Round(halfResRect.Width * scaleX)),
+                    Math.Max(1, (int)Math.Round(halfResRect.Height * scaleY)));
                 
                 // Clamp to full-res image bounds
                 fullResRect.X = Math.Max(0, Math.Min(fullResRect.X, fullResBitmap.PixelWidth - 1));

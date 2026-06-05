@@ -59,6 +59,9 @@ public class ContentLoader
     /// <summary>Absolute path to the primary world map image.</summary>
     public string GetWorldMapPath() => Path.Combine(ContentFolderPath, ContentFileNames.WorldMapFileName);
 
+    /// <summary>Absolute path to the full-resolution world map image used for zoomed crops.</summary>
+    public string GetFullResolutionWorldMapPath() => Path.Combine(ContentFolderPath, ContentFileNames.FullResolutionWorldMapFileName);
+
     /// <summary>Resolves a file name under the content folder.</summary>
     public string ResolveContentFilePath(string fileName) => Path.Combine(ContentFolderPath, fileName);
 
