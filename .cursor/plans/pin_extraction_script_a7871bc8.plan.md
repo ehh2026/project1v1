@@ -7,31 +7,31 @@ todos:
     status: completed
   - id: create-venv
     content: Create Python venv at scripts/venv/, activate it, and pip install -r scripts/requirements.txt
-    status: in_progress
+    status: completed
   - id: update-gitignore
     content: Add scripts/venv/ and __pycache__/ to .gitignore
-    status: pending
+    status: completed
   - id: write-script-config
     content: "Write the configuration section of extract_pins.py: THRESHOLDS list, PADDING_PX, MIN_BLOB_AREA (90000), SOFT_EDGE_RANGE, INPUT_PATH, OUTPUT_BASE_DIR"
-    status: pending
+    status: completed
   - id: write-script-bg-removal
     content: "Write the background removal function: load JPEG, convert to RGBA, apply threshold to create alpha mask, apply optional soft-edge falloff"
-    status: pending
+    status: completed
   - id: write-script-blob-detection
     content: "Write the blob detection function: use scipy.ndimage.label on the alpha channel, filter blobs by MIN_BLOB_AREA, compute bounding boxes with PADDING_PX"
-    status: pending
+    status: completed
   - id: write-script-export
     content: "Write the export function: crop each blob to its padded bounding box, save as pin_NN.png, generate composite preview on checkerboard"
-    status: pending
+    status: completed
   - id: write-script-main
     content: "Write the main entry point: loop over THRESHOLDS, call removal/detection/export for each, print summary statistics"
-    status: pending
+    status: completed
   - id: run-extraction
     content: Run the script in the venv and verify output files are created under Images&Content/Pins/threshold_*/
-    status: pending
+    status: completed
   - id: review-results
     content: Open composite previews, compare thresholds, check shadow preservation and edge quality; report findings to user
-    status: pending
+    status: completed
 isProject: false
 ---
 

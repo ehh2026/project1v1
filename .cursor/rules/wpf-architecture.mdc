@@ -1,0 +1,38 @@
+---
+description: WPF layer architecture and MVVM conventions for Interactive World Map
+globs: "**/*.cs"
+alwaysApply: false
+---
+
+# WPF Architecture Rules
+
+## Layer dependencies (enforced by LayerDependencyTests)
+
+| Layer | May use | Must not use |
+|-------|---------|--------------|
+| Models | System, Newtonsoft.Json | Services, Utilities, Views |
+| Utilities | Models, Services (ILogger) | Views |
+| Services | Models, Utilities | Views |
+| Views | Models, WPF | Services, Utilities |
+| MainWindow/App | All layers | — |
+
+Violation remediation: move logic to Services/ or Models/; inject via constructor.
+
+## Code conventions
+
+- Parse `visual-config.json` via `VisualConfig.Load()` — not raw JSON in Views
+- Content paths only through `ContentLoader`
+- Coordinate math in `Utilities/CoordinateMapper` and `CoordinateValidator`
+- Use `ILogger` in Services; avoid `Console.WriteLine` in Services/Views (except FileLogger)
+- Keep `.cs` files under 800 lines
+
+## WPF specifics
+
+- Code-behind: event wiring and UI updates only
+- No business logic in XAML code-behind beyond delegation to Services
+- Config changes: edit `visual-config.json` and verify `Models/VisualConfig.cs` still deserializes
+
+## References
+
+- [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- [docs/VISUAL_CONFIG.md](../../docs/VISUAL_CONFIG.md)

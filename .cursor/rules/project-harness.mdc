@@ -1,0 +1,34 @@
+---
+description: Project harness conventions for Interactive World Map agent development
+alwaysApply: true
+---
+
+# Project Harness Rules
+
+Read [AGENTS.md](../../AGENTS.md) first — it is the table of contents, not an encyclopedia.
+
+## Before claiming work done
+
+Run verification:
+- Windows: `.\scripts\verify.ps1`
+- macOS/Linux: `./scripts/verify.sh`
+
+## When tasks fail
+
+Ask: what capability is missing, and how do we make it legible and enforceable?
+
+Fix the harness (docs, tests, scripts) — not just the immediate code.
+
+## Repository conventions
+
+- Update [CHANGELOG.md](../../CHANGELOG.md) for user-visible or harness changes
+- Active work lives in `docs/exec-plans/active/`
+- Architecture rules: [ARCHITECTURE.md](../../ARCHITECTURE.md)
+- Golden principles: [docs/design-docs/golden-principles.md](../../docs/design-docs/golden-principles.md)
+
+## Do not
+
+- Hardcode credentials or secrets in source
+- Add unrelated dependencies without security review
+- Skip tests to force green CI
+- Create monolithic AGENTS.md (>150 lines) — link to docs/ instead

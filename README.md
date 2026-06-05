@@ -32,14 +32,15 @@ Set parameters in visual-config.json - now includes a manal layout mode where yo
 ### Building the Application
 
 ```bash
-# Restore NuGet packages
-dotnet restore
+# Restore, build, and test (recommended)
+./scripts/verify.sh          # macOS/Linux
+.\scripts\verify.ps1         # Windows
 
-# Build the project
-dotnet build
-
-# Run the application
-dotnet run
+# Or manually:
+dotnet restore InteractiveWorldMap.sln
+dotnet build InteractiveWorldMap.sln
+dotnet test Tests/InteractiveWorldMap.Tests.csproj
+dotnet run --project InteractiveWorldMap.csproj   # Windows UI
 ```
 
 ## Project Structure
@@ -108,20 +109,23 @@ See `Images&Content/README.md` for detailed format specifications.
 
 ## Development Status
 
-This project is currently in development. Task 1 (project structure and dependencies) has been completed.
+**MVP complete** — the app is functional for demo and daily use. Active work focuses on polish, content, and agent harness maturity.
 
-### Completed Tasks
-- ✅ WPF project setup targeting .NET 6.0+
-- ✅ NuGet package configuration (Newtonsoft.Json)
-- ✅ Folder structure creation (Models, ViewModels, Views, Services, Utilities)
-- ✅ Logging infrastructure (ILogger interface and FileLogger implementation)
-- ✅ Content folder structure with placeholder files
+### Completed
+- WPF app with map display, markers, clustering, zoom, and content popups
+- Excel coordinate loading, `visual-config.json`, manual layout editor
+- Logging, startup validation, pin image extraction tooling
+- Agent harness: see [AGENTS.md](AGENTS.md), [ARCHITECTURE.md](ARCHITECTURE.md), [docs/index.md](docs/index.md)
+
+### Verification
+
+```bash
+./scripts/verify.sh          # macOS/Linux: build + test + harness checks
+.\scripts\verify.ps1         # Windows: full verification
+```
 
 ### Next Steps
-- Implement core data models and validation
-- Implement coordinate mapping system
-- Implement content loading system
-- Build UI components (MapDisplay, LocationMarker, ContentSubwindow)
+- See [docs/TO_DO.md](docs/TO_DO.md) and [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md)
 
 ## Architecture
 

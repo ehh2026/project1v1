@@ -1,0 +1,38 @@
+# CI for Interactive World Map (WPF requires Windows)
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Restore
+        run: dotnet restore InteractiveWorldMap.sln
+
+      - name: Build
+        run: dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity normal
+        # Remediation: run `dotnet test Tests/InteractiveWorldMap.Tests.csproj` locally
+
+      - name: Verify doc links
+        shell: pwsh
+        run: python scripts/verify_doc_links.py
+        continue-on-error: false
+
+      - name: Taste checks
+        shell: pwsh
+        run: python scripts/verify_taste.py
