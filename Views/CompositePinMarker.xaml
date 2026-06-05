@@ -30,5 +30,48 @@
                                   Opacity="0.35"/>
             </Image.Effect>
         </Image>
+
+        <Canvas x:Name="DebugOverlayCanvas"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+            <Line x:Name="DebugAxisLine"
+                  Stroke="#CCFF4D4D"
+                  StrokeThickness="1.5"
+                  StrokeDashArray="3,2"/>
+            <Line x:Name="DebugStretchLine"
+                  Stroke="#CCFFD54F"
+                  StrokeThickness="2.0"/>
+
+            <Ellipse x:Name="DebugTipDot"
+                     Width="6"
+                     Height="6"
+                     Fill="#FFFF5252"
+                     Stroke="White"
+                     StrokeThickness="0.75"/>
+            <Ellipse x:Name="DebugJoinDot"
+                     Width="6"
+                     Height="6"
+                     Fill="#FF69F0AE"
+                     Stroke="Black"
+                     StrokeThickness="0.75"/>
+            <Ellipse x:Name="DebugStretchStartDot"
+                     Width="5"
+                     Height="5"
+                     Fill="#FFFFD54F"
+                     Stroke="Black"
+                     StrokeThickness="0.75"/>
+            <Ellipse x:Name="DebugStretchEndDot"
+                     Width="5"
+                     Height="5"
+                     Fill="#FF40C4FF"
+                     Stroke="Black"
+                     StrokeThickness="0.75"/>
+            <Ellipse x:Name="DebugHeadCenterDot"
+                     Width="5"
+                     Height="5"
+                     Fill="White"
+                     Stroke="Black"
+                     StrokeThickness="0.75"/>
+        </Canvas>
     </Canvas>
 </UserControl>

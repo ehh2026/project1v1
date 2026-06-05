@@ -39,6 +39,8 @@ public class CompositePinRenderPlanBuilderTests
         Assert.Equal("pin_a", plan.PairId);
         Assert.Equal(220.0, Distance(plan.TipAnchorLocal, plan.JoinAnchorLocal), 1);
         Assert.Equal(plan.JoinAnchorLocal, plan.HeadAttachLocal);
+        Assert.Equal(30.0, Distance(plan.TipAnchorLocal, plan.StretchStartLocal), 1);
+        Assert.Equal(190.0, Distance(plan.TipAnchorLocal, plan.StretchEndLocal), 1);
         Assert.Equal(160.0, plan.StretchBodyLengthPx, 1);
         Assert.Equal(1.6, plan.BodyStretchFactor, 3);
         Assert.Equal(@"Pins_v2/parts\pin_a_shaft.png", plan.ShaftSourcePath);

@@ -165,6 +165,7 @@
     "LogRadialExtensionAngles": true,
     "LogRadialExtensionOverlaps": true,
     "LogMarkerPositioning": true,
-    "LogAnimationFrames": false
+    "LogAnimationFrames": false,
+    "ShowCompositePinDebugOverlay": false
   }
 }

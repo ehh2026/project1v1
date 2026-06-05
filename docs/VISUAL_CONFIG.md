@@ -154,6 +154,22 @@ When radial extensions are active:
 
 When radial extensions are not active, the app restores the marker's normal non-extended visual path automatically.
 
+## Composite Debug Overlay
+
+For live visual validation of composite placement, the `Debug` section supports:
+
+- `ShowCompositePinDebugOverlay`
+
+When set to `true` and composite rendering is also enabled for the current marker, the composite pin draws a lightweight overlay showing:
+
+- tip anchor
+- join / head-attach anchor
+- stretch start
+- stretch end
+- head center
+
+This is intended for tuning and screenshot-based inspection only, and should normally remain `false`.
+
 ## How to Use
 
 1. **Edit the config file**: Open `visual-config.json` in the project root directory

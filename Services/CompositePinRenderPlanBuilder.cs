@@ -120,6 +120,12 @@ namespace InteractiveWorldMap.Services
 
             var shiftedTargetEnd = new Point((targetDirection.X * targetLength) + shiftX, (targetDirection.Y * targetLength) + shiftY);
             var shiftedTargetStart = new Point(shiftX, shiftY);
+            var shiftedStretchStart = new Point(
+                shiftedTargetStart.X + (targetDirection.X * segmentation.TipCapLength),
+                shiftedTargetStart.Y + (targetDirection.Y * segmentation.TipCapLength));
+            var shiftedStretchEnd = new Point(
+                shiftedTargetStart.X + (targetDirection.X * (segmentation.TipCapLength + targetBodyLength)),
+                shiftedTargetStart.Y + (targetDirection.Y * (segmentation.TipCapLength + targetBodyLength)));
 
             return new CompositePinRenderPlan
             {
@@ -135,6 +141,8 @@ namespace InteractiveWorldMap.Services
                 StretchBodyLengthPx = Math.Round(targetBodyLength, 1),
                 TipAnchorLocal = shiftedTargetStart,
                 JoinAnchorLocal = shiftedTargetEnd,
+                StretchStartLocal = shiftedStretchStart,
+                StretchEndLocal = shiftedStretchEnd,
                 HeadAttachLocal = shiftedTargetEnd,
                 HeadCenterLocal = TransformPoint(ToPoint(geometry.Head.LocalCenter), headTransform),
                 ShaftTipCapLayer = new CompositePinLayerPlan

@@ -34,7 +34,7 @@ This plan supersedes the single-bitmap assumptions in [docs/PIN_IMAGE_PLACEMENT_
 - [x] Render one isolated composite pin correctly in a local test harness or dev-only path
 - [x] Add deterministic pair/transform selection logic and unit coverage
 - [x] Integrate composite pins into extended image-pin rendering only
-- [ ] Preserve edit mode, manual layout replay, and variant-aware auto-load behavior
+- [x] Preserve edit mode, manual layout replay, and variant-aware auto-load behavior
 - [ ] Add verification overlays and screenshots for common extension angles
 
 ### Transition Strategy
@@ -662,6 +662,7 @@ Current implementation status:
 - composite pins are now wired into the live radial-extension path for extended image pins only
 - rollout is gated by `PinParts.Enabled` plus `PinParts.UseCompositeRendering`
 - the legacy image-pin path remains available and is still used for non-extended markers, edit mode, and any composite fallback/error case
+- entering edit mode now forces an immediate rebuild onto the legacy draggable path, and exiting edit mode refreshes the current view back to the active non-edit rendering path
 - the remaining Phase 5 work is mostly about hit-testing, drag/edit semantics, and deciding whether any non-extended pins should ever switch to composite rendering
 
 ## Phase 6: Verification and tuning
@@ -689,6 +690,12 @@ Acceptance:
 - no obvious gap between shaft and head
 - no obvious endpoint drift at common extension angles
 - no architecture rule regressions
+
+Current implementation status:
+
+- composite markers now support an optional debug overlay showing tip, join, stretch-band anchors, and head center
+- the overlay is gated by `Debug.ShowCompositePinDebugOverlay`
+- screenshot capture is still manual; the current repo does not yet automate those captures
 
 ## Specific Risks and Solutions
 

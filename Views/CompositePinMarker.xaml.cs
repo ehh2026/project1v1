@@ -40,7 +40,11 @@ namespace InteractiveWorldMap.Views
             MouseLeave += (_, _) => IsHovered = false;
         }
 
-        public void SetCompositeImages(BitmapSource shaftImageSource, BitmapSource headImageSource, CompositePinRenderPlan plan)
+        public void SetCompositeImages(
+            BitmapSource shaftImageSource,
+            BitmapSource headImageSource,
+            CompositePinRenderPlan plan,
+            bool showDebugOverlay = false)
         {
             if (shaftImageSource == null)
                 throw new ArgumentNullException(nameof(shaftImageSource));
@@ -59,6 +63,7 @@ namespace InteractiveWorldMap.Views
             ApplyLayer(ShaftBodyImage, shaftImageSource, plan.ShaftBodyLayer);
             ApplyLayer(ShaftHeadCapImage, shaftImageSource, plan.ShaftHeadCapLayer);
             ApplyLayer(HeadImage, headImageSource, plan.HeadLayer);
+            ApplyDebugOverlay(plan, showDebugOverlay);
         }
 
         public Point GetTipAnchorPoint()
@@ -125,6 +130,29 @@ namespace InteractiveWorldMap.Views
             image.Clip = BuildClipGeometry(layer.ClipPolygon);
         }
 
+        private void ApplyDebugOverlay(CompositePinRenderPlan plan, bool showDebugOverlay)
+        {
+            DebugOverlayCanvas.Visibility = showDebugOverlay ? Visibility.Visible : Visibility.Collapsed;
+            if (!showDebugOverlay)
+                return;
+
+            DebugAxisLine.X1 = plan.TipAnchorLocal.X;
+            DebugAxisLine.Y1 = plan.TipAnchorLocal.Y;
+            DebugAxisLine.X2 = plan.JoinAnchorLocal.X;
+            DebugAxisLine.Y2 = plan.JoinAnchorLocal.Y;
+
+            DebugStretchLine.X1 = plan.StretchStartLocal.X;
+            DebugStretchLine.Y1 = plan.StretchStartLocal.Y;
+            DebugStretchLine.X2 = plan.StretchEndLocal.X;
+            DebugStretchLine.Y2 = plan.StretchEndLocal.Y;
+
+            PositionDebugDot(DebugTipDot, plan.TipAnchorLocal);
+            PositionDebugDot(DebugJoinDot, plan.JoinAnchorLocal);
+            PositionDebugDot(DebugStretchStartDot, plan.StretchStartLocal);
+            PositionDebugDot(DebugStretchEndDot, plan.StretchEndLocal);
+            PositionDebugDot(DebugHeadCenterDot, plan.HeadCenterLocal);
+        }
+
         private static Geometry? BuildClipGeometry(IReadOnlyList<Point> polygon)
         {
             if (polygon.Count < 3)
@@ -143,6 +171,12 @@ namespace InteractiveWorldMap.Views
             }
 
             return new PathGeometry(new[] { figure });
+        }
+
+        private static void PositionDebugDot(FrameworkElement element, Point point)
+        {
+            Canvas.SetLeft(element, point.X - (element.Width / 2.0));
+            Canvas.SetTop(element, point.Y - (element.Height / 2.0));
         }
     }
 }

@@ -1971,7 +1971,11 @@ namespace InteractiveWorldMap
                 }
 
                 var compositeMarker = new CompositePinMarker { Location = marker.Location };
-                compositeMarker.SetCompositeImages(shaftImage, headImage, planning.RenderPlan);
+                compositeMarker.SetCompositeImages(
+                    shaftImage,
+                    headImage,
+                    planning.RenderPlan,
+                    _visualConfig.Debug.ShowCompositePinDebugOverlay);
 
                 marker.Content = compositeMarker;
                 marker.Width = compositeMarker.Width;
@@ -2918,6 +2922,9 @@ namespace InteractiveWorldMap
         private void OnEditLayoutButtonClick(object sender, RoutedEventArgs e)
         {
             _isEditMode = true;
+
+            // Rebuild any currently visible composite pins onto the legacy draggable path.
+            UpdateMarkerPositions();
             
             // Update UI
             EditLayoutButton.Visibility = Visibility.Collapsed;
@@ -3215,6 +3222,9 @@ namespace InteractiveWorldMap
             _draggedMarker = null;
             
             _logger.LogInfo("Edit mode deactivated");
+
+            // Restore the current non-edit rendering path, including composite markers if enabled.
+            UpdateMarkerPositions();
         }
 
         /// <summary>

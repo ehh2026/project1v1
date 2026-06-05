@@ -29,5 +29,10 @@ namespace InteractiveWorldMap.Models
         /// Log animation frame rendering details.
         /// </summary>
         public bool LogAnimationFrames { get; set; } = false;
+
+        /// <summary>
+        /// Show composite-pin anchor and stretch overlays for visual validation.
+        /// </summary>
+        public bool ShowCompositePinDebugOverlay { get; set; } = false;
     }
 }

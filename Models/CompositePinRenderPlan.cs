@@ -27,6 +27,8 @@ namespace InteractiveWorldMap.Models
         public double StretchBodyLengthPx { get; set; }
         public Point TipAnchorLocal { get; set; }
         public Point JoinAnchorLocal { get; set; }
+        public Point StretchStartLocal { get; set; }
+        public Point StretchEndLocal { get; set; }
         public Point HeadAttachLocal { get; set; }
         public Point HeadCenterLocal { get; set; }
         public CompositePinLayerPlan ShaftTipCapLayer { get; set; } = new CompositePinLayerPlan();
