@@ -1,0 +1,362 @@
+{
+  "pin_01": {
+    "head_file": "pin_01_head.png",
+    "shaft_file": "pin_01_shaft.png",
+    "shaft_lit_file": "pin_01_shaft_lit.png",
+    "head_center": {
+      "x": 218.8,
+      "y": 225.5
+    },
+    "head_radius": 206.9,
+    "head_crop_box": {
+      "x0": 9,
+      "y0": 16,
+      "x1": 428,
+      "y1": 435
+    },
+    "shaft_crop_offset": {
+      "x": 270,
+      "y": 415
+    },
+    "tip": {
+      "x": 529,
+      "y": 926
+    },
+    "shaft_angle_deg": 336.1,
+    "shaft_length": 766.1,
+    "image_size": {
+      "w": 573,
+      "h": 953
+    }
+  },
+  "pin_02": {
+    "head_file": "pin_02_head.png",
+    "shaft_file": "pin_02_shaft.png",
+    "shaft_lit_file": "pin_02_shaft_lit.png",
+    "head_center": {
+      "x": 214.4,
+      "y": 223.4
+    },
+    "head_radius": 206.4,
+    "head_crop_box": {
+      "x0": 5,
+      "y0": 14,
+      "x1": 423,
+      "y1": 432
+    },
+    "shaft_crop_offset": {
+      "x": 127,
+      "y": 435
+    },
+    "tip": {
+      "x": 231,
+      "y": 1003
+    },
+    "shaft_angle_deg": 358.8,
+    "shaft_length": 779.8,
+    "image_size": {
+      "w": 429,
+      "h": 1019
+    }
+  },
+  "pin_03": {
+    "head_file": "pin_03_head.png",
+    "shaft_file": "pin_03_shaft.png",
+    "shaft_lit_file": "pin_03_shaft_lit.png",
+    "head_center": {
+      "x": 365.7,
+      "y": 224.9
+    },
+    "head_radius": 206.9,
+    "head_crop_box": {
+      "x0": 156,
+      "y0": 16,
+      "x1": 575,
+      "y1": 434
+    },
+    "shaft_crop_offset": {
+      "x": 15,
+      "y": 412
+    },
+    "tip": {
+      "x": 37,
+      "y": 923
+    },
+    "shaft_angle_deg": 25.2,
+    "shaft_length": 771.6,
+    "image_size": {
+      "w": 585,
+      "h": 948
+    }
+  },
+  "pin_04": {
+    "head_file": "pin_04_head.png",
+    "shaft_file": "pin_04_shaft.png",
+    "shaft_lit_file": "pin_04_shaft_lit.png",
+    "head_center": {
+      "x": 220.0,
+      "y": 221.2
+    },
+    "head_radius": 207.5,
+    "head_crop_box": {
+      "x0": 10,
+      "y0": 11,
+      "x1": 430,
+      "y1": 431
+    },
+    "shaft_crop_offset": {
+      "x": 346,
+      "y": 360
+    },
+    "tip": {
+      "x": 553,
+      "y": 495
+    },
+    "shaft_angle_deg": 309.4,
+    "shaft_length": 431.1,
+    "image_size": {
+      "w": 571,
+      "h": 540
+    }
+  },
+  "pin_05": {
+    "head_file": "pin_05_head.png",
+    "shaft_file": "pin_05_shaft.png",
+    "shaft_lit_file": "pin_05_shaft_lit.png",
+    "head_center": {
+      "x": 216.0,
+      "y": 219.9
+    },
+    "head_radius": 206.1,
+    "head_crop_box": {
+      "x0": 7,
+      "y0": 11,
+      "x1": 425,
+      "y1": 428
+    },
+    "shaft_crop_offset": {
+      "x": 251,
+      "y": 416
+    },
+    "tip": {
+      "x": 403,
+      "y": 711
+    },
+    "shaft_angle_deg": 339.1,
+    "shaft_length": 525.5,
+    "image_size": {
+      "w": 431,
+      "h": 733
+    }
+  },
+  "pin_06": {
+    "head_file": "pin_06_head.png",
+    "shaft_file": "pin_06_shaft.png",
+    "shaft_lit_file": "pin_06_shaft_lit.png",
+    "head_center": {
+      "x": 214.8,
+      "y": 254.0
+    },
+    "head_radius": 213.3,
+    "head_crop_box": {
+      "x0": 0,
+      "y0": 38,
+      "x1": 429,
+      "y1": 470
+    },
+    "shaft_crop_offset": {
+      "x": 161,
+      "y": 472
+    },
+    "tip": {
+      "x": 225,
+      "y": 986
+    },
+    "shaft_angle_deg": 359.2,
+    "shaft_length": 732.1,
+    "image_size": {
+      "w": 429,
+      "h": 1002
+    }
+  },
+  "pin_07": {
+    "head_file": "pin_07_head.png",
+    "shaft_file": "pin_07_shaft.png",
+    "shaft_lit_file": "pin_07_shaft_lit.png",
+    "head_center": {
+      "x": 382.9,
+      "y": 215.8
+    },
+    "head_radius": 205.6,
+    "head_crop_box": {
+      "x0": 175,
+      "y0": 8,
+      "x1": 591,
+      "y1": 424
+    },
+    "shaft_crop_offset": {
+      "x": 15,
+      "y": 318
+    },
+    "tip": {
+      "x": 15,
+      "y": 425
+    },
+    "shaft_angle_deg": 60.4,
+    "shaft_length": 423.3,
+    "image_size": {
+      "w": 601,
+      "h": 481
+    }
+  },
+  "pin_08": {
+    "head_file": "pin_08_head.png",
+    "shaft_file": "pin_08_shaft.png",
+    "shaft_lit_file": "pin_08_shaft_lit.png",
+    "head_center": {
+      "x": 220.0,
+      "y": 214.5
+    },
+    "head_radius": 205.9,
+    "head_crop_box": {
+      "x0": 12,
+      "y0": 6,
+      "x1": 428,
+      "y1": 423
+    },
+    "shaft_crop_offset": {
+      "x": 429,
+      "y": 160
+    },
+    "tip": {
+      "x": 761,
+      "y": 232
+    },
+    "shaft_angle_deg": 271.9,
+    "shaft_length": 541.3,
+    "image_size": {
+      "w": 777,
+      "h": 430
+    }
+  },
+  "pin_09": {
+    "head_file": "pin_09_head.png",
+    "shaft_file": "pin_09_shaft.png",
+    "shaft_lit_file": "pin_09_shaft_lit.png",
+    "head_center": {
+      "x": 215.0,
+      "y": 419.6
+    },
+    "head_radius": 205.2,
+    "head_crop_box": {
+      "x0": 7,
+      "y0": 212,
+      "x1": 423,
+      "y1": 627
+    },
+    "shaft_crop_offset": {
+      "x": 155,
+      "y": 15
+    },
+    "tip": {
+      "x": 231,
+      "y": 15
+    },
+    "shaft_angle_deg": 182.3,
+    "shaft_length": 404.9,
+    "image_size": {
+      "w": 431,
+      "h": 637
+    }
+  },
+  "pin_10": {
+    "head_file": "pin_10_head.png",
+    "shaft_file": "pin_10_shaft.png",
+    "shaft_lit_file": "pin_10_shaft_lit.png",
+    "head_center": {
+      "x": 215.4,
+      "y": 756.1
+    },
+    "head_radius": 213.4,
+    "head_crop_box": {
+      "x0": 0,
+      "y0": 540,
+      "x1": 430,
+      "y1": 972
+    },
+    "shaft_crop_offset": {
+      "x": 161,
+      "y": 15
+    },
+    "tip": {
+      "x": 219,
+      "y": 15
+    },
+    "shaft_angle_deg": 180.3,
+    "shaft_length": 741.2,
+    "image_size": {
+      "w": 430,
+      "h": 1011
+    }
+  },
+  "pin_11": {
+    "head_file": "pin_11_head.png",
+    "shaft_file": "pin_11_shaft.png",
+    "shaft_lit_file": "pin_11_shaft_lit.png",
+    "head_center": {
+      "x": 330.3,
+      "y": 485.5
+    },
+    "head_radius": 206.1,
+    "head_crop_box": {
+      "x0": 122,
+      "y0": 277,
+      "x1": 539,
+      "y1": 694
+    },
+    "shaft_crop_offset": {
+      "x": 15,
+      "y": 15
+    },
+    "tip": {
+      "x": 48,
+      "y": 31
+    },
+    "shaft_angle_deg": 148.2,
+    "shaft_length": 535.0,
+    "image_size": {
+      "w": 548,
+      "h": 706
+    }
+  },
+  "pin_12": {
+    "head_file": "pin_12_head.png",
+    "shaft_file": "pin_12_shaft.png",
+    "shaft_lit_file": "pin_12_shaft_lit.png",
+    "head_center": {
+      "x": 222.0,
+      "y": 505.3
+    },
+    "head_radius": 207.0,
+    "head_crop_box": {
+      "x0": 12,
+      "y0": 296,
+      "x1": 431,
+      "y1": 715
+    },
+    "shaft_crop_offset": {
+      "x": 348,
+      "y": 15
+    },
+    "tip": {
+      "x": 722,
+      "y": 36
+    },
+    "shaft_angle_deg": 226.8,
+    "shaft_length": 685.8,
+    "image_size": {
+      "w": 747,
+      "h": 728
+    }
+  }
+}

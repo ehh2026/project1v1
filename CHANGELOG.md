@@ -11,6 +11,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - `Tests/Architecture/GoldenPrincipleTests.cs` — Views must not use `Images&Content` paths or `JObject`
 - `scripts/doc_gardening.py` and `.github/workflows/doc-gardening.yml` — weekly doc drift checks
 - `docs/agent-failures.md` — harness feedback log for repeatable agent mistakes
+- `scripts/compute_pin_part_geometry.ps1` and `Images&Content/Pins_v2/parts/pin_part_geometry.json` — derive shaft endpoints and head centers for cropped pin part PNGs in both local and original pin coordinates
+- `docs/exec-plans/active/pin-parts-composite-placement-plan.md` — plan the shift from single-bitmap pins to composite shaft/head placement using `Pins_v2/parts`
 
 ### Changed
 

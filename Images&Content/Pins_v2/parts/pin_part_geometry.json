@@ -1,0 +1,890 @@
+﻿{
+    "pin_01":  {
+                   "head_file":  "pin_01_head.png",
+                   "shaft_file":  "pin_01_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  419,
+                                                   "h":  419
+                                               },
+                                "local_center":  {
+                                                     "x":  205.5,
+                                                     "y":  206.5
+                                                 },
+                                "local_radius":  204,
+                                "original_center":  {
+                                                        "x":  214.5,
+                                                        "y":  222.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  288,
+                                                    "h":  523
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  23.4,
+                                                                                 "y":  8.1
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  241.2,
+                                                                               "y":  513.8
+                                                                           }
+                                                          },
+                                 "axis_length":  550.6,
+                                 "axis_angle_deg":  156.7,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  293.4,
+                                                                                    "y":  423.1
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  511.2,
+                                                                                  "y":  928.8
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  241.2,
+                                                                             "y":  513.8
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  23.4,
+                                                                                   "y":  8.1
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  511.2,
+                                                                                "y":  928.8
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  293.4,
+                                                                                      "y":  423.1
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  336.7,
+                                 "tip_to_head_side_length":  550.6
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  5.24,
+                                     "tip_delta_px":  18.02,
+                                     "head_side_vs_center_delta_px":  211.21
+                                 }
+               },
+    "pin_02":  {
+                   "head_file":  "pin_02_head.png",
+                   "shaft_file":  "pin_02_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  418,
+                                                   "h":  418
+                                               },
+                                "local_center":  {
+                                                     "x":  209,
+                                                     "y":  209.5
+                                                 },
+                                "local_radius":  206,
+                                "original_center":  {
+                                                        "x":  214,
+                                                        "y":  223.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  176,
+                                                    "h":  569
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  87.5,
+                                                                                 "y":  566
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  87.7,
+                                                                               "y":  0
+                                                                           }
+                                                          },
+                                 "axis_length":  566,
+                                 "axis_angle_deg":  0,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  214.5,
+                                                                                    "y":  1001
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  214.7,
+                                                                                  "y":  435
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  87.5,
+                                                                             "y":  566
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  87.7,
+                                                                                   "y":  0
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  214.5,
+                                                                                "y":  1001
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  214.7,
+                                                                                      "y":  435
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  0,
+                                 "tip_to_head_side_length":  566
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  0.41,
+                                     "tip_delta_px":  16.62,
+                                     "head_side_vs_center_delta_px":  211.6
+                                 }
+               },
+    "pin_03":  {
+                   "head_file":  "pin_03_head.png",
+                   "shaft_file":  "pin_03_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  419,
+                                                   "h":  418
+                                               },
+                                "local_center":  {
+                                                     "x":  213.5,
+                                                     "y":  205.5
+                                                 },
+                                "local_radius":  203,
+                                "original_center":  {
+                                                        "x":  369.5,
+                                                        "y":  221.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  295,
+                                                    "h":  521
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  36.7,
+                                                                                 "y":  513.5
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  271.2,
+                                                                               "y":  9
+                                                                           }
+                                                          },
+                                 "axis_length":  556.4,
+                                 "axis_angle_deg":  24.9,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  51.7,
+                                                                                    "y":  925.5
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  286.2,
+                                                                                  "y":  421
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  36.7,
+                                                                             "y":  513.5
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  271.2,
+                                                                                   "y":  9
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  51.7,
+                                                                                "y":  925.5
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  286.2,
+                                                                                      "y":  421
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  24.9,
+                                 "tip_to_head_side_length":  556.3
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  5.1,
+                                     "tip_delta_px":  14.91,
+                                     "head_side_vs_center_delta_px":  211.6
+                                 }
+               },
+    "pin_04":  {
+                   "head_file":  "pin_04_head.png",
+                   "shaft_file":  "pin_04_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  420,
+                                                   "h":  420
+                                               },
+                                "local_center":  {
+                                                     "x":  204.5,
+                                                     "y":  203.5
+                                                 },
+                                "local_radius":  200,
+                                "original_center":  {
+                                                        "x":  214.5,
+                                                        "y":  214.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  210,
+                                                    "h":  165
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  3.8,
+                                                                                 "y":  29.1
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  199.6,
+                                                                               "y":  137.3
+                                                                           }
+                                                          },
+                                 "axis_length":  223.6,
+                                 "axis_angle_deg":  118.9,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  349.8,
+                                                                                    "y":  389.1
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  545.6,
+                                                                                  "y":  497.3
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  199.6,
+                                                                             "y":  137.3
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  3.8,
+                                                                                   "y":  29.1
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  545.6,
+                                                                                "y":  497.3
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  349.8,
+                                                                                      "y":  389.1
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  298.9,
+                                 "tip_to_head_side_length":  223.7
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  8.67,
+                                     "tip_delta_px":  7.75,
+                                     "head_side_vs_center_delta_px":  212.22
+                                 }
+               },
+    "pin_05":  {
+                   "head_file":  "pin_05_head.png",
+                   "shaft_file":  "pin_05_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  418,
+                                                   "h":  417
+                                               },
+                                "local_center":  {
+                                                     "x":  207.5,
+                                                     "y":  208
+                                                 },
+                                "local_radius":  204.5,
+                                "original_center":  {
+                                                        "x":  214.5,
+                                                        "y":  219
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  165,
+                                                    "h":  302
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  20.5,
+                                                                                 "y":  6.2
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  139.9,
+                                                                               "y":  297.4
+                                                                           }
+                                                          },
+                                 "axis_length":  314.7,
+                                 "axis_angle_deg":  157.7,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  271.5,
+                                                                                    "y":  422.2
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  390.9,
+                                                                                  "y":  713.4
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  139.9,
+                                                                             "y":  297.4
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  20.5,
+                                                                                   "y":  6.2
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  390.9,
+                                                                                "y":  713.4
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  271.5,
+                                                                                      "y":  422.2
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  337.7,
+                                 "tip_to_head_side_length":  314.7
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  1.75,
+                                     "tip_delta_px":  12.34,
+                                     "head_side_vs_center_delta_px":  209.77
+                                 }
+               },
+    "pin_06":  {
+                   "head_file":  "pin_06_head.png",
+                   "shaft_file":  "pin_06_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  429,
+                                                   "h":  432
+                                               },
+                                "local_center":  {
+                                                     "x":  214,
+                                                     "y":  216
+                                                 },
+                                "local_radius":  213.5,
+                                "original_center":  {
+                                                        "x":  214,
+                                                        "y":  254
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  108,
+                                                    "h":  515
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  53,
+                                                                                 "y":  0
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  53.5,
+                                                                               "y":  512
+                                                                           }
+                                                          },
+                                 "axis_length":  512,
+                                 "axis_angle_deg":  179.9,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  214,
+                                                                                    "y":  472
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  214.5,
+                                                                                  "y":  984
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  53.5,
+                                                                             "y":  512
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  53,
+                                                                                   "y":  0
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  214.5,
+                                                                                "y":  984
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  214,
+                                                                                      "y":  472
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  359.9,
+                                 "tip_to_head_side_length":  512
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  0.8,
+                                     "tip_delta_px":  10.69,
+                                     "head_side_vs_center_delta_px":  218
+                                 }
+               },
+    "pin_07":  {
+                   "head_file":  "pin_07_head.png",
+                   "shaft_file":  "pin_07_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  416,
+                                                   "h":  416
+                                               },
+                                "local_center":  {
+                                                     "x":  210.5,
+                                                     "y":  210
+                                                 },
+                                "local_radius":  203.5,
+                                "original_center":  {
+                                                        "x":  385.5,
+                                                        "y":  218
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  477,
+                                                    "h":  148
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  4,
+                                                                                 "y":  108.3
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  471,
+                                                                               "y":  112.3
+                                                                           }
+                                                          },
+                                 "axis_length":  467,
+                                 "axis_angle_deg":  90.5,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  19,
+                                                                                    "y":  426.3
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  486,
+                                                                                  "y":  430.3
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  4,
+                                                                             "y":  108.3
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  471,
+                                                                                   "y":  112.3
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  19,
+                                                                                "y":  426.3
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  486,
+                                                                                      "y":  430.3
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  90.5,
+                                 "tip_to_head_side_length":  467
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  3.41,
+                                     "tip_delta_px":  4.21,
+                                     "head_side_vs_center_delta_px":  237.99
+                                 }
+               },
+    "pin_08":  {
+                   "head_file":  "pin_08_head.png",
+                   "shaft_file":  "pin_08_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  416,
+                                                   "h":  417
+                                               },
+                                "local_center":  {
+                                                     "x":  208,
+                                                     "y":  208.5
+                                                 },
+                                "local_radius":  205.5,
+                                "original_center":  {
+                                                        "x":  220,
+                                                        "y":  214.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  333,
+                                                    "h":  146
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  0.3,
+                                                                                 "y":  69.2
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  329.2,
+                                                                               "y":  74.1
+                                                                           }
+                                                          },
+                                 "axis_length":  328.9,
+                                 "axis_angle_deg":  90.9,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  429.3,
+                                                                                    "y":  229.2
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  758.2,
+                                                                                  "y":  234.1
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  329.2,
+                                                                             "y":  74.1
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  0.3,
+                                                                                   "y":  69.2
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  758.2,
+                                                                                "y":  234.1
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  429.3,
+                                                                                      "y":  229.2
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  270.9,
+                                 "tip_to_head_side_length":  328.9
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  0,
+                                     "tip_delta_px":  3.5,
+                                     "head_side_vs_center_delta_px":  209.82
+                                 }
+               },
+    "pin_09":  {
+                   "head_file":  "pin_09_head.png",
+                   "shaft_file":  "pin_09_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  416,
+                                                   "h":  415
+                                               },
+                                "local_center":  {
+                                                     "x":  208,
+                                                     "y":  206
+                                                 },
+                                "local_radius":  203.5,
+                                "original_center":  {
+                                                        "x":  215,
+                                                        "y":  418
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  143,
+                                                    "h":  196
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  64.4,
+                                                                                 "y":  194.9
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  77,
+                                                                               "y":  2.1
+                                                                           }
+                                                          },
+                                 "axis_length":  193.3,
+                                 "axis_angle_deg":  3.7,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  219.4,
+                                                                                    "y":  209.9
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  232,
+                                                                                  "y":  17.1
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  77,
+                                                                             "y":  2.1
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  64.4,
+                                                                                   "y":  194.9
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  232,
+                                                                                "y":  17.1
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  219.4,
+                                                                                      "y":  209.9
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  183.7,
+                                 "tip_to_head_side_length":  193.2
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  1.6,
+                                     "tip_delta_px":  2.33,
+                                     "head_side_vs_center_delta_px":  209.75
+                                 }
+               },
+    "pin_10":  {
+                   "head_file":  "pin_10_head.png",
+                   "shaft_file":  "pin_10_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  430,
+                                                   "h":  432
+                                               },
+                                "local_center":  {
+                                                     "x":  214.5,
+                                                     "y":  216
+                                                 },
+                                "local_radius":  213.5,
+                                "original_center":  {
+                                                        "x":  214.5,
+                                                        "y":  756
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  109,
+                                                    "h":  524
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  53.7,
+                                                                                 "y":  523
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  54.1,
+                                                                               "y":  2
+                                                                           }
+                                                          },
+                                 "axis_length":  521,
+                                 "axis_angle_deg":  0,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  214.7,
+                                                                                    "y":  538
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  215.1,
+                                                                                  "y":  17
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  54.1,
+                                                                             "y":  2
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  53.7,
+                                                                                   "y":  523
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  215.1,
+                                                                                "y":  17
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  214.7,
+                                                                                      "y":  538
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  180,
+                                 "tip_to_head_side_length":  521
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  0.91,
+                                     "tip_delta_px":  4.38,
+                                     "head_side_vs_center_delta_px":  218.1
+                                 }
+               },
+    "pin_11":  {
+                   "head_file":  "pin_11_head.png",
+                   "shaft_file":  "pin_11_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  417,
+                                                   "h":  417
+                                               },
+                                "local_center":  {
+                                                     "x":  210.5,
+                                                     "y":  213.5
+                                                 },
+                                "local_radius":  200,
+                                "original_center":  {
+                                                        "x":  332.5,
+                                                        "y":  490.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  230,
+                                                    "h":  302
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  33.6,
+                                                                                 "y":  17.8
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  208.9,
+                                                                               "y":  288.4
+                                                                           }
+                                                          },
+                                 "axis_length":  322.4,
+                                 "axis_angle_deg":  147.1,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  48.6,
+                                                                                    "y":  32.8
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  223.9,
+                                                                                  "y":  303.4
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  33.6,
+                                                                             "y":  17.8
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  208.9,
+                                                                                   "y":  288.4
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  48.6,
+                                                                                "y":  32.8
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  223.9,
+                                                                                      "y":  303.4
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  147.1,
+                                 "tip_to_head_side_length":  322.4
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  5.46,
+                                     "tip_delta_px":  1.9,
+                                     "head_side_vs_center_delta_px":  210.91
+                                 }
+               },
+    "pin_12":  {
+                   "head_file":  "pin_12_head.png",
+                   "shaft_file":  "pin_12_shaft.png",
+                   "head":  {
+                                "image_size":  {
+                                                   "w":  419,
+                                                   "h":  419
+                                               },
+                                "local_center":  {
+                                                     "x":  203,
+                                                     "y":  216.5
+                                                 },
+                                "local_radius":  200,
+                                "original_center":  {
+                                                        "x":  215,
+                                                        "y":  512.5
+                                                    }
+                            },
+                   "shaft":  {
+                                 "image_size":  {
+                                                    "w":  384,
+                                                    "h":  353
+                                                },
+                                 "axis_endpoints_local":  {
+                                                              "axis_start":  {
+                                                                                 "x":  17.3,
+                                                                                 "y":  334.6
+                                                                             },
+                                                              "axis_end":  {
+                                                                               "x":  366,
+                                                                               "y":  19.1
+                                                                           }
+                                                          },
+                                 "axis_length":  470.3,
+                                 "axis_angle_deg":  47.9,
+                                 "axis_endpoints_original":  {
+                                                                 "axis_start":  {
+                                                                                    "x":  365.3,
+                                                                                    "y":  349.6
+                                                                                },
+                                                                 "axis_end":  {
+                                                                                  "x":  714,
+                                                                                  "y":  34.1
+                                                                              }
+                                                             },
+                                 "labeled_endpoints_local":  {
+                                                                 "tip":  {
+                                                                             "x":  366,
+                                                                             "y":  19.1
+                                                                         },
+                                                                 "head_side":  {
+                                                                                   "x":  17.3,
+                                                                                   "y":  334.6
+                                                                               }
+                                                             },
+                                 "labeled_endpoints_original":  {
+                                                                    "tip":  {
+                                                                                "x":  714,
+                                                                                "y":  34.1
+                                                                            },
+                                                                    "head_side":  {
+                                                                                      "x":  365.3,
+                                                                                      "y":  349.6
+                                                                                  }
+                                                                },
+                                 "tip_to_head_side_angle_deg":  227.9,
+                                 "tip_to_head_side_length":  470.2
+                             },
+                   "alignment":  {
+                                     "head_center_delta_px":  10.04,
+                                     "tip_delta_px":  8.22,
+                                     "head_side_vs_center_delta_px":  211.61
+                                 }
+               }
+}

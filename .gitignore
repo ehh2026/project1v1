@@ -49,3 +49,6 @@ Thumbs.db
 
 # Local edit backups (see user backup-before-modify rule)
 backups/
+
+# Local agent/editor state
+.claude/
