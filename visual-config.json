@@ -113,6 +113,17 @@
     ]
   },
 
+  "PinParts": {
+    "Enabled": false,
+    "PartsFolderPath": "Pins_v2/parts",
+    "GeometryMetadataPath": "Pins_v2/parts/pin_part_geometry.json",
+    "SelectionMode": "NearestFit",
+    "MaxResidualRotationDeg": 20.0,
+    "MinStretchFactor": 0.75,
+    "MaxStretchFactor": 1.35,
+    "UseCompositeRendering": false
+  },
+
   "PinMarkers": {
     "BallSize": 8.0,
     "ShaftWidth": 1.5,

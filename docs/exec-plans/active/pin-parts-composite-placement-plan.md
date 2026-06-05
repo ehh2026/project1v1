@@ -16,6 +16,35 @@ Use the split `Pins_v2/parts` assets to render composite pins where:
 
 This plan supersedes the single-bitmap assumptions in [docs/PIN_IMAGE_PLACEMENT_ASSESSMENT.md](../../PIN_IMAGE_PLACEMENT_ASSESSMENT.md) where useful.
 
+## Execution Checklist
+
+### Phase Status
+
+- [x] Phase 1: Metadata completion
+- [ ] Phase 2: Config and loading model
+- [ ] Phase 3: Composite marker rendering
+- [ ] Phase 4: Placement calculator
+- [ ] Phase 5: MainWindow integration
+- [ ] Phase 6: Verification and tuning
+
+### Recommended Execution Order
+
+- [x] Complete metadata required for deterministic shaft/head alignment and segmented shaft stretching
+- [x] Add runtime/config loading seams for part metadata without breaking current image-pin loading
+- [ ] Render one isolated composite pin correctly in a local test harness or dev-only path
+- [x] Add deterministic pair/transform selection logic and unit coverage
+- [ ] Integrate composite pins into extended image-pin rendering only
+- [ ] Preserve edit mode, manual layout replay, and variant-aware auto-load behavior
+- [ ] Add verification overlays and screenshots for common extension angles
+
+### Transition Strategy
+
+- [ ] Keep the current single-bitmap pin path available during rollout
+- [ ] Gate composite-pin rendering behind an explicit config switch or staged integration seam
+- [ ] Use composite pins first for extended markers only
+- [ ] Leave non-extended pins on legacy rendering until extended-marker behavior is stable
+- [ ] Avoid replacing edit-mode or manual-layout workflows until composite hit-testing and anchoring are verified
+
 ## Goal
 
 Replace the current "crop one pin from `pins.jpg` and center it on the extension endpoint" approach with a part-based composite renderer that can:
@@ -101,6 +130,25 @@ Auto-load policy should prefer:
 4. compatible default auto-seed variant
 
 That gives the app a sensible fallback path while still preserving the distinction between machine-generated starting points and user-curated layouts.
+
+### Edit mode and variant-aware behavior to preserve
+
+Composite pins must not break the current layout editing workflow.
+
+The plan should explicitly preserve:
+
+- dragging visible endpoints in edit mode
+- saving a user-adjusted layout as a manual variant
+- replaying a previously chosen manual variant
+- keeping auto-seeds available as fallback defaults rather than overwriting them
+
+That means composite-pin rendering should remain downstream of endpoint selection even in edit mode:
+
+- edit mode continues to modify endpoint placement data
+- layout save/load continues to operate on endpoint variants
+- composite pins simply re-render from the selected endpoint variant
+
+The UI work for browsing/selecting multiple variants can remain a later slice, but the storage and runtime model should assume variants exist from the start.
 
 ## Current Zoom and Visibility Behavior
 
@@ -484,13 +532,13 @@ Deliverables:
 
 Tasks:
 
-1. Extend `scripts/compute_pin_part_geometry.ps1` or add a companion script.
-2. Derive `HeadAttachLocal` from existing original-space shaft/head geometry.
-3. Add `HeadStubDirectionDeg`.
-4. Add explicit `ShaftJoinLocal` naming instead of relying on generic `head_side`.
-5. Derive `StretchStartDistance` and `StretchEndDistance`.
-6. Add `TipCapLength` and `HeadCapLength`.
-7. Emit a debug overlay or preview data so segmentation can be visually checked quickly.
+- [x] Extend `scripts/compute_pin_part_geometry.ps1` or add a companion script.
+- [x] Derive `HeadAttachLocal` from existing original-space shaft/head geometry.
+- [x] Add `HeadStubDirectionDeg`.
+- [x] Add explicit `ShaftJoinLocal` naming instead of relying on generic `head_side`.
+- [x] Derive `StretchStartDistance` and `StretchEndDistance`.
+- [x] Add `TipCapLength` and `HeadCapLength`.
+- [ ] Emit a debug overlay or preview data so segmentation can be visually checked quickly.
 
 Acceptance:
 
@@ -506,15 +554,15 @@ Deliverables:
 
 Tasks:
 
-1. Add `PinPartConfig` and supporting model types under `Models/`.
-2. Add config fields for:
-   - parts folder
-   - geometry metadata path
-   - selection mode
-   - segmented stretch clamp values
-   - optional compatible-style groups
-3. Extend `ContentLoader` to resolve and load part assets plus metadata.
-4. Keep `Views/` free of direct path construction.
+- [x] Add `PinPartConfig` and supporting model types under `Models/`.
+- [x] Add config fields for:
+  - parts folder
+  - geometry metadata path
+  - selection mode
+  - segmented stretch clamp values
+  - optional compatible-style groups
+- [x] Extend `ContentLoader` to resolve and load part assets plus metadata.
+- [ ] Keep `Views/` free of direct path construction.
 
 Acceptance:
 
@@ -554,22 +602,22 @@ Deliverables:
 
 Tasks:
 
-1. Add a calculator class outside `Views/`, for example `Services/PinPartPlacementCalculator.cs`.
-2. Inputs:
-   - target segment
-   - available shaft/head pair metadata
-   - selection mode
-3. Outputs:
-   - chosen pair
-   - shaft transform
-   - head transform
-   - bounding box / local marker size
-4. Implement scoring:
-   - angle error
-   - length error
-   - style compatibility penalty
-   - residual transform penalty
-5. Clamp rotation and segmented-body stretch in MVP mode.
+- [x] Add a calculator class outside `Views/`, for example `Services/PinPartPlacementCalculator.cs`.
+- [x] Inputs:
+  - target segment
+  - available shaft/head pair metadata
+  - selection mode
+- [ ] Outputs:
+  - chosen pair
+  - shaft transform
+  - head transform
+  - bounding box / local marker size
+- [x] Implement scoring:
+  - angle error
+  - length error
+  - style compatibility penalty
+  - residual transform penalty
+- [x] Clamp rotation and segmented-body stretch in MVP mode.
 
 Acceptance:
 

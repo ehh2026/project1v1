@@ -341,6 +341,51 @@ function ConvertTo-HashtablePoint {
     New-RoundedPoint -X ([double]$Point.x) -Y ([double]$Point.y)
 }
 
+function Get-AngleDegrees {
+    param(
+        [hashtable]$FromPoint,
+        [hashtable]$ToPoint
+    )
+
+    $dx = [double]$ToPoint.x - [double]$FromPoint.x
+    $dy = [double]$ToPoint.y - [double]$FromPoint.y
+    $angle = [Math]::Atan2($dx, -$dy) * 180.0 / [Math]::PI
+    if ($angle -lt 0.0) {
+        $angle += 360.0
+    }
+
+    return [Math]::Round($angle, 1)
+}
+
+function New-ShaftSegmentation {
+    param([double]$NativeLength)
+
+    $tipCapLength = [Math]::Max(18.0, $NativeLength * 0.10)
+    $headCapLength = [Math]::Max(18.0, $NativeLength * 0.12)
+    $minimumMiddleLength = $NativeLength * 0.25
+    $maximumFixedLength = [Math]::Max(0.0, $NativeLength - $minimumMiddleLength)
+    $fixedLength = $tipCapLength + $headCapLength
+
+    if ($fixedLength -gt $maximumFixedLength -and $fixedLength -gt 0.0) {
+        $scale = $maximumFixedLength / $fixedLength
+        $tipCapLength *= $scale
+        $headCapLength *= $scale
+    }
+
+    $stretchStartDistance = [Math]::Round($tipCapLength, 1)
+    $stretchEndDistance = [Math]::Round([Math]::Max($stretchStartDistance, $NativeLength - $headCapLength), 1)
+    $stretchableLength = [Math]::Round([Math]::Max(0.0, $stretchEndDistance - $stretchStartDistance), 1)
+
+    [ordered]@{
+        tip_cap_length = [Math]::Round($tipCapLength, 1)
+        head_cap_length = [Math]::Round($headCapLength, 1)
+        stretch_start_distance = $stretchStartDistance
+        stretch_end_distance = $stretchEndDistance
+        stretchable_length = $stretchableLength
+        minimum_middle_ratio = 0.25
+    }
+}
+
 $resolvedPartsDir = (Resolve-Path $PartsDir).Path
 if (-not $OutputPath) {
     $OutputPath = Join-Path $resolvedPartsDir "pin_part_geometry.json"
@@ -454,21 +499,36 @@ foreach ($headFile in $headFiles) {
         $shaft.labeled_endpoints_local = [ordered]@{
             tip = $tipLocal
             head_side = $headLocal
+            join = $headLocal
         }
         $shaft.labeled_endpoints_original = [ordered]@{
             tip = $tipOriginal
             head_side = $headOriginalEndpoint
+            join = $headOriginalEndpoint
         }
 
-        $dx = [double]$headLocal.x - [double]$tipLocal.x
-        $dy = [double]$headLocal.y - [double]$tipLocal.y
-        $angle = [Math]::Atan2($dx, -$dy) * 180.0 / [Math]::PI
-        if ($angle -lt 0.0) {
-            $angle += 360.0
-        }
+        $nativeLength = [Math]::Round((Get-Distance -PointA $tipLocal -PointB $headLocal), 1)
+        $nativeAngle = Get-AngleDegrees -FromPoint $tipLocal -ToPoint $headLocal
+        $shaft.tip_to_head_side_angle_deg = $nativeAngle
+        $shaft.tip_to_head_side_length = $nativeLength
+        $shaft.native_angle_deg = $nativeAngle
+        $shaft.native_length = $nativeLength
+        $shaft.local_tip = $tipLocal
+        $shaft.local_join = $headLocal
+        $shaft.original_tip = $tipOriginal
+        $shaft.original_join = $headOriginalEndpoint
+        $shaft.segmentation = New-ShaftSegmentation -NativeLength $nativeLength
 
-        $shaft.tip_to_head_side_angle_deg = [Math]::Round($angle, 1)
-        $shaft.tip_to_head_side_length = [Math]::Round([Math]::Sqrt(($dx * $dx) + ($dy * $dy)), 1)
+        $headAttachLocal = New-RoundedPoint `
+            -X ([double]$headOriginalEndpoint.x - [double]$manifestEntry.head_crop_box.x0) `
+            -Y ([double]$headOriginalEndpoint.y - [double]$manifestEntry.head_crop_box.y0)
+        $head.local_attach = $headAttachLocal
+        $head.original_attach = $headOriginalEndpoint
+        $head.stub_direction_deg = Get-AngleDegrees -FromPoint $head.local_center -ToPoint $headAttachLocal
+        $head.center_to_attach_distance = [Math]::Round(
+            (Get-Distance -PointA $head.local_center -PointB $headAttachLocal),
+            1
+        )
 
         $alignment.tip_delta_px = [Math]::Round(
             (Get-Distance -PointA $tipOriginal -PointB $manifestTip),
@@ -477,6 +537,12 @@ foreach ($headFile in $headFiles) {
         $alignment.head_side_vs_center_delta_px = [Math]::Round(
             (Get-Distance -PointA $headOriginalEndpoint -PointB $manifestHeadCenter),
             2
+        )
+        $alignment.head_attach_inside_crop = (
+            ([double]$headAttachLocal.x -ge 0.0) -and
+            ([double]$headAttachLocal.y -ge 0.0) -and
+            ([double]$headAttachLocal.x -le [double]$head.image_size.w) -and
+            ([double]$headAttachLocal.y -le [double]$head.image_size.h)
         )
     }
 

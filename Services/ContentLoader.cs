@@ -62,6 +62,9 @@ public class ContentLoader
     /// <summary>Resolves a file name under the content folder.</summary>
     public string ResolveContentFilePath(string fileName) => Path.Combine(ContentFolderPath, fileName);
 
+    /// <summary>Resolves a relative pin-part path under the content folder.</summary>
+    public string ResolvePinPartPath(string relativePath) => Path.Combine(ContentFolderPath, relativePath);
+
     /// <summary>
     /// Loads a bitmap from the content folder if present; returns null when missing or on error.
     /// </summary>
@@ -85,6 +88,41 @@ public class ContentLoader
         {
             _logger.LogWarning($"Failed to load content bitmap '{fileName}': {ex.Message}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Loads composite pin-part geometry metadata from JSON.
+    /// </summary>
+    public Dictionary<string, PinPartGeometryEntry> LoadPinPartGeometry(string relativePath)
+    {
+        try
+        {
+            var path = ResolvePinPartPath(relativePath);
+            if (!File.Exists(path))
+            {
+                throw new FileNotFoundException("Pin part geometry metadata not found.", path);
+            }
+
+            var json = File.ReadAllText(path);
+            var geometry = JsonConvert.DeserializeObject<Dictionary<string, PinPartGeometryEntry>>(json);
+            if (geometry == null || geometry.Count == 0)
+            {
+                throw new InvalidOperationException($"No pin part geometry entries were found in {path}");
+            }
+
+            _logger.LogInfo($"Loaded {geometry.Count} pin part geometry entries from: {path}");
+            return geometry;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError($"Failed to parse pin part geometry metadata: {ex.Message}");
+            throw new InvalidOperationException("Invalid JSON format in pin part geometry metadata.", ex);
+        }
+        catch (Exception ex) when (ex is not InvalidOperationException && ex is not FileNotFoundException)
+        {
+            _logger.LogError($"Failed to load pin part geometry metadata: {ex.Message}");
+            throw;
         }
     }
 

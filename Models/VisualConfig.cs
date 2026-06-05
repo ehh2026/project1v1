@@ -50,6 +50,11 @@ namespace InteractiveWorldMap.Models
         public PinImageConfig PinImages { get; set; } = new PinImageConfig();
 
         /// <summary>
+        /// Configuration for part-based composite pins.
+        /// </summary>
+        public PinPartConfig PinParts { get; set; } = new PinPartConfig();
+
+        /// <summary>
         /// Size of cluster markers in pixels.
         /// </summary>
         public double ClusterMarkerSize { get; set; } = 40.0;

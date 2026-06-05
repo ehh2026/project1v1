@@ -137,6 +137,56 @@ public class ContentLoaderTests
         }
     }
 
+    [Fact]
+    public void LoadPinPartGeometry_WithValidJson_ReturnsEntries()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var partsDir = Path.Combine(tempDir, "Pins_v2", "parts");
+            Directory.CreateDirectory(partsDir);
+            File.WriteAllText(
+                Path.Combine(partsDir, "pin_part_geometry.json"),
+                @"
+                {
+                  ""pin_01"": {
+                    ""head_file"": ""pin_01_head.png"",
+                    ""shaft_file"": ""pin_01_shaft.png"",
+                    ""head"": {
+                      ""local_center"": { ""x"": 10.0, ""y"": 12.0 },
+                      ""local_attach"": { ""x"": 14.0, ""y"": 22.0 },
+                      ""stub_direction_deg"": 150.0
+                    },
+                    ""shaft"": {
+                      ""local_tip"": { ""x"": 50.0, ""y"": 90.0 },
+                      ""local_join"": { ""x"": 11.0, ""y"": 5.0 },
+                      ""native_angle_deg"": 330.0,
+                      ""native_length"": 120.0,
+                      ""segmentation"": {
+                        ""tip_cap_length"": 18.0,
+                        ""head_cap_length"": 19.0,
+                        ""stretch_start_distance"": 18.0,
+                        ""stretch_end_distance"": 101.0
+                      }
+                    }
+                  }
+                }");
+
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+
+            var geometry = loader.LoadPinPartGeometry("Pins_v2\\parts\\pin_part_geometry.json");
+
+            Assert.Single(geometry);
+            Assert.True(geometry.ContainsKey("pin_01"));
+            Assert.Equal(150.0, geometry["pin_01"].Head.StubDirectionDeg);
+            Assert.Equal(120.0, geometry["pin_01"].Shaft.NativeLength);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Loader that skips the repo Excel file so JSON-only tests stay isolated.
     /// </summary>

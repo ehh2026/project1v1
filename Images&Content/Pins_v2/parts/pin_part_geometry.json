@@ -15,7 +15,17 @@
                                 "original_center":  {
                                                         "x":  214.5,
                                                         "y":  222.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  284.4,
+                                                     "y":  407.1
+                                                 },
+                                "original_attach":  {
+                                                        "x":  293.4,
+                                                        "y":  423.1
+                                                    },
+                                "stub_direction_deg":  158.5,
+                                "center_to_attach_distance":  215.6
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -52,7 +62,11 @@
                                                                  "head_side":  {
                                                                                    "x":  23.4,
                                                                                    "y":  8.1
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  23.4,
+                                                                              "y":  8.1
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -62,15 +76,46 @@
                                                                     "head_side":  {
                                                                                       "x":  293.4,
                                                                                       "y":  423.1
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  293.4,
+                                                                                 "y":  423.1
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  336.7,
-                                 "tip_to_head_side_length":  550.6
+                                 "tip_to_head_side_length":  550.6,
+                                 "native_angle_deg":  336.7,
+                                 "native_length":  550.6,
+                                 "local_tip":  {
+                                                   "x":  241.2,
+                                                   "y":  513.8
+                                               },
+                                 "local_join":  {
+                                                    "x":  23.4,
+                                                    "y":  8.1
+                                                },
+                                 "original_tip":  {
+                                                      "x":  511.2,
+                                                      "y":  928.8
+                                                  },
+                                 "original_join":  {
+                                                       "x":  293.4,
+                                                       "y":  423.1
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  55.1,
+                                                      "head_cap_length":  66.1,
+                                                      "stretch_start_distance":  55.1,
+                                                      "stretch_end_distance":  484.5,
+                                                      "stretchable_length":  429.4,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  5.24,
                                      "tip_delta_px":  18.02,
-                                     "head_side_vs_center_delta_px":  211.21
+                                     "head_side_vs_center_delta_px":  211.21,
+                                     "head_attach_inside_crop":  true
                                  }
                },
     "pin_02":  {
@@ -89,7 +134,17 @@
                                 "original_center":  {
                                                         "x":  214,
                                                         "y":  223.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  209.7,
+                                                     "y":  421
+                                                 },
+                                "original_attach":  {
+                                                        "x":  214.7,
+                                                        "y":  435
+                                                    },
+                                "stub_direction_deg":  179.8,
+                                "center_to_attach_distance":  211.5
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -126,7 +181,11 @@
                                                                  "head_side":  {
                                                                                    "x":  87.7,
                                                                                    "y":  0
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  87.7,
+                                                                              "y":  0
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -136,15 +195,46 @@
                                                                     "head_side":  {
                                                                                       "x":  214.7,
                                                                                       "y":  435
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  214.7,
+                                                                                 "y":  435
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  0,
-                                 "tip_to_head_side_length":  566
+                                 "tip_to_head_side_length":  566,
+                                 "native_angle_deg":  0,
+                                 "native_length":  566,
+                                 "local_tip":  {
+                                                   "x":  87.5,
+                                                   "y":  566
+                                               },
+                                 "local_join":  {
+                                                    "x":  87.7,
+                                                    "y":  0
+                                                },
+                                 "original_tip":  {
+                                                      "x":  214.5,
+                                                      "y":  1001
+                                                  },
+                                 "original_join":  {
+                                                       "x":  214.7,
+                                                       "y":  435
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  56.6,
+                                                      "head_cap_length":  67.9,
+                                                      "stretch_start_distance":  56.6,
+                                                      "stretch_end_distance":  498.1,
+                                                      "stretchable_length":  441.5,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  0.41,
                                      "tip_delta_px":  16.62,
-                                     "head_side_vs_center_delta_px":  211.6
+                                     "head_side_vs_center_delta_px":  211.6,
+                                     "head_attach_inside_crop":  false
                                  }
                },
     "pin_03":  {
@@ -163,7 +253,17 @@
                                 "original_center":  {
                                                         "x":  369.5,
                                                         "y":  221.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  130.2,
+                                                     "y":  405
+                                                 },
+                                "original_attach":  {
+                                                        "x":  286.2,
+                                                        "y":  421
+                                                    },
+                                "stub_direction_deg":  202.7,
+                                "center_to_attach_distance":  216.2
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -200,7 +300,11 @@
                                                                  "head_side":  {
                                                                                    "x":  271.2,
                                                                                    "y":  9
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  271.2,
+                                                                              "y":  9
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -210,15 +314,46 @@
                                                                     "head_side":  {
                                                                                       "x":  286.2,
                                                                                       "y":  421
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  286.2,
+                                                                                 "y":  421
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  24.9,
-                                 "tip_to_head_side_length":  556.3
+                                 "tip_to_head_side_length":  556.3,
+                                 "native_angle_deg":  24.9,
+                                 "native_length":  556.3,
+                                 "local_tip":  {
+                                                   "x":  36.7,
+                                                   "y":  513.5
+                                               },
+                                 "local_join":  {
+                                                    "x":  271.2,
+                                                    "y":  9
+                                                },
+                                 "original_tip":  {
+                                                      "x":  51.7,
+                                                      "y":  925.5
+                                                  },
+                                 "original_join":  {
+                                                       "x":  286.2,
+                                                       "y":  421
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  55.6,
+                                                      "head_cap_length":  66.8,
+                                                      "stretch_start_distance":  55.6,
+                                                      "stretch_end_distance":  489.5,
+                                                      "stretchable_length":  433.9,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  5.1,
                                      "tip_delta_px":  14.91,
-                                     "head_side_vs_center_delta_px":  211.6
+                                     "head_side_vs_center_delta_px":  211.6,
+                                     "head_attach_inside_crop":  true
                                  }
                },
     "pin_04":  {
@@ -237,7 +372,17 @@
                                 "original_center":  {
                                                         "x":  214.5,
                                                         "y":  214.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  339.8,
+                                                     "y":  378.1
+                                                 },
+                                "original_attach":  {
+                                                        "x":  349.8,
+                                                        "y":  389.1
+                                                    },
+                                "stub_direction_deg":  142.2,
+                                "center_to_attach_distance":  220.9
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -274,7 +419,11 @@
                                                                  "head_side":  {
                                                                                    "x":  3.8,
                                                                                    "y":  29.1
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  3.8,
+                                                                              "y":  29.1
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -284,15 +433,46 @@
                                                                     "head_side":  {
                                                                                       "x":  349.8,
                                                                                       "y":  389.1
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  349.8,
+                                                                                 "y":  389.1
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  298.9,
-                                 "tip_to_head_side_length":  223.7
+                                 "tip_to_head_side_length":  223.7,
+                                 "native_angle_deg":  298.9,
+                                 "native_length":  223.7,
+                                 "local_tip":  {
+                                                   "x":  199.6,
+                                                   "y":  137.3
+                                               },
+                                 "local_join":  {
+                                                    "x":  3.8,
+                                                    "y":  29.1
+                                                },
+                                 "original_tip":  {
+                                                      "x":  545.6,
+                                                      "y":  497.3
+                                                  },
+                                 "original_join":  {
+                                                       "x":  349.8,
+                                                       "y":  389.1
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  22.4,
+                                                      "head_cap_length":  26.8,
+                                                      "stretch_start_distance":  22.4,
+                                                      "stretch_end_distance":  196.9,
+                                                      "stretchable_length":  174.5,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  8.67,
                                      "tip_delta_px":  7.75,
-                                     "head_side_vs_center_delta_px":  212.22
+                                     "head_side_vs_center_delta_px":  212.22,
+                                     "head_attach_inside_crop":  true
                                  }
                },
     "pin_05":  {
@@ -311,7 +491,17 @@
                                 "original_center":  {
                                                         "x":  214.5,
                                                         "y":  219
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  264.5,
+                                                     "y":  411.2
+                                                 },
+                                "original_attach":  {
+                                                        "x":  271.5,
+                                                        "y":  422.2
+                                                    },
+                                "stub_direction_deg":  164.3,
+                                "center_to_attach_distance":  211
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -348,7 +538,11 @@
                                                                  "head_side":  {
                                                                                    "x":  20.5,
                                                                                    "y":  6.2
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  20.5,
+                                                                              "y":  6.2
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -358,15 +552,46 @@
                                                                     "head_side":  {
                                                                                       "x":  271.5,
                                                                                       "y":  422.2
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  271.5,
+                                                                                 "y":  422.2
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  337.7,
-                                 "tip_to_head_side_length":  314.7
+                                 "tip_to_head_side_length":  314.7,
+                                 "native_angle_deg":  337.7,
+                                 "native_length":  314.7,
+                                 "local_tip":  {
+                                                   "x":  139.9,
+                                                   "y":  297.4
+                                               },
+                                 "local_join":  {
+                                                    "x":  20.5,
+                                                    "y":  6.2
+                                                },
+                                 "original_tip":  {
+                                                      "x":  390.9,
+                                                      "y":  713.4
+                                                  },
+                                 "original_join":  {
+                                                       "x":  271.5,
+                                                       "y":  422.2
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  31.5,
+                                                      "head_cap_length":  37.8,
+                                                      "stretch_start_distance":  31.5,
+                                                      "stretch_end_distance":  276.9,
+                                                      "stretchable_length":  245.4,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  1.75,
                                      "tip_delta_px":  12.34,
-                                     "head_side_vs_center_delta_px":  209.77
+                                     "head_side_vs_center_delta_px":  209.77,
+                                     "head_attach_inside_crop":  true
                                  }
                },
     "pin_06":  {
@@ -385,7 +610,17 @@
                                 "original_center":  {
                                                         "x":  214,
                                                         "y":  254
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  214,
+                                                     "y":  434
+                                                 },
+                                "original_attach":  {
+                                                        "x":  214,
+                                                        "y":  472
+                                                    },
+                                "stub_direction_deg":  180,
+                                "center_to_attach_distance":  218
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -422,7 +657,11 @@
                                                                  "head_side":  {
                                                                                    "x":  53,
                                                                                    "y":  0
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  53,
+                                                                              "y":  0
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -432,15 +671,46 @@
                                                                     "head_side":  {
                                                                                       "x":  214,
                                                                                       "y":  472
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  214,
+                                                                                 "y":  472
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  359.9,
-                                 "tip_to_head_side_length":  512
+                                 "tip_to_head_side_length":  512,
+                                 "native_angle_deg":  359.9,
+                                 "native_length":  512,
+                                 "local_tip":  {
+                                                   "x":  53.5,
+                                                   "y":  512
+                                               },
+                                 "local_join":  {
+                                                    "x":  53,
+                                                    "y":  0
+                                                },
+                                 "original_tip":  {
+                                                      "x":  214.5,
+                                                      "y":  984
+                                                  },
+                                 "original_join":  {
+                                                       "x":  214,
+                                                       "y":  472
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  51.2,
+                                                      "head_cap_length":  61.4,
+                                                      "stretch_start_distance":  51.2,
+                                                      "stretch_end_distance":  450.6,
+                                                      "stretchable_length":  399.4,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  0.8,
                                      "tip_delta_px":  10.69,
-                                     "head_side_vs_center_delta_px":  218
+                                     "head_side_vs_center_delta_px":  218,
+                                     "head_attach_inside_crop":  false
                                  }
                },
     "pin_07":  {
@@ -459,7 +729,17 @@
                                 "original_center":  {
                                                         "x":  385.5,
                                                         "y":  218
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  311,
+                                                     "y":  422.3
+                                                 },
+                                "original_attach":  {
+                                                        "x":  486,
+                                                        "y":  430.3
+                                                    },
+                                "stub_direction_deg":  154.7,
+                                "center_to_attach_distance":  234.9
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -496,7 +776,11 @@
                                                                  "head_side":  {
                                                                                    "x":  471,
                                                                                    "y":  112.3
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  471,
+                                                                              "y":  112.3
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -506,15 +790,46 @@
                                                                     "head_side":  {
                                                                                       "x":  486,
                                                                                       "y":  430.3
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  486,
+                                                                                 "y":  430.3
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  90.5,
-                                 "tip_to_head_side_length":  467
+                                 "tip_to_head_side_length":  467,
+                                 "native_angle_deg":  90.5,
+                                 "native_length":  467,
+                                 "local_tip":  {
+                                                   "x":  4,
+                                                   "y":  108.3
+                                               },
+                                 "local_join":  {
+                                                    "x":  471,
+                                                    "y":  112.3
+                                                },
+                                 "original_tip":  {
+                                                      "x":  19,
+                                                      "y":  426.3
+                                                  },
+                                 "original_join":  {
+                                                       "x":  486,
+                                                       "y":  430.3
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  46.7,
+                                                      "head_cap_length":  56,
+                                                      "stretch_start_distance":  46.7,
+                                                      "stretch_end_distance":  411,
+                                                      "stretchable_length":  364.3,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  3.41,
                                      "tip_delta_px":  4.21,
-                                     "head_side_vs_center_delta_px":  237.99
+                                     "head_side_vs_center_delta_px":  237.99,
+                                     "head_attach_inside_crop":  false
                                  }
                },
     "pin_08":  {
@@ -533,7 +848,17 @@
                                 "original_center":  {
                                                         "x":  220,
                                                         "y":  214.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  417.3,
+                                                     "y":  223.2
+                                                 },
+                                "original_attach":  {
+                                                        "x":  429.3,
+                                                        "y":  229.2
+                                                    },
+                                "stub_direction_deg":  94,
+                                "center_to_attach_distance":  209.8
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -570,7 +895,11 @@
                                                                  "head_side":  {
                                                                                    "x":  0.3,
                                                                                    "y":  69.2
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  0.3,
+                                                                              "y":  69.2
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -580,15 +909,46 @@
                                                                     "head_side":  {
                                                                                       "x":  429.3,
                                                                                       "y":  229.2
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  429.3,
+                                                                                 "y":  229.2
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  270.9,
-                                 "tip_to_head_side_length":  328.9
+                                 "tip_to_head_side_length":  328.9,
+                                 "native_angle_deg":  270.9,
+                                 "native_length":  328.9,
+                                 "local_tip":  {
+                                                   "x":  329.2,
+                                                   "y":  74.1
+                                               },
+                                 "local_join":  {
+                                                    "x":  0.3,
+                                                    "y":  69.2
+                                                },
+                                 "original_tip":  {
+                                                      "x":  758.2,
+                                                      "y":  234.1
+                                                  },
+                                 "original_join":  {
+                                                       "x":  429.3,
+                                                       "y":  229.2
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  32.9,
+                                                      "head_cap_length":  39.5,
+                                                      "stretch_start_distance":  32.9,
+                                                      "stretch_end_distance":  289.4,
+                                                      "stretchable_length":  256.5,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  0,
                                      "tip_delta_px":  3.5,
-                                     "head_side_vs_center_delta_px":  209.82
+                                     "head_side_vs_center_delta_px":  209.82,
+                                     "head_attach_inside_crop":  false
                                  }
                },
     "pin_09":  {
@@ -607,7 +967,17 @@
                                 "original_center":  {
                                                         "x":  215,
                                                         "y":  418
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  212.4,
+                                                     "y":  -2.1
+                                                 },
+                                "original_attach":  {
+                                                        "x":  219.4,
+                                                        "y":  209.9
+                                                    },
+                                "stub_direction_deg":  1.2,
+                                "center_to_attach_distance":  208.1
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -644,7 +1014,11 @@
                                                                  "head_side":  {
                                                                                    "x":  64.4,
                                                                                    "y":  194.9
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  64.4,
+                                                                              "y":  194.9
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -654,15 +1028,46 @@
                                                                     "head_side":  {
                                                                                       "x":  219.4,
                                                                                       "y":  209.9
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  219.4,
+                                                                                 "y":  209.9
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  183.7,
-                                 "tip_to_head_side_length":  193.2
+                                 "tip_to_head_side_length":  193.2,
+                                 "native_angle_deg":  183.7,
+                                 "native_length":  193.2,
+                                 "local_tip":  {
+                                                   "x":  77,
+                                                   "y":  2.1
+                                               },
+                                 "local_join":  {
+                                                    "x":  64.4,
+                                                    "y":  194.9
+                                                },
+                                 "original_tip":  {
+                                                      "x":  232,
+                                                      "y":  17.1
+                                                  },
+                                 "original_join":  {
+                                                       "x":  219.4,
+                                                       "y":  209.9
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  19.3,
+                                                      "head_cap_length":  23.2,
+                                                      "stretch_start_distance":  19.3,
+                                                      "stretch_end_distance":  170,
+                                                      "stretchable_length":  150.7,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  1.6,
                                      "tip_delta_px":  2.33,
-                                     "head_side_vs_center_delta_px":  209.75
+                                     "head_side_vs_center_delta_px":  209.75,
+                                     "head_attach_inside_crop":  false
                                  }
                },
     "pin_10":  {
@@ -681,7 +1086,17 @@
                                 "original_center":  {
                                                         "x":  214.5,
                                                         "y":  756
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  214.7,
+                                                     "y":  -2
+                                                 },
+                                "original_attach":  {
+                                                        "x":  214.7,
+                                                        "y":  538
+                                                    },
+                                "stub_direction_deg":  0.1,
+                                "center_to_attach_distance":  218
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -718,7 +1133,11 @@
                                                                  "head_side":  {
                                                                                    "x":  53.7,
                                                                                    "y":  523
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  53.7,
+                                                                              "y":  523
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -728,15 +1147,46 @@
                                                                     "head_side":  {
                                                                                       "x":  214.7,
                                                                                       "y":  538
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  214.7,
+                                                                                 "y":  538
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  180,
-                                 "tip_to_head_side_length":  521
+                                 "tip_to_head_side_length":  521,
+                                 "native_angle_deg":  180,
+                                 "native_length":  521,
+                                 "local_tip":  {
+                                                   "x":  54.1,
+                                                   "y":  2
+                                               },
+                                 "local_join":  {
+                                                    "x":  53.7,
+                                                    "y":  523
+                                                },
+                                 "original_tip":  {
+                                                      "x":  215.1,
+                                                      "y":  17
+                                                  },
+                                 "original_join":  {
+                                                       "x":  214.7,
+                                                       "y":  538
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  52.1,
+                                                      "head_cap_length":  62.5,
+                                                      "stretch_start_distance":  52.1,
+                                                      "stretch_end_distance":  458.5,
+                                                      "stretchable_length":  406.4,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  0.91,
                                      "tip_delta_px":  4.38,
-                                     "head_side_vs_center_delta_px":  218.1
+                                     "head_side_vs_center_delta_px":  218.1,
+                                     "head_attach_inside_crop":  false
                                  }
                },
     "pin_11":  {
@@ -755,7 +1205,17 @@
                                 "original_center":  {
                                                         "x":  332.5,
                                                         "y":  490.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  101.9,
+                                                     "y":  26.4
+                                                 },
+                                "original_attach":  {
+                                                        "x":  223.9,
+                                                        "y":  303.4
+                                                    },
+                                "stub_direction_deg":  329.9,
+                                "center_to_attach_distance":  216.3
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -792,7 +1252,11 @@
                                                                  "head_side":  {
                                                                                    "x":  208.9,
                                                                                    "y":  288.4
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  208.9,
+                                                                              "y":  288.4
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -802,15 +1266,46 @@
                                                                     "head_side":  {
                                                                                       "x":  223.9,
                                                                                       "y":  303.4
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  223.9,
+                                                                                 "y":  303.4
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  147.1,
-                                 "tip_to_head_side_length":  322.4
+                                 "tip_to_head_side_length":  322.4,
+                                 "native_angle_deg":  147.1,
+                                 "native_length":  322.4,
+                                 "local_tip":  {
+                                                   "x":  33.6,
+                                                   "y":  17.8
+                                               },
+                                 "local_join":  {
+                                                    "x":  208.9,
+                                                    "y":  288.4
+                                                },
+                                 "original_tip":  {
+                                                      "x":  48.6,
+                                                      "y":  32.8
+                                                  },
+                                 "original_join":  {
+                                                       "x":  223.9,
+                                                       "y":  303.4
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  32.2,
+                                                      "head_cap_length":  38.7,
+                                                      "stretch_start_distance":  32.2,
+                                                      "stretch_end_distance":  283.7,
+                                                      "stretchable_length":  251.5,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  5.46,
                                      "tip_delta_px":  1.9,
-                                     "head_side_vs_center_delta_px":  210.91
+                                     "head_side_vs_center_delta_px":  210.91,
+                                     "head_attach_inside_crop":  true
                                  }
                },
     "pin_12":  {
@@ -829,7 +1324,17 @@
                                 "original_center":  {
                                                         "x":  215,
                                                         "y":  512.5
-                                                    }
+                                                    },
+                                "local_attach":  {
+                                                     "x":  353.3,
+                                                     "y":  53.6
+                                                 },
+                                "original_attach":  {
+                                                        "x":  365.3,
+                                                        "y":  349.6
+                                                    },
+                                "stub_direction_deg":  42.7,
+                                "center_to_attach_distance":  221.6
                             },
                    "shaft":  {
                                  "image_size":  {
@@ -866,7 +1371,11 @@
                                                                  "head_side":  {
                                                                                    "x":  17.3,
                                                                                    "y":  334.6
-                                                                               }
+                                                                               },
+                                                                 "join":  {
+                                                                              "x":  17.3,
+                                                                              "y":  334.6
+                                                                          }
                                                              },
                                  "labeled_endpoints_original":  {
                                                                     "tip":  {
@@ -876,15 +1385,46 @@
                                                                     "head_side":  {
                                                                                       "x":  365.3,
                                                                                       "y":  349.6
-                                                                                  }
+                                                                                  },
+                                                                    "join":  {
+                                                                                 "x":  365.3,
+                                                                                 "y":  349.6
+                                                                             }
                                                                 },
                                  "tip_to_head_side_angle_deg":  227.9,
-                                 "tip_to_head_side_length":  470.2
+                                 "tip_to_head_side_length":  470.2,
+                                 "native_angle_deg":  227.9,
+                                 "native_length":  470.2,
+                                 "local_tip":  {
+                                                   "x":  366,
+                                                   "y":  19.1
+                                               },
+                                 "local_join":  {
+                                                    "x":  17.3,
+                                                    "y":  334.6
+                                                },
+                                 "original_tip":  {
+                                                      "x":  714,
+                                                      "y":  34.1
+                                                  },
+                                 "original_join":  {
+                                                       "x":  365.3,
+                                                       "y":  349.6
+                                                   },
+                                 "segmentation":  {
+                                                      "tip_cap_length":  47,
+                                                      "head_cap_length":  56.4,
+                                                      "stretch_start_distance":  47,
+                                                      "stretch_end_distance":  413.8,
+                                                      "stretchable_length":  366.8,
+                                                      "minimum_middle_ratio":  0.25
+                                                  }
                              },
                    "alignment":  {
                                      "head_center_delta_px":  10.04,
                                      "tip_delta_px":  8.22,
-                                     "head_side_vs_center_delta_px":  211.61
+                                     "head_side_vs_center_delta_px":  211.61,
+                                     "head_attach_inside_crop":  true
                                  }
                }
 }
