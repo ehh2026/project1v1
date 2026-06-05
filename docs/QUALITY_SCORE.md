@@ -2,16 +2,16 @@
 
 Grades track harness maturity and code health. Update after each harness phase or major feature.
 
-**Last updated:** 2026-06-04 (harness engineering implementation)
+**Last updated:** 2026-06-04 (harness enforcement hardening)
 
 | Domain | Grade | Gaps | Next action |
 |--------|-------|------|-------------|
 | Models | A | Some WPF types in Models (Point, etc.) | Acceptable for WPF; monitor |
-| Services | B+ | ContentLoader/StartupValidator tests added | Add integration tests |
-| Views | C | Large code-behind, no UI automation | Extract services from MainWindow |
-| Tests | B- | Architecture tests + P0 service tests | Add FsCheck property tests |
-| Docs | A- | Index and harness docs added | Monthly doc-gardening |
-| Harness | B | CI, verify scripts, cursor rules | Add FlaUI smoke tests (Windows) |
+| Services | A- | ContentFileNames + ContentLoader path helpers | Add integration tests |
+| Views | B- | MainWindow god object; no FlaUI yet | Extract services from MainWindow |
+| Tests | B+ | Golden principle + strengthened layer tests | Add FsCheck property tests |
+| Docs | A | agent-failures log, weekly doc-gardening CI | Archive stale planning docs |
+| Harness | B+ | CI includes startup validation; golden rules mechanical | Add FlaUI smoke tests (Windows) |
 
 ## Grading Scale
 
@@ -31,4 +31,5 @@ Grades track harness maturity and code health. Update after each harness phase o
 
 | Date | Harness | Tests | Docs | Notes |
 |------|---------|-------|------|-------|
+| 2026-06-04 | B→B+ | B-→B+ | A-→A | Golden principle tests, CI startup validation, ContentFileNames |
 | 2026-06-04 | D→B | C→B- | B→A- | Initial harness engineering rollout |

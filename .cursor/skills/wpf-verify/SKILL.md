@@ -46,7 +46,7 @@ dotnet test --filter "FullyQualifiedName~StartupValidationHarness"
 | Windows | Yes | Yes | Yes |
 | macOS | Yes* | No | No |
 
-*Requires .NET 6 SDK. WPF targets `net6.0-windows` — build may require Windows; tests compile on macOS if SDK supports it.
+*Requires .NET 6 SDK (`global.json` in repo root). WPF targets `net6.0-windows` — install .NET 6 alongside newer SDKs; see `docs/SETUP_GUIDE.md`.
 
 ## On failure
 

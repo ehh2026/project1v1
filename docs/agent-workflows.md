@@ -23,7 +23,7 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 | Layer violation | Move logic per [ARCHITECTURE.md](../ARCHITECTURE.md) remediation message |
 | Taste check | Follow REMEDIATION line in script output |
 | Missing context | Add doc to `docs/` and link from `AGENTS.md` or `docs/index.md` |
-| Repeated mistake | Promote rule to [golden-principles.md](design-docs/golden-principles.md) or structural test |
+| Repeated mistake | Log in [agent-failures.md](agent-failures.md); promote to [golden-principles.md](design-docs/golden-principles.md) or structural test |
 
 ## PR Completion Checklist
 
@@ -42,7 +42,7 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 
 ## Doc Gardening (monthly)
 
-- [ ] `docs/index.md` links valid (`python scripts/verify_doc_links.py`)
+- [ ] `python scripts/doc_gardening.py` passes (links, AGENTS size, stale active plans)
 - [ ] `AGENTS.md` under 150 lines
 - [ ] Completed exec plans moved to `exec-plans/completed/`
 - [ ] [QUALITY_SCORE.md](QUALITY_SCORE.md) updated

@@ -165,9 +165,8 @@ namespace InteractiveWorldMap
                 _frameCache = new AnimationFrameCache(_logger);
                 _logger.LogInfo("AnimationFrameCache created");
 
-                // Initialize zoomed region cache with full-res image path
-                var fullResPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", "World Map 1976.jpg");
-                _zoomedRegionCache = new ZoomedRegionCache(_logger, fullResPath);
+                // Initialize zoomed region cache with full-res image path (via ContentLoader)
+                _zoomedRegionCache = new ZoomedRegionCache(_logger, _contentLoader.GetWorldMapPath());
                 _logger.LogInfo("ZoomedRegionCache created");
 
                 // Wire up events
@@ -673,6 +672,8 @@ namespace InteractiveWorldMap
         private void AddClusterMarker(LocationCluster cluster)
         {
             var marker = new ClusterMarker { Cluster = cluster };
+            var stamp = _contentLoader.TryLoadContentBitmap(ContentFileNames.ClusterStampFileName);
+            marker.ApplyStampImage(stamp);
             marker.UpdateDisplay();
             
             // Position will be updated by UpdateMarkerPositions()
@@ -3248,23 +3249,17 @@ namespace InteractiveWorldMap
                     return;
                 }
 
-                var imagePath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", _visualConfig.PinImages.MasterImagePath);
-                
-                if (!System.IO.File.Exists(imagePath))
+                var bitmap = _contentLoader.TryLoadContentBitmap(_visualConfig.PinImages.MasterImagePath);
+                if (bitmap == null)
                 {
-                    _logger.LogError($"Master pin image not found at: {imagePath}");
+                    _logger.LogError(
+                        $"Master pin image not found at: {_contentLoader.ResolveContentFilePath(_visualConfig.PinImages.MasterImagePath)}");
                     return;
                 }
 
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.EndInit();
-                bitmap.Freeze();
-
                 _masterPinImage = bitmap;
-                _logger.LogInfo($"Master pin image loaded: {imagePath} ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
+                _logger.LogInfo(
+                    $"Master pin image loaded: {_contentLoader.ResolveContentFilePath(_visualConfig.PinImages.MasterImagePath)} ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
             }
             catch (Exception ex)
             {

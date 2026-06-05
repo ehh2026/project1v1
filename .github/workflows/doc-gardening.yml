@@ -1,0 +1,16 @@
+# Weekly harness entropy check — documentation drift
+name: Doc Gardening
+
+on:
+  schedule:
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+
+jobs:
+  doc-gardening:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Doc gardening checks
+        run: python scripts/doc_gardening.py

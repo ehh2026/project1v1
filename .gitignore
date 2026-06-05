@@ -46,3 +46,6 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local edit backups (see user backup-before-modify rule)
+backups/

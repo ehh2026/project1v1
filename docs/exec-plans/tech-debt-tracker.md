@@ -7,7 +7,7 @@ Known debt distilled from [TO_DO.md](../TO_DO.md) and [REFACTORING_ASSESSMENT.md
 | ID | Item | Source | Status |
 |----|------|--------|--------|
 | TD-001 | `MainWindow.xaml.cs` god object (~680+ lines) | REFACTORING_ASSESSMENT | Open |
-| TD-002 | Map filename inconsistency (`World Map 1976.jpg` vs `World Map Extra Large.jpg`) | StartupValidator vs ContentLoader | Open |
+| TD-002 | Map filename inconsistency (`World Map 1976.jpg` vs `World Map Extra Large.jpg`) | StartupValidator vs ContentLoader | Resolved (2026-06-04) — `Models/ContentFileNames.cs` |
 | TD-003 | Property-based tests (FsCheck) from Kiro design | tasks.md `*` items | Open |
 | TD-004 | UI/integration tests | TO_DO.md | Open |
 

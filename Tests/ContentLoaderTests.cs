@@ -61,7 +61,7 @@ public class ContentLoaderTests
         var tempDir = CreateContentFolderWithMap();
         try
         {
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = CreateLoaderForJsonTests(tempDir);
             var locations = await loader.LoadLocationsAsync();
             Assert.Empty(locations);
         }
@@ -77,14 +77,11 @@ public class ContentLoaderTests
         var tempDir = CreateContentFolderWithMap();
         try
         {
-            File.WriteAllText(Path.Combine(tempDir, "locations.json"),
-                """
-                [
-                  {"Id":"a1","Name":"Paris","PixelX":100,"PixelY":200}
-                ]
-                """);
+            File.WriteAllText(
+                Path.Combine(tempDir, "locations.json"),
+                "[{\"Id\":\"a1\",\"Name\":\"Paris\",\"PixelX\":100,\"PixelY\":200}]");
 
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = CreateLoaderForJsonTests(tempDir);
             var locations = await loader.LoadLocationsAsync();
 
             Assert.Single(locations);
@@ -104,7 +101,7 @@ public class ContentLoaderTests
         try
         {
             File.WriteAllText(Path.Combine(tempDir, "locations.json"), "{ bad json");
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = CreateLoaderForJsonTests(tempDir);
 
             await Assert.ThrowsAsync<InvalidOperationException>(() => loader.LoadLocationsAsync());
         }
@@ -140,11 +137,23 @@ public class ContentLoaderTests
         }
     }
 
+    /// <summary>
+    /// Loader that skips the repo Excel file so JSON-only tests stay isolated.
+    /// </summary>
+    private static ContentLoader CreateLoaderForJsonTests(string contentFolderPath)
+    {
+        return new ContentLoader(new MockLogger())
+        {
+            ContentFolderPath = contentFolderPath,
+            ExcelCoordinateFilePath = Path.Combine(contentFolderPath, "no-excel-for-test.xlsx"),
+        };
+    }
+
     private static string CreateContentFolderWithMap()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-cl-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
-        File.WriteAllText(Path.Combine(tempDir, "World Map Extra Large.jpg"), "fake-image-data");
+        File.WriteAllText(Path.Combine(tempDir, ContentFileNames.WorldMapFileName), "fake-image-data");
         return tempDir;
     }
 }

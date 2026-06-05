@@ -12,6 +12,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [RELIABILITY.md](RELIABILITY.md) | Logging, startup validation, error handling |
 | [SECURITY.md](SECURITY.md) | Project-specific security guidance |
 | [agent-workflows.md](agent-workflows.md) | Ralph Wiggum loop and agent procedures |
+| [agent-failures.md](agent-failures.md) | Agent mistake log and harness promotions |
 
 ## Design & Specs
 
@@ -44,6 +45,8 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [DEBUGGING_IMPROVEMENTS.md](DEBUGGING_IMPROVEMENTS.md) | Debug logging tips |
 
 ## Planning & Analysis
+
+> Historical plans — prefer [exec-plans/active/](exec-plans/active/) for current work unless a plan is explicitly reopened.
 
 | Doc | Description |
 |-----|-------------|

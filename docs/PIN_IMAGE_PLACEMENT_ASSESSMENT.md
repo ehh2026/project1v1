@@ -4,7 +4,9 @@
 
 ### What We Have
 
-1. **12 extracted pin PNG images** (in 5 threshold variants) at `Images&Content/Pins/threshold_*/pin_NN.png`
+1. **12 extracted pin PNG images** at `Images&Content/Pins/threshold_*/pin_NN.png`
+   - Extracted from a downloaded `Pins.jpg` source image (not generated/rendered by us)
+   - 5 threshold variants exist (230-250) from tuning the extraction; only one set is needed for production (235 recommended)
    - Transparent backgrounds, ~400-600px wide, varying aspect ratios
    - Each pin has a **different angle and orientation** baked into the image:
      - Pins 01, 03: ~30-40 degrees tilted left (tip bottom-right, head top-left)
@@ -103,7 +105,7 @@ That's heavy coverage in the 150-210 range (mostly "pointing down") and gaps in 
 Non-uniform scaling (different X and Y factors) to match length while preserving angle would distort the spherical pin heads into ellipses and make the metallic shafts look warped. At any visible size this will look wrong. **Recommendation: avoid stretching entirely.**
 
 ### 3. Annotation effort
-Manually identifying (tipX, tipY) and (headX, headY) for 12 pins x 5 thresholds = 60 annotations (or 12 if you pick one threshold). This is tedious but doable, especially with a small Python script that shows each image and lets you click two points. It's a one-time cost.
+Manually identifying (tipX, tipY) and (headX, headY) for 12 pins is tedious but doable, especially with a small Python script that shows each image and lets you click two points. It's a one-time cost. (Only one threshold variant needs annotation - pick 235 and use that set.)
 
 ### 4. The "old drawn pins" endpoint data doesn't exist yet
 The `manual-layouts.json` file referenced in the config doesn't exist in the repo. The manual layout editor is designed but not populated. So there's no saved old-version endpoint data to match against. The radial extension *calculator* generates endpoints algorithmically, but those are ephemeral (computed at runtime, not persisted). You'd need to either:
@@ -170,12 +172,18 @@ If you want to preserve the baked-in lighting as much as possible:
 
 **Downside:** Some locations will still need large rotations due to coverage gaps, or you'll get visually inconsistent pin selections (e.g., all pins in one quadrant use the same color because only one pin covers that angle range).
 
-### Option C: Pre-Render Rotated Variants (Most Polished)
+### Option C: Pre-Render Rotated Variants (NOT Recommended)
 
-Use a script to pre-generate rotated versions of each pin at, say, 15-degree increments (24 variants per pin = 288 total images). Then at runtime, select the closest pre-rendered variant with zero or minimal runtime rotation.
+The idea would be to use a script (e.g., Pillow in Python) to pre-generate rotated versions of each pin at fixed angle increments, then pick the closest variant at runtime.
 
-**Upside:** No lighting artifacts at all.
-**Downside:** 288 PNG files, more complex asset management, larger build size.
+**This does NOT actually solve the lighting problem.** Rotating pixel data in a script produces the exact same result as rotating it at runtime in WPF - the specular highlights and shadows are baked into the pixels and rotate with them either way. A photograph of a 3D object rotated 90 degrees still has the light coming from the wrong direction.
+
+The only ways to get truly correct lighting at all angles would be:
+- **Re-render from a 3D model** at each desired angle (we don't have one - these pins were extracted from a downloaded JPG)
+- **Find/purchase a pin asset pack** photographed or rendered at multiple angles with consistent lighting
+- **Use a simpler pin style** (flat/matte design with no specular highlights or directional shadows) where rotation is visually indistinguishable
+
+Since Option C offers no quality advantage over Option A while adding ~288 PNG files and more complex asset management, it is not recommended.
 
 ---
 
@@ -210,7 +218,7 @@ Use a script to pre-generate rotated versions of each pin at, say, 15-degree inc
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Lighting looks wrong after rotation | Low at 3% scale | Test visually; fall back to Option C if bad |
+| Lighting looks wrong after rotation | Low at 3% scale | Invisible at small sizes; for large zoom, would need new source assets (3D renders or flat design) |
 | Pin tip/head annotation is inaccurate | Medium | Use script with zoom + crosshair; test overlay |
 | Scaling makes pins too small/large | Low | Clamp scale factor to 0.5x-2.0x of base |
 | Dense clusters have overlapping pin heads | Medium | Already handled by radial extension nudging |
@@ -227,3 +235,5 @@ Use a script to pre-generate rotated versions of each pin at, say, 15-degree inc
 4. ~1 hour: Testing and tuning
 
 The angle-matching idea (Option B) is a valid refinement to add later if visual quality at higher zoom levels matters, but it's not necessary for the first pass.
+
+Note: Option C (pre-rendered rotated variants) was considered but does not actually solve lighting artifacts - rotating pixel data in a script produces the same result as rotating at runtime. Since the pins were extracted from a downloaded photograph (not rendered from a 3D model), there is no way to get correct lighting at arbitrary angles from these source assets. If lighting fidelity at high zoom ever becomes important, the solution would be new source assets (3D-rendered pin set or flat/matte pin designs), not pre-rotation of the existing ones.

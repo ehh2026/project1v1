@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Tests.TestHelpers;
 using Xunit;
@@ -105,13 +106,14 @@ public class StartupValidatorTests
 
         if (includeMap)
         {
-            File.WriteAllText(Path.Combine(tempDir, "World Map 1976.jpg"), "fake");
+            File.WriteAllText(Path.Combine(tempDir, ContentFileNames.WorldMapFileName), "fake");
         }
 
         if (includeLocations)
         {
-            File.WriteAllText(Path.Combine(tempDir, "locations.json"),
-                """[{"Id":"1","Name":"Test","PixelX":100,"PixelY":200}]""");
+            File.WriteAllText(
+                Path.Combine(tempDir, "locations.json"),
+                "[{\"Id\":\"1\",\"Name\":\"Test\",\"PixelX\":100,\"PixelY\":200}]");
         }
 
         return tempDir;

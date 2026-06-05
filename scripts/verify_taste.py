@@ -28,7 +28,6 @@ CONSOLE_GRANDFATHER = {
     "Services/FileLogger.cs",  # intentional console mirror for dev
     "Views/LocationMarker.xaml.cs",
     "Views/ImagePinMarker.xaml.cs",
-    "Views/ClusterMarker.xaml.cs",
 }
 
 
@@ -101,6 +100,34 @@ def check_stale_active_plans(errors: list[str]) -> None:
             )
 
 
+def check_views_content_paths(errors: list[str]) -> None:
+    views_dir = REPO_ROOT / "Views"
+    if not views_dir.exists():
+        return
+    for path in views_dir.rglob("*.cs"):
+        content = path.read_text(encoding="utf-8", errors="replace")
+        if "Images&Content" in content:
+            rel = path.relative_to(REPO_ROOT)
+            errors.append(
+                f"{rel}: Views must not reference Images&Content paths. "
+                "REMEDIATION: Load via ContentLoader in MainWindow and pass ImageSource to the View."
+            )
+
+
+def check_views_jobject(errors: list[str]) -> None:
+    views_dir = REPO_ROOT / "Views"
+    if not views_dir.exists():
+        return
+    for path in views_dir.rglob("*.cs"):
+        content = path.read_text(encoding="utf-8", errors="replace")
+        if "JObject" in content:
+            rel = path.relative_to(REPO_ROOT)
+            errors.append(
+                f"{rel}: JObject must not appear in Views. "
+                "REMEDIATION: Deserialize into Models/ at the service boundary."
+            )
+
+
 def check_agents_md_size(errors: list[str]) -> None:
     agents = REPO_ROOT / "AGENTS.md"
     if not agents.exists():
@@ -120,6 +147,8 @@ def main() -> int:
     check_console_writeline(errors)
     check_visual_config_model(errors)
     check_stale_active_plans(errors)
+    check_views_content_paths(errors)
+    check_views_jobject(errors)
     check_agents_md_size(errors)
 
     if errors:

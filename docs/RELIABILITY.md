@@ -78,12 +78,12 @@ Exit codes: `0` = pass, `1` = validation errors, `2` = build failure.
 ### StartupValidator
 
 - Class: `Services/StartupValidator.cs`
-- Checks content folder, map image (`World Map 1976.jpg`), `locations.json` format, Excel file presence
+- Checks content folder, map image (`ContentFileNames.WorldMapFileName`), `locations.json` format, Excel file presence
 - Returns `ValidationResult` with `Errors` and `Warnings` lists
 
 ### ContentLoader.ValidateContentFolder()
 
-Lighter check used at runtime: content folder + `World Map Extra Large.jpg`.
+Lighter check used at runtime: content folder + canonical map file from `ContentFileNames.WorldMapFileName`.
 
 **Note:** Map filenames differ between StartupValidator and ContentLoader — known inconsistency tracked in [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md).
 

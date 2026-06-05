@@ -23,6 +23,10 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **Platform note:** WPF requires Windows for UI. macOS can build and run unit tests only.
 
+**SDK:** `global.json` pins **.NET 6 SDK** for this repo (side-by-side with newer SDKs). If `dotnet test` fails locally, install .NET 6 SDK — see [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
+
+**Merge gate:** GitHub Actions `windows-latest` CI runs full `verify.ps1` steps (build, test, doc links, taste, headless startup). macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
+
 ## Repository Layout
 
 | Path | Purpose |
@@ -58,6 +62,7 @@ Violations are caught by `Tests/Architecture/LayerDependencyTests.cs`.
 | Logging & startup | [docs/RELIABILITY.md](docs/RELIABILITY.md) |
 | Security | [docs/SECURITY.md](docs/SECURITY.md) |
 | Agent workflow | [docs/agent-workflows.md](docs/agent-workflows.md) |
+| Agent failure log | [docs/agent-failures.md](docs/agent-failures.md) |
 | Golden principles | [docs/design-docs/golden-principles.md](docs/design-docs/golden-principles.md) |
 | Active work | [docs/exec-plans/active/](docs/exec-plans/active/) |
 | Tech debt | [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md) |

@@ -8,15 +8,14 @@ Opinionated mechanical rules for agent consistency. When documentation is insuff
 
 Deserialize `visual-config.json` and `locations.json` into typed `Models/` classes at load time. Never use raw `JObject` or dynamic parsing in `Views/`.
 
-**Enforced by:** convention + code review  
-**Promote to test when:** second agent stores untyped JSON in Views
+**Enforced by:** `Tests/Architecture/GoldenPrincipleTests.cs`, `scripts/verify_taste.py` (Views/JObject)
 
 ### 2. Content paths via ContentLoader
 
-Resolve all `Images&Content/` paths through `Services/ContentLoader.cs`. Views and MainWindow must not construct content paths ad hoc.
+Resolve all `Images&Content/` paths through `Services/ContentLoader.cs`. Views must not construct content paths; MainWindow loads via `ContentLoader` and passes assets to Views.
 
-**Enforced by:** [golden-principles.md](golden-principles.md) + review  
-**Promote to test when:** second direct path construction found
+**Enforced by:** `Tests/Architecture/GoldenPrincipleTests.cs`, `scripts/verify_taste.py` (Views/Images&Content)  
+**Canonical filenames:** `Models/ContentFileNames.cs`
 
 ### 3. Coordinate math in Utilities
 

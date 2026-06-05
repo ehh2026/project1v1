@@ -4,6 +4,41 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- `global.json` — pins .NET 6 SDK for local/CI alignment; documents side-by-side install with newer SDKs
+- `Models/ContentFileNames.cs` — canonical content filenames (resolves TD-002)
+- `Tests/Architecture/GoldenPrincipleTests.cs` — Views must not use `Images&Content` paths or `JObject`
+- `scripts/doc_gardening.py` and `.github/workflows/doc-gardening.yml` — weekly doc drift checks
+- `docs/agent-failures.md` — harness feedback log for repeatable agent mistakes
+
+### Changed
+
+- `LayerDependencyTests` — scans type references, not only `using` directives
+- `ClusterMarker` — stamp image supplied by MainWindow via `ContentLoader` (no path construction in Views)
+- `ContentLoader` — `GetWorldMapPath`, `ResolveContentFilePath`, `TryLoadContentBitmap`
+- `StartupValidator` and `MainWindow` — use `ContentFileNames` for map and content paths
+- `scripts/verify_taste.py` — Views `Images&Content` and `JObject` checks; removed `ClusterMarker` console grandfather
+- `.github/workflows/ci.yml` — headless startup validation step (parity with `verify.ps1`)
+- `AGENTS.md` — merge gate note and link to agent failure log
+- `InteractiveWorldMap.csproj` — exclude `backups/` from compilation
+- `Tests/InteractiveWorldMap.Tests.csproj` — `LangVersion` 11 for test project build
+- `docs/exec-plans/active/README.md` — placeholder so doc links to active plans resolve
+
+### Changed
+
+- `.cursor/hooks.json` — removed per-turn `stop` verify reminder (too noisy); verification stays at task completion in `AGENTS.md`
+- `scripts/verify.ps1` — fall back to `py -3` when `python` is missing or unavailable (e.g. unconfigured pyenv)
+- `Tests` — C# 10-compatible JSON fixtures (no `LangVersion` 11 required on .NET 6 SDK)
+- `ContentLoader` — optional `ExcelCoordinateFilePath` for isolated location-loading tests
+- `ContentLoaderTests` — skip repo Excel via `ExcelCoordinateFilePath` override
+- `README.md`, `docs/SETUP_GUIDE.md`, `AGENTS.md` — .NET 6 SDK install and `global.json` guidance
+- `docs/TO_DO.md` — item to consider .NET 8 LTS upgrade
+
+### Impact
+
+- Minor harness release: stricter CI and mechanical golden-principle enforcement; no user-visible UI behavior change intended.
+
 ## [0.2.0] - 2026-06-04
 
 ### Verified

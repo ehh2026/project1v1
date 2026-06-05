@@ -31,6 +31,14 @@ The application is functional and ready for demo! Core features are implemented 
 
 ## High Priority 🔴
 
+### Platform & Toolchain
+- [ ] **Consider upgrading from .NET 6 to .NET 8 LTS**
+  - .NET 6 is out of support; .NET 8 is the current LTS for desktop/WPF
+  - Update `TargetFramework` in `InteractiveWorldMap.csproj` and `Tests/InteractiveWorldMap.Tests.csproj`
+  - Update `global.json`, `.github/workflows/ci.yml` (`dotnet-version`), and docs (`README`, `AGENTS.md`, `SETUP_GUIDE`)
+  - Run full `.\scripts\verify.ps1` and fix any breaking API/package changes
+  - Decide whether to jump to .NET 10 or standardize on .NET 8 LTS first
+
 ### Testing & Quality Assurance
 - [ ] **Property-based tests** (marked with `*` in tasks.md)
   - Coordinate mapping accuracy

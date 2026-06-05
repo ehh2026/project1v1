@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using InteractiveWorldMap.Models;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -46,7 +47,7 @@ public class StartupValidator
             _logger.LogInfo($"✓ Content folder found: {_contentFolderPath}");
 
             // Check for world map image
-            var mapPath = Path.Combine(_contentFolderPath, "World Map 1976.jpg");
+            var mapPath = Path.Combine(_contentFolderPath, ContentFileNames.WorldMapFileName);
             if (!File.Exists(mapPath))
             {
                 result.Errors.Add($"World map image not found: {mapPath}");
@@ -58,7 +59,7 @@ public class StartupValidator
             }
 
             // Check for locations.json
-            var locationsPath = Path.Combine(_contentFolderPath, "locations.json");
+            var locationsPath = Path.Combine(_contentFolderPath, ContentFileNames.LocationsJsonFileName);
             if (!File.Exists(locationsPath))
             {
                 _logger.LogInfo($"locations.json not found at: {locationsPath}");

@@ -3,6 +3,7 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media;
 using System.Windows.Media.Animation;
 using InteractiveWorldMap.Models;
 
@@ -10,6 +11,7 @@ namespace InteractiveWorldMap.Views
 {
     /// <summary>
     /// Represents a cluster marker that displays multiple locations grouped together.
+    /// Stamp image is supplied by MainWindow via ContentLoader (Views must not build content paths).
     /// </summary>
     public partial class ClusterMarker : UserControl
     {
@@ -35,27 +37,18 @@ namespace InteractiveWorldMap.Views
         public ClusterMarker()
         {
             InitializeComponent();
-            
-            // Set sizes from config
-            var mainWindow = Application.Current.MainWindow as MainWindow;
+
             double markerSize = 40;
             double badgeSize = 20;
             double fontSize = 12;
-            
-            if (mainWindow != null)
+
+            if (Application.Current.MainWindow is MainWindow mainWindow)
             {
                 markerSize = mainWindow.ClusterMarkerSize;
                 badgeSize = mainWindow.ClusterBadgeSize;
                 fontSize = mainWindow.ClusterCountFontSize;
-                Console.WriteLine($"ClusterMarker: Got sizes from MainWindow - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
-                System.Diagnostics.Debug.WriteLine($"ClusterMarker: Got sizes from MainWindow - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
             }
-            else
-            {
-                Console.WriteLine($"ClusterMarker: MainWindow not available, using defaults - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
-                System.Diagnostics.Debug.WriteLine($"ClusterMarker: MainWindow not available, using defaults - Marker:{markerSize}, Badge:{badgeSize}, Font:{fontSize}");
-            }
-            
+
             Width = markerSize;
             Height = markerSize;
             StampImage.Width = markerSize;
@@ -63,65 +56,48 @@ namespace InteractiveWorldMap.Views
             BadgeEllipse.Width = badgeSize;
             BadgeEllipse.Height = badgeSize;
             CountText.FontSize = fontSize;
-            
-            Console.WriteLine($"ClusterMarker: Set control size to {Width}x{Height}");
-            System.Diagnostics.Debug.WriteLine($"ClusterMarker: Set control size to {Width}x{Height}");
-            
-            // Update ScaleTransform center when size changes
+
             SizeChanged += (s, e) =>
             {
                 ScaleTransform.CenterX = ActualWidth / 2;
                 ScaleTransform.CenterY = ActualHeight / 2;
             };
-            
-            // Load stamp image from file
-            try
-            {
-                var basePath = AppDomain.CurrentDomain.BaseDirectory;
-                var imagePath = System.IO.Path.Combine(basePath, "Images&Content", "stamp_demo.png");
-                
-                if (System.IO.File.Exists(imagePath))
-                {
-                    var bitmap = new System.Windows.Media.Imaging.BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(imagePath, UriKind.Absolute);
-                    bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
-                    bitmap.EndInit();
-                    StampImage.Source = bitmap;
-                }
-                else
-                {
-                    // Fallback: create a blue circle if stamp image not found
-                    var ellipse = new System.Windows.Shapes.Ellipse
-                    {
-                        Width = markerSize,
-                        Height = markerSize,
-                        Fill = new System.Windows.Media.SolidColorBrush(System.Windows.Media.Color.FromRgb(33, 150, 243)),
-                        Stroke = System.Windows.Media.Brushes.White,
-                        StrokeThickness = 3
-                    };
-                    
-                    // Replace the image with the ellipse
-                    var grid = (Grid)Content;
-                    grid.Children.Remove(StampImage);
-                    grid.Children.Insert(0, ellipse);
-                }
-            }
-            catch
-            {
-                // If anything fails, the image will just be empty
-            }
-            
-            // Load storyboards
+
             _hoverInStoryboard = (Storyboard)Resources["HoverInStoryboard"];
             _hoverOutStoryboard = (Storyboard)Resources["HoverOutStoryboard"];
             _clickStoryboard = (Storyboard)Resources["ClickStoryboard"];
-            
-            // Wire up events
+
             MouseEnter += OnMouseEnter;
             MouseLeave += OnMouseLeave;
-            
             Loaded += OnLoaded;
+        }
+
+        /// <summary>
+        /// Applies the cluster stamp image loaded by MainWindow/ContentLoader, or a fallback shape.
+        /// </summary>
+        public void ApplyStampImage(ImageSource? stampImage)
+        {
+            if (stampImage != null)
+            {
+                StampImage.Source = stampImage;
+                return;
+            }
+
+            var markerSize = Width > 0 ? Width : 40;
+            var ellipse = new System.Windows.Shapes.Ellipse
+            {
+                Width = markerSize,
+                Height = markerSize,
+                Fill = new SolidColorBrush(Color.FromRgb(33, 150, 243)),
+                Stroke = Brushes.White,
+                StrokeThickness = 3
+            };
+
+            if (Content is Grid grid)
+            {
+                grid.Children.Remove(StampImage);
+                grid.Children.Insert(0, ellipse);
+            }
         }
 
         private void OnLoaded(object sender, RoutedEventArgs e)
@@ -137,10 +113,8 @@ namespace InteractiveWorldMap.Views
             if (Cluster == null)
                 return;
 
-            // Update count text
             CountText.Text = LocationCount.ToString();
-            
-            // Update tooltip with location names
+
             var locationNames = string.Join("\n", Cluster.Locations.Select(l => l.Name));
             ToolTip = $"{LocationCount} locations:\n{locationNames}";
         }

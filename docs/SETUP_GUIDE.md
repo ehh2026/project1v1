@@ -1,6 +1,26 @@
 # Setup Guide - New Pixel-Based System
 
-## Prerequisites
+## .NET SDK (build and test)
+
+The app targets **`net6.0-windows`**. Repo root **`global.json`** pins the **.NET 6 SDK** so `dotnet build` / `dotnet test` use the same toolchain as GitHub Actions CI.
+
+| Situation | What to do |
+|-----------|------------|
+| Only .NET 8/10 installed | Also install [.NET 6 SDK](https://dotnet.microsoft.com/download/dotnet/6.0) — side-by-side with newer SDKs is supported |
+| `dotnet --version` shows 10.x in this repo | Install .NET 6 SDK; `global.json` will select 6.0.x automatically |
+| Tests fail: missing `Microsoft.NETCore.App 6.0.x` | Install .NET 6 SDK or 6.0 runtime (SDK is preferred) |
+| Full verification | `.\scripts\verify.ps1` (Windows) or `./scripts/verify.sh` (macOS/Linux harness checks) |
+
+```powershell
+dotnet --list-sdks
+dotnet --list-runtimes
+dotnet build InteractiveWorldMap.sln
+dotnet test Tests/InteractiveWorldMap.Tests.csproj
+```
+
+Future: consider upgrading to **.NET 8 LTS** — tracked in [TO_DO.md](TO_DO.md).
+
+## Content prerequisites
 
 1. **Excel File**: `Coordinates for map.xlsx` in the project root
    - Column A: Name (person's name)
@@ -8,7 +28,7 @@
    - Column C: PixelY (Y coordinate on map)
    - Column D: Address (optional)
 
-2. **Map Image**: `Images&Content/World Map 1976.jpg` (16397 x 11085 pixels)
+2. **Map Image**: `Images&Content/World Map Extra Large.jpg` (canonical name in `Models/ContentFileNames.cs`)
 
 ## Folder Structure Setup
 
@@ -16,7 +36,7 @@ Create the following structure in `Images&Content/`:
 
 ```
 Images&Content/
-├── World Map 1976.jpg
+├── World Map Extra Large.jpg
 ├── New York City/
 │   ├── photo1.jpg
 │   ├── photo2.jpg

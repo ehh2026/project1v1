@@ -6,7 +6,31 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
 
-Write-Host "=== Interactive World Map — Harness Verification ==="
+function Invoke-HarnessPython {
+    param([string]$RelativeScript)
+    $script = Join-Path $Root $RelativeScript
+    $hasPython = $null -ne (Get-Command python -ErrorAction SilentlyContinue)
+    $hasPyLauncher = $null -ne (Get-Command py -ErrorAction SilentlyContinue)
+
+    if ($hasPython) {
+        & python $script
+        if ($LASTEXITCODE -eq 0) { return }
+    }
+
+    if ($hasPyLauncher) {
+        & py -3 $script
+        if ($LASTEXITCODE -eq 0) { return }
+    }
+
+    if (-not $hasPython -and -not $hasPyLauncher) {
+        Write-Error "Python 3 not found. REMEDIATION: Install Python 3 or use Windows py launcher (py -3)."
+        exit 2
+    }
+
+    exit $LASTEXITCODE
+}
+
+Write-Host "=== Interactive World Map - Harness Verification ==="
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     Write-Error "dotnet SDK not found. REMEDIATION: Install .NET 6 SDK from https://dotnet.microsoft.com/download"
@@ -23,12 +47,10 @@ Write-Host "[3/6] dotnet test"
 dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal
 
 Write-Host "[4/6] doc link check"
-python scripts/verify_doc_links.py
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Invoke-HarnessPython "scripts/verify_doc_links.py"
 
 Write-Host "[5/6] taste checks"
-python scripts/verify_taste.py
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+Invoke-HarnessPython "scripts/verify_taste.py"
 
 Write-Host "[6/6] headless startup validation"
 & "$PSScriptRoot\validate_startup.ps1"

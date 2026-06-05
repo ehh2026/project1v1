@@ -36,6 +36,12 @@ public class ContentLoader
     public string ContentFolderPath { get; set; }
 
     /// <summary>
+    /// Optional override for the Excel coordinate file path.
+    /// When null, uses "Coordinates for map.xlsx" next to the executable.
+    /// </summary>
+    public string? ExcelCoordinateFilePath { get; set; }
+
+    /// <summary>
     /// Gets a value indicating whether the ContentLoader has been initialized.
     /// </summary>
     public bool IsInitialized { get; private set; }
@@ -46,8 +52,40 @@ public class ContentLoader
         _contentCache = new Dictionary<string, BitmapImage>();
         _clusterer = new LocationClusterer();
         _clusterCache = new ClusterCache(logger);
-        ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content");
+        ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ContentFileNames.ContentFolderName);
         _logger.LogInfo($"ContentLoader initialized with path: {ContentFolderPath}");
+    }
+
+    /// <summary>Absolute path to the primary world map image.</summary>
+    public string GetWorldMapPath() => Path.Combine(ContentFolderPath, ContentFileNames.WorldMapFileName);
+
+    /// <summary>Resolves a file name under the content folder.</summary>
+    public string ResolveContentFilePath(string fileName) => Path.Combine(ContentFolderPath, fileName);
+
+    /// <summary>
+    /// Loads a bitmap from the content folder if present; returns null when missing or on error.
+    /// </summary>
+    public BitmapImage? TryLoadContentBitmap(string fileName)
+    {
+        try
+        {
+            var path = ResolveContentFilePath(fileName);
+            if (!File.Exists(path))
+                return null;
+
+            var bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(path, UriKind.Absolute);
+            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+            bitmap.EndInit();
+            bitmap.Freeze();
+            return bitmap;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to load content bitmap '{fileName}': {ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>
@@ -58,7 +96,7 @@ public class ContentLoader
     {
         try
         {
-            var mapPath = Path.Combine(ContentFolderPath, "World Map Extra Large.jpg");
+            var mapPath = GetWorldMapPath();
             
             if (!File.Exists(mapPath))
             {
@@ -137,7 +175,8 @@ public class ContentLoader
         try
         {
             // Try to load from Excel file first
-            var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
+            var excelPath = ExcelCoordinateFilePath
+                ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
             _logger.LogInfo($"Checking for Excel file at: {excelPath}");
             
             if (File.Exists(excelPath))
@@ -163,7 +202,7 @@ public class ContentLoader
             }
 
             // Fall back to locations.json
-            var locationsPath = Path.Combine(ContentFolderPath, "locations.json");
+            var locationsPath = Path.Combine(ContentFolderPath, ContentFileNames.LocationsJsonFileName);
             _logger.LogInfo($"Checking for locations.json at: {locationsPath}");
             
             if (!File.Exists(locationsPath))
@@ -425,14 +464,14 @@ public class ContentLoader
                 return false;
             }
 
-            var mapPath = Path.Combine(ContentFolderPath, "World Map Extra Large.jpg");
+            var mapPath = GetWorldMapPath();
             if (!File.Exists(mapPath))
             {
                 _logger.LogError($"World map image not found: {mapPath}");
                 return false;
             }
 
-            var locationsPath = Path.Combine(ContentFolderPath, "locations.json");
+            var locationsPath = Path.Combine(ContentFolderPath, ContentFileNames.LocationsJsonFileName);
             if (!File.Exists(locationsPath))
             {
                 _logger.LogWarning($"Locations file not found: {locationsPath}");

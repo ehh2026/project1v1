@@ -36,3 +36,8 @@ jobs:
       - name: Taste checks
         shell: pwsh
         run: python scripts/verify_taste.py
+
+      - name: Headless startup validation
+        shell: pwsh
+        run: .\scripts\validate_startup.ps1
+        # REMEDIATION: Run scripts/verify.ps1 locally on Windows for the full harness loop

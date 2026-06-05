@@ -20,17 +20,19 @@ public class LayerDependencyTests
         ["Views"] = new[] { "InteractiveWorldMap.Services", "InteractiveWorldMap.Utilities" },
     };
 
+    private static string RepoRoot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+
     private static IEnumerable<string> GetProjectCsFiles()
     {
-        var repoRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
         var exclude = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            Path.Combine(repoRoot, "Tests"),
-            Path.Combine(repoRoot, "obj"),
-            Path.Combine(repoRoot, "bin"),
+            Path.Combine(RepoRoot, "Tests"),
+            Path.Combine(RepoRoot, "obj"),
+            Path.Combine(RepoRoot, "bin"),
         };
 
-        foreach (var file in Directory.EnumerateFiles(repoRoot, "*.cs", SearchOption.AllDirectories))
+        foreach (var file in Directory.EnumerateFiles(RepoRoot, "*.cs", SearchOption.AllDirectories))
         {
             if (exclude.Any(ex => file.StartsWith(ex, StringComparison.OrdinalIgnoreCase)))
                 continue;
@@ -66,22 +68,18 @@ public class LayerDependencyTests
                 continue;
 
             var content = File.ReadAllText(file);
-            var usings = usingPattern.Matches(content)
-                .Select(m => m.Groups[1].Value)
-                .Distinct()
-                .ToList();
+            var relative = Path.GetRelativePath(RepoRoot, file);
 
             foreach (var forbiddenNs in ForbiddenReferences[layer])
             {
-                if (usings.Contains(forbiddenNs))
-                {
-                    var relative = Path.GetRelativePath(
-                        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..")),
-                        file);
-                    violations.Add(
-                        $"{relative}: {layer} must not reference {forbiddenNs}. " +
-                        $"REMEDIATION: Move shared logic to Services/ or Models/, inject dependencies via constructor.");
-                }
+                if (!content.Contains(forbiddenNs, StringComparison.Ordinal))
+                    continue;
+
+                var viaUsing = usingPattern.Matches(content).Select(m => m.Groups[1].Value).Distinct().Contains(forbiddenNs);
+                var detail = viaUsing ? "using or type reference" : "type reference";
+                violations.Add(
+                    $"{relative}: {layer} must not reference {forbiddenNs} ({detail}). " +
+                    "REMEDIATION: Move shared logic to Services/ or Models/, inject dependencies via constructor.");
             }
         }
 

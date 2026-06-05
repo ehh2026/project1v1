@@ -19,15 +19,26 @@ Set parameters in visual-config.json - now includes a manal layout mode where yo
 ## System Requirements
 
 - **Operating System**: Windows 10 or later
-- **.NET SDK**: .NET 6.0 or later
+- **.NET SDK**: .NET 6.0 SDK (pinned via `global.json`; installs alongside newer SDKs)
 - **Framework**: Windows Presentation Foundation (WPF)
 
 ## Installation
 
 ### Prerequisites
 
-1. Install .NET 6.0 SDK or later from: https://dotnet.microsoft.com/download
-2. Verify installation by running: `dotnet --version`
+This project targets **`net6.0-windows`**. CI and `global.json` expect the **.NET 6 SDK** — not only a newer SDK such as .NET 10.
+
+1. Install the **.NET 6 SDK** from: https://dotnet.microsoft.com/download/dotnet/6.0  
+   You can keep .NET 8/10 installed; multiple SDKs coexist under `C:\Program Files\dotnet\`.
+2. From the repo root, verify the pinned SDK is selected:
+
+```powershell
+dotnet --version          # should report 6.0.x when global.json is present
+dotnet --list-sdks        # should list both 6.0.x and any newer SDKs
+dotnet --list-runtimes    # should include Microsoft.NETCore.App 6.0.x
+```
+
+3. If `dotnet test` fails with a missing `Microsoft.NETCore.App 6.0.x` runtime, install the .NET 6 SDK (it includes the 6.0 runtime) or the [.NET 6 runtime](https://dotnet.microsoft.com/download/dotnet/6.0) separately.
 
 ### Building the Application
 
@@ -138,7 +149,7 @@ The application follows a layered architecture:
 
 ## Technology Stack
 
-- **Framework**: WPF with .NET 6.0+
+- **Framework**: WPF with .NET 6.0 (`global.json` pins SDK; see [docs/TO_DO.md](docs/TO_DO.md) for a planned .NET 8 LTS upgrade)
 - **Language**: C# 10.0+
 - **Graphics**: WPF Image controls with hardware acceleration
 - **Animations**: WPF Storyboard and DoubleAnimation
