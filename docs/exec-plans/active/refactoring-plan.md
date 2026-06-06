@@ -149,4 +149,4 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] Full test suite green (185 total)
 - [x] `.\scripts\verify.ps1` passed
 - [x] CHANGELOG.md updated
-- [ ] Committed
+- [x] Committed (8c967fb)
