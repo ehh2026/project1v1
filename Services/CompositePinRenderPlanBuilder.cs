@@ -12,10 +12,74 @@ namespace InteractiveWorldMap.Services
     /// </summary>
     public class CompositePinRenderPlanBuilder
     {
+        // -------------------------------------------------------------------------
+        // Private context records used by the BuildPlan pipeline
+        // -------------------------------------------------------------------------
+
+        private sealed record ValidatedInputs(
+            PinPartGeometryEntry     Geometry,
+            PinPartImageSize         ShaftSize,
+            PinPartImageSize         HeadSize,
+            PinPartShaftSegmentation Segmentation,
+            PinPartPoint             HeadAttach);
+
+        private sealed record PreparedGeometry(
+            double        TargetLength,
+            double        TargetAngle,
+            double        TargetBodyLength,
+            double        BodyStretch,
+            Vector        TargetDirection,
+            Vector        TargetNormal,
+            Point         NativeTip,
+            Vector        NativeAxisUnit,
+            Vector        NativeNormal,
+            Rect          NativeBounds,
+            List<Point>   ShaftRectCorners,
+            List<Point>   HeadRectCorners);
+
+        private sealed record ComputedTransforms(
+            Matrix TipTransform,
+            Matrix BodyTransform,
+            Matrix HeadCapTransform,
+            Matrix HeadTransform,
+            double HeadRotationDeg);
+
+        private sealed record ShiftedGeometry(
+            Matrix TipTransform,
+            Matrix BodyTransform,
+            Matrix HeadCapTransform,
+            Matrix HeadTransform,
+            Point  TipAnchor,
+            Point  JoinAnchor,
+            Point  StretchStart,
+            Point  StretchEnd,
+            double CanvasWidth,
+            double CanvasHeight);
+
+        // -------------------------------------------------------------------------
+        // Public API
+        // -------------------------------------------------------------------------
+
         public CompositePinRenderPlan BuildPlan(
-            PinPlacementTarget target,
+            PinPlacementTarget    target,
             PinPartPlacementResult placement,
-            PinPartConfig config)
+            PinPartConfig         config)
+        {
+            var validated  = ValidateInputs(target, placement, config);
+            var geo        = PrepareGeometry(target, validated);
+            var transforms = CalculateTransforms(geo, validated);
+            var shifted    = CalculateBoundsAndShift(geo, transforms, validated.Segmentation);
+            return AssembleResult(placement, config, validated, geo, transforms, shifted);
+        }
+
+        // -------------------------------------------------------------------------
+        // Pipeline steps
+        // -------------------------------------------------------------------------
+
+        private static ValidatedInputs ValidateInputs(
+            PinPlacementTarget     target,
+            PinPartPlacementResult placement,
+            PinPartConfig          config)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -36,149 +100,191 @@ namespace InteractiveWorldMap.Services
             var headAttach = geometry.Head.LocalAttach
                 ?? throw new InvalidOperationException("Head attach point is required for composite rendering.");
 
-            var targetLength = GetDistance(target.StartScreen, target.EndScreen);
-            var targetAngle = GetAngleDegrees(target.StartScreen, target.EndScreen);
-            var targetBodyLength = targetLength - segmentation.TipCapLength - segmentation.HeadCapLength;
+            return new ValidatedInputs(geometry, shaftSize, headSize, segmentation, headAttach);
+        }
+
+        private static PreparedGeometry PrepareGeometry(
+            PinPlacementTarget target,
+            ValidatedInputs    v)
+        {
+            var targetLength     = GetDistance(target.StartScreen, target.EndScreen);
+            var targetAngle      = GetAngleDegrees(target.StartScreen, target.EndScreen);
+            var targetBodyLength = targetLength - v.Segmentation.TipCapLength - v.Segmentation.HeadCapLength;
             if (targetBodyLength <= 0.0)
             {
                 throw new InvalidOperationException(
                     $"Target length {targetLength:F1}px is shorter than the non-stretchable caps " +
-                    $"({segmentation.TipCapLength + segmentation.HeadCapLength:F1}px).");
+                    $"({v.Segmentation.TipCapLength + v.Segmentation.HeadCapLength:F1}px).");
             }
 
-            var bodyStretch = targetBodyLength / segmentation.StretchableLength;
+            var bodyStretch     = targetBodyLength / v.Segmentation.StretchableLength;
             var targetDirection = Normalize(target.EndScreen - target.StartScreen);
-            var targetNormal = new Vector(-targetDirection.Y, targetDirection.X);
+            var targetNormal    = new Vector(-targetDirection.Y, targetDirection.X);
 
-            var nativeTip = ToPoint(geometry.Shaft.LocalTip);
-            var nativeJoin = ToPoint(geometry.Shaft.LocalJoin);
-            var nativeAxis = nativeJoin - nativeTip;
+            var nativeTip       = ToPoint(v.Geometry.Shaft.LocalTip);
+            var nativeJoin      = ToPoint(v.Geometry.Shaft.LocalJoin);
+            var nativeAxis      = nativeJoin - nativeTip;
             var nativeAxisLength = nativeAxis.Length;
             if (nativeAxisLength <= 0.0)
                 throw new InvalidOperationException("Shaft native axis length must be greater than zero.");
 
-            var nativeAxisUnit = Normalize(nativeAxis);
-            var nativeNormal = new Vector(-nativeAxisUnit.Y, nativeAxisUnit.X);
+            var nativeAxisUnit  = Normalize(nativeAxis);
+            var nativeNormal    = new Vector(-nativeAxisUnit.Y, nativeAxisUnit.X);
 
-            var shaftRectCorners = GetRectangleCorners(shaftSize.Width, shaftSize.Height);
-            var headRectCorners = GetRectangleCorners(headSize.Width, headSize.Height);
-            var nativeBounds = new Rect(0, 0, shaftSize.Width, shaftSize.Height);
+            var shaftRectCorners = GetRectangleCorners(v.ShaftSize.Width, v.ShaftSize.Height);
+            var headRectCorners  = GetRectangleCorners(v.HeadSize.Width, v.HeadSize.Height);
+            var nativeBounds     = new Rect(0, 0, v.ShaftSize.Width, v.ShaftSize.Height);
 
-            var tipTransform = CreateLayerTransform(
-                nativeTip,
-                nativeAxisUnit,
-                nativeNormal,
-                targetDirection,
-                targetNormal,
-                new Point(0, 0),
+            return new PreparedGeometry(
+                targetLength, targetAngle, targetBodyLength, bodyStretch,
+                targetDirection, targetNormal,
+                nativeTip, nativeAxisUnit, nativeNormal,
+                nativeBounds, shaftRectCorners, headRectCorners);
+        }
+
+        private static ComputedTransforms CalculateTransforms(
+            PreparedGeometry geo,
+            ValidatedInputs  v)
+        {
+            // Local helper deduplicates the five shared axis arguments
+            // common to all three shaft layer transforms
+            Matrix ShaftLayerTransform(double axialScale, double axialOffset) =>
+                CreateLayerTransform(
+                    geo.NativeTip, geo.NativeAxisUnit, geo.NativeNormal,
+                    geo.TargetDirection, geo.TargetNormal,
+                    new Point(0, 0), axialScale, axialOffset);
+
+            var seg              = v.Segmentation;
+            var tipTransform     = ShaftLayerTransform(1.0, 0.0);
+            var bodyTransform    = ShaftLayerTransform(
+                geo.BodyStretch,
+                seg.TipCapLength - (seg.StretchStartDistance * geo.BodyStretch));
+            var headCapTransform = ShaftLayerTransform(
                 1.0,
-                0.0);
+                seg.TipCapLength + geo.TargetBodyLength - seg.StretchEndDistance);
 
-            var bodyTransform = CreateLayerTransform(
-                nativeTip,
-                nativeAxisUnit,
-                nativeNormal,
-                targetDirection,
-                targetNormal,
-                new Point(0, 0),
-                bodyStretch,
-                segmentation.TipCapLength - (segmentation.StretchStartDistance * bodyStretch));
-
-            var headCapTransform = CreateLayerTransform(
-                nativeTip,
-                nativeAxisUnit,
-                nativeNormal,
-                targetDirection,
-                targetNormal,
-                new Point(0, 0),
-                1.0,
-                segmentation.TipCapLength + targetBodyLength - segmentation.StretchEndDistance);
-
-            var nativeAttachToCenterAngle = Normalize360(geometry.Head.StubDirectionDeg + 180.0);
-            var headRotationDeg = NormalizeSignedAngle(targetAngle - nativeAttachToCenterAngle);
-            var headTransform = CreateHeadTransform(
-                headAttach,
-                new Point(targetDirection.X * targetLength, targetDirection.Y * targetLength),
+            var nativeAttachToCenterAngle = Normalize360(v.Geometry.Head.StubDirectionDeg + 180.0);
+            var headRotationDeg           = NormalizeSignedAngle(geo.TargetAngle - nativeAttachToCenterAngle);
+            var headTransform             = CreateHeadTransform(
+                v.HeadAttach,
+                new Point(geo.TargetDirection.X * geo.TargetLength, geo.TargetDirection.Y * geo.TargetLength),
                 headRotationDeg);
 
+            return new ComputedTransforms(tipTransform, bodyTransform, headCapTransform, headTransform, headRotationDeg);
+        }
+
+        private static ShiftedGeometry CalculateBoundsAndShift(
+            PreparedGeometry         geo,
+            ComputedTransforms       t,
+            PinPartShaftSegmentation seg)
+        {
             var allBounds = new List<Rect>
             {
-                GetTransformedBounds(shaftRectCorners, tipTransform),
-                GetTransformedBounds(shaftRectCorners, bodyTransform),
-                GetTransformedBounds(shaftRectCorners, headCapTransform),
-                GetTransformedBounds(headRectCorners, headTransform)
+                GetTransformedBounds(geo.ShaftRectCorners, t.TipTransform),
+                GetTransformedBounds(geo.ShaftRectCorners, t.BodyTransform),
+                GetTransformedBounds(geo.ShaftRectCorners, t.HeadCapTransform),
+                GetTransformedBounds(geo.HeadRectCorners,  t.HeadTransform)
             };
 
             var unionBounds = Union(allBounds);
             var shiftX = -unionBounds.Left;
             var shiftY = -unionBounds.Top;
 
-            tipTransform.Translate(shiftX, shiftY);
-            bodyTransform.Translate(shiftX, shiftY);
-            headCapTransform.Translate(shiftX, shiftY);
-            headTransform.Translate(shiftX, shiftY);
+            // Matrix is a value type — copying to locals before translating preserves the originals
+            var tipT     = t.TipTransform;     tipT.Translate(shiftX, shiftY);
+            var bodyT    = t.BodyTransform;    bodyT.Translate(shiftX, shiftY);
+            var headCapT = t.HeadCapTransform; headCapT.Translate(shiftX, shiftY);
+            var headT    = t.HeadTransform;    headT.Translate(shiftX, shiftY);
 
-            var shiftedTargetEnd = new Point((targetDirection.X * targetLength) + shiftX, (targetDirection.Y * targetLength) + shiftY);
-            var shiftedTargetStart = new Point(shiftX, shiftY);
-            var shiftedStretchStart = new Point(
-                shiftedTargetStart.X + (targetDirection.X * segmentation.TipCapLength),
-                shiftedTargetStart.Y + (targetDirection.Y * segmentation.TipCapLength));
-            var shiftedStretchEnd = new Point(
-                shiftedTargetStart.X + (targetDirection.X * (segmentation.TipCapLength + targetBodyLength)),
-                shiftedTargetStart.Y + (targetDirection.Y * (segmentation.TipCapLength + targetBodyLength)));
+            var tipAnchor  = new Point(shiftX, shiftY);
+            var joinAnchor = new Point(
+                (geo.TargetDirection.X * geo.TargetLength) + shiftX,
+                (geo.TargetDirection.Y * geo.TargetLength) + shiftY);
+            var stretchStart = new Point(
+                tipAnchor.X + (geo.TargetDirection.X * seg.TipCapLength),
+                tipAnchor.Y + (geo.TargetDirection.Y * seg.TipCapLength));
+            var stretchEnd = new Point(
+                tipAnchor.X + (geo.TargetDirection.X * (seg.TipCapLength + geo.TargetBodyLength)),
+                tipAnchor.Y + (geo.TargetDirection.Y * (seg.TipCapLength + geo.TargetBodyLength)));
+
+            return new ShiftedGeometry(
+                tipT, bodyT, headCapT, headT,
+                tipAnchor, joinAnchor, stretchStart, stretchEnd,
+                unionBounds.Width, unionBounds.Height);
+        }
+
+        private static CompositePinRenderPlan AssembleResult(
+            PinPartPlacementResult placement,
+            PinPartConfig          config,
+            ValidatedInputs        v,
+            PreparedGeometry       geo,
+            ComputedTransforms     t,
+            ShiftedGeometry        s)
+        {
+            var geometry  = v.Geometry;
+            var seg       = v.Segmentation;
+            var shaftPath = Path.Combine(config.PartsFolderPath, geometry.ShaftFile);
+            var headPath  = Path.Combine(config.PartsFolderPath, geometry.HeadFile);
 
             return new CompositePinRenderPlan
             {
-                PairId = placement.PairId,
-                ShaftSourcePath = Path.Combine(config.PartsFolderPath, geometry.ShaftFile),
-                HeadSourcePath = Path.Combine(config.PartsFolderPath, geometry.HeadFile),
-                Width = Math.Round(unionBounds.Width, 1),
-                Height = Math.Round(unionBounds.Height, 1),
-                TargetAngleDeg = Math.Round(targetAngle, 1),
-                TargetLengthPx = Math.Round(targetLength, 1),
-                HeadRotationDeg = Math.Round(headRotationDeg, 1),
-                BodyStretchFactor = Math.Round(bodyStretch, 3),
-                StretchBodyLengthPx = Math.Round(targetBodyLength, 1),
-                TipAnchorLocal = shiftedTargetStart,
-                JoinAnchorLocal = shiftedTargetEnd,
-                StretchStartLocal = shiftedStretchStart,
-                StretchEndLocal = shiftedStretchEnd,
-                HeadAttachLocal = shiftedTargetEnd,
-                HeadCenterLocal = TransformPoint(ToPoint(geometry.Head.LocalCenter), headTransform),
+                PairId              = placement.PairId,
+                ShaftSourcePath     = shaftPath,
+                HeadSourcePath      = headPath,
+                Width               = Math.Round(s.CanvasWidth,       1),
+                Height              = Math.Round(s.CanvasHeight,      1),
+                TargetAngleDeg      = Math.Round(geo.TargetAngle,     1),
+                TargetLengthPx      = Math.Round(geo.TargetLength,    1),
+                HeadRotationDeg     = Math.Round(t.HeadRotationDeg,   1),
+                BodyStretchFactor   = Math.Round(geo.BodyStretch,     3),
+                StretchBodyLengthPx = Math.Round(geo.TargetBodyLength, 1),
+                TipAnchorLocal      = s.TipAnchor,
+                JoinAnchorLocal     = s.JoinAnchor,
+                StretchStartLocal   = s.StretchStart,
+                StretchEndLocal     = s.StretchEnd,
+                HeadAttachLocal     = s.JoinAnchor,
+                HeadCenterLocal     = TransformPoint(ToPoint(geometry.Head.LocalCenter), s.HeadTransform),
                 ShaftTipCapLayer = new CompositePinLayerPlan
                 {
-                    SourcePath = Path.Combine(config.PartsFolderPath, geometry.ShaftFile),
-                    SourceWidth = shaftSize.Width,
-                    SourceHeight = shaftSize.Height,
-                    ClipPolygon = ClipBand(nativeBounds, nativeTip, nativeAxisUnit, 0.0, segmentation.TipCapLength),
-                    Transform = tipTransform
+                    SourcePath   = shaftPath,
+                    SourceWidth  = v.ShaftSize.Width,
+                    SourceHeight = v.ShaftSize.Height,
+                    ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
+                                            0.0, seg.TipCapLength),
+                    Transform    = s.TipTransform
                 },
                 ShaftBodyLayer = new CompositePinLayerPlan
                 {
-                    SourcePath = Path.Combine(config.PartsFolderPath, geometry.ShaftFile),
-                    SourceWidth = shaftSize.Width,
-                    SourceHeight = shaftSize.Height,
-                    ClipPolygon = ClipBand(nativeBounds, nativeTip, nativeAxisUnit, segmentation.StretchStartDistance, segmentation.StretchEndDistance),
-                    Transform = bodyTransform
+                    SourcePath   = shaftPath,
+                    SourceWidth  = v.ShaftSize.Width,
+                    SourceHeight = v.ShaftSize.Height,
+                    ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
+                                            seg.StretchStartDistance, seg.StretchEndDistance),
+                    Transform    = s.BodyTransform
                 },
                 ShaftHeadCapLayer = new CompositePinLayerPlan
                 {
-                    SourcePath = Path.Combine(config.PartsFolderPath, geometry.ShaftFile),
-                    SourceWidth = shaftSize.Width,
-                    SourceHeight = shaftSize.Height,
-                    ClipPolygon = ClipBand(nativeBounds, nativeTip, nativeAxisUnit, segmentation.StretchEndDistance, geometry.Shaft.NativeLength),
-                    Transform = headCapTransform
+                    SourcePath   = shaftPath,
+                    SourceWidth  = v.ShaftSize.Width,
+                    SourceHeight = v.ShaftSize.Height,
+                    ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
+                                            seg.StretchEndDistance, geometry.Shaft.NativeLength),
+                    Transform    = s.HeadCapTransform
                 },
                 HeadLayer = new CompositePinLayerPlan
                 {
-                    SourcePath = Path.Combine(config.PartsFolderPath, geometry.HeadFile),
-                    SourceWidth = headSize.Width,
-                    SourceHeight = headSize.Height,
-                    ClipPolygon = new List<Point>(headRectCorners),
-                    Transform = headTransform
+                    SourcePath   = headPath,
+                    SourceWidth  = v.HeadSize.Width,
+                    SourceHeight = v.HeadSize.Height,
+                    ClipPolygon  = new List<Point>(geo.HeadRectCorners),
+                    Transform    = s.HeadTransform
                 }
             };
         }
+
+        // -------------------------------------------------------------------------
+        // Low-level geometry helpers
+        // -------------------------------------------------------------------------
 
         private static Point ToPoint(PinPartPoint point)
         {
@@ -205,12 +311,12 @@ namespace InteractiveWorldMap.Services
         }
 
         private static Matrix CreateLayerTransform(
-            Point nativeTip,
+            Point  nativeTip,
             Vector nativeAxisUnit,
             Vector nativeNormal,
             Vector targetAxisUnit,
             Vector targetNormal,
-            Point targetTip,
+            Point  targetTip,
             double axialScale,
             double axialOffset)
         {
@@ -296,12 +402,12 @@ namespace InteractiveWorldMap.Services
         }
 
         private static List<Point> ClipAgainstHalfPlane(
-            List<Point> polygon,
+            List<Point>     polygon,
             Func<Point, bool> isInside,
-            double boundaryDistance,
-            Point tip,
-            Vector axisUnit,
-            bool keepLessThanOrEqual = false)
+            double          boundaryDistance,
+            Point           tip,
+            Vector          axisUnit,
+            bool            keepLessThanOrEqual = false)
         {
             var output = new List<Point>();
             if (polygon.Count == 0)
@@ -338,9 +444,9 @@ namespace InteractiveWorldMap.Services
         private static Point GetBoundaryIntersection(Point start, Point end, double boundaryDistance, Point tip, Vector axisUnit)
         {
             var startDistance = GetAxisDistance(tip, axisUnit, start);
-            var endDistance = GetAxisDistance(tip, axisUnit, end);
-            var delta = endDistance - startDistance;
-            var t = Math.Abs(delta) < 0.0001 ? 0.0 : (boundaryDistance - startDistance) / delta;
+            var endDistance   = GetAxisDistance(tip, axisUnit, end);
+            var delta         = endDistance - startDistance;
+            var t             = Math.Abs(delta) < 0.0001 ? 0.0 : (boundaryDistance - startDistance) / delta;
 
             return new Point(
                 start.X + ((end.X - start.X) * t),

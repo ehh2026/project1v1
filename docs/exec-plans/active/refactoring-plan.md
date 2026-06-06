@@ -53,18 +53,18 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] CHANGELOG.md updated
 - [ ] Committed
 
-## Phase 4 — Decompose CompositePinRenderPlanBuilder.BuildPlan
+## Phase 4 — Decompose CompositePinRenderPlanBuilder.BuildPlan ✅
 
-- [ ] Extract `ValidateInputs`
-- [ ] Extract `PrepareGeometry`
-- [ ] Extract `CalculateTransforms` (deduplicate matrix pattern)
-- [ ] Extract `CalculateBoundsAndShift`
-- [ ] Extract `AssembleResult`
-- [ ] Build succeeds
-- [ ] Existing `CompositePinRenderPlanBuilderTests` green
-- [ ] Add edge-case tests
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] Extract `ValidateInputs`
+- [x] Extract `PrepareGeometry`
+- [x] Extract `CalculateTransforms` (deduplicate matrix pattern)
+- [x] Extract `CalculateBoundsAndShift`
+- [x] Extract `AssembleResult`
+- [x] Build succeeds
+- [x] Existing `CompositePinRenderPlanBuilderTests` green
+- [x] Add edge-case tests (6 new: 4 null guards, too-short target, canvas dims positive)
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed
 
 ## Phase 5 — Extract Extension Rendering from MainWindow

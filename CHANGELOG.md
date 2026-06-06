@@ -14,6 +14,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Refactoring Phase 2** — Consolidate duplicate animation loop in `MainWindow.xaml.cs`:
   - Extracted shared `AnimateViewportTransition(startViewport, targetViewport, animationLabel, onAnimationComplete)` (~75 lines) containing the pre-rendered keyframe loop that was duplicated between `AnimateZoomToCluster` and `AnimateZoomOut`.
   - `AnimateZoomToCluster` reduced from ~120 lines to ~45 lines; `AnimateZoomOut` reduced from ~142 lines to ~65 lines. Combined saving ~130 lines with zero duplication.
+- **Refactoring Phase 4** — Decompose `CompositePinRenderPlanBuilder.BuildPlan`:
+  - Introduced 4 private sealed pipeline-context records (`ValidatedInputs`, `PreparedGeometry`, `ComputedTransforms`, `ShiftedGeometry`) as intermediate data carriers between stages.
+  - Reduced `BuildPlan` from a 167-line monolith to a 5-line orchestrator; logic distributed across 5 private pipeline methods (`ValidateInputs`, `PrepareGeometry`, `CalculateTransforms`, `CalculateBoundsAndShift`, `AssembleResult`).
+  - Deduplicated the three shaft-layer transform calls via a local function `ShaftLayerTransform` inside `CalculateTransforms`, eliminating repeated axis-argument passing.
+  - Added explicit guard clauses in `ValidateInputs` and `PrepareGeometry` (null args, zero-length axis, target too short for caps) that previously threw implicitly from NullReferenceException or division by zero.
+  - Added 6 new tests to `Tests/CompositePinRenderPlanBuilderTests.cs` covering all 4 null-argument guards, too-short target, and positive canvas dimensions invariant.
+  - All 16 low-level geometry helper methods preserved unchanged.
 - **Refactoring Phase 3** — Extract Radial Extension Adjustment Engine from `MainWindow.xaml.cs`:
   - Added `Services/RadialExtensionAdjuster.cs` — pure data-manipulation service (`AdjustExtensions`, `AdjustForMarkerOverlaps`, `AdjustAnglesWithinGroups`, `AdjustPositionsAcrossExtensions`, `FixLineIntersections`, `CalculateCurrentLength`). No UI dependencies; injectable via constructor.
   - Removed `AdjustForMarkerOverlaps`, `CalculateCurrentLength`, `IterativelyAdjustExtensions`, and `FixLineIntersections` from `MainWindow.xaml.cs` (~600 lines removed).
