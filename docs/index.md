@@ -28,7 +28,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 
 | Doc | Description |
 |-----|-------------|
-| [exec-plans/active/](exec-plans/active/) | In-progress work |
+| [exec-plans/active/](exec-plans/active/) | In-progress work ([security-ci-plan.md](exec-plans/active/security-ci-plan.md), [refactoring-plan.md](exec-plans/active/refactoring-plan.md), …) |
 | [exec-plans/completed/](exec-plans/completed/) | Finished plans |
 | [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md) | Known debt and refactoring targets |
 
@@ -56,6 +56,8 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) | Clustering feature plan |
 | [MARKER_CLUSTERING_ANALYSIS.md](MARKER_CLUSTERING_ANALYSIS.md) | Clustering analysis |
 | [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md) | Dense-region zoom regression assessment |
+| [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md) | Full-map marker offset investigation |
+| [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](ZOOM_LEVELS_AUDIT_ASSESSMENT.md) | Intended vs operational zoom levels (incl. March 18 baseline) |
 | [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) | Viewport zoom design |
 | [ZOOM_REFACTORING_PLAN.md](ZOOM_REFACTORING_PLAN.md) | Zoom refactoring plan |
 | [RADIAL_MARKER_EXTENSION_PLAN.md](RADIAL_MARKER_EXTENSION_PLAN.md) | Radial extension plan |

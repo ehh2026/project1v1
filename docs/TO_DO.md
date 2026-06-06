@@ -75,20 +75,25 @@ The application is functional and ready for demo! Core features are implemented 
   - Run full `.\scripts\verify.ps1` and fix any breaking API/package changes
   - Decide whether to jump to .NET 10 or standardize on .NET 8 LTS first
 
+### Security & CI
+- [ ] **Add security CI (Dependabot, Gitleaks, NuGet audit)** — [security-ci-plan.md](exec-plans/active/security-ci-plan.md)
+  - P0: Dependabot for NuGet (`/` + `Tests/`) and GitHub Actions; Gitleaks workflow on push/PR; `dotnet list package --vulnerable` in CI and `verify.ps1`
+  - P1 (optional): CodeQL for C#
+  - Defer: Grype/Trivy (no containers), Snyk, SBOM until dependency surface or release pipeline grows
+  - Phase 0 first: local Gitleaks + vulnerability baseline so first CI run is not a surprise
+
 ### Bugs
-- [ ] **Fix marker / map centering offset at initial far-out (unzoomed) view**
+- [ ] **Fix marker / map centering offset at initial far-out (unzoomed) view** — [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md)
   - Symptom: on first load at full-map zoom, markers appear shifted right and down relative to their map locations; zoomed cluster views look correct (area centering and pin placement align with the map)
-  - Likely areas: initial viewport setup in `MapDisplayControl` / `MainWindow`, `SourceToScreen` / `CoordinateMapper` math at low zoom, marker centering (`Canvas.SetLeft` / `SetTop` vs marker size), or layout timing before `ActualWidth` / `ActualHeight` are final
-  - Compare coordinate transforms and marker positioning paths between unzoomed cluster view and post-zoom individual-marker view; check for inconsistent offsets, double application of padding/margins, or stale container dimensions on startup
+  - Investigation (2026-06-05): primary hypothesis is virtual letterbox viewport in `CreateFullMapView()` vs clamped `GetSourceRect()` crop — markers use uncorrected virtual bounds; see assessment for math, alternatives, and verification checklist
+  - Likely areas: `Models/ViewportState.cs` (`CreateFullMapView`, `SourceToScreen`, `GetSourceRect`), `Views/MapDisplayControl.xaml.cs`, `MainWindow.UpdateMarkerPositions`
   - Acceptance: markers sit on the correct map pixels at initial unzoomed view; remain correct after zoom in/out and window resize; spot-check several known coordinates against the Excel source
 
 ### Navigation & Zoom
-- [ ] **Audit intended vs operational zoom levels**
-  - Question: how many zoom levels/states are the product and docs supposed to support vs what the code actually implements today?
-  - Design baseline: [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) specifies **two states only** — full map (zoomed out) and fixed cluster zoom (no arbitrary/intermediate levels); [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) and viewport refactor may have changed behavior
-  - Current code touchpoints: `visual-config.json` (`ZoomScale`, `RadialExtension.ZoomThresholdForExtensions`), `MainWindow.xaml.cs` (`AnimateZoomToCluster`, `AnimateZoomOut`, `ShowClusterView`, `ShowZoomedView`), `Models/ViewportState.cs`, `Services/ViewportCalculator.cs`, `Services/MapNavigationService.cs`, `Services/ZoomedRegionCache.cs`
-  - Compare to **March 18, 2026** baseline (e.g. `5f32adb`, `bc0bb59`, or `git log --since=2026-03-17 --until=2026-03-19`) before/after viewport and radial-extension work; note whether intermediate animation zoom, navigation stack depth, or `ZoomScale` semantics regressed
-  - Deliverable: short write-up (counts, config values, which paths are live vs dead) and any follow-up fixes if spec and implementation diverge
+- [ ] **Audit intended vs operational zoom levels** — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](ZOOM_LEVELS_AUDIT_ASSESSMENT.md) ✅ investigated 2026-06-06
+  - **Finding:** two user-facing resting states (full map `ZoomLevel ≈ 1.0`, cluster zoom `ZoomLevel = ZoomScale` **55.0**); no discrete multi-level UI; animation interpolates 1→55 only during transitions
+  - **March 18 (`5f32adb`):** same two-state model and same `ZoomScale: 55.0`; core viewport files unchanged since then; docs still cite obsolete 3.0–3.5× examples
+  - **Remaining follow-up:** doc cleanup and optional `ZoomScale` tuning — not missing zoom levels; see assessment for dead APIs and navigation-stack notes
 
 ### Testing & Quality Assurance
 - [ ] **Resolve nullable reference warnings (CS8602 / CS8604)**
@@ -226,7 +231,7 @@ Easy tasks that can be completed quickly:
 
 ## Known Issues 🐛
 
-- **Unzoomed marker offset:** markers appear shifted right/down at the initial far-out map view; zoomed views look correct. Tracked under **High Priority → Bugs**.
+- **Unzoomed marker offset:** markers appear shifted right/down at the initial far-out map view; zoomed views look correct. Tracked under **High Priority → Bugs** — [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md).
 
 ---
 
