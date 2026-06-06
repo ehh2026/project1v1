@@ -70,4 +70,46 @@ public class GoldenPrincipleTests
 
         Assert.True(violations.Count == 0, string.Join("\n", violations));
     }
+
+    [Fact]
+    public void Views_DoNotCastApplicationCurrentMainWindow()
+    {
+        var violations = new List<string>();
+
+        foreach (var file in GetCsFilesUnder("Views"))
+        {
+            var content = File.ReadAllText(file);
+            if (content.Contains("Application.Current.MainWindow", StringComparison.Ordinal))
+            {
+                var relative = Path.GetRelativePath(RepoRoot, file);
+                violations.Add(
+                    $"{relative}: Views must not cast Application.Current.MainWindow. " +
+                    "REMEDIATION: Pass marker configuration into the View constructor.");
+            }
+        }
+
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
+
+    [Fact]
+    public void Models_DoNotPerformFileIo()
+    {
+        var violations = new List<string>();
+        var ioPattern = new Regex(@"\b(File|Directory)\.", RegexOptions.CultureInvariant);
+
+        foreach (var file in GetCsFilesUnder("Models"))
+        {
+            var content = File.ReadAllText(file);
+            if (content.Contains("using System.IO;", StringComparison.Ordinal) ||
+                ioPattern.IsMatch(content))
+            {
+                var relative = Path.GetRelativePath(RepoRoot, file);
+                violations.Add(
+                    $"{relative}: Models must not perform file I/O. " +
+                    "REMEDIATION: Move load/save/ensure behavior into a Service.");
+            }
+        }
+
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
 }

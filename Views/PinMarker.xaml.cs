@@ -66,34 +66,30 @@ namespace InteractiveWorldMap.Views
         }
 
         public PinMarker()
+            : this(new VisualConfig())
         {
+        }
+
+        public PinMarker(IMarkerConfiguration markerConfiguration)
+        {
+            if (markerConfiguration == null) throw new ArgumentNullException(nameof(markerConfiguration));
+
             InitializeComponent();
             
             // Set random pin color
             PinColor = PinColors[_colorRandom.Next(PinColors.Length)];
             
-            // Set size from config
-            var mainWindow = Application.Current.MainWindow as MainWindow;
-            if (mainWindow != null)
-            {
-                // Pin markers are taller than they are wide due to the shaft
-                Width = mainWindow.LocationMarkerSize;
-                Height = mainWindow.LocationMarkerSize * 2; // Taller for the shaft
-                
-                // Scale the pin ball and shaft based on marker size
-                double scale = mainWindow.LocationMarkerSize / 16.0; // 16 is default size
-                PinBall.Width = 8 * scale;
-                PinBall.Height = 8 * scale;
-                PinShaft.Width = 1.5 * scale;
-                PinShaft.Height = 20 * scale;
-                PinShaft.Margin = new Thickness(0, 8 * scale, 0, 0);
-            }
-            else
-            {
-                // Fallback to default
-                Width = 16;
-                Height = 32;
-            }
+            // Pin markers are taller than they are wide due to the shaft
+            Width = markerConfiguration.LocationMarkerSize;
+            Height = markerConfiguration.LocationMarkerSize * 2;
+
+            // Scale the pin ball and shaft based on marker size
+            double scale = markerConfiguration.LocationMarkerSize / 16.0;
+            PinBall.Width = 8 * scale;
+            PinBall.Height = 8 * scale;
+            PinShaft.Width = 1.5 * scale;
+            PinShaft.Height = 20 * scale;
+            PinShaft.Margin = new Thickness(0, 8 * scale, 0, 0);
             
             // Wire up mouse events
             MouseEnter += (s, e) => IsHovered = true;

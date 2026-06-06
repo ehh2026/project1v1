@@ -30,7 +30,7 @@ public class StartupValidationHarnessTests
         Assert.True(File.Exists(configPath),
             $"REMEDIATION: Add visual-config.json at repo root");
 
-        var config = VisualConfig.Load(configPath);
+        var config = new VisualConfigService().Load(configPath);
         Assert.NotNull(config);
         Assert.True(config.ClusterDistanceThreshold > 0,
             "REMEDIATION: Set valid ClusterDistanceThreshold in visual-config.json");

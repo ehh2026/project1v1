@@ -24,7 +24,7 @@ namespace InteractiveWorldMap
     /// </summary>
     public partial class MainWindow : Window
     {
-        private readonly ContentLoader _contentLoader;
+        private readonly IContentLoader _contentLoader;
         private readonly ILogger _logger;
         private readonly MapNavigationService _navigationService;
         private readonly ViewportCalculator _viewportCalculator;
@@ -50,7 +50,7 @@ namespace InteractiveWorldMap
         private LayoutEditorController _layoutEditor = null!;
         private LocationMarker? _draggedMarker = null;
         private Point _dragStartPosition;
-        private ManualLayoutManager? _layoutManager;
+        private IManualLayoutManager? _layoutManager;
         private LocationCluster? _currentZoomedCluster = null;
         private ManualLayout? _savedLayoutToApply = null;
         
@@ -103,8 +103,8 @@ namespace InteractiveWorldMap
                 
                 // Load visual configuration
                 var configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
-                VisualConfig.EnsureConfigExists(configPath);
-                _visualConfig = VisualConfig.Load(configPath);
+                var visualConfigService = new VisualConfigService();
+                _visualConfig = visualConfigService.Load(configPath);
                 _logger.LogInfo($"Visual config loaded from: {configPath}");
                 _logger.LogInfo($"  ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
                 _logger.LogInfo($"  LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
@@ -550,7 +550,7 @@ namespace InteractiveWorldMap
             if (_visualConfig.UsePinMarkers)
             {
                 var pinMarker = CreatePinMarker(location);
-                marker = new LocationMarker { Location = location };
+                marker = new LocationMarker(_visualConfig) { Location = location };
                 
                 // Replace the default content with a pin marker
                 marker.Content = pinMarker;
@@ -564,7 +564,7 @@ namespace InteractiveWorldMap
             }
             else
             {
-                marker = new LocationMarker { Location = location };
+                marker = new LocationMarker(_visualConfig) { Location = location };
                 _logger.LogInfo($"  Created REGULAR marker for '{location.Name}'");
             }
             
@@ -659,7 +659,7 @@ namespace InteractiveWorldMap
                 imagePinMarker.SetPinImage(croppedPin, pinInfo, _visualConfig.PinImages.ScaleFactor);
                 
                 // Create LocationMarker wrapper
-                var marker = new LocationMarker { Location = location };
+                var marker = new LocationMarker(_visualConfig) { Location = location };
                 marker.Content = imagePinMarker;
                 marker.Width = imagePinMarker.Width;
                 marker.Height = imagePinMarker.Height;
@@ -681,7 +681,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private LocationMarker CreateDrawnPinMarker(Location location)
         {
-            var pinMarker = new PinMarker { Location = location };
+            var pinMarker = new PinMarker(_visualConfig) { Location = location };
             
             var pinConfig = _visualConfig.PinMarkers;
             if (!pinConfig.UseRandomColors)
@@ -693,7 +693,7 @@ namespace InteractiveWorldMap
             }
             
             // Create LocationMarker wrapper
-            var marker = new LocationMarker { Location = location };
+            var marker = new LocationMarker(_visualConfig) { Location = location };
             marker.Content = pinMarker;
             marker.Width = pinMarker.Width;
             marker.Height = pinMarker.Height;
@@ -707,7 +707,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void AddClusterMarker(LocationCluster cluster)
         {
-            var marker = new ClusterMarker { Cluster = cluster };
+            var marker = new ClusterMarker(_visualConfig) { Cluster = cluster };
             var stamp = _contentLoader.TryLoadContentBitmap(ContentFileNames.ClusterStampFileName);
             marker.ApplyStampImage(stamp);
             marker.UpdateDisplay();

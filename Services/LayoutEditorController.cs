@@ -16,7 +16,7 @@ public sealed class LayoutEditorController
 {
     private const double ExtensionLineThreshold = 5.0;
 
-    private readonly ManualLayoutManager _layoutManager;
+    private readonly IManualLayoutManager _layoutManager;
     private readonly VisualConfig        _visualConfig;
     private readonly ILogger             _logger;
 
@@ -39,7 +39,7 @@ public sealed class LayoutEditorController
     // ─── Constructor ─────────────────────────────────────────────────────────
 
     public LayoutEditorController(
-        ManualLayoutManager layoutManager,
+        IManualLayoutManager layoutManager,
         VisualConfig        visualConfig,
         ILogger             logger)
     {

@@ -11,7 +11,7 @@ namespace InteractiveWorldMap.Services
     /// <summary>
     /// Manages saving, loading, and deleting manual layouts
     /// </summary>
-    public class ManualLayoutManager
+    public class ManualLayoutManager : IManualLayoutManager
     {
         private static readonly JsonSerializerOptions LayoutJsonOptions = CreateJsonOptions();
         private readonly string _layoutFilePath;

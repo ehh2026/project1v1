@@ -13,7 +13,7 @@ namespace InteractiveWorldMap.Services;
 /// <summary>
 /// Loads map images, location data, and location content from the Content_Folder.
 /// </summary>
-public class ContentLoader
+public class ContentLoader : IContentLoader
 {
     private readonly ILogger _logger;
     private readonly Dictionary<string, BitmapImage> _contentCache;

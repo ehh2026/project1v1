@@ -10,6 +10,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Refactoring Phase 9** - Clean up architecture boundaries:
+  - Added `Models/IMarkerConfiguration.cs` and constructor-injected marker sizing into `LocationMarker`, `PinMarker`, and `ClusterMarker` instead of reading `Application.Current.MainWindow`.
+  - Added `Services/VisualConfigService.cs` and moved visual-config load/save/ensure file I/O out of `Models/VisualConfig.cs`.
+  - Added `IContentLoader` and `IManualLayoutManager`; `MainWindow` and `LayoutEditorController` now depend on service interfaces.
+  - Added architecture/golden-principle tests for View/MainWindow coupling, model file I/O, service interface conformance, and visual-config service behavior.
 - **Refactoring Phase 8** - Extract layout editor state/data operations from `MainWindow.xaml.cs`:
   - Added `Services/LayoutEditorController.cs` for edit-mode state, layout key/activity state, validation, save/delete/load delegation, saved-layout application mapping, and controller events for UI state changes.
   - Added `Tests/LayoutEditorControllerTests.cs` covering constructor guards, edit-mode events, layout activity events, extension building, validation, save/delete/load, and saved-layout application decisions.

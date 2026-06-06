@@ -35,19 +35,19 @@ namespace InteractiveWorldMap.Views
         public int LocationCount => Cluster?.Count ?? 0;
 
         public ClusterMarker()
+            : this(new VisualConfig())
         {
+        }
+
+        public ClusterMarker(IMarkerConfiguration markerConfiguration)
+        {
+            if (markerConfiguration == null) throw new ArgumentNullException(nameof(markerConfiguration));
+
             InitializeComponent();
 
-            double markerSize = 40;
-            double badgeSize = 20;
-            double fontSize = 12;
-
-            if (Application.Current.MainWindow is MainWindow mainWindow)
-            {
-                markerSize = mainWindow.ClusterMarkerSize;
-                badgeSize = mainWindow.ClusterBadgeSize;
-                fontSize = mainWindow.ClusterCountFontSize;
-            }
+            double markerSize = markerConfiguration.ClusterMarkerSize;
+            double badgeSize = markerConfiguration.ClusterBadgeSize;
+            double fontSize = markerConfiguration.ClusterCountFontSize;
 
             Width = markerSize;
             Height = markerSize;

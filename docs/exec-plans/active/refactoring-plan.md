@@ -123,18 +123,19 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [ ] Manual smoke: full edit mode flow
 - [x] `.\scripts\verify.ps1` passed
 - [x] CHANGELOG.md updated
-- [ ] Committed
+- [x] Committed (4f31124)
 
 ## Phase 9 — Architectural Cleanup
 
 - [ ] Create `IMarkerConfiguration` interface
-- [ ] Decouple Views from MainWindow for marker sizing
-- [ ] Create `VisualConfigService` (move I/O from model)
-- [ ] Create `IContentLoader` and `IManualLayoutManager` interfaces
-- [ ] Build succeeds
-- [ ] Architecture tests green
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] Create `IMarkerConfiguration` interface
+- [x] Decouple Views from MainWindow for marker sizing
+- [x] Create `VisualConfigService` (move I/O from model)
+- [x] Create `IContentLoader` and `IManualLayoutManager` interfaces
+- [x] Build succeeds
+- [x] Architecture tests green
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed
 
 ## Phase 10 — Quality Improvements
