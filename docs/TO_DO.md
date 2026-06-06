@@ -84,11 +84,9 @@ The application is functional and ready for demo! Core features are implemented 
   - Phase 0 first: local Gitleaks + vulnerability baseline so first CI run is not a surprise
 
 ### Bugs
-- [ ] **Fix marker / map centering offset at initial far-out (unzoomed) view** — [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md)
-  - Symptom: on first load at full-map zoom, markers appear shifted right and down relative to their map locations; zoomed cluster views look correct (area centering and pin placement align with the map)
-  - Investigation (2026-06-05): primary hypothesis is virtual letterbox viewport in `CreateFullMapView()` vs clamped `GetSourceRect()` crop — markers use uncorrected virtual bounds; see assessment for math, alternatives, and verification checklist
-  - Likely areas: `Models/ViewportState.cs` (`CreateFullMapView`, `SourceToScreen`, `GetSourceRect`), `Views/MapDisplayControl.xaml.cs`, `MainWindow.UpdateMarkerPositions`
-  - Acceptance: markers sit on the correct map pixels at initial unzoomed view; remain correct after zoom in/out and window resize; spot-check several known coordinates against the Excel source
+- [x] **Fix marker / map centering offset at initial far-out (unzoomed) view** — [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md)
+  - Fixed 2026-06-06: `SourceToScreen` and `ScreenToSource` in `Models/ViewportState.cs` now derive scale from `GetSourceRect()` (the actual integer crop) instead of the virtual letterbox viewport. `CroppedBitmap` always uses integer pixel bounds so the marker transform must match.
+  - 18 regression tests added in `Tests/ViewportStateTests.cs` covering wide/tall containers, center mapping, and round-trips.
 
 ### Navigation & Zoom
 - [ ] **Audit intended vs operational zoom levels** — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](ZOOM_LEVELS_AUDIT_ASSESSMENT.md) ✅ investigated 2026-06-06
@@ -232,7 +230,7 @@ Easy tasks that can be completed quickly:
 
 ## Known Issues 🐛
 
-- **Unzoomed marker offset:** markers appear shifted right/down at the initial far-out map view; zoomed views look correct. Tracked under **High Priority → Bugs** — [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md).
+- ~~**Unzoomed marker offset:**~~ Fixed 2026-06-06 — `ViewportState.SourceToScreen` now uses `GetSourceRect()` scale. See [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md).
 
 ---
 

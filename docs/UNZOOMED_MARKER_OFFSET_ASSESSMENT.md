@@ -1,7 +1,7 @@
 # Unzoomed Marker Offset — Investigation Assessment
 
-Date: 2026-06-05  
-Status: Investigation complete (read-only; no code changes)  
+Date: 2026-06-05
+Status: Fixed 2026-06-06 — H1 confirmed; see fix summary below.
 Related backlog: [TO_DO.md — High Priority → Bugs](TO_DO.md)
 
 ## Symptom (reported)
@@ -261,6 +261,26 @@ If H1 is confirmed, fixes should make **image crop** and **marker transform** us
 4. **Add regression tests** for `ViewportState` corner mapping at full-map zoom (none exist today).
 
 Any fix should be validated at multiple window aspects and after zoom in/out cycles.
+
+---
+
+## Fix Applied (2026-06-06)
+
+H1 was confirmed as the root cause. The fix was a two-line change in `Models/ViewportState.cs`:
+
+- `SourceToScreen` now computes scale from `GetSourceRect()` (the actual integer crop) rather than from `ViewportWidth/Height`.
+- `ScreenToSource` updated to match (inverse of the same formula).
+
+`CroppedBitmap` always takes an `Int32Rect`, so the rendered image starts at the integer-floored viewport origin. `MapImage.Stretch=Fill` then scales that crop to fill the container. The marker transform must use the same crop dimensions, not the virtual letterbox viewport.
+
+This is a no-change for zoomed views where the viewport is already inside image bounds — in that case `GetSourceRect()` and the virtual viewport give essentially the same result (within integer rounding). For the full-map view the fix eliminates the up to ~161px horizontal error on 16:9 displays.
+
+18 regression tests were added in `Tests/ViewportStateTests.cs` covering:
+- Wide container (16:9): all four corners + center
+- Tall container (4:3): all four corners + center
+- Square container: corners
+- Zoomed view: crop-boundary invariants
+- Round-trip: `SourceToScreen(ScreenToSource(p)) ≈ p` for both full-map and zoomed
 
 ---
 

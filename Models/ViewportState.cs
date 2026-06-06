@@ -72,15 +72,15 @@ namespace InteractiveWorldMap.Models
         /// <returns>Screen coordinates as a Point</returns>
         public Point SourceToScreen(double sourceX, double sourceY, double containerWidth, double containerHeight)
         {
-            // Calculate position relative to viewport
-            var relativeX = sourceX - ViewportX;
-            var relativeY = sourceY - ViewportY;
+            // Use the actual rendered crop rect so that marker positions match the displayed image.
+            // GetSourceRect() clamps the virtual viewport to the real image bounds, and MapImage uses
+            // Stretch=Fill which scales that crop to the full container — so scale must be derived from
+            // the crop dimensions, not from the (potentially wider/taller) virtual viewport.
+            var rect = GetSourceRect();
+            var scaleX = containerWidth / rect.Width;
+            var scaleY = containerHeight / rect.Height;
 
-            // Scale to screen coordinates
-            var scaleX = containerWidth / ViewportWidth;
-            var scaleY = containerHeight / ViewportHeight;
-
-            return new Point(relativeX * scaleX, relativeY * scaleY);
+            return new Point((sourceX - rect.X) * scaleX, (sourceY - rect.Y) * scaleY);
         }
 
         /// <summary>
@@ -93,15 +93,12 @@ namespace InteractiveWorldMap.Models
         /// <returns>Source image coordinates as a Point</returns>
         public Point ScreenToSource(double screenX, double screenY, double containerWidth, double containerHeight)
         {
-            // Scale from screen to viewport coordinates
-            var scaleX = ViewportWidth / containerWidth;
-            var scaleY = ViewportHeight / containerHeight;
+            // Inverse of SourceToScreen: derive scale from the actual rendered crop rect.
+            var rect = GetSourceRect();
+            var scaleX = rect.Width / containerWidth;
+            var scaleY = rect.Height / containerHeight;
 
-            // Add viewport offset
-            var sourceX = (screenX * scaleX) + ViewportX;
-            var sourceY = (screenY * scaleY) + ViewportY;
-
-            return new Point(sourceX, sourceY);
+            return new Point(screenX * scaleX + rect.X, screenY * scaleY + rect.Y);
         }
 
         /// <summary>
