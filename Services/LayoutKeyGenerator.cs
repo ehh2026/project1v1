@@ -20,8 +20,10 @@ namespace InteractiveWorldMap.Services
             ViewportState viewport,
             RadialExtensionConfig config)
         {
-            // Sort location names for consistent hashing
-            var locationNames = locations.Select(l => l.Name).OrderBy(n => n).ToList();
+            // Sort location names for consistent hashing.
+            // Use StringComparer.Ordinal so the order is locale-independent and matches
+            // the PowerShell seed generator which calls List<string>.Sort(StringComparer.Ordinal).
+            var locationNames = locations.Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
             var locationHash = ComputeHash(string.Join("|", locationNames));
 
             // Calculate viewport center
@@ -49,7 +51,7 @@ namespace InteractiveWorldMap.Services
         /// </summary>
         public static string GenerateShortKey(List<Location> locations, ViewportState viewport)
         {
-            var locationNames = locations.Select(l => l.Name).OrderBy(n => n).ToList();
+            var locationNames = locations.Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
             var locationHash = ComputeHash(string.Join("|", locationNames)).Substring(0, 8);
             
             return $"{locationHash}_z{viewport.ZoomLevel:F1}";

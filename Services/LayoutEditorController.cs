@@ -30,7 +30,16 @@ public sealed class LayoutEditorController
         string LocationName,
         Point OriginalPosition,
         Point ExtendedPosition,
-        bool RequiresExtensionLine);
+        bool RequiresExtensionLine)
+    {
+        /// <summary>
+        /// Source-image coordinates of the extended position (from <see cref="ManualLayoutMarker"/>).
+        /// When set, the caller should re-project via <c>viewport.SourceToScreen</c> instead of
+        /// using <see cref="ExtendedPosition"/> directly, so seeds work at any window size.
+        /// </summary>
+        public double? SourceExtendedX { get; init; }
+        public double? SourceExtendedY { get; init; }
+    }
 
     public event Action? EditModeEntered;
     public event Action? EditModeExited;
@@ -105,7 +114,11 @@ public sealed class LayoutEditorController
                 layoutMarker.LocationName,
                 layoutMarker.OriginalPosition,
                 layoutMarker.ExtendedPosition,
-                distance > ExtensionLineThreshold));
+                distance > ExtensionLineThreshold)
+            {
+                SourceExtendedX = layoutMarker.SourceExtendedX,
+                SourceExtendedY = layoutMarker.SourceExtendedY
+            });
 
             _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
         }

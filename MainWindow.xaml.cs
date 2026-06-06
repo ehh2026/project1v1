@@ -1947,20 +1947,31 @@ namespace InteractiveWorldMap
                 .GroupBy(m => m.Location.Name)
                 .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
 
+            // When source-space extended coords are available (populated by the seed generator),
+            // re-project to the current viewport so positions are correct at any window size.
+            var viewport = MapDisplay.CurrentViewport;
+            var cw = MapDisplay.ActualWidth;
+            var ch = MapDisplay.ActualHeight;
+
             foreach (var application in _layoutEditor.CreateLayoutApplications(layout, visibleMarkers.Keys))
             {
                 if (!visibleMarkers.TryGetValue(application.LocationName, out var marker))
                     continue;
-                
+
+                var extendedPos = application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue
+                    && viewport != null && cw > 0 && ch > 0
+                    ? viewport.SourceToScreen(application.SourceExtendedX.Value, application.SourceExtendedY.Value, cw, ch)
+                    : application.ExtendedPosition;
+
                 // Position marker
                 var markerSize = _visualConfig.LocationMarkerSize;
-                Canvas.SetLeft(marker, application.ExtendedPosition.X - (markerSize / 2));
-                Canvas.SetTop(marker, application.ExtendedPosition.Y - (markerSize / 2));
-                
+                Canvas.SetLeft(marker, extendedPos.X - (markerSize / 2));
+                Canvas.SetTop(marker, extendedPos.Y - (markerSize / 2));
+
                 // Only create line if marker is extended from origin
                 if (application.RequiresExtensionLine)
                 {
-                    _extensionLineRenderer.AddLine(marker, application.OriginalPosition, application.ExtendedPosition);
+                    _extensionLineRenderer.AddLine(marker, application.OriginalPosition, extendedPos);
                 }
             }
         }

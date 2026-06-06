@@ -54,13 +54,34 @@ public sealed class SeedViewport
     public double ViewportHeight;
     public double ZoomLevel;
 
+    // Mirror ViewportState.GetSourceRect() so SourceToScreen matches the app exactly.
+    // CroppedBitmap uses integer pixel boundaries; MapImage.Stretch=Fill scales that crop
+    // to fill the container, so scale must be derived from the crop rect, not the virtual viewport.
+    public System.Drawing.Rectangle GetSourceRect()
+    {
+        int x = Math.Max(0, (int)Math.Floor(ViewportX));
+        int y = Math.Max(0, (int)Math.Floor(ViewportY));
+        int w = (int)Math.Min(Math.Ceiling(ViewportWidth),  SourceImageWidth  - x);
+        int h = (int)Math.Min(Math.Ceiling(ViewportHeight), SourceImageHeight - y);
+        w = Math.Max(1, w);
+        h = Math.Max(1, h);
+        return new System.Drawing.Rectangle(x, y, w, h);
+    }
+
     public SeedPoint SourceToScreen(double sourceX, double sourceY, double containerWidth, double containerHeight)
     {
-        double relativeX = sourceX - ViewportX;
-        double relativeY = sourceY - ViewportY;
-        double scaleX = containerWidth / ViewportWidth;
-        double scaleY = containerHeight / ViewportHeight;
-        return new SeedPoint(relativeX * scaleX, relativeY * scaleY);
+        var rect = GetSourceRect();
+        double scaleX = containerWidth  / rect.Width;
+        double scaleY = containerHeight / rect.Height;
+        return new SeedPoint((sourceX - rect.X) * scaleX, (sourceY - rect.Y) * scaleY);
+    }
+
+    public SeedPoint ScreenToSource(double screenX, double screenY, double containerWidth, double containerHeight)
+    {
+        var rect = GetSourceRect();
+        double scaleX = rect.Width  / containerWidth;
+        double scaleY = rect.Height / containerHeight;
+        return new SeedPoint(screenX * scaleX + rect.X, screenY * scaleY + rect.Y);
     }
 
     public static SeedViewport CreateFullMapView(double sourceWidth, double sourceHeight, double containerWidth, double containerHeight)
@@ -211,14 +232,21 @@ public static class SeedLayoutMath
         return cluster;
     }
 
-    public static List<SeedCluster> DetectDenseGroups(List<SeedLocation> locations, int minLocations, double threshold)
+    // Mirror RadialExtensionCalculator.DetectDenseGroups which receives already-projected
+    // screen-space positions and measures ProximityThresholdPixels in screen space.
+    // Passing source-pixel coordinates produced different (much larger) groups.
+    public static List<SeedCluster> DetectDenseGroups(
+        List<SeedLocation> locations,
+        Dictionary<string, SeedPoint> screenPositions,
+        int minLocations,
+        double threshold)
     {
         List<SeedCluster> groups = new List<SeedCluster>();
         HashSet<string> processed = new HashSet<string>();
 
         foreach (SeedLocation location in locations)
         {
-            if (processed.Contains(location.Id))
+            if (processed.Contains(location.Id) || !screenPositions.ContainsKey(location.Id))
                 continue;
 
             List<SeedLocation> cluster = new List<SeedLocation>();
@@ -231,12 +259,17 @@ public static class SeedLayoutMath
             while (queue.Count > 0)
             {
                 SeedLocation current = queue.Dequeue();
+                SeedPoint currentScreen = screenPositions[current.Id];
+
                 foreach (SeedLocation other in locations)
                 {
                     if (processed.Contains(other.Id) || inCluster.Contains(other.Id))
                         continue;
+                    if (!screenPositions.ContainsKey(other.Id))
+                        continue;
 
-                    if (CalculateDistance(current.PixelX, current.PixelY, other.PixelX, other.PixelY) <= threshold)
+                    SeedPoint otherScreen = screenPositions[other.Id];
+                    if (CalculateDistance(currentScreen.X, currentScreen.Y, otherScreen.X, otherScreen.Y) <= threshold)
                     {
                         cluster.Add(other);
                         inCluster.Add(other.Id);
@@ -780,6 +813,7 @@ foreach ($cluster in $multiLocationClusters) {
 
         $denseGroups = [SeedLayoutMath]::DetectDenseGroups(
             $cluster.Locations,
+            $screenPositions,
             $radialConfig.MinLocationsForExtension,
             $radialConfig.ProximityThresholdPixels
         )
@@ -805,7 +839,17 @@ foreach ($cluster in $multiLocationClusters) {
             $original = $screenPositions[$location.Id]
             if ($extensionByLocationId.ContainsKey($location.Id)) {
                 $extension = $extensionByLocationId[$location.Id]
-                $markers += New-LayoutMarker -Location $location -Original $extension.OriginalPosition -Extended $extension.ExtendedPosition -Angle $extension.Angle
+                # Compute source-space extended position so the app can re-project to the
+                # actual window viewport at load time (viewport-size-independent replay).
+                $sourceExtended = $viewport.ScreenToSource(
+                    $extension.ExtendedPosition.X,
+                    $extension.ExtendedPosition.Y,
+                    [double]$size.Width,
+                    [double]$size.Height)
+                $marker = New-LayoutMarker -Location $location -Original $extension.OriginalPosition -Extended $extension.ExtendedPosition -Angle $extension.Angle
+                $marker["SourceExtendedX"] = [Math]::Round($sourceExtended.X, 4)
+                $marker["SourceExtendedY"] = [Math]::Round($sourceExtended.Y, 4)
+                $markers += $marker
             }
             else {
                 $markers += New-LayoutMarker -Location $location -Original $original -Extended $original -Angle 0.0
