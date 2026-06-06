@@ -112,4 +112,59 @@ public class GoldenPrincipleTests
 
         Assert.True(violations.Count == 0, string.Join("\n", violations));
     }
+
+    [Fact]
+    public void AppCode_UsesLoggerInsteadOfConsoleWriteLine()
+    {
+        var violations = new List<string>();
+
+        foreach (var file in GetCsFilesUnder("."))
+        {
+            var relative = Path.GetRelativePath(RepoRoot, file);
+            if (relative.StartsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
+                relative.StartsWith("backups", StringComparison.OrdinalIgnoreCase) ||
+                relative.Equals(Path.Combine("Services", "FileLogger.cs"), StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            var content = File.ReadAllText(file);
+            if (content.Contains("Console.WriteLine", StringComparison.Ordinal))
+            {
+                violations.Add($"{relative}: use ILogger or remove diagnostic console output.");
+            }
+        }
+
+        Assert.True(violations.Count == 0, string.Join("\n", violations));
+    }
+
+    [Fact]
+    public void MainWindow_DoesNotUseTaskDelayContinueWith()
+    {
+        var path = Path.Combine(RepoRoot, "MainWindow.xaml.cs");
+        var content = File.ReadAllText(path);
+
+        Assert.DoesNotContain("ContinueWith", content);
+    }
+
+    [Fact]
+    public void MainWindow_UsesInteractionModeInsteadOfAnimatingFlag()
+    {
+        var path = Path.Combine(RepoRoot, "MainWindow.xaml.cs");
+        var content = File.ReadAllText(path);
+
+        Assert.Contains("enum InteractionMode", content);
+        Assert.DoesNotContain("_isAnimating", content);
+    }
+
+    [Fact]
+    public void ContentSubwindow_UsesSingleContentSizingMethod()
+    {
+        var path = Path.Combine(RepoRoot, "Views", "ContentSubwindow.xaml.cs");
+        var content = File.ReadAllText(path);
+
+        Assert.Contains("CalculateContentSize", content);
+        Assert.DoesNotContain("CalculateSizeForImage", content);
+        Assert.DoesNotContain("CalculateSizeForText", content);
+    }
 }

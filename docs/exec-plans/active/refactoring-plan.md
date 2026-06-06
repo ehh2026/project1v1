@@ -140,13 +140,13 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 
 ## Phase 10 — Quality Improvements
 
-- [ ] Fix async anti-patterns (fire-and-forget)
-- [ ] Standardize logging (remove Console.WriteLine)
-- [ ] Extract `ScaleBitmap` in ZoomedRegionCache
-- [ ] Merge identical sizing methods in ContentSubwindow
-- [ ] Create `InteractionMode` enum, replace boolean flags
-- [ ] Build succeeds
-- [ ] Full test suite green
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] Fix async anti-patterns (fire-and-forget)
+- [x] Standardize logging (remove Console.WriteLine)
+- [x] Extract `ScaleBitmap` in ZoomedRegionCache
+- [x] Merge identical sizing methods in ContentSubwindow
+- [x] Create `InteractionMode` enum, replace boolean flags
+- [x] Build succeeds
+- [x] Full test suite green (185 total)
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed

@@ -10,6 +10,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Refactoring Phase 10** - Quality cleanup:
+  - Replaced edit-mode status `Task.Delay(...).ContinueWith(...)` callbacks with awaited async status reset logic.
+  - Removed app/UI console diagnostics outside `FileLogger`, added structural coverage to keep console output out of production code, and kept drag diagnostics behind `ILogger`.
+  - Extracted `ZoomedRegionCache.ScaleBitmap`, merged `ContentSubwindow` sizing into `CalculateContentSize`, and replaced the animation boolean with `InteractionMode`.
+  - Added ZoomedRegionCache fallback/cache-hit tests and architecture tests for the Phase 10 cleanup rules.
 - **Refactoring Phase 9** - Clean up architecture boundaries:
   - Added `Models/IMarkerConfiguration.cs` and constructor-injected marker sizing into `LocationMarker`, `PinMarker`, and `ClusterMarker` instead of reading `Application.Current.MainWindow`.
   - Added `Services/VisualConfigService.cs` and moved visual-config load/save/ensure file I/O out of `Models/VisualConfig.cs`.

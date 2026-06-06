@@ -44,7 +44,7 @@ namespace InteractiveWorldMap
         private IExtensionLineRenderer _extensionLineRenderer = null!;
         private RadialExtensionCalculator? _extensionCalculator;
         private RadialExtensionAdjuster? _adjuster;
-        private bool _isAnimating = false; // Track if we're in an animation
+        private InteractionMode _mode = InteractionMode.Normal;
         
         // Manual layout editor support
         private LayoutEditorController _layoutEditor = null!;
@@ -91,6 +91,15 @@ namespace InteractiveWorldMap
             public double Height { get; init; }
         }
 
+        private enum InteractionMode
+        {
+            Normal,
+            Animating,
+            Editing
+        }
+
+        private bool IsAnimating => _mode == InteractionMode.Animating;
+
         public MainWindow()
         {
             try
@@ -117,28 +126,6 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  RadialExtension.MinLocationsForExtension: {_visualConfig.RadialExtension.MinLocationsForExtension}");
                 _logger.LogInfo($"  RadialExtension.ProximityThresholdPixels: {_visualConfig.RadialExtension.ProximityThresholdPixels}");
                 _logger.LogInfo($"  RadialExtension.ExtensionLineLength: {_visualConfig.RadialExtension.ExtensionLineLength}");
-                
-                Console.WriteLine($"=== Visual Config Loaded ===");
-                Console.WriteLine($"Config Path: {configPath}");
-                Console.WriteLine($"ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
-                Console.WriteLine($"LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
-                Console.WriteLine($"ClusterMarkerSize: {_visualConfig.ClusterMarkerSize}");
-                Console.WriteLine($"ClusterBadgeSize: {_visualConfig.ClusterBadgeSize}");
-                Console.WriteLine($"ClusterCountFontSize: {_visualConfig.ClusterCountFontSize}");
-                Console.WriteLine($"ZoomScale: {_visualConfig.ZoomScale}");
-                Console.WriteLine($"AnimationDurationMs: {_visualConfig.AnimationDurationMs}");
-                Console.WriteLine($"===========================");
-                
-                System.Diagnostics.Debug.WriteLine($"=== Visual Config Loaded ===");
-                System.Diagnostics.Debug.WriteLine($"Config Path: {configPath}");
-                System.Diagnostics.Debug.WriteLine($"ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
-                System.Diagnostics.Debug.WriteLine($"LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
-                System.Diagnostics.Debug.WriteLine($"ClusterMarkerSize: {_visualConfig.ClusterMarkerSize}");
-                System.Diagnostics.Debug.WriteLine($"ClusterBadgeSize: {_visualConfig.ClusterBadgeSize}");
-                System.Diagnostics.Debug.WriteLine($"ClusterCountFontSize: {_visualConfig.ClusterCountFontSize}");
-                System.Diagnostics.Debug.WriteLine($"ZoomScale: {_visualConfig.ZoomScale}");
-                System.Diagnostics.Debug.WriteLine($"AnimationDurationMs: {_visualConfig.AnimationDurationMs}");
-                System.Diagnostics.Debug.WriteLine($"===========================");
                 
                 _contentLoader = new ContentLoader(_logger);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
@@ -215,12 +202,18 @@ namespace InteractiveWorldMap
         {
             _layoutEditor.EditModeEntered += () =>
             {
+                _mode = InteractionMode.Editing;
                 EditLayoutButton.Visibility = Visibility.Collapsed;
                 EditModePanel.Visibility = Visibility.Visible;
             };
 
             _layoutEditor.EditModeExited += () =>
             {
+                if (_mode == InteractionMode.Editing)
+                {
+                    _mode = InteractionMode.Normal;
+                }
+
                 EditModePanel.Visibility = Visibility.Collapsed;
                 if (_visualConfig.ManualLayoutEditor.Enabled)
                 {
@@ -744,14 +737,14 @@ namespace InteractiveWorldMap
             var containerHeight = MapDisplay.ActualHeight;
 
             // Clear existing extensions only when not animating
-            if (!_isAnimating)
+            if (!IsAnimating)
             {
                 _extensionLineRenderer.Clear();
             }
 
             // Skip radial extension logic entirely during animation
             // Extensions will be applied after animation completes
-            if (_isAnimating)
+            if (IsAnimating)
             {
                 RestoreBaseMarkerVisuals();
 
@@ -1075,8 +1068,6 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  Cluster: {cluster.Count} locations");
                 _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
 
-                _isAnimating = true;
-
                 var currentState = ZoomState.CreateFullMapView();
                 _navigationService.PushState(currentState);
                 _logger.LogInfo("  Current state saved to navigation stack");
@@ -1087,6 +1078,8 @@ namespace InteractiveWorldMap
                     _logger.LogError("Current viewport is null");
                     return;
                 }
+
+                _mode = InteractionMode.Animating;
 
                 var targetViewport = ViewportState.CreateZoomedView(
                     cluster.CenterPoint.X,
@@ -1298,8 +1291,6 @@ namespace InteractiveWorldMap
                 _extensionLineRenderer.Clear();
                 _logger.LogInfo("  Cleared radial extension lines");
 
-                _isAnimating = true;
-
                 var startViewport = MapDisplay.CurrentViewport;
                 if (startViewport == null)
                 {
@@ -1317,6 +1308,8 @@ namespace InteractiveWorldMap
                 }
 
                 _logger.LogInfo("  Previous state popped from navigation stack");
+
+                _mode = InteractionMode.Animating;
 
                 var targetViewport = ViewportState.CreateFullMapView(
                     ImageWidth,
@@ -1355,7 +1348,7 @@ namespace InteractiveWorldMap
         /// Runs the shared viewport-interpolation animation loop. Displays pre-rendered keyframes,
         /// updates the viewport and marker positions each frame, and calls
         /// <paramref name="onAnimationComplete"/> exactly once when progress reaches 1.0.
-        /// Callers must set <c>_isAnimating = true</c> before calling this method.
+        /// Callers must switch to <see cref="InteractionMode.Animating"/> before calling this method.
         /// </summary>
         private void AnimateViewportTransition(
             ViewportState startViewport,
@@ -1411,7 +1404,7 @@ namespace InteractiveWorldMap
                 if (progress >= 1.0)
                 {
                     CompositionTarget.Rendering -= renderHandler;
-                    _isAnimating = false;
+                    _mode = InteractionMode.Normal;
                     _logger.LogInfo($"  [FRAMES TOTAL] {frameCount} frames in {elapsed:F0}ms");
                     _logger.LogInfo($"=== {animationLabel} COMPLETED (Viewport) ===");
 
@@ -1817,7 +1810,7 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Handles Save Layout button click - saves current marker positions.
         /// </summary>
-        private void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
+        private async void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
         {
             if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
             {
@@ -1856,12 +1849,6 @@ namespace InteractiveWorldMap
                     EditModeStatusText.Text       = $"⚠ {validationIssues.Count} Issues Found";
                     EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0));
 
-                    // Reset after 3 seconds
-                    Task.Delay(3000).ContinueWith(_ => Dispatcher.Invoke(() =>
-                    {
-                        EditModeStatusText.Text       = "EDIT MODE ACTIVE";
-                        EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
-                    }));
                 }
 
                 // Save (controller sets IsManualLayoutActive and logs)
@@ -1873,13 +1860,9 @@ namespace InteractiveWorldMap
                     EditModeStatusText.Text       = "✓ LAYOUT SAVED";
                     EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50));
 
-                    // Reset status after 2 seconds
-                    Task.Delay(2000).ContinueWith(_ => Dispatcher.Invoke(() =>
-                    {
-                        EditModeStatusText.Text       = "EDIT MODE ACTIVE";
-                        EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
-                    }));
                 }
+
+                await ResetEditModeStatusAfterDelayAsync(validationIssues.Count > 0 ? 3000 : 2000);
             }
             catch (Exception ex)
             {
@@ -1982,6 +1965,13 @@ namespace InteractiveWorldMap
             }
         }
 
+        private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)
+        {
+            await Task.Delay(delayMs);
+            EditModeStatusText.Text = "EDIT MODE ACTIVE";
+            EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+        }
+
         /// <summary>
         /// Handles marker drag start.
         /// </summary>
@@ -2017,13 +2007,13 @@ namespace InteractiveWorldMap
                 var currentPosition = e.GetPosition(MapDisplay.Markers);
                 var markerSize = _visualConfig.LocationMarkerSize;
                 
-                Console.WriteLine($"[DRAG] Mouse position: ({currentPosition.X:F1}, {currentPosition.Y:F1}), MarkerSize: {markerSize}");
+                LogDragDebug($"[DRAG] Mouse position: ({currentPosition.X:F1}, {currentPosition.Y:F1}), MarkerSize: {markerSize}");
                 
                 // Calculate new position (centered on cursor)
                 var newX = currentPosition.X - (markerSize / 2);
                 var newY = currentPosition.Y - (markerSize / 2);
                 
-                Console.WriteLine($"[DRAG] Calculated position before bounds: ({newX:F1}, {newY:F1})");
+                LogDragDebug($"[DRAG] Calculated position before bounds: ({newX:F1}, {newY:F1})");
                 
                 // Constrain to canvas bounds
                 var canvasWidth = MapDisplay.Markers.ActualWidth;
@@ -2031,12 +2021,12 @@ namespace InteractiveWorldMap
                 newX = Math.Max(0, Math.Min(newX, canvasWidth - markerSize));
                 newY = Math.Max(0, Math.Min(newY, canvasHeight - markerSize));
                 
-                Console.WriteLine($"[DRAG] Final position after bounds ({canvasWidth:F0}x{canvasHeight:F0}): ({newX:F1}, {newY:F1})");
+                LogDragDebug($"[DRAG] Final position after bounds ({canvasWidth:F0}x{canvasHeight:F0}): ({newX:F1}, {newY:F1})");
                 
                 // Get current marker position for comparison
                 var currentMarkerX = Canvas.GetLeft(_draggedMarker);
                 var currentMarkerY = Canvas.GetTop(_draggedMarker);
-                Console.WriteLine($"[DRAG] Current marker position: ({currentMarkerX:F1}, {currentMarkerY:F1})");
+                LogDragDebug($"[DRAG] Current marker position: ({currentMarkerX:F1}, {currentMarkerY:F1})");
                 
                 // Update marker position
                 Canvas.SetLeft(_draggedMarker, newX);
@@ -2045,7 +2035,7 @@ namespace InteractiveWorldMap
                 // Verify marker position was updated
                 var updatedMarkerX = Canvas.GetLeft(_draggedMarker);
                 var updatedMarkerY = Canvas.GetTop(_draggedMarker);
-                Console.WriteLine($"[DRAG] Updated marker position: ({updatedMarkerX:F1}, {updatedMarkerY:F1})");
+                LogDragDebug($"[DRAG] Updated marker position: ({updatedMarkerX:F1}, {updatedMarkerY:F1})");
                 
                 // Update line if it exists
                 if (_extensionLineRenderer.HasLine(_draggedMarker))
@@ -2053,14 +2043,20 @@ namespace InteractiveWorldMap
                     var markerCenterX = newX + (markerSize / 2);
                     var markerCenterY = newY + (markerSize / 2);
                     _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, new Point(markerCenterX, markerCenterY));
-                    Console.WriteLine($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1})");
+                    LogDragDebug($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1})");
                 }
                 else
                 {
-                    Console.WriteLine($"[DRAG] No line found for marker: {_draggedMarker.Location.Name}");
-                    if (_visualConfig.Debug.LogRadialExtensionCalculation)
-                        _logger.LogInfo($"[OnMarkerDragMove] No line found for marker: {_draggedMarker.Location.Name}");
+                    LogDragDebug($"[OnMarkerDragMove] No line found for marker: {_draggedMarker.Location.Name}");
                 }
+            }
+        }
+
+        private void LogDragDebug(string message)
+        {
+            if (_visualConfig.Debug.LogRadialExtensionCalculation)
+            {
+                _logger.LogInfo(message);
             }
         }
 

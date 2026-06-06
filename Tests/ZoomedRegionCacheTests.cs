@@ -45,6 +45,78 @@ public class ZoomedRegionCacheTests
         }
     }
 
+    [Fact]
+    public void GenerateAndCacheRegion_FullResUnavailable_FallsToHalfRes()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-zrc-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+
+        try
+        {
+            var source = CreateFourByFourTestBitmap();
+            var cache = new ZoomedRegionCache(
+                new MockLogger(),
+                Path.Combine(tempDir, "missing-full-res.png"));
+
+            var result = cache.GenerateAndCacheRegion(
+                source,
+                new Int32Rect(1, 1, 2, 2),
+                centerX: 2,
+                centerY: 2,
+                zoomLevel: 2,
+                displayWidth: 2,
+                displayHeight: 2);
+
+            var firstPixel = ReadFirstPixel(result);
+
+            Assert.Equal((byte)50, firstPixel.R);
+            Assert.Equal((byte)51, firstPixel.G);
+            Assert.Equal((byte)52, firstPixel.B);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void GenerateAndCacheRegion_CacheHit_ReturnsCachedBitmap()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-zrc-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var imagePath = Path.Combine(tempDir, "source.png");
+
+        try
+        {
+            var source = CreateFourByFourTestBitmap();
+            SaveBitmap(source, imagePath);
+
+            var cache = new ZoomedRegionCache(new MockLogger(), imagePath);
+            cache.GenerateAndCacheRegion(
+                source,
+                new Int32Rect(1, 1, 2, 2),
+                centerX: 2,
+                centerY: 2,
+                zoomLevel: 2,
+                displayWidth: 2,
+                displayHeight: 2);
+
+            var cached = cache.TryLoadRegion(
+                centerX: 2,
+                centerY: 2,
+                zoomLevel: 2,
+                displayWidth: 2,
+                displayHeight: 2);
+
+            Assert.NotNull(cached);
+            Assert.True(cached!.IsFrozen);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static BitmapSource CreateFourByFourTestBitmap()
     {
         const int width = 4;

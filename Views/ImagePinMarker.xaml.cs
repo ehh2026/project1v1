@@ -67,8 +67,6 @@ namespace InteractiveWorldMap.Views
             // Set size based on the original pin dimensions and scale factor
             Width = pinInfo.Width * scaleFactor;
             Height = pinInfo.Height * scaleFactor;
-            
-            Console.WriteLine($"ImagePinMarker: Set pin '{pinInfo.Id}' with size {Width:F1}x{Height:F1} (scale: {scaleFactor:F2})");
         }
 
         /// <summary>
@@ -87,9 +85,8 @@ namespace InteractiveWorldMap.Views
                 
                 return croppedBitmap;
             }
-            catch (Exception ex)
+            catch
             {
-                Console.WriteLine($"Error cropping pin '{pinInfo.Id}': {ex.Message}");
                 return masterImage; // Fallback to full image
             }
         }

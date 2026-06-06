@@ -83,8 +83,7 @@ public partial class ContentSubwindow : Window
             };
             ContentArea.Content = image;
 
-            // Calculate window size based on image dimensions
-            CalculateSizeForImage(imageSource);
+            CalculateContentSize();
         }
         else if (content is string text)
         {
@@ -97,8 +96,7 @@ public partial class ContentSubwindow : Window
             };
             ContentArea.Content = textBlock;
 
-            // Calculate window size based on text length
-            CalculateSizeForText(text);
+            CalculateContentSize();
         }
 
         // Apply the calculated size
@@ -129,29 +127,7 @@ public partial class ContentSubwindow : Window
         }
     }
 
-    /// <summary>
-    /// Calculates the optimal window size for an image.
-    /// </summary>
-    private void CalculateSizeForImage(ImageSource imageSource)
-    {
-        var screenWidth = SystemParameters.PrimaryScreenWidth;
-        var screenHeight = SystemParameters.PrimaryScreenHeight;
-        
-        // Calculate target window size based on screen percentages
-        var targetWidth = screenWidth * WindowWidthPercent;
-        var targetHeight = screenHeight * WindowHeightPercent;
-        
-        // Ensure minimum dimensions
-        targetWidth = Math.Max(MinWindowWidth, targetWidth);
-        targetHeight = Math.Max(MinWindowHeight, targetHeight);
-
-        PreferredSize = new Size(targetWidth, targetHeight);
-    }
-
-    /// <summary>
-    /// Calculates the optimal window size for text content.
-    /// </summary>
-    private void CalculateSizeForText(string text)
+    private void CalculateContentSize()
     {
         var screenWidth = SystemParameters.PrimaryScreenWidth;
         var screenHeight = SystemParameters.PrimaryScreenHeight;

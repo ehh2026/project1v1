@@ -168,17 +168,7 @@ public class ZoomedRegionCache
                 
                 _logger.LogInfo($"  Extracting {fullResRect.Width}x{fullResRect.Height} region from full-res");
                 
-                // Extract region from full-res source
-                var croppedBitmap = new CroppedBitmap(fullResBitmap, fullResRect);
-                
-                // Scale to display size with high-quality Fant interpolation
-                var scaledBitmap = new TransformedBitmap(croppedBitmap,
-                    new ScaleTransform(displayWidth / (double)fullResRect.Width, displayHeight / (double)fullResRect.Height));
-                
-                RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.Fant);
-                
-                finalImage = new WriteableBitmap(scaledBitmap);
-                finalImage.Freeze();
+                finalImage = ScaleBitmap(fullResBitmap, fullResRect, displayWidth, displayHeight);
                 
                 // Full-res bitmap will be garbage collected after this method
                 _logger.LogInfo("  High-quality region generated from full-res source");
@@ -189,14 +179,7 @@ public class ZoomedRegionCache
                 _logger.LogWarning($"  Full-res source not found at: {_fullResolutionImagePath}");
                 _logger.LogInfo("  Upsampling from half-res with Fant interpolation");
                 
-                var croppedBitmap = new CroppedBitmap(halfResSource, halfResRect);
-                var scaledBitmap = new TransformedBitmap(croppedBitmap,
-                    new ScaleTransform(displayWidth / (double)halfResRect.Width, displayHeight / (double)halfResRect.Height));
-                
-                RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.Fant);
-                
-                finalImage = new WriteableBitmap(scaledBitmap);
-                finalImage.Freeze();
+                finalImage = ScaleBitmap(halfResSource, halfResRect, displayWidth, displayHeight);
             }
 
             // Save to cache
@@ -217,13 +200,21 @@ public class ZoomedRegionCache
             _logger.LogError($"Failed to generate and cache zoomed region: {ex.Message}");
             
             // Fallback: return a basic scaled version from half-res
-            var croppedBitmap = new CroppedBitmap(halfResSource, halfResRect);
-            var scaledBitmap = new TransformedBitmap(croppedBitmap,
-                new ScaleTransform(displayWidth / (double)halfResRect.Width, displayHeight / (double)halfResRect.Height));
-            var writeableBitmap = new WriteableBitmap(scaledBitmap);
-            writeableBitmap.Freeze();
-            return writeableBitmap;
+            return ScaleBitmap(halfResSource, halfResRect, displayWidth, displayHeight);
         }
+    }
+
+    private static BitmapSource ScaleBitmap(BitmapSource source, System.Windows.Int32Rect sourceRect, int displayWidth, int displayHeight)
+    {
+        var croppedBitmap = new CroppedBitmap(source, sourceRect);
+        var scaledBitmap = new TransformedBitmap(croppedBitmap,
+            new ScaleTransform(displayWidth / (double)sourceRect.Width, displayHeight / (double)sourceRect.Height));
+
+        RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.Fant);
+
+        var writeableBitmap = new WriteableBitmap(scaledBitmap);
+        writeableBitmap.Freeze();
+        return writeableBitmap;
     }
 
     /// <summary>

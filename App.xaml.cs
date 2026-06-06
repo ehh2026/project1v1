@@ -27,8 +27,6 @@ namespace InteractiveWorldMap
                 AllocConsole();
             }
 
-            Console.WriteLine("Console allocated successfully!");
-
             var logger = new FileLogger();
             try
             {
@@ -45,8 +43,6 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 logger.LogError($"FATAL ERROR during application startup: {ex.Message}\n{ex.StackTrace}");
-                Console.WriteLine($"FATAL ERROR: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
                 MessageBox.Show($"Fatal error during startup:\n{ex.Message}", "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(1);
             }
