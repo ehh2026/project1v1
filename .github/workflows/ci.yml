@@ -21,6 +21,10 @@ jobs:
       - name: Restore
         run: dotnet restore InteractiveWorldMap.sln
 
+      - name: NuGet vulnerability check
+        shell: pwsh
+        run: python scripts/verify_nuget_vulnerabilities.py
+
       - name: Build
         run: dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
 

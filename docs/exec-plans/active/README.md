@@ -4,7 +4,6 @@ No in-progress exec plans at the moment. When starting multi-step agent work, ad
 
 Active plans:
 
-- [security-ci-plan.md](security-ci-plan.md) — Dependabot, Gitleaks, NuGet audit, optional CodeQL
 - [refactoring-plan.md](refactoring-plan.md) — MainWindow decomposition tracker
 
 ```yaml

@@ -76,7 +76,8 @@ The application is functional and ready for demo! Core features are implemented 
   - Decide whether to jump to .NET 10 or standardize on .NET 8 LTS first
 
 ### Security & CI
-- [ ] **Add security CI (Dependabot, Gitleaks, NuGet audit)** — [security-ci-plan.md](exec-plans/active/security-ci-plan.md)
+
+- [x] **Add security CI (Dependabot, Gitleaks, NuGet audit)** — [security-ci-plan.md](exec-plans/completed/security-ci-plan.md) (Phases 1–3 complete; CodeQL deferred)
   - P0: Dependabot for NuGet (`/` + `Tests/`) and GitHub Actions; Gitleaks workflow on push/PR; `dotnet list package --vulnerable` in CI and `verify.ps1`
   - P1 (optional): CodeQL for C#
   - Defer: Grype/Trivy (no containers), Snyk, SBOM until dependency surface or release pipeline grows

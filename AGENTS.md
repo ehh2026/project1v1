@@ -25,7 +25,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **SDK:** `global.json` pins **.NET 6 SDK** for this repo (side-by-side with newer SDKs). If `dotnet test` fails locally, install .NET 6 SDK — see [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
 
-**Merge gate:** GitHub Actions `windows-latest` CI runs full `verify.ps1` steps (build, test, doc links, taste, headless startup). macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
+**Merge gate:** GitHub Actions on `windows-latest` runs build, test, NuGet vulnerability scan, doc links, taste checks, and headless startup validation; **Gitleaks** runs separately on Ubuntu. Local Windows gate: `.\scripts\verify.ps1`. macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
 
 ## Repository Layout
 

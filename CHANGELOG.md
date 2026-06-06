@@ -6,10 +6,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
-- `docs/exec-plans/active/security-ci-plan.md` — plan for Dependabot, Gitleaks CI, NuGet vulnerability gate, and optional CodeQL ([TO_DO.md](docs/TO_DO.md))
+- **Security CI (Phases 1–3):** Dependabot (`.github/dependabot.yml`), Gitleaks workflow (`.github/workflows/gitleaks.yml`), NuGet vulnerability gate (`scripts/verify_nuget_vulnerabilities.py` in CI and `verify.ps1` / `verify.sh`)
+- Pinned test transitive packages `System.Net.Http` 4.3.4 and `System.Text.RegularExpressions` 4.3.1 to clear High-severity advisories under the new audit gate
 
 ### Changed
 
+- `docs/SECURITY.md` and `AGENTS.md` — document Gitleaks, Dependabot, and NuGet audit merge gate
 - **Refactoring Phase 10** - Quality cleanup:
   - Replaced edit-mode status `Task.Delay(...).ContinueWith(...)` callbacks with awaited async status reset logic.
   - Removed app/UI console diagnostics outside `FileLogger`, added structural coverage to keep console output out of production code, and kept drag diagnostics behind `ILogger`.

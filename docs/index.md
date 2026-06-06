@@ -28,7 +28,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 
 | Doc | Description |
 |-----|-------------|
-| [exec-plans/active/](exec-plans/active/) | In-progress work ([security-ci-plan.md](exec-plans/active/security-ci-plan.md), [refactoring-plan.md](exec-plans/active/refactoring-plan.md), …) |
+| [exec-plans/active/](exec-plans/active/) | In-progress work ([refactoring-plan.md](exec-plans/active/refactoring-plan.md), …) |
 | [exec-plans/completed/](exec-plans/completed/) | Finished plans |
 | [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md) | Known debt and refactoring targets |
 

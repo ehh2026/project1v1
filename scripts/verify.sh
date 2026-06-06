@@ -33,14 +33,19 @@ if ! command -v dotnet >/dev/null 2>&1; then
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[1/5] dotnet restore"
+  echo "[1/6] dotnet restore"
   if ! dotnet restore InteractiveWorldMap.sln; then
     RUN_DOTNET=false
   fi
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[2/5] dotnet build"
+  echo "[2/6] NuGet vulnerability check"
+  python3 scripts/verify_nuget_vulnerabilities.py
+fi
+
+if [[ "$RUN_DOTNET" == true ]]; then
+  echo "[3/6] dotnet build"
   if ! dotnet build InteractiveWorldMap.sln --configuration Release --no-restore 2>&1; then
     echo "WARN: dotnet build failed — WPF requires Windows Desktop SDK (windows-latest CI)." >&2
     echo "REMEDIATION: Run .\\scripts\\verify.ps1 on Windows for full build/test." >&2
@@ -49,14 +54,14 @@ if [[ "$RUN_DOTNET" == true ]]; then
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[3/5] dotnet test"
+  echo "[4/6] dotnet test"
   dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal
 fi
 
-echo "[4/5] doc link check"
+echo "[5/6] doc link check"
 python3 scripts/verify_doc_links.py
 
-echo "[5/5] taste checks"
+echo "[6/6] taste checks"
 python3 scripts/verify_taste.py
 
 if [[ "$RUN_DOTNET" == true ]]; then

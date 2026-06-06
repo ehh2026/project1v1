@@ -35,7 +35,15 @@ Project-specific security guidance for agents. This is a local Windows desktop a
 ### Dependencies
 
 - Minimize NuGet additions; evaluate security advisories before adding packages
-- Current sole dependency: Newtonsoft.Json 13.0.3
+- Current sole runtime dependency: Newtonsoft.Json 13.0.3
+- CI runs a NuGet vulnerability gate (`scripts/verify_nuget_vulnerabilities.py`) after restore — fails on **High** and **Critical** advisories (direct and transitive)
+- Dependabot opens weekly PRs for NuGet and GitHub Actions updates (see `.github/dependabot.yml`)
+
+### Secrets in CI
+
+- **Gitleaks** runs on every push/PR to `main` (`.github/workflows/gitleaks.yml`)
+- Never commit passwords, API keys, tokens, or private keys — use environment variables or gitignored local config
+- If Gitleaks flags a finding: rotate the exposed secret, remove it from history if needed, or add a narrow `.gitleaks.toml` allowlist only for documented false positives
 
 ## When to Escalate
 
