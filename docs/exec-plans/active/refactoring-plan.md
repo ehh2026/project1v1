@@ -136,7 +136,7 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] Architecture tests green
 - [x] `.\scripts\verify.ps1` passed
 - [x] CHANGELOG.md updated
-- [ ] Committed
+- [x] Committed (3d8edfe)
 
 ## Phase 10 — Quality Improvements
 
