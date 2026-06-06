@@ -6,6 +6,17 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Refactoring Phase 7** — Fix `RadialExtensionCalculator` duplication in `Utilities/RadialExtensionCalculator.cs`:
+  - Introduced private nested `LocationAngleInfo` record replacing the verbose `(Location, Point, double)` tuple used throughout the angle-adjustment pipeline.
+  - Extracted `FindAngularPairsWithinThreshold(items, maxAngleDeg)` — enumerates forward and wrap-around angular pairs within a threshold, eliminating two near-identical double-loop structures shared by `NudgeAnglesApart` and `PreventConvergingLines`.
+  - Extracted `SafeNudgeApart(items, i, j, diff, nudgeAmount)` — applies a circular-order–safe nudge, eliminating four copies of the nudge-with-crossover-prevention pattern.
+  - Extracted `AngularDiff(from, to)` — canonical `(to - from + 360) % 360` one-liner.
+  - Extracted `ExtendedPoint(item)` — projects a marker along its angle, replacing duplicate inline calculations in `PreventConvergingLines` and `PreventLineIntersections`.
+  - Removed all `Console.WriteLine` from `PreventLineIntersections` and all `System.Diagnostics.Debug.WriteLine` from `PreventConvergingLines`.
+  - Removed the large commented-out body of `ValidateNoCrossings`; method is now a documented one-liner.
+  - Fixed latent bug: final extension loop iterates `items.Count` (not `group.Count`) preventing potential `IndexOutOfRangeException` when screen positions are missing.
+  - Net change: ~698 → ~270 lines (~430 lines removed), 5 helpers added, 0 behaviour changes.
+  - Added `Tests/RadialExtensionCalculatorTests.cs` — 13 new unit tests covering constructor guard, dense-group detection, radial extension output, and `ValidateNoCrossings`.
 - **Refactoring Phase 1** — Extract geometry utilities from `MainWindow.xaml.cs`:
   - Added `Utilities/GeometryMath.cs` with 6 static marker-layout geometry helpers (`DoLineSegmentsIntersect`, `DoesLinePassTooCloseToMarker`, `CalculateMinimumDistanceBetweenLines`, `PointToLineSegmentDistance`, `CalculateAngularSpace`, `FindSafeAngleRotation`) and two named constants (`GeometryEpsilon`, `IntersectionEndpointMargin`). Behavior is identical to the original private methods.
   - Removed the 6 private geometry methods from `MainWindow.xaml.cs` (~150 lines); updated all call sites to use `GeometryMath.*`. `FindSafeAngleRotation` now takes an explicit `markerRadius` parameter instead of reading `_visualConfig`.

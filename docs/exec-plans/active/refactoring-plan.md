@@ -91,20 +91,22 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] `ContentLoaderTests` green + new tests added (7 new, 126 total)
 - [x] `.\scripts\verify.ps1` passed
 - [x] CHANGELOG.md updated
-- [ ] Committed
+- [x] Committed (a7785ff)
 
-## Phase 7 — Fix RadialExtensionCalculator Duplication
+## Phase 7 — Fix RadialExtensionCalculator Duplication ✅
 
-- [ ] Create `LocationAngleInfo` record
-- [ ] Extract `FindAngularPairsWithinThreshold`
-- [ ] Refactor `NudgeAnglesApart` and `PreventConvergingLines`
-- [ ] Fix inconsistent logging
-- [ ] Remove dead code
-- [ ] Build succeeds
-- [ ] Write `Tests/RadialExtensionCalculatorTests.cs`
-- [ ] Full test suite green
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] Create `LocationAngleInfo` record (private nested record in RadialExtensionCalculator)
+- [x] Extract `FindAngularPairsWithinThreshold`
+- [x] Extract `SafeNudgeApart`, `AngularDiff`, `ExtendedPoint` helpers
+- [x] Refactor `NudgeAnglesApart` and `PreventConvergingLines`
+- [x] Fix inconsistent logging (remove Console.WriteLine, Debug.WriteLine)
+- [x] Remove dead code (ValidateNoCrossings commented block)
+- [x] Fix latent IndexOutOfRange bug (markerCount → items.Count)
+- [x] Build succeeds
+- [x] Write `Tests/RadialExtensionCalculatorTests.cs` (13 tests)
+- [x] Full test suite green (139 total)
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed
 
 ## Phase 8 — Extract Layout Editor from MainWindow
