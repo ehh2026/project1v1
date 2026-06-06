@@ -1,0 +1,444 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Windows;
+using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Tests.TestHelpers;
+using Xunit;
+
+namespace InteractiveWorldMap.Tests;
+
+/// <summary>
+/// Unit tests for <see cref="LayoutEditorController"/>.
+/// </summary>
+public class LayoutEditorControllerTests
+{
+    // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    private static (LayoutEditorController Controller, ManualLayoutManager Manager, MockLogger Logger, string TempDir)
+        Make()
+    {
+        var tempDir     = Path.Combine(Path.GetTempPath(), "iwm-lec-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var layoutPath  = Path.Combine(tempDir, "layouts.json");
+        var logger      = new MockLogger();
+        var manager     = new ManualLayoutManager(layoutPath, logger);
+        var config      = new VisualConfig();
+        var controller  = new LayoutEditorController(manager, config, logger);
+        return (controller, manager, logger, tempDir);
+    }
+
+    private static Location Loc(string id) => new Location { Id = id, Name = id };
+
+    // ─── Constructor guards ───────────────────────────────────────────────────
+
+    [Fact]
+    public void Constructor_NullLayoutManager_Throws()
+    {
+        var log    = new MockLogger();
+        var config = new VisualConfig();
+        Assert.Throws<ArgumentNullException>(() =>
+            new LayoutEditorController(null!, config, log));
+    }
+
+    [Fact]
+    public void Constructor_NullVisualConfig_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-lec-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var manager = new ManualLayoutManager(Path.Combine(tempDir, "l.json"), new MockLogger());
+        Assert.Throws<ArgumentNullException>(() =>
+            new LayoutEditorController(manager, null!, new MockLogger()));
+    }
+
+    [Fact]
+    public void Constructor_NullLogger_Throws()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-lec-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var manager = new ManualLayoutManager(Path.Combine(tempDir, "l.json"), new MockLogger());
+        Assert.Throws<ArgumentNullException>(() =>
+            new LayoutEditorController(manager, new VisualConfig(), null!));
+    }
+
+    // ─── State transitions ────────────────────────────────────────────────────
+
+    [Fact]
+    public void IsEditMode_DefaultsFalse()
+    {
+        var (ctrl, _, _, _) = Make();
+        Assert.False(ctrl.IsEditMode);
+    }
+
+    [Fact]
+    public void EnterEditMode_SetsIsEditModeTrue()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.EnterEditMode();
+        Assert.True(ctrl.IsEditMode);
+    }
+
+    [Fact]
+    public void EnterEditMode_RaisesEditModeEntered()
+    {
+        var (ctrl, _, _, _) = Make();
+        var raised = false;
+        ctrl.EditModeEntered += () => raised = true;
+
+        ctrl.EnterEditMode();
+
+        Assert.True(raised);
+    }
+
+    [Fact]
+    public void ExitEditMode_SetsIsEditModeFalse()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.EnterEditMode();
+        ctrl.ExitEditMode();
+        Assert.False(ctrl.IsEditMode);
+    }
+
+    [Fact]
+    public void ExitEditMode_RaisesEditModeExited()
+    {
+        var (ctrl, _, _, _) = Make();
+        var raised = false;
+        ctrl.EditModeExited += () => raised = true;
+        ctrl.EnterEditMode();
+
+        ctrl.ExitEditMode();
+
+        Assert.True(raised);
+    }
+
+    [Fact]
+    public void SetLayoutKey_UpdatesCurrentLayoutKey()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-abc");
+        Assert.Equal("key-abc", ctrl.CurrentLayoutKey);
+    }
+
+    [Fact]
+    public void SetLayoutKey_Null_ClearsKey()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-abc");
+        ctrl.SetLayoutKey(null);
+        Assert.Null(ctrl.CurrentLayoutKey);
+    }
+
+    [Fact]
+    public void SetManualLayoutActive_True_SetsFlag()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetManualLayoutActive(true);
+        Assert.True(ctrl.IsManualLayoutActive);
+    }
+
+    [Fact]
+    public void SetManualLayoutActive_False_ClearsFlag()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetManualLayoutActive(true);
+        ctrl.SetManualLayoutActive(false);
+        Assert.False(ctrl.IsManualLayoutActive);
+    }
+
+    // ─── BuildExtensions (static) ─────────────────────────────────────────────
+
+    [Fact]
+    public void BuildExtensions_NullInput_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            LayoutEditorController.BuildExtensions(null!));
+    }
+
+    [Fact]
+    public void BuildExtensions_EmptyInput_ReturnsEmpty()
+    {
+        var result = LayoutEditorController.BuildExtensions(
+            Array.Empty<(Location, Point, Point)>());
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BuildExtensions_SingleMarker_ReturnsOneExtension()
+    {
+        var loc    = Loc("a");
+        var center = new Point(110, 200);
+        var origin = new Point(100, 190);
+
+        var result = LayoutEditorController.BuildExtensions(
+            new[] { (loc, center, origin) });
+
+        Assert.Single(result);
+        Assert.Equal(loc,    result[0].Location);
+        Assert.Equal(origin, result[0].OriginalPosition);
+        Assert.Equal(center, result[0].ExtendedPosition);
+    }
+
+    [Fact]
+    public void BuildExtensions_AngleCalculatedFromDelta()
+    {
+        var loc    = Loc("b");
+        var origin = new Point(0, 0);
+        var center = new Point(1, 0);   // dx=1, dy=0 → atan2(0,1)=0°
+
+        var result = LayoutEditorController.BuildExtensions(
+            new[] { (loc, center, origin) });
+
+        Assert.Equal(0.0, result[0].Angle, 3);
+    }
+
+    // ─── ValidateLayout ───────────────────────────────────────────────────────
+
+    [Fact]
+    public void ValidateLayout_NullInput_Throws()
+    {
+        var (ctrl, _, _, _) = Make();
+        Assert.Throws<ArgumentNullException>(() => ctrl.ValidateLayout(null!));
+    }
+
+    [Fact]
+    public void ValidateLayout_EmptyList_ReturnsNoIssues()
+    {
+        var (ctrl, _, _, _) = Make();
+        var issues = ctrl.ValidateLayout(new List<RadialExtension>());
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void ValidateLayout_WellSeparatedMarkers_ReturnsNoIssues()
+    {
+        var (ctrl, _, _, _) = Make();
+        var extensions = new List<RadialExtension>
+        {
+            new RadialExtension { Location = Loc("a"), OriginalPosition = new Point(0, 0),   ExtendedPosition = new Point(0,   100) },
+            new RadialExtension { Location = Loc("b"), OriginalPosition = new Point(200, 0), ExtendedPosition = new Point(200, 100) }
+        };
+        var issues = ctrl.ValidateLayout(extensions);
+        Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void ValidateLayout_OverlappingMarkers_ReportsIssue()
+    {
+        var (ctrl, _, _, _) = Make();
+        var extensions = new List<RadialExtension>
+        {
+            new RadialExtension { Location = Loc("a"), OriginalPosition = new Point(0, 0), ExtendedPosition = new Point(100, 100) },
+            new RadialExtension { Location = Loc("b"), OriginalPosition = new Point(5, 0), ExtendedPosition = new Point(102, 100) }
+            // Extended positions ~2px apart → less than LocationMarkerSize (default 12)
+        };
+        var issues = ctrl.ValidateLayout(extensions);
+        Assert.Contains(issues, s => s.Contains("overlap") || s.Contains("intersect") || s.Contains("close"));
+    }
+
+    // ─── TrySave ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void TrySave_NullExtensions_Throws()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key1");
+        Assert.Throws<ArgumentNullException>(() => ctrl.TrySave(null!));
+    }
+
+    [Fact]
+    public void TrySave_NullKey_ReturnsFalseAndLogs()
+    {
+        var (ctrl, _, logger, _) = Make();
+        // CurrentLayoutKey is null (default)
+        var result = ctrl.TrySave(new List<RadialExtension>());
+        Assert.False(result);
+        Assert.NotEmpty(logger.WarningMessages);
+    }
+
+    [Fact]
+    public void TrySave_ValidKey_ReturnsTrueAndSetsActive()
+    {
+        var (ctrl, _, _, tempDir) = Make();
+        ctrl.SetLayoutKey("key-save");
+        var ext = new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location         = Loc("x"),
+                OriginalPosition = new Point(10, 10),
+                ExtendedPosition = new Point(50, 50),
+                Angle            = 45.0
+            }
+        };
+        bool saved = ctrl.TrySave(ext);
+        Assert.True(saved);
+        Assert.True(ctrl.IsManualLayoutActive);
+    }
+
+    [Fact]
+    public void TrySave_ValidKey_RaisesManualLayoutActivityChanged()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-save-event");
+        bool? activeState = null;
+        ctrl.ManualLayoutActivityChanged += active => activeState = active;
+
+        bool saved = ctrl.TrySave(new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location = Loc("event"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(20, 20),
+                Angle = 45.0
+            }
+        });
+
+        Assert.True(saved);
+        Assert.True(activeState);
+    }
+
+    // ─── TryDelete ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void TryDelete_NullKey_ReturnsFalseAndLogs()
+    {
+        var (ctrl, _, logger, _) = Make();
+        var result = ctrl.TryDelete();
+        Assert.False(result);
+        Assert.NotEmpty(logger.WarningMessages);
+    }
+
+    [Fact]
+    public void TryDelete_AfterSave_ReturnsTrueAndClearsActive()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-del");
+        var ext = new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location         = Loc("y"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle            = 0.0
+            }
+        };
+        ctrl.TrySave(ext);
+        Assert.True(ctrl.IsManualLayoutActive);
+
+        bool deleted = ctrl.TryDelete();
+        Assert.True(deleted);
+        Assert.False(ctrl.IsManualLayoutActive);
+    }
+
+    [Fact]
+    public void TryDelete_AfterSave_RaisesManualLayoutActivityChanged()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-del-event");
+        ctrl.TrySave(new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location = Loc("event"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(20, 20),
+                Angle = 45.0
+            }
+        });
+        bool? activeState = null;
+        ctrl.ManualLayoutActivityChanged += active => activeState = active;
+
+        bool deleted = ctrl.TryDelete();
+
+        Assert.True(deleted);
+        Assert.False(activeState);
+    }
+
+    // ─── TryLoad ─────────────────────────────────────────────────────────────
+
+    [Fact]
+    public void TryLoad_MissingKey_ReturnsNull()
+    {
+        var (ctrl, _, _, _) = Make();
+        var layout = ctrl.TryLoad("nonexistent");
+        Assert.Null(layout);
+    }
+
+    [Fact]
+    public void TryLoad_AfterSave_ReturnsLayout()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-load");
+        var ext = new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location         = Loc("z"),
+                OriginalPosition = new Point(5, 5),
+                ExtendedPosition = new Point(55, 55),
+                Angle            = 90.0
+            }
+        };
+        ctrl.TrySave(ext);
+
+        var loaded = ctrl.TryLoad("key-load");
+        Assert.NotNull(loaded);
+    }
+
+    [Fact]
+    public void CreateLayoutApplications_VisibleMarkers_ReturnsPlacementData()
+    {
+        var (ctrl, _, _, _) = Make();
+        var layout = new ManualLayout(
+            "key",
+            new List<ManualLayoutMarker>
+            {
+                new("visible", new Point(10, 10), new Point(40, 50), 45.0, 50.0)
+            });
+
+        var applications = ctrl.CreateLayoutApplications(layout, new[] { "visible" });
+
+        var application = Assert.Single(applications);
+        Assert.Equal("visible", application.LocationName);
+        Assert.Equal(new Point(10, 10), application.OriginalPosition);
+        Assert.Equal(new Point(40, 50), application.ExtendedPosition);
+        Assert.True(application.RequiresExtensionLine);
+    }
+
+    [Fact]
+    public void CreateLayoutApplications_MissingVisibleMarker_SkipsAndLogsWarning()
+    {
+        var (ctrl, _, logger, _) = Make();
+        var layout = new ManualLayout(
+            "key",
+            new List<ManualLayoutMarker>
+            {
+                new("missing", new Point(10, 10), new Point(40, 50), 45.0, 50.0)
+            });
+
+        var applications = ctrl.CreateLayoutApplications(layout, new[] { "other" });
+
+        Assert.Empty(applications);
+        Assert.Contains(logger.WarningMessages, message => message.Contains("missing"));
+    }
+
+    [Fact]
+    public void CreateLayoutApplications_ShortOffset_DoesNotRequireExtensionLine()
+    {
+        var (ctrl, _, _, _) = Make();
+        var layout = new ManualLayout(
+            "key",
+            new List<ManualLayoutMarker>
+            {
+                new("visible", new Point(10, 10), new Point(13, 14), 45.0, 5.0)
+            });
+
+        var application = Assert.Single(ctrl.CreateLayoutApplications(layout, new[] { "visible" }));
+
+        Assert.False(application.RequiresExtensionLine);
+    }
+}

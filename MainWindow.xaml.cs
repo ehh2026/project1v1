@@ -47,12 +47,10 @@ namespace InteractiveWorldMap
         private bool _isAnimating = false; // Track if we're in an animation
         
         // Manual layout editor support
-        private bool _isEditMode = false;
+        private LayoutEditorController _layoutEditor = null!;
         private LocationMarker? _draggedMarker = null;
         private Point _dragStartPosition;
         private ManualLayoutManager? _layoutManager;
-        private string? _currentLayoutKey = null;
-        private bool _isManualLayoutActive = false;
         private LocationCluster? _currentZoomedCluster = null;
         private ManualLayout? _savedLayoutToApply = null;
         
@@ -174,6 +172,9 @@ namespace InteractiveWorldMap
                     _logger.LogInfo($"ManualLayoutManager initialized (read-only for loading saved layouts) at: {layoutFilePath}");
                 }
                 
+                _layoutEditor = new LayoutEditorController(_layoutManager!, _visualConfig, _logger);
+                WireLayoutEditorEvents();
+
                 _navigationService = new MapNavigationService();
                 _logger.LogInfo("MapNavigationService created");
 
@@ -208,6 +209,32 @@ namespace InteractiveWorldMap
                 logger.LogError($"FATAL ERROR in MainWindow constructor: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
+        }
+
+        private void WireLayoutEditorEvents()
+        {
+            _layoutEditor.EditModeEntered += () =>
+            {
+                EditLayoutButton.Visibility = Visibility.Collapsed;
+                EditModePanel.Visibility = Visibility.Visible;
+            };
+
+            _layoutEditor.EditModeExited += () =>
+            {
+                EditModePanel.Visibility = Visibility.Collapsed;
+                if (_visualConfig.ManualLayoutEditor.Enabled)
+                {
+                    EditLayoutButton.Visibility = Visibility.Visible;
+                }
+            };
+
+            _layoutEditor.ManualLayoutActivityChanged += isActive =>
+            {
+                ManualLayoutIndicator.Visibility =
+                    isActive && _visualConfig.ManualLayoutEditor.ShowLayoutIndicator
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+            };
         }
 
         /// <summary>
@@ -550,7 +577,7 @@ namespace InteractiveWorldMap
             marker.MouseLeftButtonDown += (s, e) =>
             {
                 // Don't handle clicks in edit mode (dragging takes precedence)
-                if (_isEditMode)
+                if (_layoutEditor.IsEditMode)
                 {
                     return;
                 }
@@ -1128,15 +1155,15 @@ namespace InteractiveWorldMap
                     // Generate layout key and try to load saved layout
                     if (_layoutManager != null && _visualConfig.RadialExtension.Enabled)
                     {
-                        _currentLayoutKey = LayoutKeyGenerator.GenerateKey(
+                        _layoutEditor.SetLayoutKey(LayoutKeyGenerator.GenerateKey(
                             cluster.Locations,
                             viewport,
-                            _visualConfig.RadialExtension);
-                        
-                        _logger.LogInfo($"  Generated layout key: {_currentLayoutKey}");
-                        
+                            _visualConfig.RadialExtension));
+
+                        _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
+
                         // Try to load saved layout
-                        var savedLayout = _layoutManager.LoadLayout(_currentLayoutKey);
+                        var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
                         if (savedLayout != null)
                         {
                             _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
@@ -1144,7 +1171,7 @@ namespace InteractiveWorldMap
                         }
                         else
                         {
-                            _logger.LogInfo($"  No saved layout found for key: {_currentLayoutKey}");
+                            _logger.LogInfo($"  No saved layout found for key: {_layoutEditor.CurrentLayoutKey}");
                         }
                     }
                     
@@ -1183,23 +1210,19 @@ namespace InteractiveWorldMap
                 // Apply saved manual layout if one was found
                 if (_savedLayoutToApply != null)
                 {
-                    ApplyManualLayout(_savedLayoutToApply, viewport);
-                    _isManualLayoutActive = true;
-                    if (_visualConfig.ManualLayoutEditor.ShowLayoutIndicator)
-                    {
-                        ManualLayoutIndicator.Visibility = Visibility.Visible;
-                    }
+                    ApplyManualLayout(_savedLayoutToApply);
+                    _layoutEditor.SetManualLayoutActive(true);
                     _savedLayoutToApply = null; // Clear after applying
                     
                     _logger.LogInfo("Manual layout applied after high-res region loaded");
                 }
                 
                 // Show Edit button if enabled and no manual layout is active
-                if (_visualConfig.ManualLayoutEditor.Enabled && !_isManualLayoutActive)
+                if (_visualConfig.ManualLayoutEditor.Enabled && !_layoutEditor.IsManualLayoutActive)
                 {
                     EditLayoutButton.Visibility = Visibility.Visible;
                 }
-                else if (_visualConfig.ManualLayoutEditor.Enabled && _isManualLayoutActive)
+                else if (_visualConfig.ManualLayoutEditor.Enabled && _layoutEditor.IsManualLayoutActive)
                 {
                     // Show edit button even when manual layout is active
                     EditLayoutButton.Visibility = Visibility.Visible;
@@ -1222,7 +1245,7 @@ namespace InteractiveWorldMap
                 {
                     CloseActiveSubwindow();
                 }
-                else if (_isEditMode)
+                else if (_layoutEditor.IsEditMode)
                 {
                     // Exit edit mode on Escape
                     ExitEditMode();
@@ -1244,7 +1267,7 @@ namespace InteractiveWorldMap
             // Handle Ctrl+S to save layout in edit mode
             else if (e.Key == Key.S && (Keyboard.Modifiers & ModifierKeys.Control) == ModifierKeys.Control)
             {
-                if (_isEditMode)
+                if (_layoutEditor.IsEditMode)
                 {
                     OnSaveLayoutButtonClick(this, new RoutedEventArgs());
                     e.Handled = true;
@@ -1313,13 +1336,13 @@ namespace InteractiveWorldMap
                         BackButton.Visibility = Visibility.Collapsed;
                     }
 
+                    _layoutEditor.ExitEditMode();
+                    _layoutEditor.SetManualLayoutActive(false);
+                    _layoutEditor.SetLayoutKey(null);
+                    _currentZoomedCluster = null;
                     EditLayoutButton.Visibility = Visibility.Collapsed;
                     EditModePanel.Visibility = Visibility.Collapsed;
                     ManualLayoutIndicator.Visibility = Visibility.Collapsed;
-                    _isEditMode = false;
-                    _isManualLayoutActive = false;
-                    _currentLayoutKey = null;
-                    _currentZoomedCluster = null;
                 });
             }
             catch (Exception ex)
@@ -1623,7 +1646,7 @@ namespace InteractiveWorldMap
                    _visualConfig.PinImages.Enabled &&
                    _visualConfig.PinParts.Enabled &&
                    _visualConfig.PinParts.UseCompositeRendering &&
-                   !_isEditMode;
+                   !_layoutEditor.IsEditMode;
         }
 
         private bool EnsurePinPartGeometryLoaded()
@@ -1764,52 +1787,30 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnEditLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            _isEditMode = true;
+            _layoutEditor.EnterEditMode();
 
             // Rebuild any currently visible composite pins onto the legacy draggable path.
             UpdateMarkerPositions();
-            
-            // Update UI
-            EditLayoutButton.Visibility = Visibility.Collapsed;
-            EditModePanel.Visibility = Visibility.Visible;
-            
-            // Log current state for debugging
+
             var visibleMarkers = _individualMarkers.Count(m => m.Visibility == Visibility.Visible);
-            var extensionLines = _extensionLineRenderer.LineCount;
-            var markerMappings = _extensionLineRenderer.MarkerMappingCount;
-            
-            Console.WriteLine($"[EDIT MODE] Entering edit mode");
-            Console.WriteLine($"  Visible markers: {visibleMarkers}");
-            Console.WriteLine($"  Extension lines: {extensionLines}");
-            Console.WriteLine($"  Marker-to-line mappings: {markerMappings}");
-            
             _logger.LogInfo($"[OnEditLayoutButtonClick] Entering edit mode");
             _logger.LogInfo($"  Visible markers: {visibleMarkers}");
-            _logger.LogInfo($"  Extension lines: {extensionLines}");
-            _logger.LogInfo($"  Marker-to-line mappings: {markerMappings}");
-            
+            _logger.LogInfo($"  Extension lines: {_extensionLineRenderer.LineCount}");
+            _logger.LogInfo($"  Marker-to-line mappings: {_extensionLineRenderer.MarkerMappingCount}");
+
             // Enable dragging on all visible markers
             foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
             {
                 marker.Cursor = Cursors.Hand;
                 marker.MouseLeftButtonDown += OnMarkerDragStart;
-                marker.MouseMove += OnMarkerDragMove;
-                marker.MouseLeftButtonUp += OnMarkerDragEnd;
-                
-                // Check if this marker has a line
-                if (_extensionLineRenderer.HasLine(marker))
-                {
-                    Console.WriteLine($"    Marker '{marker.Location.Name}' has line");
-                    _logger.LogInfo($"    Marker '{marker.Location.Name}' has line");
-                }
-                else
-                {
-                    Console.WriteLine($"    Marker '{marker.Location.Name}' has NO line");
-                    _logger.LogInfo($"    Marker '{marker.Location.Name}' has NO line");
-                }
+                marker.MouseMove           += OnMarkerDragMove;
+                marker.MouseLeftButtonUp   += OnMarkerDragEnd;
+
+                _logger.LogInfo(_extensionLineRenderer.HasLine(marker)
+                    ? $"    Marker '{marker.Location.Name}' has line"
+                    : $"    Marker '{marker.Location.Name}' has NO line");
             }
-            
-            Console.WriteLine("Edit mode activated");
+
             _logger.LogInfo("Edit mode activated");
         }
 
@@ -1818,177 +1819,74 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutManager == null || _currentLayoutKey == null || _currentZoomedCluster == null)
+            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
             {
-                _logger.LogWarning("Cannot save layout - manager, key, or cluster is null");
+                _logger.LogWarning("Cannot save layout - key or cluster is null");
                 return;
             }
 
             try
             {
-                // Collect current extensions from visible markers
-                var extensions = new List<RadialExtension>();
                 var viewport = MapDisplay.CurrentViewport;
-                
                 if (viewport == null)
                 {
                     _logger.LogWarning("Cannot save layout - viewport is null");
                     return;
                 }
 
-                foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
-                {
-                    var markerSize = _visualConfig.LocationMarkerSize;
-                    var markerCenter = new Point(
-                        Canvas.GetLeft(marker) + (markerSize / 2),
-                        Canvas.GetTop(marker) + (markerSize / 2));
-                    
-                    // Get original position in screen coordinates
-                    var originalScreen = viewport.SourceToScreen(
-                        marker.Location.PixelX,
-                        marker.Location.PixelY,
-                        MapDisplay.ActualWidth,
-                        MapDisplay.ActualHeight);
-                    
-                    // Calculate angle and length
-                    var dx = markerCenter.X - originalScreen.X;
-                    var dy = markerCenter.Y - originalScreen.Y;
-                    var angle = Math.Atan2(dy, dx) * (180.0 / Math.PI);
-                    var length = Math.Sqrt(dx * dx + dy * dy);
-
-                    var extension = new RadialExtension
-                    {
-                        Location = marker.Location,
-                        OriginalPosition = originalScreen,
-                        ExtendedPosition = markerCenter,
-                        Angle = angle,
-                        GroupId = 0
-                    };
-                    
-                    extensions.Add(extension);
-                }
+                // Collect current marker positions and delegate extension-building to controller
+                var markerSize = _visualConfig.LocationMarkerSize;
+                var markerData = _individualMarkers
+                    .Where(m => m.Visibility == Visibility.Visible)
+                    .Select(m => (
+                        m.Location,
+                        MarkerCenter: new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2),
+                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight)));
+                var extensions = LayoutEditorController.BuildExtensions(markerData);
 
                 // Validate layout before saving
-                var validationIssues = ValidateLayout(extensions);
+                var validationIssues = _layoutEditor.ValidateLayout(extensions);
                 if (validationIssues.Count > 0)
                 {
                     _logger.LogWarning($"Layout validation found {validationIssues.Count} issues:");
                     foreach (var issue in validationIssues)
-                    {
                         _logger.LogWarning($"  - {issue}");
-                    }
-                    
+
                     // Show warning but allow save
-                    EditModeStatusText.Text = $"⚠ {validationIssues.Count} Issues Found";
+                    EditModeStatusText.Text       = $"⚠ {validationIssues.Count} Issues Found";
                     EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0));
-                    
+
                     // Reset after 3 seconds
-                    Task.Delay(3000).ContinueWith(_ =>
+                    Task.Delay(3000).ContinueWith(_ => Dispatcher.Invoke(() =>
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            EditModeStatusText.Text = "EDIT MODE ACTIVE";
-                            EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
-                        });
-                    });
+                        EditModeStatusText.Text       = "EDIT MODE ACTIVE";
+                        EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+                    }));
                 }
 
-                // Save layout
-                _layoutManager.SaveLayout(_currentLayoutKey, extensions);
-                _isManualLayoutActive = true;
-                if (_visualConfig.ManualLayoutEditor.ShowLayoutIndicator)
-                {
-                    ManualLayoutIndicator.Visibility = Visibility.Visible;
-                }
-                
-                _logger.LogInfo($"Saved manual layout with {extensions.Count} markers, key: {_currentLayoutKey}");
-                
+                // Save (controller sets IsManualLayoutActive and logs)
+                _layoutEditor.TrySave(extensions);
+
                 // Show confirmation (unless we just showed a warning)
                 if (validationIssues.Count == 0)
                 {
-                    EditModeStatusText.Text = "✓ LAYOUT SAVED";
+                    EditModeStatusText.Text       = "✓ LAYOUT SAVED";
                     EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50));
-                    
+
                     // Reset status after 2 seconds
-                    Task.Delay(2000).ContinueWith(_ =>
+                    Task.Delay(2000).ContinueWith(_ => Dispatcher.Invoke(() =>
                     {
-                        Dispatcher.Invoke(() =>
-                        {
-                            EditModeStatusText.Text = "EDIT MODE ACTIVE";
-                            EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
-                        });
-                    });
+                        EditModeStatusText.Text       = "EDIT MODE ACTIVE";
+                        EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+                    }));
                 }
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Failed to save layout: {ex.Message}");
-                EditModeStatusText.Text = "✗ SAVE FAILED";
+                EditModeStatusText.Text       = "✗ SAVE FAILED";
                 EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
             }
-        }
-
-        /// <summary>
-        /// Validates a layout for common issues (intersections, overlaps).
-        /// </summary>
-        private List<string> ValidateLayout(List<RadialExtension> extensions)
-        {
-            var issues = new List<string>();
-            var markerRadius = _visualConfig.LocationMarkerSize / 2.0;
-
-            // Check for line intersections
-            for (int i = 0; i < extensions.Count; i++)
-            {
-                for (int j = i + 1; j < extensions.Count; j++)
-                {
-                    var ext1 = extensions[i];
-                    var ext2 = extensions[j];
-
-                    // Check line-to-line intersection
-                    if (GeometryMath.DoLineSegmentsIntersect(
-                        ext1.OriginalPosition, ext1.ExtendedPosition,
-                        ext2.OriginalPosition, ext2.ExtendedPosition))
-                    {
-                        issues.Add($"Lines intersect: {ext1.Location.Name} ↔ {ext2.Location.Name}");
-                    }
-
-                    // Check if line passes too close to marker
-                    if (GeometryMath.DoesLinePassTooCloseToMarker(
-                        ext1.OriginalPosition, ext1.ExtendedPosition,
-                        ext2.ExtendedPosition, markerRadius + 2))
-                    {
-                        issues.Add($"Line too close to marker: {ext1.Location.Name} → {ext2.Location.Name}");
-                    }
-
-                    if (GeometryMath.DoesLinePassTooCloseToMarker(
-                        ext2.OriginalPosition, ext2.ExtendedPosition,
-                        ext1.ExtendedPosition, markerRadius + 2))
-                    {
-                        issues.Add($"Line too close to marker: {ext2.Location.Name} → {ext1.Location.Name}");
-                    }
-                }
-            }
-
-            // Check for marker overlaps
-            for (int i = 0; i < extensions.Count; i++)
-            {
-                for (int j = i + 1; j < extensions.Count; j++)
-                {
-                    var ext1 = extensions[i];
-                    var ext2 = extensions[j];
-
-                    var distance = Math.Sqrt(
-                        Math.Pow(ext1.ExtendedPosition.X - ext2.ExtendedPosition.X, 2) +
-                        Math.Pow(ext1.ExtendedPosition.Y - ext2.ExtendedPosition.Y, 2));
-
-                    if (distance < _visualConfig.LocationMarkerSize)
-                    {
-                        issues.Add($"Markers overlap: {ext1.Location.Name} ↔ {ext2.Location.Name} ({distance:F1}px apart)");
-                    }
-                }
-            }
-
-            return issues;
         }
 
         /// <summary>
@@ -1996,32 +1894,22 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnDeleteLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutManager == null || _currentLayoutKey == null || _currentZoomedCluster == null)
+            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
             {
-                _logger.LogWarning("Cannot delete layout - manager, key, or cluster is null");
+                _logger.LogWarning("Cannot delete layout - key or cluster is null");
                 return;
             }
 
             try
             {
-                // Delete saved layout
-                _layoutManager.DeleteLayout(_currentLayoutKey);
-                _isManualLayoutActive = false;
-                ManualLayoutIndicator.Visibility = Visibility.Collapsed;
-                
-                _logger.LogInfo($"Deleted manual layout, key: {_currentLayoutKey}");
-                
+                // Delete saved layout (controller sets IsManualLayoutActive and logs)
+                _layoutEditor.TryDelete();
+
                 // Exit edit mode
                 ExitEditMode();
                 
                 // Recalculate positions
                 ShowZoomedView(_currentZoomedCluster);
-                
-                // Show Edit button again if enabled
-                if (_visualConfig.ManualLayoutEditor.Enabled)
-                {
-                    EditLayoutButton.Visibility = Visibility.Visible;
-                }
             }
             catch (Exception ex)
             {
@@ -2035,12 +1923,6 @@ namespace InteractiveWorldMap
         private void OnExitEditModeButtonClick(object sender, RoutedEventArgs e)
         {
             ExitEditMode();
-            
-            // Show Edit button again
-            if (_visualConfig.ManualLayoutEditor.Enabled)
-            {
-                EditLayoutButton.Visibility = Visibility.Visible;
-            }
         }
 
         /// <summary>
@@ -2048,10 +1930,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void ExitEditMode()
         {
-            _isEditMode = false;
-            
-            // Update UI
-            EditModePanel.Visibility = Visibility.Collapsed;
+            _layoutEditor.ExitEditMode();
             
             // Disable dragging on all markers
             foreach (var marker in _individualMarkers)
@@ -2073,43 +1952,33 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Applies a saved manual layout to the current view.
         /// </summary>
-        private void ApplyManualLayout(ManualLayout layout, ViewportState viewport)
+        private void ApplyManualLayout(ManualLayout layout)
         {
             _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
             
             // Clear existing extension lines
             _extensionLineRenderer.Clear();
-            
-            foreach (var layoutMarker in layout.Markers)
+
+            var visibleMarkers = _individualMarkers
+                .Where(m => m.Visibility == Visibility.Visible)
+                .GroupBy(m => m.Location.Name)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+
+            foreach (var application in _layoutEditor.CreateLayoutApplications(layout, visibleMarkers.Keys))
             {
-                // Find the corresponding marker
-                var marker = _individualMarkers.FirstOrDefault(m => 
-                    m.Location.Name == layoutMarker.LocationName && 
-                    m.Visibility == Visibility.Visible);
-                
-                if (marker == null)
-                {
-                    _logger.LogWarning($"  Marker not found for location: {layoutMarker.LocationName}");
+                if (!visibleMarkers.TryGetValue(application.LocationName, out var marker))
                     continue;
-                }
                 
                 // Position marker
                 var markerSize = _visualConfig.LocationMarkerSize;
-                Canvas.SetLeft(marker, layoutMarker.ExtendedPosition.X - (markerSize / 2));
-                Canvas.SetTop(marker, layoutMarker.ExtendedPosition.Y - (markerSize / 2));
-                
-                // Calculate distance to determine if we need a line
-                var distance = Math.Sqrt(
-                    Math.Pow(layoutMarker.ExtendedPosition.X - layoutMarker.OriginalPosition.X, 2) +
-                    Math.Pow(layoutMarker.ExtendedPosition.Y - layoutMarker.OriginalPosition.Y, 2));
+                Canvas.SetLeft(marker, application.ExtendedPosition.X - (markerSize / 2));
+                Canvas.SetTop(marker, application.ExtendedPosition.Y - (markerSize / 2));
                 
                 // Only create line if marker is extended from origin
-                if (distance > 5.0)
+                if (application.RequiresExtensionLine)
                 {
-                    _extensionLineRenderer.AddLine(marker, layoutMarker.OriginalPosition, layoutMarker.ExtendedPosition);
+                    _extensionLineRenderer.AddLine(marker, application.OriginalPosition, application.ExtendedPosition);
                 }
-                
-                _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
             }
         }
 
@@ -2118,7 +1987,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnMarkerDragStart(object sender, MouseButtonEventArgs e)
         {
-            if (!_isEditMode || sender is not LocationMarker marker)
+            if (!_layoutEditor.IsEditMode || sender is not LocationMarker marker)
                 return;
 
             _draggedMarker = marker;
@@ -2140,7 +2009,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnMarkerDragMove(object sender, MouseEventArgs e)
         {
-            if (!_isEditMode || _draggedMarker == null || sender != _draggedMarker)
+            if (!_layoutEditor.IsEditMode || _draggedMarker == null || sender != _draggedMarker)
                 return;
 
             if (e.LeftButton == MouseButtonState.Pressed)
@@ -2200,7 +2069,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnMarkerDragEnd(object sender, MouseButtonEventArgs e)
         {
-            if (!_isEditMode || _draggedMarker == null)
+            if (!_layoutEditor.IsEditMode || _draggedMarker == null)
                 return;
 
             _draggedMarker.ReleaseMouseCapture();

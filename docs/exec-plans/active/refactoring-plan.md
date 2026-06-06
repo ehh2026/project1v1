@@ -107,22 +107,22 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] Full test suite green (139 total)
 - [x] `.\scripts\verify.ps1` passed
 - [x] CHANGELOG.md updated
-- [ ] Committed
+- [x] Committed (fe7f503)
 
 ## Phase 8 — Extract Layout Editor from MainWindow
 
-- [ ] Create `Services/LayoutEditorController.cs`
-- [ ] Move `ValidateLayout`
-- [ ] Move save/delete logic
-- [ ] Move `ApplyManualLayout`
-- [ ] Move edit mode state management
-- [ ] Wire events to MainWindow UI
-- [ ] Build succeeds
-- [ ] Write `Tests/LayoutEditorControllerTests.cs`
-- [ ] Full test suite green
+- [x] Create `Services/LayoutEditorController.cs`
+- [x] Move `ValidateLayout`
+- [x] Move save/delete logic
+- [x] Move `ApplyManualLayout` data mapping
+- [x] Move edit mode state management
+- [x] Wire events to MainWindow UI
+- [x] Build succeeds
+- [x] Write `Tests/LayoutEditorControllerTests.cs`
+- [x] Full test suite green (171 total)
 - [ ] Manual smoke: full edit mode flow
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed
 
 ## Phase 9 — Architectural Cleanup
