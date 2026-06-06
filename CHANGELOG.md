@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- **Refactoring Phase 1** — Extract geometry utilities from `MainWindow.xaml.cs`:
+  - Added `Utilities/GeometryMath.cs` with 6 static marker-layout geometry helpers (`DoLineSegmentsIntersect`, `DoesLinePassTooCloseToMarker`, `CalculateMinimumDistanceBetweenLines`, `PointToLineSegmentDistance`, `CalculateAngularSpace`, `FindSafeAngleRotation`) and two named constants (`GeometryEpsilon`, `IntersectionEndpointMargin`). Behavior is identical to the original private methods.
+  - Removed the 6 private geometry methods from `MainWindow.xaml.cs` (~150 lines); updated all call sites to use `GeometryMath.*`. `FindSafeAngleRotation` now takes an explicit `markerRadius` parameter instead of reading `_visualConfig`.
+  - Added `Tests/GeometryMathTests.cs` — 22 new unit tests covering all six methods including wrap-around, endpoint-margin, and the 2 px buffer edge cases.
+  - Added `docs/exec-plans/active/refactoring-plan.md` to track the full refactoring plan execution.
+- **Refactoring Phase 2** — Consolidate duplicate animation loop in `MainWindow.xaml.cs`:
+  - Extracted shared `AnimateViewportTransition(startViewport, targetViewport, animationLabel, onAnimationComplete)` (~75 lines) containing the pre-rendered keyframe loop that was duplicated between `AnimateZoomToCluster` and `AnimateZoomOut`.
+  - `AnimateZoomToCluster` reduced from ~120 lines to ~45 lines; `AnimateZoomOut` reduced from ~142 lines to ~65 lines. Combined saving ~130 lines with zero duplication.
+- **Refactoring Phase 3** — Extract Radial Extension Adjustment Engine from `MainWindow.xaml.cs`:
+  - Added `Services/RadialExtensionAdjuster.cs` — pure data-manipulation service (`AdjustExtensions`, `AdjustForMarkerOverlaps`, `AdjustAnglesWithinGroups`, `AdjustPositionsAcrossExtensions`, `FixLineIntersections`, `CalculateCurrentLength`). No UI dependencies; injectable via constructor.
+  - Removed `AdjustForMarkerOverlaps`, `CalculateCurrentLength`, `IterativelyAdjustExtensions`, and `FixLineIntersections` from `MainWindow.xaml.cs` (~600 lines removed).
+  - `MainWindow.xaml.cs` now holds a `RadialExtensionAdjuster` field instantiated in the constructor; the single call site uses `_adjuster.AdjustExtensions(...)`.
+  - Added `Tests/RadialExtensionAdjusterTests.cs` — 13 new unit tests covering constructor guards, trivial no-ops, angle nudging (2 and 3 extensions), position overlap separation, crossing-line angle adjustment, non-crossing lines unchanged, and idempotency.
+
 ### Fixed
 
 - Dense-region zoom completion now uses `Images&Content/World Map 1976.jpg` as the high-quality source again, scales crop rectangles from actual image dimensions, and invalidates stale zoom-region cache entries.

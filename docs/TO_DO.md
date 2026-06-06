@@ -57,7 +57,7 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Add support for ordering images/content
 - [ ] Add explanatory/bio popup window per marker
 - [ ] Fix marker distortion when highly zoomed (50x+)
-- [ ] Fix some markers being misplaced on zoomed-out map
+- [ ] Fix some markers being misplaced on zoomed-out map — see **High Priority → Bugs** (unzoomed marker offset)
 - [ ] Don't animate extension lines being drawn until fully zoomed in
 - [ ] Improve filtering of logging for easier debugging
 - [ ] Improve smoothness and quickness of zooming (check logs, cache/load, deltas; increase number of frames, decrease interval if rate is throttled?)
@@ -75,7 +75,21 @@ The application is functional and ready for demo! Core features are implemented 
   - Run full `.\scripts\verify.ps1` and fix any breaking API/package changes
   - Decide whether to jump to .NET 10 or standardize on .NET 8 LTS first
 
+### Bugs
+- [ ] **Fix marker / map centering offset at initial far-out (unzoomed) view**
+  - Symptom: on first load at full-map zoom, markers appear shifted right and down relative to their map locations; zoomed cluster views look correct (area centering and pin placement align with the map)
+  - Likely areas: initial viewport setup in `MapDisplayControl` / `MainWindow`, `SourceToScreen` / `CoordinateMapper` math at low zoom, marker centering (`Canvas.SetLeft` / `SetTop` vs marker size), or layout timing before `ActualWidth` / `ActualHeight` are final
+  - Compare coordinate transforms and marker positioning paths between unzoomed cluster view and post-zoom individual-marker view; check for inconsistent offsets, double application of padding/margins, or stale container dimensions on startup
+  - Acceptance: markers sit on the correct map pixels at initial unzoomed view; remain correct after zoom in/out and window resize; spot-check several known coordinates against the Excel source
+
 ### Testing & Quality Assurance
+- [ ] **Resolve nullable reference warnings (CS8602 / CS8604)**
+  - Current state: Release build reports 14 warnings (7 unique sites × WPF temp + main project); build still succeeds and CI is not blocked
+  - `MainWindow.xaml.cs`: `marker.Cluster` dereferences in cluster-marker positioning loops (~737, ~854, ~891); `_extensionCalculator` use after compound null check (~769); `viewport` passed to `ApplyManualLayout` inside guarded block (~1183)
+  - `Utilities/ExcelCoordinateReader.cs`: XML node indexing after `Count > 0` checks (~126, ~216)
+  - Priority: guard or narrow `ClusterMarker.Cluster` first (type allows null even though markers are created with `Cluster` set); then clean up flow-analysis gaps for `viewport` and `_extensionCalculator`; Excel reader last (lowest runtime risk)
+  - Acceptance: `dotnet build -c Release` with no CS8602/CS8604 in these files, or explicit null-forgiving only where invariants are documented; run `.\scripts\verify.ps1`
+
 - [ ] **Property-based tests** (marked with `*` in tasks.md)
   - Coordinate mapping accuracy
   - Marker hover feedback
@@ -204,7 +218,7 @@ Easy tasks that can be completed quickly:
 
 ## Known Issues 🐛
 
-None currently! The application is working as expected.
+- **Unzoomed marker offset:** markers appear shifted right/down at the initial far-out map view; zoomed views look correct. Tracked under **High Priority → Bugs**.
 
 ---
 
