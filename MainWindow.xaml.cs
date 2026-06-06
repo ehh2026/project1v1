@@ -1958,20 +1958,29 @@ namespace InteractiveWorldMap
                 if (!visibleMarkers.TryGetValue(application.LocationName, out var marker))
                     continue;
 
+                // Re-project original position from source coords (matches ApplyRadialExtensions path).
+                var originalPos = viewport != null && cw > 0 && ch > 0
+                    ? viewport.SourceToScreen(marker.Location.PixelX, marker.Location.PixelY, cw, ch)
+                    : application.OriginalPosition;
+
+                // Re-project extended position from source coords when available (seed-generated layouts).
                 var extendedPos = application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue
                     && viewport != null && cw > 0 && ch > 0
                     ? viewport.SourceToScreen(application.SourceExtendedX.Value, application.SourceExtendedY.Value, cw, ch)
                     : application.ExtendedPosition;
 
-                // Position marker
+                // Try composite pin first; falls back to legacy if disabled or assets missing.
+                if (TryApplyCompositePinMarker(marker, originalPos, extendedPos))
+                    continue;
+
+                // Legacy fallback: position marker at extended location + draw extension line.
                 var markerSize = _visualConfig.LocationMarkerSize;
                 Canvas.SetLeft(marker, extendedPos.X - (markerSize / 2));
                 Canvas.SetTop(marker, extendedPos.Y - (markerSize / 2));
 
-                // Only create line if marker is extended from origin
                 if (application.RequiresExtensionLine)
                 {
-                    _extensionLineRenderer.AddLine(marker, application.OriginalPosition, extendedPos);
+                    _extensionLineRenderer.AddLine(marker, originalPos, extendedPos);
                 }
             }
         }

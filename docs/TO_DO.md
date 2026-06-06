@@ -22,9 +22,9 @@ The application is functional and ready for demo! Core features are implemented 
   - Phase 5 partially complete: composite pins live for extended markers in the radial-extension pipeline, gated by `PinParts.Enabled` + `PinParts.UseCompositeRendering`
   - Edit mode falls back to legacy draggable markers; exiting edit mode refreshes composite rendering
   - **Remaining work to finish making composite pins live:**
-- [ ] Route manual-layout replay through composite path — [plan Phase 5](exec-plans/active/pin-parts-composite-placement-plan.md#phase-5-mainwindow-integration)
-  - `ApplyManualLayout()` in `MainWindow.xaml.cs` still uses legacy line-plus-centered-marker positioning
-  - Should call `TryApplyCompositePinMarker()` when composite rendering is active so saved layouts render as composites
+- [x] Route manual-layout replay through composite path — [plan Phase 5](exec-plans/active/pin-parts-composite-placement-plan.md#phase-5-mainwindow-integration)
+  - Fixed 2026-06-06: `ApplyManualLayout()` now calls `TryApplyCompositePinMarker()` first; falls back to legacy only when composite rendering is disabled or assets are missing
+  - Original position is now re-projected from source coords (consistent with `ApplyRadialExtensions` path)
 - [ ] Add derived composite-placement caching for saved manual layouts — [plan lines 167–199](exec-plans/active/pin-parts-composite-placement-plan.md#canonical-endpoint-data-vs-saved-composite-placement-results)
   - Currently every view rebuild recalculates pair selection and transforms from scratch
   - Persist `selected_pair_id`, `head_rotation_deg`, `body_stretch_factor`, local anchors, etc.
