@@ -67,19 +67,19 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] CHANGELOG.md updated
 - [ ] Committed
 
-## Phase 5 — Extract Extension Rendering from MainWindow
+## Phase 5 — Extract Extension Rendering from MainWindow ✅
 
-- [ ] Create `Views/IExtensionLineRenderer.cs`
-- [ ] Create `Views/ExtensionLineRenderer.cs`
-- [ ] Move and merge `CreateExtensionLine` / `CreatePinExtensionLine`
-- [ ] Move `ClearExtensionLines`
-- [ ] Move `AnimateExtensionLines`
-- [ ] Move `ApplyRadialExtensions`
-- [ ] Inject renderer into MainWindow
-- [ ] Build succeeds
+- [x] Create `Views/IExtensionLineRenderer.cs`
+- [x] Create `Views/ExtensionLineRenderer.cs`
+- [x] Move and merge `CreateExtensionLine` / `CreatePinExtensionLine`
+- [x] Move `ClearExtensionLines`
+- [x] Move `AnimateExtensionLines`
+- [x] Move `ApplyRadialExtensions`
+- [x] Inject renderer into MainWindow
+- [x] Build succeeds
 - [ ] Manual smoke: lines render, animate, highlight on hover
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed
 
 ## Phase 6 — Deduplicate ContentLoader

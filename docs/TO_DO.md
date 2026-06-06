@@ -82,6 +82,14 @@ The application is functional and ready for demo! Core features are implemented 
   - Compare coordinate transforms and marker positioning paths between unzoomed cluster view and post-zoom individual-marker view; check for inconsistent offsets, double application of padding/margins, or stale container dimensions on startup
   - Acceptance: markers sit on the correct map pixels at initial unzoomed view; remain correct after zoom in/out and window resize; spot-check several known coordinates against the Excel source
 
+### Navigation & Zoom
+- [ ] **Audit intended vs operational zoom levels**
+  - Question: how many zoom levels/states are the product and docs supposed to support vs what the code actually implements today?
+  - Design baseline: [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) specifies **two states only** — full map (zoomed out) and fixed cluster zoom (no arbitrary/intermediate levels); [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) and viewport refactor may have changed behavior
+  - Current code touchpoints: `visual-config.json` (`ZoomScale`, `RadialExtension.ZoomThresholdForExtensions`), `MainWindow.xaml.cs` (`AnimateZoomToCluster`, `AnimateZoomOut`, `ShowClusterView`, `ShowZoomedView`), `Models/ViewportState.cs`, `Services/ViewportCalculator.cs`, `Services/MapNavigationService.cs`, `Services/ZoomedRegionCache.cs`
+  - Compare to **March 18, 2026** baseline (e.g. `5f32adb`, `bc0bb59`, or `git log --since=2026-03-17 --until=2026-03-19`) before/after viewport and radial-extension work; note whether intermediate animation zoom, navigation stack depth, or `ZoomScale` semantics regressed
+  - Deliverable: short write-up (counts, config values, which paths are live vs dead) and any follow-up fixes if spec and implementation diverge
+
 ### Testing & Quality Assurance
 - [ ] **Resolve nullable reference warnings (CS8602 / CS8604)**
   - Current state: Release build reports 14 warnings (7 unique sites × WPF temp + main project); build still succeeds and CI is not blocked

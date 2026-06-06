@@ -14,6 +14,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Refactoring Phase 2** — Consolidate duplicate animation loop in `MainWindow.xaml.cs`:
   - Extracted shared `AnimateViewportTransition(startViewport, targetViewport, animationLabel, onAnimationComplete)` (~75 lines) containing the pre-rendered keyframe loop that was duplicated between `AnimateZoomToCluster` and `AnimateZoomOut`.
   - `AnimateZoomToCluster` reduced from ~120 lines to ~45 lines; `AnimateZoomOut` reduced from ~142 lines to ~65 lines. Combined saving ~130 lines with zero duplication.
+- **Refactoring Phase 5** — Extract Extension Line Rendering from `MainWindow.xaml.cs`:
+  - Added `Views/IExtensionLineRenderer.cs` interface and `Views/ExtensionLineRenderer.cs` implementation.
+  - `ExtensionLineRenderer` owns `_extensionLines` and `_markerToLineMap` state (removed from MainWindow), merges `CreateExtensionLine`/`CreatePinExtensionLine` into a private `CreateLine`, internalises `AnimateExtensionLines`, and moves `OnMarkerMouseEnter`/`OnMarkerMouseLeave` hover handlers.
+  - Added `Apply(group, viewport, w, h, markers, tryCompositePinApplier)` (migrated from `ApplyRadialExtensions`), `AddLine`, `MoveLineEndpoint`, `SetLineZIndex`, `Clear`.
+  - Logging injected as `Action<string>` delegates instead of `ILogger` to respect the Views→Services architecture boundary.
+  - MainWindow reduced by ~280 lines; 6 call sites updated to use the renderer.
 - **Refactoring Phase 4** — Decompose `CompositePinRenderPlanBuilder.BuildPlan`:
   - Introduced 4 private sealed pipeline-context records (`ValidatedInputs`, `PreparedGeometry`, `ComputedTransforms`, `ShiftedGeometry`) as intermediate data carriers between stages.
   - Reduced `BuildPlan` from a 167-line monolith to a 5-line orchestrator; logic distributed across 5 private pipeline methods (`ValidateInputs`, `PrepareGeometry`, `CalculateTransforms`, `CalculateBoundsAndShift`, `AssembleResult`).

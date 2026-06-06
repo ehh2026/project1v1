@@ -41,8 +41,7 @@ namespace InteractiveWorldMap
         
         // Radial extension support
         private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
-        private List<Line> _extensionLines = new List<Line>();
-        private Dictionary<LocationMarker, Line> _markerToLineMap = new Dictionary<LocationMarker, Line>();
+        private IExtensionLineRenderer _extensionLineRenderer = null!;
         private RadialExtensionCalculator? _extensionCalculator;
         private RadialExtensionAdjuster? _adjuster;
         private bool _isAnimating = false; // Track if we're in an animation
@@ -155,7 +154,8 @@ namespace InteractiveWorldMap
                 }
 
                 _adjuster = new RadialExtensionAdjuster(_logger, _visualConfig);
-                
+                _extensionLineRenderer = new ExtensionLineRenderer(MapDisplay.Markers, _visualConfig, _logger.LogInfo, _logger.LogWarning);
+
                 var configuredLayoutPath = _visualConfig.ManualLayoutEditor.LayoutStoragePath;
                 var layoutFilePath = IOPath.IsPathRooted(configuredLayoutPath)
                     ? configuredLayoutPath
@@ -719,7 +719,7 @@ namespace InteractiveWorldMap
             // Clear existing extensions only when not animating
             if (!_isAnimating)
             {
-                ClearExtensionLines();
+                _extensionLineRenderer.Clear();
             }
 
             // Skip radial extension logic entirely during animation
@@ -838,7 +838,7 @@ namespace InteractiveWorldMap
                     // Third pass: Apply the extensions (now with adjusted lengths)
                     foreach (var group in _denseGroups.Where(g => g.Extensions.Any()))
                     {
-                        ApplyRadialExtensions(group, viewport, containerWidth, containerHeight);
+                        _extensionLineRenderer.Apply(group, viewport, containerWidth, containerHeight, _individualMarkers, TryApplyCompositePinMarker);
                     }
 
                     // Position markers not in dense groups normally
@@ -1272,7 +1272,7 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
 
-                ClearExtensionLines();
+                _extensionLineRenderer.Clear();
                 _logger.LogInfo("  Cleared radial extension lines");
 
                 _isAnimating = true;
@@ -1553,212 +1553,6 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Clears all extension lines from the canvas.
-        /// </summary>
-        private void ClearExtensionLines()
-        {
-            foreach (var line in _extensionLines)
-            {
-                MapDisplay.Markers.Children.Remove(line);
-            }
-            _extensionLines.Clear();
-            _markerToLineMap.Clear();
-        }
-
-        /// <summary>
-        /// Applies radial extensions to a dense marker group.
-        /// </summary>
-        private void ApplyRadialExtensions(DenseMarkerGroup group, ViewportState viewport, double containerWidth, double containerHeight)
-        {
-            bool logCalculation = _visualConfig.Debug.LogRadialExtensionCalculation;
-            int lineCountBeforeGroup = _extensionLines.Count;
-            
-            if (logCalculation)
-            {
-                _logger.LogInfo($"[ApplyRadialExtensions] Applying {group.Extensions.Count} extensions");
-                _logger.LogInfo($"[ApplyRadialExtensions] Canvas children before: {MapDisplay.Markers.Children.Count}");
-            }
-            
-            foreach (var extension in group.Extensions)
-            {
-                // Convert extension positions from source to screen coordinates
-                var originalScreenPos = viewport.SourceToScreen(
-                    extension.Location.PixelX,
-                    extension.Location.PixelY,
-                    containerWidth,
-                    containerHeight);
-
-                var extendedScreenPos = extension.ExtendedPosition;
-
-                // Calculate actual rendered slope/angle
-                double dx = extendedScreenPos.X - originalScreenPos.X;
-                double dy = extendedScreenPos.Y - originalScreenPos.Y;
-                double length = Math.Sqrt(dx * dx + dy * dy);
-                
-                // Calculate angle: 0° = north, clockwise (same as our angle system)
-                double angleRadians = Math.Atan2(dx, -dy);
-                double angleDegrees = angleRadians * (180.0 / Math.PI);
-                if (angleDegrees < 0) angleDegrees += 360.0;
-
-                if (logCalculation)
-                {
-                    _logger.LogInfo($"  Extension: {extension.Location.Name} from ({originalScreenPos.X:F1},{originalScreenPos.Y:F1}) to ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1})");
-                    _logger.LogInfo($"    Length: {length:F1}px, Angle: {angleDegrees:F2}° (stored: {extension.Angle:F2}°)");
-                }
-
-                // Position marker at extended location
-                var marker = FindMarkerForLocation(extension.Location);
-                if (marker != null)
-                {
-                    if (TryApplyCompositePinMarker(marker, originalScreenPos, extendedScreenPos))
-                    {
-                        _markerToLineMap.Remove(marker);
-
-                        if (logCalculation)
-                        {
-                            _logger.LogInfo($"    Composite marker positioned with tip anchor at ({originalScreenPos.X:F1},{originalScreenPos.Y:F1})");
-                        }
-
-                        continue;
-                    }
-
-                    var line = CreateExtensionLine(originalScreenPos, extendedScreenPos);
-                    _extensionLines.Add(line);
-                    MapDisplay.Markers.Children.Add(line);
-                    
-                    if (logCalculation)
-                    {
-                        _logger.LogInfo($"    Line added to canvas, total lines: {_extensionLines.Count}, canvas children: {MapDisplay.Markers.Children.Count}");
-                    }
-
-                    // Map marker to its extension line for hover highlighting
-                    _markerToLineMap[marker] = line;
-                    
-                    // Wire up hover events for line highlighting
-                    marker.MouseEnter += OnMarkerMouseEnter;
-                    marker.MouseLeave += OnMarkerMouseLeave;
-                    
-                    Panel.SetZIndex(marker, 2000); // Markers on top of lines
-                    Canvas.SetLeft(marker, extendedScreenPos.X - marker.Width / 2);
-                    Canvas.SetTop(marker, extendedScreenPos.Y - marker.Height / 2);
-                    
-                    if (logCalculation)
-                    {
-                        _logger.LogInfo($"    Marker positioned at ({extendedScreenPos.X:F1},{extendedScreenPos.Y:F1}), ZIndex=2000");
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning($"    Marker not found for location: {extension.Location.Name}");
-                }
-            }
-
-            if (logCalculation)
-            {
-                _logger.LogInfo($"[ApplyRadialExtensions] Canvas children after: {MapDisplay.Markers.Children.Count}");
-                _logger.LogInfo($"[ApplyRadialExtensions] Total extension lines in list: {_extensionLines.Count}");
-            }
-
-            // Animate if configured
-            if (_visualConfig.RadialExtension.AnimateExtension)
-            {
-                var linesToAnimate = _extensionLines.Skip(lineCountBeforeGroup).ToList();
-                
-                if (logCalculation)
-                {
-                    _logger.LogInfo($"[ApplyRadialExtensions] Animating {linesToAnimate.Count} lines");
-                }
-                
-                AnimateExtensionLines(linesToAnimate);
-            }
-        }
-
-        /// <summary>
-        /// Creates a visual extension line.
-        /// </summary>
-        private Line CreateExtensionLine(Point start, Point end)
-        {
-            if (_visualConfig.UsePinMarkers)
-            {
-                return CreatePinExtensionLine(start, end);
-            }
-            
-            var line = new Line
-            {
-                X1 = start.X,
-                Y1 = start.Y,
-                X2 = end.X,
-                Y2 = end.Y,
-                Stroke = new SolidColorBrush(Colors.Red), // Bright red for debugging
-                StrokeThickness = 3.0, // Thicker for visibility
-                Opacity = 1.0, // Full opacity for debugging
-                IsHitTestVisible = false
-            };
-
-            // Add subtle shadow
-            line.Effect = new DropShadowEffect
-            {
-                Color = Colors.Black,
-                Direction = 270,
-                ShadowDepth = 1,
-                BlurRadius = 2,
-                Opacity = 0.3
-            };
-            
-            Panel.SetZIndex(line, 1000); // Ensure lines are on top
-
-            _logger.LogInfo($"    Created line: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), Stroke=Red, Thickness=3");
-
-            return line;
-        }
-
-        /// <summary>
-        /// Creates a pin-style extension line that looks like a metal pin shaft.
-        /// </summary>
-        private Line CreatePinExtensionLine(Point start, Point end)
-        {
-            var pinConfig = _visualConfig.PinMarkers;
-            
-            // Parse shaft color from config
-            Color shaftColor = Colors.Gray;
-            if (ColorConverter.ConvertFromString(pinConfig.ShaftColor) is Color configColor)
-            {
-                shaftColor = configColor;
-            }
-
-            var line = new Line
-            {
-                X1 = start.X,
-                Y1 = start.Y,
-                X2 = end.X,
-                Y2 = end.Y,
-                Stroke = new SolidColorBrush(shaftColor),
-                StrokeThickness = pinConfig.ShaftWidth,
-                Opacity = 0.9,
-                IsHitTestVisible = false
-            };
-
-            // Add metallic shadow effect
-            if (pinConfig.ShowShadow)
-            {
-                line.Effect = new DropShadowEffect
-                {
-                    Color = Colors.Black,
-                    Direction = 270,
-                    ShadowDepth = 0.5,
-                    BlurRadius = 1,
-                    Opacity = pinConfig.ShadowOpacity
-                };
-            }
-            
-            Panel.SetZIndex(line, 1000); // Ensure lines are on top
-
-            _logger.LogInfo($"    Created pin extension line: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), Shaft color, Thickness={pinConfig.ShaftWidth}");
-
-            return line;
-        }
-
-        /// <summary>
         /// Finds the LocationMarker for a given Location.
         /// </summary>
         private LocationMarker? FindMarkerForLocation(Location location)
@@ -1961,83 +1755,6 @@ namespace InteractiveWorldMap
             }
         }
 
-        /// <summary>
-        /// Animates extension lines growing from center.
-        /// </summary>
-        private void AnimateExtensionLines(List<Line> lines)
-        {
-            var duration = TimeSpan.FromMilliseconds(_visualConfig.RadialExtension.ExtensionAnimationMs);
-            var easing = new QuadraticEase { EasingMode = EasingMode.EaseOut };
-
-            for (int i = 0; i < lines.Count; i++)
-            {
-                var line = lines[i];
-
-                // Store final positions
-                var finalX2 = line.X2;
-                var finalY2 = line.Y2;
-
-                // Set initial positions (line starts at zero length)
-                line.X2 = line.X1;
-                line.Y2 = line.Y1;
-
-                // Create animations
-                var animX2 = new DoubleAnimation
-                {
-                    From = line.X1,
-                    To = finalX2,
-                    Duration = duration,
-                    EasingFunction = easing,
-                    BeginTime = TimeSpan.FromMilliseconds(i * 10) // Stagger by 10ms
-                };
-
-                var animY2 = new DoubleAnimation
-                {
-                    From = line.Y1,
-                    To = finalY2,
-                    Duration = duration,
-                    EasingFunction = easing,
-                    BeginTime = TimeSpan.FromMilliseconds(i * 10)
-                };
-
-                // Apply animations
-                line.BeginAnimation(Line.X2Property, animX2);
-                line.BeginAnimation(Line.Y2Property, animY2);
-            }
-        }
-
-        #endregion
-
-        #region Extension Line Hover Highlighting
-
-        /// <summary>
-        /// Highlights the extension line when mouse enters a marker.
-        /// </summary>
-        private void OnMarkerMouseEnter(object sender, MouseEventArgs e)
-        {
-            if (sender is LocationMarker marker && _markerToLineMap.TryGetValue(marker, out Line? line))
-            {
-                // Highlight the line - make it thicker and change to lighter red
-                line.StrokeThickness = 5.0;
-                line.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 100)); // Light red
-                Panel.SetZIndex(line, 1999); // Just below markers but above other lines
-            }
-        }
-
-        /// <summary>
-        /// Restores the extension line to normal when mouse leaves a marker.
-        /// </summary>
-        private void OnMarkerMouseLeave(object sender, MouseEventArgs e)
-        {
-            if (sender is LocationMarker marker && _markerToLineMap.TryGetValue(marker, out Line? line))
-            {
-                // Restore normal appearance
-                line.StrokeThickness = 3.0;
-                line.Stroke = new SolidColorBrush(Colors.Red);
-                Panel.SetZIndex(line, 0); // Back to default layer
-            }
-        }
-
         #endregion
 
         #region Manual Layout Editor Methods
@@ -2058,8 +1775,8 @@ namespace InteractiveWorldMap
             
             // Log current state for debugging
             var visibleMarkers = _individualMarkers.Count(m => m.Visibility == Visibility.Visible);
-            var extensionLines = _extensionLines.Count;
-            var markerMappings = _markerToLineMap.Count;
+            var extensionLines = _extensionLineRenderer.LineCount;
+            var markerMappings = _extensionLineRenderer.MarkerMappingCount;
             
             Console.WriteLine($"[EDIT MODE] Entering edit mode");
             Console.WriteLine($"  Visible markers: {visibleMarkers}");
@@ -2080,7 +1797,7 @@ namespace InteractiveWorldMap
                 marker.MouseLeftButtonUp += OnMarkerDragEnd;
                 
                 // Check if this marker has a line
-                if (_markerToLineMap.ContainsKey(marker))
+                if (_extensionLineRenderer.HasLine(marker))
                 {
                     Console.WriteLine($"    Marker '{marker.Location.Name}' has line");
                     _logger.LogInfo($"    Marker '{marker.Location.Name}' has line");
@@ -2361,7 +2078,7 @@ namespace InteractiveWorldMap
             _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
             
             // Clear existing extension lines
-            ClearExtensionLines();
+            _extensionLineRenderer.Clear();
             
             foreach (var layoutMarker in layout.Markers)
             {
@@ -2389,14 +2106,7 @@ namespace InteractiveWorldMap
                 // Only create line if marker is extended from origin
                 if (distance > 5.0)
                 {
-                    var line = CreateExtensionLine(layoutMarker.OriginalPosition, layoutMarker.ExtendedPosition);
-                    MapDisplay.Markers.Children.Add(line);
-                    _extensionLines.Add(line);
-                    _markerToLineMap[marker] = line;
-                    
-                    // Add hover handlers
-                    marker.MouseEnter += OnMarkerMouseEnter;
-                    marker.MouseLeave += OnMarkerMouseLeave;
+                    _extensionLineRenderer.AddLine(marker, layoutMarker.OriginalPosition, layoutMarker.ExtendedPosition);
                 }
                 
                 _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
@@ -2420,11 +2130,8 @@ namespace InteractiveWorldMap
             
             // Bring marker and its line to front
             Panel.SetZIndex(marker, 2000);
-            if (_markerToLineMap.TryGetValue(marker, out var line))
-            {
-                Panel.SetZIndex(line, 1999);
-            }
-            
+            _extensionLineRenderer.SetLineZIndex(marker, 1999);
+
             e.Handled = true;
         }
 
@@ -2472,50 +2179,18 @@ namespace InteractiveWorldMap
                 Console.WriteLine($"[DRAG] Updated marker position: ({updatedMarkerX:F1}, {updatedMarkerY:F1})");
                 
                 // Update line if it exists
-                if (_markerToLineMap.TryGetValue(_draggedMarker, out var line))
+                if (_extensionLineRenderer.HasLine(_draggedMarker))
                 {
-                    // Calculate marker center for line endpoint
                     var markerCenterX = newX + (markerSize / 2);
                     var markerCenterY = newY + (markerSize / 2);
-                    
-                    // Store original line properties
-                    var startX = line.X1;
-                    var startY = line.Y1;
-                    var stroke = line.Stroke;
-                    var thickness = line.StrokeThickness;
-                    var zIndex = Panel.GetZIndex(line);
-                    
-                    // Remove old line
-                    MapDisplay.Markers.Children.Remove(line);
-                    _extensionLines.Remove(line);
-                    
-                    // Create new line with updated coordinates
-                    var newLine = new Line
-                    {
-                        X1 = startX,
-                        Y1 = startY,
-                        X2 = markerCenterX,
-                        Y2 = markerCenterY,
-                        Stroke = stroke,
-                        StrokeThickness = thickness
-                    };
-                    
-                    // Add new line to canvas
-                    MapDisplay.Markers.Children.Add(newLine);
-                    Panel.SetZIndex(newLine, zIndex);
-                    _extensionLines.Add(newLine);
-                    _markerToLineMap[_draggedMarker] = newLine;
-                    
-                    Console.WriteLine($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1}) - Start: ({startX:F1}, {startY:F1})");
+                    _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, new Point(markerCenterX, markerCenterY));
+                    Console.WriteLine($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1})");
                 }
                 else
                 {
-                    // Log if line not found (for debugging)
                     Console.WriteLine($"[DRAG] No line found for marker: {_draggedMarker.Location.Name}");
                     if (_visualConfig.Debug.LogRadialExtensionCalculation)
-                    {
                         _logger.LogInfo($"[OnMarkerDragMove] No line found for marker: {_draggedMarker.Location.Name}");
-                    }
                 }
             }
         }
@@ -2533,11 +2208,8 @@ namespace InteractiveWorldMap
             // Restore marker appearance
             _draggedMarker.Opacity = 1.0;
             Panel.SetZIndex(_draggedMarker, 0);
-            if (_markerToLineMap.TryGetValue(_draggedMarker, out var line))
-            {
-                Panel.SetZIndex(line, 0);
-            }
-            
+            _extensionLineRenderer.SetLineZIndex(_draggedMarker, 0);
+
             _draggedMarker = null;
             
             e.Handled = true;
