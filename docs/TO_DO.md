@@ -16,12 +16,28 @@ The application is functional and ready for demo! Core features are implemented 
   - Current state: the app can read saved layouts through `ManualLayoutManager`, and `MainWindow` now respects `ManualLayoutEditor.LayoutStoragePath`
   - Remaining work: make sure generator output keys are compatible with actual zoomed cluster views and that seeded layouts are found/applied without manual intervention
   - Verify with `Images&Content/manual-layouts.json` produced by the generator
-- [ ] Implement composite pin rendering from pin parts using the active plan: [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
-  - Replace the current centered single-image pin placement for extended markers with shaft/head compositing
-  - Reuse existing automatic/manual endpoint placement rather than inventing a separate endpoint system
-  - Include segmented shaft stretching, head rotation/alignment, and compatibility metadata from `Pins_v2/parts`
+- [x] Implement composite pin rendering from pin parts — [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
+  - Phases 1–3 complete: metadata, config/loading, and composite marker rendering
+  - Phase 4 complete: placement calculator with nearest-fit selection and segmented shaft stretch
+  - Phase 5 partially complete: composite pins live for extended markers in the radial-extension pipeline, gated by `PinParts.Enabled` + `PinParts.UseCompositeRendering`
+  - Edit mode falls back to legacy draggable markers; exiting edit mode refreshes composite rendering
+  - **Remaining work to finish making composite pins live:**
+- [ ] Route manual-layout replay through composite path — [plan Phase 5](exec-plans/active/pin-parts-composite-placement-plan.md#phase-5-mainwindow-integration)
+  - `ApplyManualLayout()` in `MainWindow.xaml.cs` still uses legacy line-plus-centered-marker positioning
+  - Should call `TryApplyCompositePinMarker()` when composite rendering is active so saved layouts render as composites
+- [ ] Add derived composite-placement caching for saved manual layouts — [plan lines 167–199](exec-plans/active/pin-parts-composite-placement-plan.md#canonical-endpoint-data-vs-saved-composite-placement-results)
+  - Currently every view rebuild recalculates pair selection and transforms from scratch
+  - Persist `selected_pair_id`, `head_rotation_deg`, `body_stretch_factor`, local anchors, etc.
+  - Add invalidation keyed on layout variant id, viewport size, and geometry metadata version
+- [ ] Decide non-extended pin rendering policy — [plan lines 769–771](exec-plans/active/pin-parts-composite-placement-plan.md#open-decisions)
+  - Currently non-extended image pins always use legacy `ImagePinMarker`
+  - Plan recommends keeping legacy for non-extended until extended-marker behavior is stable
+- [ ] Run Phase 6 verification — [plan Phase 6](exec-plans/active/pin-parts-composite-placement-plan.md#phase-6-verification-and-tuning)
+  - Spot-check composite rendering with `Debug.ShowCompositePinDebugOverlay: true` at common extension angles
+  - Capture before/after screenshots for representative angles
+  - Run `scripts/verify.ps1` end-to-end on a .NET 6 SDK machine
 - [ ] Make manual edit mode available and verified for composite pin layouts
-  - Ensure edit mode still works when pins are rendered as composite shaft/head parts rather than simple line-plus-marker visuals
+  - Edit mode currently forces rebuild to legacy; composite hit-testing exists but needs integration verification
   - Verify drag behavior, hit testing, save/load, and visual feedback in zoomed cluster views
 - [ ] Add support for multiple saved layout variants per cluster/viewport and a way to choose between them
   - Current state: layouts are keyed and persisted, but effectively one saved layout is selected per generated key
