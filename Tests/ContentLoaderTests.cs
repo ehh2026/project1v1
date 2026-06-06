@@ -187,6 +187,140 @@ public class ContentLoaderTests
         }
     }
 
+    // -------------------------------------------------------------------------
+    // LoadAllLocationImagesAsync
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadAllLocationImagesAsync_NullLocation_Throws()
+    {
+        var loader = new ContentLoader(new MockLogger());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => loader.LoadAllLocationImagesAsync(null!));
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesAsync_MissingFolder_ReturnsEmpty()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Nonexistent", Id = "x" };
+
+            var result = await loader.LoadAllLocationImagesAsync(location);
+
+            Assert.Empty(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesAsync_NoImages_ReturnsEmpty()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Paris");
+            Directory.CreateDirectory(locationFolder);
+            File.WriteAllText(Path.Combine(locationFolder, "notes.txt"), "just text");
+
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Paris", Id = "p" };
+
+            var result = await loader.LoadAllLocationImagesAsync(location);
+
+            Assert.Empty(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // LoadAllLocationImagesWithTranslationsAsync
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_NullLocation_Throws()
+    {
+        var loader = new ContentLoader(new MockLogger());
+        await Assert.ThrowsAsync<ArgumentNullException>(
+            () => loader.LoadAllLocationImagesWithTranslationsAsync(null!));
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_MissingFolder_ReturnsEmpty()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Nowhere", Id = "n" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            Assert.Empty(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_NoImages_ReturnsEmpty()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Rome");
+            Directory.CreateDirectory(locationFolder);
+            File.WriteAllText(Path.Combine(locationFolder, "readme.txt"), "no images here");
+
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Rome", Id = "r" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            Assert.Empty(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // LoadLocationContentAsync — additional coverage
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadLocationContentAsync_NoImages_ReturnsNull()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Berlin");
+            Directory.CreateDirectory(locationFolder);
+            File.WriteAllText(Path.Combine(locationFolder, "notes.txt"), "text only");
+
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Berlin", Id = "b" };
+
+            var result = await loader.LoadLocationContentAsync(location);
+
+            Assert.Null(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Loader that skips the repo Excel file so JSON-only tests stay isolated.
     /// </summary>

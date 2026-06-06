@@ -79,13 +79,7 @@ public class ContentLoader
             if (!File.Exists(path))
                 return null;
 
-            var bitmap = new BitmapImage();
-            bitmap.BeginInit();
-            bitmap.UriSource = new Uri(path, UriKind.Absolute);
-            bitmap.CacheOption = BitmapCacheOption.OnLoad;
-            bitmap.EndInit();
-            bitmap.Freeze();
-            return bitmap;
+            return LoadFrozenBitmap(path);
         }
         catch (Exception ex)
         {
@@ -147,13 +141,7 @@ public class ContentLoader
 
             return await Task.Run(() =>
             {
-                var bitmap = new BitmapImage();
-                bitmap.BeginInit();
-                bitmap.UriSource = new Uri(mapPath, UriKind.Absolute);
-                bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                bitmap.EndInit();
-                bitmap.Freeze(); // Make it thread-safe
-                
+                var bitmap = LoadFrozenBitmap(mapPath);
                 _logger.LogInfo($"Successfully loaded world map from: {mapPath}");
                 return bitmap;
             });
@@ -302,9 +290,7 @@ public class ContentLoader
             }
 
             // Find all image files in the location folder and sort by filename
-            var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
-                .Concat(Directory.GetFiles(locationFolder, "*.png"))
-                .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
+            var imageFiles = FindImageFiles(locationFolder)
                 .OrderBy(f => Path.GetFileName(f))
                 .ToArray();
 
@@ -321,16 +307,7 @@ public class ContentLoader
                 var imagePath = imageFiles[i];
                 
                 // Load image
-                var image = await Task.Run(() =>
-                {
-                    var img = new BitmapImage();
-                    img.BeginInit();
-                    img.UriSource = new Uri(imagePath, UriKind.Absolute);
-                    img.CacheOption = BitmapCacheOption.OnLoad;
-                    img.EndInit();
-                    img.Freeze();
-                    return img;
-                });
+                var image = await Task.Run(() => LoadFrozenBitmap(imagePath));
 
                 // Look for corresponding translation text file
                 var imageFileNameWithoutExt = Path.GetFileNameWithoutExtension(imagePath);
@@ -374,55 +351,8 @@ public class ContentLoader
         if (location == null)
             throw new ArgumentNullException(nameof(location));
 
-        try
-        {
-            _logger.LogInfo($"Loading all images for location: {location.Name}");
-
-            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
-            
-            if (!Directory.Exists(locationFolder))
-            {
-                _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
-                return Array.Empty<BitmapImage>();
-            }
-
-            // Find all image files in the location folder
-            var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
-                .Concat(Directory.GetFiles(locationFolder, "*.png"))
-                .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
-                .ToArray();
-
-            if (imageFiles.Length == 0)
-            {
-                _logger.LogWarning($"No image files found in location folder: {locationFolder}");
-                return Array.Empty<BitmapImage>();
-            }
-
-            var images = new BitmapImage[imageFiles.Length];
-            
-            for (int i = 0; i < imageFiles.Length; i++)
-            {
-                var imagePath = imageFiles[i];
-                images[i] = await Task.Run(() =>
-                {
-                    var img = new BitmapImage();
-                    img.BeginInit();
-                    img.UriSource = new Uri(imagePath, UriKind.Absolute);
-                    img.CacheOption = BitmapCacheOption.OnLoad;
-                    img.EndInit();
-                    img.Freeze();
-                    return img;
-                });
-            }
-
-            _logger.LogInfo($"Successfully loaded {images.Length} images for location: {location.Name}");
-            return images;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Failed to load images for location {location.Name}: {ex.Message}\n{ex.StackTrace}");
-            return Array.Empty<BitmapImage>();
-        }
+        var results = await LoadAllLocationImagesWithTranslationsAsync(location);
+        return results.Select(r => r.Image).ToArray();
     }
 
     /// <summary>
@@ -457,10 +387,7 @@ public class ContentLoader
             }
 
             // Find the first image file in the location folder
-            var imageFiles = Directory.GetFiles(locationFolder, "*.jpg")
-                .Concat(Directory.GetFiles(locationFolder, "*.png"))
-                .Concat(Directory.GetFiles(locationFolder, "*.jpeg"))
-                .FirstOrDefault();
+            var imageFiles = FindImageFiles(locationFolder).FirstOrDefault();
 
             if (string.IsNullOrEmpty(imageFiles))
             {
@@ -468,16 +395,7 @@ public class ContentLoader
                 return null;
             }
 
-            var bitmap = await Task.Run(() =>
-            {
-                var img = new BitmapImage();
-                img.BeginInit();
-                img.UriSource = new Uri(imageFiles, UriKind.Absolute);
-                img.CacheOption = BitmapCacheOption.OnLoad;
-                img.EndInit();
-                img.Freeze(); // Make it thread-safe
-                return img;
-            });
+            var bitmap = await Task.Run(() => LoadFrozenBitmap(imageFiles!));
 
             // Cache the loaded image
             _contentCache[location.Name] = bitmap;
@@ -528,6 +446,33 @@ public class ContentLoader
             return false;
         }
     }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Loads a WPF bitmap from an absolute file path and freezes it for thread safety.
+    /// </summary>
+    private static BitmapImage LoadFrozenBitmap(string absolutePath)
+    {
+        var bitmap = new BitmapImage();
+        bitmap.BeginInit();
+        bitmap.UriSource = new Uri(absolutePath, UriKind.Absolute);
+        bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        bitmap.EndInit();
+        bitmap.Freeze();
+        return bitmap;
+    }
+
+    /// <summary>
+    /// Returns all .jpg/.png/.jpeg files in <paramref name="folder"/> in file-system order.
+    /// </summary>
+    private static string[] FindImageFiles(string folder) =>
+        Directory.GetFiles(folder, "*.jpg")
+            .Concat(Directory.GetFiles(folder, "*.png"))
+            .Concat(Directory.GetFiles(folder, "*.jpeg"))
+            .ToArray();
 
     /// <summary>
     /// Loads didactic text from a location's folder if it exists.

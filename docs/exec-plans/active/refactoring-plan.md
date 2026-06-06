@@ -82,15 +82,15 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] CHANGELOG.md updated
 - [ ] Committed
 
-## Phase 6 — Deduplicate ContentLoader
+## Phase 6 — Deduplicate ContentLoader ✅
 
-- [ ] Extract `LoadFrozenBitmap` helper
-- [ ] Extract `FindImageFiles` helper
-- [ ] Merge image-loading methods
-- [ ] Build succeeds
-- [ ] `ContentLoaderTests` green + new tests added
-- [ ] `.\scripts\verify.ps1` passed
-- [ ] CHANGELOG.md updated
+- [x] Extract `LoadFrozenBitmap` helper
+- [x] Extract `FindImageFiles` helper
+- [x] Merge image-loading methods
+- [x] Build succeeds
+- [x] `ContentLoaderTests` green + new tests added (7 new, 126 total)
+- [x] `.\scripts\verify.ps1` passed
+- [x] CHANGELOG.md updated
 - [ ] Committed
 
 ## Phase 7 — Fix RadialExtensionCalculator Duplication

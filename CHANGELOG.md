@@ -14,6 +14,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Refactoring Phase 2** — Consolidate duplicate animation loop in `MainWindow.xaml.cs`:
   - Extracted shared `AnimateViewportTransition(startViewport, targetViewport, animationLabel, onAnimationComplete)` (~75 lines) containing the pre-rendered keyframe loop that was duplicated between `AnimateZoomToCluster` and `AnimateZoomOut`.
   - `AnimateZoomToCluster` reduced from ~120 lines to ~45 lines; `AnimateZoomOut` reduced from ~142 lines to ~65 lines. Combined saving ~130 lines with zero duplication.
+- **Refactoring Phase 6** — Deduplicate bitmap loading in `Services/ContentLoader.cs`:
+  - Added private static helper `LoadFrozenBitmap(absolutePath)` — single canonical `BitmapImage { BeginInit → UriSource → CacheOption → EndInit → Freeze }` sequence, replacing 5 scattered copies.
+  - Added private static helper `FindImageFiles(folder)` — single `.jpg`/`.png`/`.jpeg` glob, replacing 3 scattered copies.
+  - Simplified `TryLoadContentBitmap`, `LoadMapImageAsync`, `LoadAllLocationImagesWithTranslationsAsync`, and `LoadLocationContentAsync` to delegate to the helpers.
+  - Reduced `LoadAllLocationImagesAsync` from a 45-line near-duplicate of `LoadAllLocationImagesWithTranslationsAsync` to a 3-line thin delegate via `results.Select(r => r.Image).ToArray()`.
+  - Added 7 new tests to `Tests/ContentLoaderTests.cs` covering null guards and empty/missing folder paths for both `LoadAllLocation*` methods and `LoadLocationContentAsync_NoImages`.
+  - Net change: ~70 lines removed, 2 helpers added, 0 behaviour changes.
 - **Refactoring Phase 5** — Extract Extension Line Rendering from `MainWindow.xaml.cs`:
   - Added `Views/IExtensionLineRenderer.cs` interface and `Views/ExtensionLineRenderer.cs` implementation.
   - `ExtensionLineRenderer` owns `_extensionLines` and `_markerToLineMap` state (removed from MainWindow), merges `CreateExtensionLine`/`CreatePinExtensionLine` into a private `CreateLine`, internalises `AnimateExtensionLines`, and moves `OnMarkerMouseEnter`/`OnMarkerMouseLeave` hover handlers.
