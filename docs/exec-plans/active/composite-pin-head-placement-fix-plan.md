@@ -1,6 +1,6 @@
 # Composite Pin Head Placement Fix Plan
 
-**Status:** Phase 1 implemented (all 211 tests pass) — Phase 2 remaining-offset investigation in progress
+**Status:** Phase 1 implemented (all 211 tests pass) — Phase 2 investigation complete — Phase 3 (pin_07 recalibration) in progress
 **Scope:** `CompositePinRenderPlanBuilder.cs`, head-placement logic only
 **Author:** Investigation 2026-06-07
 
@@ -369,20 +369,106 @@ This was **not** what the user requested, so it is not pursued.
 
 ---
 
-### 7.6 Recommended Next Steps (not yet implemented)
+### 7.6 Debug Image Inspection — Completed
 
-1. **Inspect debug images** from `Tools/PinDebugger/` — verify that green dots (local_center)
-   land exactly at the visual ball centre for all 12 heads, and that cyan/yellow dots land at the
-   correct shaft tip/join positions.
+Debug images in `Tools/PinDebugger/output_v2/` were inspected (annotate mode). The inspection
+confirmed that for pin_07 the yellow `local_join` dot was landing in empty space far to the right
+of the visible shaft — directly on the disconnected shadow blob. This drove the Phase 3 work
+documented in §8.
 
-2. **If hypothesis 1 is confirmed** (collar overshoots the join): clip the shaft head-cap layer's
-   rendered area so its *screen-space top* coincides with `JoinAnchorLocal`. Concretely: restrict
-   the head-cap clip band's upper boundary in *source* space by subtracting a small amount equal
-   to the collar's visual overhang.
+---
 
-3. **If hypothesis 2 is confirmed** (pin_09/10 inverted shading looks wrong): consider swapping
-   those head images for versions that have stub_direction_deg ≈ 180°, or accept the current
-   appearance (centre is mathematically correct).
+## 8. Phase 3 — Pin_07 Shadow Removal & Geometry Recalibration
 
-4. **Tune `TargetHeadRadiusPx`** once the collar alignment is confirmed correct — the current
-   value of 14.0 px may be adjusted for aesthetic balance.
+### 8.1 Root Cause: Disconnected Shadow Blob in Pin_07 Shaft Images
+
+Both `pin_07_shaft.png` and `pin_07_shaft_lit.png` contained a large, fully-disconnected cast-shadow
+region to the right of the actual shaft. This blob:
+
+- Was **not connected** to the shaft tip pixel cluster (flood-fill from `local_tip` does not reach it).
+- Caused the original calibration tool to extend `local_join` and `native_length` to the far edge
+  of the shadow rather than the real shaft collar.
+
+| Geometry field | Current (wrong) value | Correct (approximate) value |
+|----------------|----------------------|-----------------------------|
+| `local_join`   | `(471, 112.3)`       | ~`(200, 39)` (from find-join) |
+| `native_length`| `467 px`             | ~`208 px` (from find-join) |
+| `axis_length`  | `467`                | ~`208` |
+
+The segmentation distances (tip_cap_length, stretch_start/end, stretchable_length) are proportional
+to the old native_length and must also be recalculated from the cleaned image.
+
+### 8.2 Shadow Removal — Done
+
+PinDebugger `--clean` mode (flood-fill from `local_tip`, zero disconnected islands) was run on
+both shaft images. The cleaned outputs were copied over the originals in the parts folder:
+
+- `Images&Content/Pins_v2/parts/pin_07_shaft.png` ← replaced with cleaned version
+- `Images&Content/Pins_v2/parts/pin_07_shaft_lit.png` ← replaced with cleaned version
+
+The originals are preserved in `Tools/PinDebugger/cleaned/pin_07_shaft_clean.png` and
+`Tools/PinDebugger/cleaned/pin_07_shaft_lit_clean.png`.
+
+### 8.3 PinDebugger Tooling Reference
+
+| Mode | Command | What it does |
+|------|---------|--------------|
+| Annotate | `dotnet run --project Tools\PinDebugger` | Draws calibration dots on all 36 head/shaft/shaft_lit images into `output_v2/` |
+| Clean | `dotnet run --project Tools\PinDebugger -- --clean` | Flood-fills from `local_tip`, zeroes disconnected pixel islands |
+| Find-join | `dotnet run --project Tools\PinDebugger -- --find-join` | Projects shaft pixels onto native axis, reports centroid of farthest 3% as suggested new `local_join`; outputs JSON patch snippet |
+
+### 8.4 Next Steps — Ordered Action List
+
+**Step 1 — Recalibrate pin_07 geometry (CURRENT BLOCKER)**
+
+Re-run the original 3D/analysis tool on `Images&Content/Pins_v2/parts/pin_07_shaft.png`
+(the cleaned version now in place) to obtain correct values for:
+
+```
+local_tip                 (should be unchanged, near (4, 108.3))
+local_join                (real shaft collar endpoint, approx (200, 39))
+native_length             (euclidean tip→join, approx 208 px)
+tip_cap_length            (recalculate proportionally or re-measure)
+stretch_start_distance    (= tip_cap_length)
+stretch_end_distance      (native_length − head_cap_length)
+stretchable_length        (stretch_end − stretch_start)
+head_cap_length           (re-measure from cleaned image collar graphic)
+```
+
+As a quick-start cross-check, run find-join mode to get the suggested `local_join` patch:
+```
+dotnet run --project Tools\PinDebugger -- --find-join
+```
+
+Then update `pin_part_geometry.json` for `pin_07` with the corrected values.
+Also update the `alignment` block fields (`head_center_delta_px`, `tip_delta_px`,
+`head_side_vs_center_delta_px`) using the analysis tool output.
+
+**Step 2 — Run all tests**
+
+`dotnet test` — expect all 211 to pass (no logic changes, only JSON data change).
+
+**Step 3 — Visual verification with app**
+
+Run the app and inspect pin_07 specifically:
+- Head should be centered at the shaft endpoint with no visible gap.
+- The shaft collar graphic should align with (or be covered by) the head ball.
+- Head size should be ~14 px radius, consistent with all other pins.
+
+Then check pin_04 and pin_09 (short-shaft pins) for any residual collar-overhang disconnect (§7.3).
+
+**Step 4 — If collar overhang is visible (hypothesis 1 from §7.5)**
+
+Clip the shaft head-cap layer's upper boundary in source space so its visual top aligns with
+`JoinAnchorLocal`. One-line change in `AssembleResult` in `CompositePinRenderPlanBuilder.cs`.
+
+**Step 5 — If pin_09/10 inverted shading looks wrong (hypothesis 2 from §7.5)**
+
+The ball centre placement is mathematically correct. The visual issue is that specular highlights
+appear upside-down because `stub_direction_deg ≈ 0°` for these pins. Options:
+- Accept the current appearance (centre is correct).
+- Replace those head images with equivalents whose stub faces downward (~180°).
+
+**Step 6 — Tune `TargetHeadRadiusPx`** (currently `14.0` in `visual-config.json`)
+
+Adjust up or down for aesthetic balance once all alignment issues are resolved.

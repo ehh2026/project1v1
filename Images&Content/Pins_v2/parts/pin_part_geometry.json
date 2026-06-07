@@ -752,11 +752,11 @@
                                                                                  "y":  108.3
                                                                              },
                                                               "axis_end":  {
-                                                                               "x":  471,
-                                                                               "y":  112.3
+                                                                               "x":  199.9,
+                                                                               "y":  38.6
                                                                            }
                                                           },
-                                 "axis_length":  467,
+                                 "axis_length":  207.9,
                                  "axis_angle_deg":  90.5,
                                  "axis_endpoints_original":  {
                                                                  "axis_start":  {
@@ -774,12 +774,12 @@
                                                                              "y":  108.3
                                                                          },
                                                                  "head_side":  {
-                                                                                   "x":  471,
-                                                                                   "y":  112.3
+                                                                                   "x":  199.9,
+                                                                                   "y":  38.6
                                                                                },
                                                                  "join":  {
-                                                                              "x":  471,
-                                                                              "y":  112.3
+                                                                              "x":  199.9,
+                                                                              "y":  38.6
                                                                           }
                                                              },
                                  "labeled_endpoints_original":  {
@@ -797,16 +797,16 @@
                                                                              }
                                                                 },
                                  "tip_to_head_side_angle_deg":  90.5,
-                                 "tip_to_head_side_length":  467,
+                                 "tip_to_head_side_length":  207.9,
                                  "native_angle_deg":  90.5,
-                                 "native_length":  467,
+                                 "native_length":  207.9,
                                  "local_tip":  {
                                                    "x":  4,
                                                    "y":  108.3
                                                },
                                  "local_join":  {
-                                                    "x":  471,
-                                                    "y":  112.3
+                                                    "x":  199.9,
+                                                    "y":  38.6
                                                 },
                                  "original_tip":  {
                                                       "x":  19,
@@ -817,11 +817,11 @@
                                                        "y":  430.3
                                                    },
                                  "segmentation":  {
-                                                      "tip_cap_length":  46.7,
-                                                      "head_cap_length":  56,
-                                                      "stretch_start_distance":  46.7,
-                                                      "stretch_end_distance":  411,
-                                                      "stretchable_length":  364.3,
+                                                      "tip_cap_length":  20.8,
+                                                      "head_cap_length":  25.0,
+                                                      "stretch_start_distance":  20.8,
+                                                      "stretch_end_distance":  182.9,
+                                                      "stretchable_length":  162.1,
                                                       "minimum_middle_ratio":  0.25
                                                   }
                              },
