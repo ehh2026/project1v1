@@ -48,6 +48,10 @@ dotnet test --filter "FullyQualifiedName~StartupValidationHarness"
 
 *Requires .NET 6 SDK (`global.json` in repo root). WPF targets `net6.0-windows` — install .NET 6 alongside newer SDKs; see `docs/SETUP_GUIDE.md`.
 
+## Python scripts
+
+Harness scripts (`verify_*.py`) use stdlib only — system `python` / `py -3` is fine. Pin extraction scripts need `scripts/venv/` — see [scripts/README.md](../../scripts/README.md).
+
 ## On failure
 
 Read REMEDIATION lines in script output. See [docs/agent-workflows.md](../../docs/agent-workflows.md).

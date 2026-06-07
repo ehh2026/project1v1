@@ -22,7 +22,7 @@ namespace InteractiveWorldMap.Services
             PinPartImageSize         ShaftSize,
             PinPartImageSize         HeadSize,
             PinPartShaftSegmentation Segmentation,
-            PinPartPoint             HeadAttach);
+            PinPartPoint             HeadAnchor); // local_center — the visual ball center used as placement anchor
 
         private sealed record PreparedGeometry(
             double        TargetLength,
@@ -103,10 +103,13 @@ namespace InteractiveWorldMap.Services
                 ?? throw new InvalidOperationException("Head image size is required for composite rendering.");
             var segmentation = geometry.Shaft.Segmentation
                 ?? throw new InvalidOperationException("Shaft segmentation is required for composite rendering.");
-            var headAttach = headEntry.Head.LocalAttach
-                ?? throw new InvalidOperationException("Head attach point is required for composite rendering.");
 
-            return new ValidatedInputs(geometry, headEntry, shaftSize, headSize, segmentation, headAttach);
+            // Use local_center as the placement anchor so the ball's visual centre maps to the
+            // shaft endpoint.  local_attach (the stub stub connection point) lies beyond the ball
+            // edge for every current pin and would make the ball float above the endpoint.
+            var headAnchor = headEntry.Head.LocalCenter;
+
+            return new ValidatedInputs(geometry, headEntry, shaftSize, headSize, segmentation, headAnchor);
         }
 
         private static PreparedGeometry PrepareGeometry(
@@ -199,16 +202,17 @@ namespace InteractiveWorldMap.Services
             var nativeAttachToCenterAngle = Normalize360(v.HeadEntry.Head.StubDirectionDeg + 180.0);
             var headRotationDeg           = NormalizeSignedAngle(geo.TargetAngle - nativeAttachToCenterAngle);
 
-            // Compute head scale: normalise to TargetHeadRadiusPx so all head images appear
-            // at the same screen size.  Fall back to shaft-proportional scale when
-            // TargetHeadRadiusPx or LocalRadius is not set (e.g. test data).
+            // Always scale to TargetHeadRadiusPx so all pin heads render at a consistent
+            // screen radius regardless of native shaft length.  Fall back to S only when
+            // the config or geometry data are zero (e.g. unit tests with minimal stubs).
             var nativeHeadRadius = v.HeadEntry.Head.LocalRadius;
             var headScale = (config.TargetHeadRadiusPx > 0.0 && nativeHeadRadius > 0.0)
                 ? config.TargetHeadRadiusPx / nativeHeadRadius
                 : S;
 
+            // Anchor is local_center: the ball's visual centre maps to the shaft endpoint.
             var headTransform             = CreateHeadTransform(
-                v.HeadAttach,
+                v.HeadAnchor,
                 new Point(geo.TargetDirection.X * geo.TargetLength, geo.TargetDirection.Y * geo.TargetLength),
                 headRotationDeg,
                 headScale);
@@ -273,6 +277,15 @@ namespace InteractiveWorldMap.Services
             var shaftPath  = Path.Combine(config.PartsFolderPath, shaftFile);
             var headPath   = Path.Combine(config.PartsFolderPath, v.HeadEntry.HeadFile);
 
+            // Each adjacent clip band shares an exact boundary in source pixel space.
+            // Different RenderTransforms on the three shaft layers can map that same boundary
+            // to slightly different sub-pixel positions on screen, leaving a 1–2 px
+            // anti-aliasing gap (the "broken shaft" artifact).  Extending each band by
+            // SeamOverlapPx into its neighbour ensures the layers overlap at every seam so
+            // no gap can appear.  The overlap region is tiny (<2 px) and invisible because
+            // the upper layer simply renders on top of the lower one.
+            const double SeamOverlapPx = 1.5;
+
             return new CompositePinRenderPlan
             {
                 PairId              = placement.PairId,
@@ -297,7 +310,7 @@ namespace InteractiveWorldMap.Services
                     SourceWidth  = v.ShaftSize.Width,
                     SourceHeight = v.ShaftSize.Height,
                     ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
-                                            0.0, seg.TipCapLength),
+                                            0.0, seg.TipCapLength + SeamOverlapPx),
                     Transform    = s.TipTransform
                 },
                 ShaftBodyLayer = new CompositePinLayerPlan
@@ -306,7 +319,8 @@ namespace InteractiveWorldMap.Services
                     SourceWidth  = v.ShaftSize.Width,
                     SourceHeight = v.ShaftSize.Height,
                     ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
-                                            seg.StretchStartDistance, seg.StretchEndDistance),
+                                            Math.Max(0.0, seg.StretchStartDistance - SeamOverlapPx),
+                                            seg.StretchEndDistance + SeamOverlapPx),
                     Transform    = s.BodyTransform
                 },
                 ShaftHeadCapLayer = new CompositePinLayerPlan
@@ -315,7 +329,8 @@ namespace InteractiveWorldMap.Services
                     SourceWidth  = v.ShaftSize.Width,
                     SourceHeight = v.ShaftSize.Height,
                     ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
-                                            seg.StretchEndDistance, geometry.Shaft.NativeLength),
+                                            Math.Max(0.0, seg.StretchEndDistance - SeamOverlapPx),
+                                            geometry.Shaft.NativeLength),
                     Transform    = s.HeadCapTransform
                 },
                 HeadLayer = new CompositePinLayerPlan

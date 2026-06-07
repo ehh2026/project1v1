@@ -2,11 +2,14 @@
 
 Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for agent onboarding.
 
+**Other entry points:** [ARCHITECTURE.md](../ARCHITECTURE.md) (code layers), [scripts/README.md](../scripts/README.md) (Python scripts and venv), [README.md](../README.md) (user overview).
+
 ## Harness & Architecture
 
 | Doc | Description |
 |-----|-------------|
 | [../AGENTS.md](../AGENTS.md) | Agent entry map (~100 lines) |
+| [../scripts/README.md](../scripts/README.md) | Script catalog, Python venv, `requirements.txt` |
 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | Layer model, invariants, domain map |
 | [QUALITY_SCORE.md](QUALITY_SCORE.md) | Per-domain quality grades |
 | [RELIABILITY.md](RELIABILITY.md) | Logging, startup validation, error handling |
@@ -41,7 +44,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [MANUAL_LAYOUT_EDITOR.md](MANUAL_LAYOUT_EDITOR.md) | Drag-and-save marker layout |
 | [UPDATING_COORDINATES.md](UPDATING_COORDINATES.md) | Excel coordinate workflow |
 | [DEMO_INSTRUCTIONS.md](DEMO_INSTRUCTIONS.md) | Demo and smoke-test checklist |
-| [SETUP_GUIDE.md](SETUP_GUIDE.md) | Environment setup |
+| [SETUP_GUIDE.md](SETUP_GUIDE.md) | .NET SDK and Python venv setup |
 | [DEBUGGING_IMPROVEMENTS.md](DEBUGGING_IMPROVEMENTS.md) | Debug logging tips |
 
 ## Planning & Analysis

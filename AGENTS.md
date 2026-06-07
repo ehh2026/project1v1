@@ -27,6 +27,8 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **Merge gate:** GitHub Actions on `windows-latest` runs build, test, NuGet vulnerability scan, doc links, taste checks, and headless startup validation; **Gitleaks** runs separately on Ubuntu. Local Windows gate: `.\scripts\verify.ps1`. macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
 
+**Python (optional tooling):** Harness scripts use stdlib only — `verify.ps1` / `verify.sh` call system `python` or `py -3`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
+
 ## Repository Layout
 
 | Path | Purpose |
@@ -36,7 +38,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 | `Services/` | Content loading, logging, navigation, layout, validation |
 | `Views/` | WPF UserControls and windows — Models only |
 | `Tests/` | xUnit tests including architecture structural tests |
-| `scripts/` | Verification, log query, Python tooling |
+| `scripts/` | Verification, log query, Python tooling — see [scripts/README.md](scripts/README.md) |
 | `Images&Content/` | Map image, location folders, `locations.json` |
 | `visual-config.json` | Machine-readable UI/debug config (deserialize to `Models/VisualConfig`) |
 | `Coordinates for map.xlsx` | Primary coordinate source at startup |
