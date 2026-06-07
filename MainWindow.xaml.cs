@@ -115,6 +115,16 @@ namespace InteractiveWorldMap
                 var visualConfigService = new VisualConfigService();
                 _visualConfig = visualConfigService.Load(configPath);
                 _logger.LogInfo($"Visual config loaded from: {configPath}");
+
+                if (_visualConfig.Debug.WindowedMode)
+                {
+                    WindowStyle = WindowStyle.SingleBorderWindow;
+                    WindowState = WindowState.Normal;
+                    Width  = _visualConfig.Debug.WindowedWidth;
+                    Height = _visualConfig.Debug.WindowedHeight;
+                    _logger.LogInfo($"[Debug] WindowedMode: {Width}x{Height}");
+                }
+
                 _logger.LogInfo($"  ClusterDistanceThreshold: {_visualConfig.ClusterDistanceThreshold}");
                 _logger.LogInfo($"  LocationMarkerSize: {_visualConfig.LocationMarkerSize}");
                 _logger.LogInfo($"  ClusterMarkerSize: {_visualConfig.ClusterMarkerSize}");
@@ -542,18 +552,8 @@ namespace InteractiveWorldMap
             // Use pin markers if enabled in config
             if (_visualConfig.UsePinMarkers)
             {
-                var pinMarker = CreatePinMarker(location);
-                marker = new LocationMarker(_visualConfig) { Location = location };
-                
-                // Replace the default content with a pin marker
-                marker.Content = pinMarker;
-                marker.Width = pinMarker.Width;
-                marker.Height = pinMarker.Height;
-                
-                // Store reference to pin marker for later access
-                marker.Tag = pinMarker;
-                
-                _logger.LogInfo($"  Created PIN marker for '{location.Name}' with size {pinMarker.Width}x{pinMarker.Height}");
+                marker = CreatePinMarker(location);
+                _logger.LogInfo($"  Created PIN marker for '{location.Name}' with size {marker.Width}x{marker.Height}");
             }
             else
             {
@@ -1964,10 +1964,21 @@ namespace InteractiveWorldMap
                     : application.OriginalPosition;
 
                 // Re-project extended position from source coords when available (seed-generated layouts).
-                var extendedPos = application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue
-                    && viewport != null && cw > 0 && ch > 0
-                    ? viewport.SourceToScreen(application.SourceExtendedX.Value, application.SourceExtendedY.Value, cw, ch)
-                    : application.ExtendedPosition;
+                // Otherwise reconstruct from originalPos + saved angle/length so the composite pin is
+                // always the correct size regardless of which viewport the layout was originally saved at.
+                Point extendedPos;
+                if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue
+                    && viewport != null && cw > 0 && ch > 0)
+                {
+                    extendedPos = viewport.SourceToScreen(application.SourceExtendedX.Value, application.SourceExtendedY.Value, cw, ch);
+                }
+                else
+                {
+                    var rad = application.Angle * Math.PI / 180.0;
+                    extendedPos = new Point(
+                        originalPos.X + application.LineLength * Math.Sin(rad),
+                        originalPos.Y - application.LineLength * Math.Cos(rad));
+                }
 
                 // Try composite pin first; falls back to legacy if disabled or assets missing.
                 if (TryApplyCompositePinMarker(marker, originalPos, extendedPos))

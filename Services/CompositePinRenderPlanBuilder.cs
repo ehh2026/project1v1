@@ -28,6 +28,7 @@ namespace InteractiveWorldMap.Services
             double        TargetAngle,
             double        TargetBodyLength,
             double        BodyStretch,
+            double        OverallScale,
             Vector        TargetDirection,
             Vector        TargetNormal,
             Point         NativeTip,
@@ -107,36 +108,48 @@ namespace InteractiveWorldMap.Services
             PinPlacementTarget target,
             ValidatedInputs    v)
         {
-            var targetLength     = GetDistance(target.StartScreen, target.EndScreen);
-            var targetAngle      = GetAngleDegrees(target.StartScreen, target.EndScreen);
-            var targetBodyLength = targetLength - v.Segmentation.TipCapLength - v.Segmentation.HeadCapLength;
-            if (targetBodyLength <= 0.0)
-            {
-                throw new InvalidOperationException(
-                    $"Target length {targetLength:F1}px is shorter than the non-stretchable caps " +
-                    $"({v.Segmentation.TipCapLength + v.Segmentation.HeadCapLength:F1}px).");
-            }
-
-            var bodyStretch     = targetBodyLength / v.Segmentation.StretchableLength;
+            var targetLength    = GetDistance(target.StartScreen, target.EndScreen);
+            var targetAngle     = GetAngleDegrees(target.StartScreen, target.EndScreen);
             var targetDirection = Normalize(target.EndScreen - target.StartScreen);
             var targetNormal    = new Vector(-targetDirection.Y, targetDirection.X);
 
-            var nativeTip       = ToPoint(v.Geometry.Shaft.LocalTip);
-            var nativeJoin      = ToPoint(v.Geometry.Shaft.LocalJoin);
-            var nativeAxis      = nativeJoin - nativeTip;
+            var nativeTip        = ToPoint(v.Geometry.Shaft.LocalTip);
+            var nativeJoin       = ToPoint(v.Geometry.Shaft.LocalJoin);
+            var nativeAxis       = nativeJoin - nativeTip;
             var nativeAxisLength = nativeAxis.Length;
             if (nativeAxisLength <= 0.0)
                 throw new InvalidOperationException("Shaft native axis length must be greater than zero.");
 
-            var nativeAxisUnit  = Normalize(nativeAxis);
-            var nativeNormal    = new Vector(-nativeAxisUnit.Y, nativeAxisUnit.X);
+            var nativeAxisUnit = Normalize(nativeAxis);
+            var nativeNormal   = new Vector(-nativeAxisUnit.Y, nativeAxisUnit.X);
+
+            // Overall scale maps source image pixels → screen pixels uniformly.
+            // Cap lengths are in source pixels so must be scaled before subtracting from the
+            // screen-pixel targetLength — otherwise targetBodyLength is incorrectly negative
+            // when the source images are larger than the target screen distance.
+            var overallScale     = targetLength / nativeAxisLength;
+            var scaledTipCap     = v.Segmentation.TipCapLength  * overallScale;
+            var scaledHeadCap    = v.Segmentation.HeadCapLength * overallScale;
+            var targetBodyLength = targetLength - scaledTipCap - scaledHeadCap;
+            if (targetBodyLength <= 0.0)
+            {
+                throw new InvalidOperationException(
+                    $"Target length {targetLength:F1}px is shorter than the scaled non-stretchable caps " +
+                    $"({scaledTipCap + scaledHeadCap:F1}px). " +
+                    $"Source caps: tip={v.Segmentation.TipCapLength:F1}px head={v.Segmentation.HeadCapLength:F1}px " +
+                    $"native_length={nativeAxisLength:F1}px scale={overallScale:F3}.");
+            }
+
+            // bodyStretch is the combined axial scale for the body region
+            // (overall scale × any additional stretch to fill targetBodyLength).
+            var bodyStretch = targetBodyLength / v.Segmentation.StretchableLength;
 
             var shaftRectCorners = GetRectangleCorners(v.ShaftSize.Width, v.ShaftSize.Height);
             var headRectCorners  = GetRectangleCorners(v.HeadSize.Width, v.HeadSize.Height);
             var nativeBounds     = new Rect(0, 0, v.ShaftSize.Width, v.ShaftSize.Height);
 
             return new PreparedGeometry(
-                targetLength, targetAngle, targetBodyLength, bodyStretch,
+                targetLength, targetAngle, targetBodyLength, bodyStretch, overallScale,
                 targetDirection, targetNormal,
                 nativeTip, nativeAxisUnit, nativeNormal,
                 nativeBounds, shaftRectCorners, headRectCorners);
@@ -146,29 +159,44 @@ namespace InteractiveWorldMap.Services
             PreparedGeometry geo,
             ValidatedInputs  v)
         {
-            // Local helper deduplicates the five shared axis arguments
-            // common to all three shaft layer transforms
-            Matrix ShaftLayerTransform(double axialScale, double axialOffset) =>
+            var S   = geo.OverallScale;
+            var seg = v.Segmentation;
+
+            // Scaled cap lengths (screen pixels) — the same values computed in PrepareGeometry.
+            var scaledTipCap = seg.TipCapLength * S;
+
+            // Local helper deduplicates the five shared axis/normal arguments.
+            // normalScale = S maps the source normal direction at the same scale as the axis,
+            // preserving the pin image aspect ratio on screen.
+            Matrix ShaftLayerTransform(double axialScale, double normalScale, double axialOffset) =>
                 CreateLayerTransform(
                     geo.NativeTip, geo.NativeAxisUnit, geo.NativeNormal,
                     geo.TargetDirection, geo.TargetNormal,
-                    new Point(0, 0), axialScale, axialOffset);
+                    new Point(0, 0), axialScale, axialOffset, normalScale);
 
-            var seg              = v.Segmentation;
-            var tipTransform     = ShaftLayerTransform(1.0, 0.0);
-            var bodyTransform    = ShaftLayerTransform(
+            // Tip cap: uniform scale S (no additional axial stretch).
+            var tipTransform = ShaftLayerTransform(S, S, 0.0);
+
+            // Body: axial scale = bodyStretch (= targetBodyLength/StretchableLength, which equals S
+            // for a purely uniform scaling and differs from S only when additional stretch is needed).
+            // Normal scale = S (always; preserves cross-section width).
+            var bodyTransform = ShaftLayerTransform(
                 geo.BodyStretch,
-                seg.TipCapLength - (seg.StretchStartDistance * geo.BodyStretch));
+                S,
+                scaledTipCap - (seg.StretchStartDistance * geo.BodyStretch));
+
+            // Head cap: uniform scale S; placed so StretchEnd aligns with the body end.
             var headCapTransform = ShaftLayerTransform(
-                1.0,
-                seg.TipCapLength + geo.TargetBodyLength - seg.StretchEndDistance);
+                S, S,
+                scaledTipCap + geo.TargetBodyLength - seg.StretchEndDistance * S);
 
             var nativeAttachToCenterAngle = Normalize360(v.Geometry.Head.StubDirectionDeg + 180.0);
             var headRotationDeg           = NormalizeSignedAngle(geo.TargetAngle - nativeAttachToCenterAngle);
             var headTransform             = CreateHeadTransform(
                 v.HeadAttach,
                 new Point(geo.TargetDirection.X * geo.TargetLength, geo.TargetDirection.Y * geo.TargetLength),
-                headRotationDeg);
+                headRotationDeg,
+                S);
 
             return new ComputedTransforms(tipTransform, bodyTransform, headCapTransform, headTransform, headRotationDeg);
         }
@@ -200,12 +228,13 @@ namespace InteractiveWorldMap.Services
             var joinAnchor = new Point(
                 (geo.TargetDirection.X * geo.TargetLength) + shiftX,
                 (geo.TargetDirection.Y * geo.TargetLength) + shiftY);
+            var scaledTipCap = seg.TipCapLength * geo.OverallScale;
             var stretchStart = new Point(
-                tipAnchor.X + (geo.TargetDirection.X * seg.TipCapLength),
-                tipAnchor.Y + (geo.TargetDirection.Y * seg.TipCapLength));
+                tipAnchor.X + (geo.TargetDirection.X * scaledTipCap),
+                tipAnchor.Y + (geo.TargetDirection.Y * scaledTipCap));
             var stretchEnd = new Point(
-                tipAnchor.X + (geo.TargetDirection.X * (seg.TipCapLength + geo.TargetBodyLength)),
-                tipAnchor.Y + (geo.TargetDirection.Y * (seg.TipCapLength + geo.TargetBodyLength)));
+                tipAnchor.X + (geo.TargetDirection.X * (scaledTipCap + geo.TargetBodyLength)),
+                tipAnchor.Y + (geo.TargetDirection.Y * (scaledTipCap + geo.TargetBodyLength)));
 
             return new ShiftedGeometry(
                 tipT, bodyT, headCapT, headT,
@@ -221,10 +250,13 @@ namespace InteractiveWorldMap.Services
             ComputedTransforms     t,
             ShiftedGeometry        s)
         {
-            var geometry  = v.Geometry;
-            var seg       = v.Segmentation;
-            var shaftPath = Path.Combine(config.PartsFolderPath, geometry.ShaftFile);
-            var headPath  = Path.Combine(config.PartsFolderPath, geometry.HeadFile);
+            var geometry   = v.Geometry;
+            var seg        = v.Segmentation;
+            var shaftFile  = config.UseLitShafts
+                ? geometry.ShaftFile.Replace(".png", "_lit.png")
+                : geometry.ShaftFile;
+            var shaftPath  = Path.Combine(config.PartsFolderPath, shaftFile);
+            var headPath   = Path.Combine(config.PartsFolderPath, geometry.HeadFile);
 
             return new CompositePinRenderPlan
             {
@@ -318,24 +350,26 @@ namespace InteractiveWorldMap.Services
             Vector targetNormal,
             Point  targetTip,
             double axialScale,
-            double axialOffset)
+            double axialOffset,
+            double normalScale = 1.0)
         {
-            var m11 = (targetNormal.X * nativeNormal.X) + (axialScale * targetAxisUnit.X * nativeAxisUnit.X);
-            var m12 = (targetNormal.X * nativeNormal.Y) + (axialScale * targetAxisUnit.X * nativeAxisUnit.Y);
-            var m21 = (targetNormal.Y * nativeNormal.X) + (axialScale * targetAxisUnit.Y * nativeAxisUnit.X);
-            var m22 = (targetNormal.Y * nativeNormal.Y) + (axialScale * targetAxisUnit.Y * nativeAxisUnit.Y);
+            var m11 = (normalScale * targetNormal.X * nativeNormal.X) + (axialScale * targetAxisUnit.X * nativeAxisUnit.X);
+            var m12 = (normalScale * targetNormal.X * nativeNormal.Y) + (axialScale * targetAxisUnit.X * nativeAxisUnit.Y);
+            var m21 = (normalScale * targetNormal.Y * nativeNormal.X) + (axialScale * targetAxisUnit.Y * nativeAxisUnit.X);
+            var m22 = (normalScale * targetNormal.Y * nativeNormal.Y) + (axialScale * targetAxisUnit.Y * nativeAxisUnit.Y);
             var offsetX = targetTip.X - ((m11 * nativeTip.X) + (m12 * nativeTip.Y)) + (axialOffset * targetAxisUnit.X);
             var offsetY = targetTip.Y - ((m21 * nativeTip.X) + (m22 * nativeTip.Y)) + (axialOffset * targetAxisUnit.Y);
 
             return new Matrix(m11, m21, m12, m22, offsetX, offsetY);
         }
 
-        private static Matrix CreateHeadTransform(PinPartPoint nativeAttach, Point targetAttach, double rotationDeg)
+        private static Matrix CreateHeadTransform(PinPartPoint nativeAttach, Point targetAttach, double rotationDeg, double scale = 1.0)
         {
             var matrix = Matrix.Identity;
+            matrix.Scale(scale, scale);
             matrix.Rotate(rotationDeg);
-            var rotatedAttach = matrix.Transform(new Point(nativeAttach.X, nativeAttach.Y));
-            matrix.Translate(targetAttach.X - rotatedAttach.X, targetAttach.Y - rotatedAttach.Y);
+            var scaledRotatedAttach = matrix.Transform(new Point(nativeAttach.X, nativeAttach.Y));
+            matrix.Translate(targetAttach.X - scaledRotatedAttach.X, targetAttach.Y - scaledRotatedAttach.Y);
             return matrix;
         }
 

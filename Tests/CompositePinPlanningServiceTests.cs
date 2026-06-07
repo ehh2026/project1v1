@@ -65,11 +65,14 @@ public class CompositePinPlanningServiceTests
 
         var result = service.BuildPlan(target, candidates, config);
 
+        // overallScale = targetLength(120) / nativeLength(160) = 0.75
+        // scaledTipCap = 30 * 0.75 = 22.5; scaledHeadCap = 30 * 0.75 = 22.5
+        // targetBodyLength = 120 - 22.5 - 22.5 = 75.0
         Assert.True(result.Selection.IsRotationClamped);
         Assert.True(result.Selection.IsStretchClamped);
         Assert.Equal(120.0, Distance(result.RenderPlan.TipAnchorLocal, result.RenderPlan.JoinAnchorLocal), 1);
         Assert.Equal(result.RenderPlan.JoinAnchorLocal, result.RenderPlan.HeadAttachLocal);
-        Assert.Equal(60.0, result.RenderPlan.StretchBodyLengthPx, 1);
+        Assert.Equal(75.0, result.RenderPlan.StretchBodyLengthPx, 1);
     }
 
     private static double Distance(Point a, Point b)

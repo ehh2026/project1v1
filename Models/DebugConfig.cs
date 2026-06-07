@@ -34,5 +34,17 @@ namespace InteractiveWorldMap.Models
         /// Show composite-pin anchor and stretch overlays for visual validation.
         /// </summary>
         public bool ShowCompositePinDebugOverlay { get; set; } = false;
+
+        /// <summary>
+        /// Launch in a normal resizable window instead of borderless maximized kiosk mode.
+        /// Useful for debugging at a known viewport size.
+        /// </summary>
+        public bool WindowedMode { get; set; } = false;
+
+        /// <summary>Width of the debug window when WindowedMode is true.</summary>
+        public int WindowedWidth { get; set; } = 1280;
+
+        /// <summary>Height of the debug window when WindowedMode is true.</summary>
+        public int WindowedHeight { get; set; } = 800;
     }
 }

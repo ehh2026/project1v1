@@ -20,5 +20,10 @@ namespace InteractiveWorldMap.Models
         public double MinStretchFactor { get; set; } = 0.75;
         public double MaxStretchFactor { get; set; } = 1.35;
         public bool UseCompositeRendering { get; set; } = false;
+
+        /// <summary>
+        /// When true, loads the _lit variant of each shaft image (e.g. pin_01_shaft_lit.png).
+        /// </summary>
+        public bool UseLitShafts { get; set; } = false;
     }
 }

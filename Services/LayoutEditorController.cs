@@ -39,6 +39,11 @@ public sealed class LayoutEditorController
         /// </summary>
         public double? SourceExtendedX { get; init; }
         public double? SourceExtendedY { get; init; }
+
+        /// <summary>Extension angle in degrees (same convention as <see cref="ManualLayoutMarker.Angle"/>).</summary>
+        public double Angle { get; init; }
+        /// <summary>Extension line length in screen pixels at save time.</summary>
+        public double LineLength { get; init; }
     }
 
     public event Action? EditModeEntered;
@@ -117,7 +122,9 @@ public sealed class LayoutEditorController
                 distance > ExtensionLineThreshold)
             {
                 SourceExtendedX = layoutMarker.SourceExtendedX,
-                SourceExtendedY = layoutMarker.SourceExtendedY
+                SourceExtendedY = layoutMarker.SourceExtendedY,
+                Angle      = layoutMarker.Angle,
+                LineLength = layoutMarker.LineLength
             });
 
             _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
