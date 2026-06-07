@@ -1,4 +1,4 @@
-// Pin geometry debug annotator + shadow cleaner.
+// Pin geometry debug annotator + shadow cleaner + join finder.
 // Run from the project root.
 //
 // Annotate mode (default):
@@ -11,24 +11,34 @@
 //   each shaft PNG by keeping only the connected component that contains
 //   local_tip.  Output files: pin_XX_shaft_clean.png + pin_XX_shaft_lit_clean.png
 //   Copy them over the originals once you have verified the results.
+//
+// Find-join mode:
+//   dotnet run --project Tools\PinDebugger -- --find-join [partsDir [cleanedDir]]
+//   For each shaft, uses native_angle_deg to project all non-transparent pixels
+//   onto the shaft axis and reports the centroid of the farthest 3% as the
+//   suggested new local_join.  Use the cleaned versions if available.
+//   Outputs a JSON patch snippet ready to paste into pin_part_geometry.json.
 
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
-bool cleanMode = args.Any(a => a == "--clean");
-var  posArgs   = args.Where(a => a != "--clean").ToArray();
+bool cleanMode    = args.Any(a => a == "--clean");
+bool findJoinMode = args.Any(a => a == "--find-join");
+var  posArgs      = args.Where(a => !a.StartsWith("--")).ToArray();
 
-var partsDir  = posArgs.Length > 0 ? posArgs[0] : Path.Combine("Images&Content", "Pins_v2", "parts");
-var outputDir = posArgs.Length > 1 ? posArgs[1]
-    : cleanMode
-        ? Path.Combine("Tools", "PinDebugger", "cleaned")
-        : Path.Combine("Tools", "PinDebugger", "output");
+var partsDir   = posArgs.Length > 0 ? posArgs[0] : Path.Combine("Images&Content", "Pins_v2", "parts");
+var cleanedDir = Path.Combine("Tools", "PinDebugger", "cleaned"); // always checked for cleaned versions
+var outputDir  = posArgs.Length > 1 ? posArgs[1]
+    : cleanMode    ? cleanedDir
+    : findJoinMode ? Path.Combine("Tools", "PinDebugger", "find-join")
+    : Path.Combine("Tools", "PinDebugger", "output_v2");
 
 Directory.CreateDirectory(outputDir);
-Console.WriteLine($"Mode   : {(cleanMode ? "clean (remove disconnected shadow islands)" : "annotate")}");
+Console.WriteLine($"Mode   : {(cleanMode ? "clean" : findJoinMode ? "find-join" : "annotate")}");
 Console.WriteLine($"Parts  : {partsDir}");
 Console.WriteLine($"Output : {outputDir}");
 Console.WriteLine();
@@ -43,15 +53,20 @@ foreach (var pinProp in doc.RootElement.EnumerateObject())
 {
     var pinId = pinProp.Name;
     var pin   = pinProp.Value;
-    Console.WriteLine($"  {pinId}");
 
     if (cleanMode)
     {
+        Console.WriteLine($"  {pinId}");
         CleanShaft(pin, pinId, partsDir, outputDir, litSuffix: false);
         CleanShaft(pin, pinId, partsDir, outputDir, litSuffix: true);
     }
+    else if (findJoinMode)
+    {
+        FindJoin(pin, pinId, partsDir, cleanedDir);
+    }
     else
     {
+        Console.WriteLine($"  {pinId}");
         AnnotateHead (pin, pinId, partsDir, outputDir);
         AnnotateShaft(pin, pinId, partsDir, outputDir, litSuffix: false);
         AnnotateShaft(pin, pinId, partsDir, outputDir, litSuffix: true);
@@ -177,6 +192,96 @@ static Bitmap KeepConnectedComponent(Bitmap src, int seedX, int seedY)
     System.Runtime.InteropServices.Marshal.Copy(outPx, 0, dstData.Scan0, outPx.Length);
     result.UnlockBits(dstData);
     return result;
+}
+
+// ── Find-join mode ────────────────────────────────────────────────────────────
+
+/// <summary>
+/// Uses native_angle_deg to project all non-transparent shaft pixels onto the
+/// shaft axis and reports the centroid of the farthest 3% as the suggested
+/// new local_join.  Uses the cleaned shaft version if available.
+/// </summary>
+static void FindJoin(JsonElement pin, string pinId, string partsDir, string cleanedDir)
+{
+    var baseFile = pin.GetProperty("shaft_file").GetString()!;
+    var shaft    = pin.GetProperty("shaft");
+    var tip      = ParsePoint(shaft.GetProperty("local_tip"));
+    var curJoin  = ParsePoint(shaft.GetProperty("local_join"));
+    var curNativeLen = shaft.GetProperty("native_length").GetDouble();
+    var angleDeg = shaft.GetProperty("native_angle_deg").GetDouble();
+
+    // Axis unit vector from native_angle_deg.
+    // Convention (matches GetAngleDegrees in the app): 0° = up (–Y), 90° = right (+X).
+    double rad  = angleDeg * Math.PI / 180.0;
+    float  axDx = (float)Math.Sin(rad);
+    float  axDy = (float)-Math.Cos(rad); // screen Y increases downward
+
+    // Prefer cleaned version; fall back to original in parts dir
+    var cleanedPath  = Path.Combine(cleanedDir, $"{pinId}_shaft_clean.png");
+    var originalPath = Path.Combine(partsDir, baseFile);
+    var srcPath      = File.Exists(cleanedPath) ? cleanedPath : originalPath;
+    var srcLabel     = File.Exists(cleanedPath) ? "cleaned" : "original";
+
+    if (!File.Exists(srcPath))
+    {
+        Console.WriteLine($"  {pinId}: !! missing {srcPath}");
+        return;
+    }
+
+    // Collect projections of all sufficiently-opaque pixels onto the axis
+    using var bmp    = new Bitmap(srcPath);
+    int w = bmp.Width, h = bmp.Height;
+    var rect    = new Rectangle(0, 0, w, h);
+    var bmpData = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+    int stride  = bmpData.Stride;
+    var pixels  = new byte[stride * h];
+    Marshal.Copy(bmpData.Scan0, pixels, 0, pixels.Length);
+    bmp.UnlockBits(bmpData);
+
+    var projections = new List<(float proj, float x, float y)>(w * h / 4);
+    for (int py = 0; py < h; py++)
+    for (int px = 0; px < w; px++)
+    {
+        if (pixels[(py * stride) + (px * 4) + 3] < 10) continue;
+        float dx   = px - tip.X, dy = py - tip.Y;
+        float proj = dx * axDx + dy * axDy;
+        projections.Add((proj, px, py));
+    }
+
+    if (projections.Count == 0)
+    {
+        Console.WriteLine($"  {pinId}: no opaque pixels found");
+        return;
+    }
+
+    projections.Sort((a, b) => a.proj.CompareTo(b.proj));
+
+    // Centroid of the farthest 3% of pixels (by axis projection)
+    int startIdx = (int)(projections.Count * 0.97);
+    float sumX = 0, sumY = 0;
+    int   cnt  = 0;
+    for (int i = startIdx; i < projections.Count; i++)
+    {
+        sumX += projections[i].x;
+        sumY += projections[i].y;
+        cnt++;
+    }
+    float newJoinX = sumX / cnt;
+    float newJoinY = sumY / cnt;
+
+    // Euclidean distance tip → new join
+    float newLen    = (float)Math.Sqrt(Math.Pow(newJoinX - tip.X, 2) + Math.Pow(newJoinY - tip.Y, 2));
+    float curEucLen = (float)Math.Sqrt(Math.Pow(curJoin.X - tip.X, 2) + Math.Pow(curJoin.Y - tip.Y, 2));
+    bool  changed   = Math.Abs(newJoinX - curJoin.X) > 5 || Math.Abs(newJoinY - curJoin.Y) > 5;
+
+    Console.WriteLine($"  {pinId}  [{srcLabel}]  angle={angleDeg:F1}°  img={w}x{h}");
+    Console.WriteLine($"    current join : ({curJoin.X,7:F1}, {curJoin.Y,7:F1})  euclidean={curEucLen,6:F1}  json_native={curNativeLen:F1}");
+    Console.WriteLine($"    suggested    : ({newJoinX,7:F1}, {newJoinY,7:F1})  euclidean={newLen,6:F1}{(changed ? "  ← CHANGED" : "")}");
+    if (changed)
+    {
+        Console.WriteLine($"    JSON patch   : \"local_join\": {{ \"x\": {newJoinX:F1}, \"y\": {newJoinY:F1} }},  \"native_length\": {newLen:F1}");
+    }
+    Console.WriteLine();
 }
 
 // ── Annotate mode ─────────────────────────────────────────────────────────────
