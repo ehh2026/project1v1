@@ -39,24 +39,29 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 
-bool cleanMode      = args.Any(a => a == "--clean");
-bool findJoinMode   = args.Any(a => a == "--find-join");
-bool fitAxisMode    = args.Any(a => a == "--fit-axis");
-bool compositesMode = args.Any(a => a == "--composites");
-bool useLitShafts   = args.Any(a => a == "--lit");
-var  posArgs        = args.Where(a => !a.StartsWith("--")).ToArray();
+bool cleanMode        = args.Any(a => a == "--clean");
+bool findJoinMode     = args.Any(a => a == "--find-join");
+bool fitAxisMode      = args.Any(a => a == "--fit-axis");
+bool measureShaftMode = args.Any(a => a == "--measure-shaft");
+bool compositesMode   = args.Any(a => a == "--composites");
+bool useLitShafts     = args.Any(a => a == "--lit");
+var  posArgs          = args.Where(a => !a.StartsWith("--")).ToArray();
 
 var partsDir   = posArgs.Length > 0 ? posArgs[0] : Path.Combine("Images&Content", "Pins_v2", "parts");
 var cleanedDir = Path.Combine("Tools", "PinDebugger", "cleaned"); // always checked for cleaned versions
 var outputDir  = posArgs.Length > 1 ? posArgs[1]
-    : cleanMode      ? cleanedDir
-    : findJoinMode   ? Path.Combine("Tools", "PinDebugger", "find-join")
-    : fitAxisMode    ? Path.Combine("Tools", "PinDebugger", "find-join")  // shares output dir
-    : compositesMode ? Path.Combine("Tools", "PinDebugger", "composites")
+    : cleanMode        ? cleanedDir
+    : findJoinMode     ? Path.Combine("Tools", "PinDebugger", "find-join")
+    : fitAxisMode      ? Path.Combine("Tools", "PinDebugger", "find-join")  // shares output dir
+    : measureShaftMode ? Path.Combine("Tools", "PinDebugger", "find-join")  // shares output dir
+    : compositesMode   ? Path.Combine("Tools", "PinDebugger", "composites")
     : Path.Combine("Tools", "PinDebugger", "output_v2");
 
 Directory.CreateDirectory(outputDir);
-Console.WriteLine($"Mode   : {(cleanMode ? "clean" : findJoinMode ? "find-join" : fitAxisMode ? "fit-axis" : compositesMode ? $"composites{(useLitShafts ? " --lit" : "")}" : "annotate")}");
+string modeName = cleanMode ? "clean" : findJoinMode ? "find-join" : fitAxisMode ? "fit-axis"
+                : measureShaftMode ? "measure-shaft"
+                : compositesMode ? $"composites{(useLitShafts ? " --lit" : "")}" : "annotate";
+Console.WriteLine($"Mode   : {modeName}");
 Console.WriteLine($"Parts  : {partsDir}");
 Console.WriteLine($"Output : {outputDir}");
 Console.WriteLine();
@@ -93,6 +98,10 @@ else
         else if (fitAxisMode)
         {
             FitAxis(pin, pinId, partsDir, cleanedDir);
+        }
+        else if (measureShaftMode)
+        {
+            MeasureShaft(pin, pinId, partsDir, cleanedDir);
         }
         else
         {
@@ -437,6 +446,72 @@ static void FitAxis(JsonElement pin, string pinId, string partsDir, string clean
     Console.WriteLine();
 }
 
+// ── Measure-shaft mode ────────────────────────────────────────────────────────
+
+/// <summary>
+/// Measures native shaft half-width: the 95th-percentile perpendicular distance
+/// from the axis to all opaque shaft pixels.  Uses cleaned image if available.
+/// Outputs a JSON patch line with native_shaft_half_width_px.
+/// </summary>
+static void MeasureShaft(JsonElement pin, string pinId, string partsDir, string cleanedDir)
+{
+    var baseFile = pin.GetProperty("shaft_file").GetString()!;
+    var shaft    = pin.GetProperty("shaft");
+    var tip      = ParsePoint(shaft.GetProperty("local_tip"));
+    var join     = ParsePoint(shaft.GetProperty("local_join"));
+
+    // Native axis unit and its left normal
+    float aDx = join.X - tip.X, aDy = join.Y - tip.Y;
+    float aLen = MathF.Sqrt(aDx * aDx + aDy * aDy);
+    if (aLen < 0.1f) { Console.WriteLine($"  {pinId}: degenerate axis"); return; }
+    aDx /= aLen; aDy /= aLen;
+    float nNx = -aDy, nNy = aDx;   // unit normal (left of axis)
+
+    var cleanedPath  = Path.Combine(cleanedDir, $"{pinId}_shaft_clean.png");
+    var originalPath = Path.Combine(partsDir, baseFile);
+    var srcPath      = File.Exists(cleanedPath) ? cleanedPath : originalPath;
+    var srcLabel     = File.Exists(cleanedPath) ? "cleaned" : "original";
+    if (!File.Exists(srcPath)) { Console.WriteLine($"  {pinId}: !! missing {srcPath}"); return; }
+
+    using var bmp    = new Bitmap(srcPath);
+    int w = bmp.Width, h = bmp.Height;
+    var rect    = new Rectangle(0, 0, w, h);
+    var bmpData = bmp.LockBits(rect, ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+    int stride  = bmpData.Stride;
+    var pixels  = new byte[stride * h];
+    Marshal.Copy(bmpData.Scan0, pixels, 0, pixels.Length);
+    bmp.UnlockBits(bmpData);
+
+    // Collect absolute perpendicular distances for all opaque pixels
+    var dists = new List<float>(w * h / 4);
+    for (int py = 0; py < h; py++)
+    for (int px = 0; px < w; px++)
+    {
+        if (pixels[py * stride + px * 4 + 3] < 10) continue;
+        float dx   = px - tip.X, dy = py - tip.Y;
+        float perp = MathF.Abs(dx * nNx + dy * nNy);
+        dists.Add(perp);
+    }
+
+    if (dists.Count == 0) { Console.WriteLine($"  {pinId}: no opaque pixels"); return; }
+
+    dists.Sort();
+    // 95th percentile: avoids stray antialiasing outliers
+    int p95idx   = (int)(dists.Count * 0.95);
+    float halfW  = dists[Math.Min(p95idx, dists.Count - 1)];
+
+    double curVal = shaft.TryGetProperty("native_shaft_half_width_px", out var cur)
+                    ? cur.GetDouble() : 0.0;
+    bool changed = Math.Abs(halfW - curVal) > 0.5;
+
+    Console.WriteLine($"  {pinId}  [{srcLabel}]  img={w}x{h}  pixels={dists.Count}");
+    Console.WriteLine($"    current  native_shaft_half_width_px : {curVal:F1}");
+    Console.WriteLine($"    measured (95th pct perp dist)       : {halfW:F1}{(changed ? "  ← CHANGED" : "")}");
+    if (changed)
+        Console.WriteLine($"    JSON patch: \"native_shaft_half_width_px\": {halfW:F1}");
+    Console.WriteLine();
+}
+
 // ── Annotate mode ─────────────────────────────────────────────────────────────
 
 static void AnnotateHead(JsonElement pin, string pinId, string partsDir, string outputDir)
@@ -589,7 +664,20 @@ static void RunComposites(JsonElement root, string partsDir, string outputDir, b
 {
     double[] targetLengths = { 30.0, 50.0, 80.0, 120.0 };
     double[] targetAngles  = { 0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0 };
-    const double HeadRadiusPx = 14.0;
+
+    // Read from visual-config.json so this and production code share one value to change.
+    double HeadRadiusPx     = 14.0;
+    double ShaftHalfWidthPx = 0.0;
+    if (File.Exists("visual-config.json"))
+    {
+        using var vcDoc = JsonDocument.Parse(File.ReadAllText("visual-config.json"));
+        if (vcDoc.RootElement.TryGetProperty("PinParts", out var pp))
+        {
+            if (pp.TryGetProperty("TargetHeadRadiusPx",     out var hr)) HeadRadiusPx     = hr.GetDouble();
+            if (pp.TryGetProperty("TargetShaftHalfWidthPx", out var sw)) ShaftHalfWidthPx = sw.GetDouble();
+        }
+    }
+
     const int CellW = 180, CellH = 180, Gap = 6;
     const int MarginLeft = 54, MarginTop = 36;
     int cols   = targetAngles.Length;
@@ -670,7 +758,7 @@ static void RunComposites(JsonElement root, string partsDir, string outputDir, b
                 Bitmap? composite = null;
                 try
                 {
-                    composite = RenderComposite(pin, shaftImg, headImg, len, angle, HeadRadiusPx);
+                    composite = RenderComposite(pin, shaftImg, headImg, len, angle, HeadRadiusPx, ShaftHalfWidthPx);
 
                     float scaleToFit = Math.Min((CellW - 4f) / composite.Width,
                                                (CellH - 4f) / composite.Height);
@@ -702,23 +790,26 @@ static void RunComposites(JsonElement root, string partsDir, string outputDir, b
 /// Cyan dot = tip, yellow dot = join (shaft/head meeting point).
 /// </summary>
 static Bitmap RenderComposite(JsonElement pin, Bitmap shaftImg, Bitmap headImg,
-                               double targetLength, double targetAngleDeg, double headRadiusPx)
+                               double targetLength, double targetAngleDeg, double headRadiusPx,
+                               double shaftHalfWidthPx = 0.0)
 {
     var shaft = pin.GetProperty("shaft");
     var head  = pin.GetProperty("head");
     var seg   = shaft.GetProperty("segmentation");
 
-    var    tip          = ParsePoint(shaft.GetProperty("local_tip"));
-    var    join         = ParsePoint(shaft.GetProperty("local_join"));
-    double nativeLength = shaft.GetProperty("native_length").GetDouble();
-    double tipCapLen    = seg.GetProperty("tip_cap_length").GetDouble();
-    double headCapLen   = seg.GetProperty("head_cap_length").GetDouble();
-    double strStart     = seg.GetProperty("stretch_start_distance").GetDouble();
-    double strEnd       = seg.GetProperty("stretch_end_distance").GetDouble();
-    double stretchLen   = seg.GetProperty("stretchable_length").GetDouble();
-    var    headCenter   = ParsePoint(head.GetProperty("local_center"));
-    double headRadius   = head.GetProperty("local_radius").GetDouble();
-    double stubDirDeg   = head.GetProperty("stub_direction_deg").GetDouble();
+    var    tip           = ParsePoint(shaft.GetProperty("local_tip"));
+    var    join          = ParsePoint(shaft.GetProperty("local_join"));
+    double nativeLength  = shaft.GetProperty("native_length").GetDouble();
+    double nativeHalfW   = shaft.TryGetProperty("native_shaft_half_width_px", out var nhw)
+                           ? nhw.GetDouble() : 0.0;
+    double tipCapLen     = seg.GetProperty("tip_cap_length").GetDouble();
+    double headCapLen    = seg.GetProperty("head_cap_length").GetDouble();
+    double strStart      = seg.GetProperty("stretch_start_distance").GetDouble();
+    double strEnd        = seg.GetProperty("stretch_end_distance").GetDouble();
+    double stretchLen    = seg.GetProperty("stretchable_length").GetDouble();
+    var    headCenter    = ParsePoint(head.GetProperty("local_center"));
+    double headRadius    = head.GetProperty("local_radius").GetDouble();
+    double stubDirDeg    = head.GetProperty("stub_direction_deg").GetDouble();
 
     int shW = shaftImg.Width, shH = shaftImg.Height;
     int hdW = headImg.Width,  hdH = headImg.Height;
@@ -748,13 +839,17 @@ static Bitmap RenderComposite(JsonElement pin, Bitmap shaftImg, Bitmap headImg,
     double headScale   = headRadiusPx > 0 && headRadius > 0
                          ? headRadiusPx / headRadius : S;
 
+    // Fixed normal scale: constant cross-section width regardless of target length.
+    double normalScale = (shaftHalfWidthPx > 0.0 && nativeHalfW > 0.0)
+                         ? shaftHalfWidthPx / nativeHalfW : S;
+
     // Build transforms (target tip at origin; shifted after bounds calculation)
     var tipT     = CompLayerTransform(tip, nDx, nDy, nNx, nNy, tAx, tAy, tNx, tNy,
-                                      0, 0, S, S, 0.0);
+                                      0, 0, S, normalScale, 0.0);
     var bodyT    = CompLayerTransform(tip, nDx, nDy, nNx, nNy, tAx, tAy, tNx, tNy,
-                                      0, 0, bodyStretch, S, scaledTipC - strStart * bodyStretch);
+                                      0, 0, bodyStretch, normalScale, scaledTipC - strStart * bodyStretch);
     var headCapT = CompLayerTransform(tip, nDx, nDy, nNx, nNy, tAx, tAy, tNx, tNy,
-                                      0, 0, S, S, scaledTipC + bodyLen - strEnd * S);
+                                      0, 0, S, normalScale, scaledTipC + bodyLen - strEnd * S);
 
     double nativeCenterAngle = CompNorm360(stubDirDeg + 180.0);
     double headRotDeg        = CompNormSigned(targetAngleDeg - nativeCenterAngle);

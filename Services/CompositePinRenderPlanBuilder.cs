@@ -174,29 +174,32 @@ namespace InteractiveWorldMap.Services
             // Scaled cap lengths (screen pixels) — the same values computed in PrepareGeometry.
             var scaledTipCap = seg.TipCapLength * S;
 
+            // Normal scale: fixed cross-section width when TargetShaftHalfWidthPx is configured,
+            // otherwise proportional (= S) to preserve the native image aspect ratio on screen.
+            var nativeHalfWidth = v.Geometry.Shaft.NativeShaftHalfWidthPx;
+            var normalScale = (config.TargetShaftHalfWidthPx > 0.0 && nativeHalfWidth > 0.0)
+                ? config.TargetShaftHalfWidthPx / nativeHalfWidth
+                : S;
+
             // Local helper deduplicates the five shared axis/normal arguments.
-            // normalScale = S maps the source normal direction at the same scale as the axis,
-            // preserving the pin image aspect ratio on screen.
-            Matrix ShaftLayerTransform(double axialScale, double normalScale, double axialOffset) =>
+            Matrix ShaftLayerTransform(double axialScale, double normalSc, double axialOffset) =>
                 CreateLayerTransform(
                     geo.NativeTip, geo.NativeAxisUnit, geo.NativeNormal,
                     geo.TargetDirection, geo.TargetNormal,
-                    new Point(0, 0), axialScale, axialOffset, normalScale);
+                    new Point(0, 0), axialScale, axialOffset, normalSc);
 
-            // Tip cap: uniform scale S (no additional axial stretch).
-            var tipTransform = ShaftLayerTransform(S, S, 0.0);
+            // Tip cap: axial scale S, fixed normal scale.
+            var tipTransform = ShaftLayerTransform(S, normalScale, 0.0);
 
-            // Body: axial scale = bodyStretch (= targetBodyLength/StretchableLength, which equals S
-            // for a purely uniform scaling and differs from S only when additional stretch is needed).
-            // Normal scale = S (always; preserves cross-section width).
+            // Body: axial scale = bodyStretch; fixed normal scale preserves cross-section width.
             var bodyTransform = ShaftLayerTransform(
                 geo.BodyStretch,
-                S,
+                normalScale,
                 scaledTipCap - (seg.StretchStartDistance * geo.BodyStretch));
 
-            // Head cap: uniform scale S; placed so StretchEnd aligns with the body end.
+            // Head cap: axial scale S, fixed normal scale.
             var headCapTransform = ShaftLayerTransform(
-                S, S,
+                S, normalScale,
                 scaledTipCap + geo.TargetBodyLength - seg.StretchEndDistance * S);
 
             var nativeAttachToCenterAngle = Normalize360(v.HeadEntry.Head.StubDirectionDeg + 180.0);

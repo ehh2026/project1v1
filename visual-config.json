@@ -123,7 +123,8 @@
     "MaxStretchFactor": 1.35,
     "UseCompositeRendering": true,
     "UseLitShafts": true,
-    "TargetHeadRadiusPx": 14.0
+    "TargetHeadRadiusPx": 14.0,
+    "TargetShaftHalfWidthPx": 12.0
   },
 
   "PinMarkers": {

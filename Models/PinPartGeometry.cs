@@ -76,6 +76,9 @@ namespace InteractiveWorldMap.Models
         [JsonProperty("native_length")]
         public double NativeLength { get; set; }
 
+        [JsonProperty("native_shaft_half_width_px")]
+        public double NativeShaftHalfWidthPx { get; set; }
+
         [JsonProperty("segmentation")]
         public PinPartShaftSegmentation? Segmentation { get; set; }
     }

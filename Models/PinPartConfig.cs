@@ -33,5 +33,13 @@ namespace InteractiveWorldMap.Models
         /// Set to 0 to fall back to proportional-shaft scaling.
         /// </summary>
         public double TargetHeadRadiusPx { get; set; } = 14.0;
+
+        /// <summary>
+        /// Target shaft half-width in screen pixels. Each shaft image is scaled in the
+        /// normal (cross-section) direction so its native_shaft_half_width_px maps to
+        /// exactly this many screen pixels, keeping shaft thickness constant regardless
+        /// of pin length. Set to 0 to fall back to proportional scaling (normalScale = S).
+        /// </summary>
+        public double TargetShaftHalfWidthPx { get; set; } = 0.0;
     }
 }
