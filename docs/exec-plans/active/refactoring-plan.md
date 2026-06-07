@@ -150,3 +150,7 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 - [x] `.\scripts\verify.ps1` passed
 - [x] CHANGELOG.md updated
 - [x] Committed (8c967fb)
+
+## Follow-on work
+
+Remaining assessment items: [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) (Phases 11+)

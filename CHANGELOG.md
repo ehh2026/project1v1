@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Exec plans:** [manual-layout-seed-alignment-plan.md](docs/exec-plans/active/manual-layout-seed-alignment-plan.md), [manual-layout-variants-plan.md](docs/exec-plans/active/manual-layout-variants-plan.md), [composite-pins-unzoomed-plan.md](docs/exec-plans/active/composite-pins-unzoomed-plan.md), [refactoring-assessment-followthrough-plan.md](docs/exec-plans/active/refactoring-assessment-followthrough-plan.md) — linked from [docs/TO_DO.md](docs/TO_DO.md)
 - **Security CI (Phases 1–3):** Dependabot (`.github/dependabot.yml`), Gitleaks workflow (`.github/workflows/gitleaks.yml`), NuGet vulnerability gate (`scripts/verify_nuget_vulnerabilities.py` in CI and `verify.ps1` / `verify.sh`)
 - Pinned test transitive packages `System.Net.Http` 4.3.4 and `System.Text.RegularExpressions` 4.3.1 to clear High-severity advisories under the new audit gate
 

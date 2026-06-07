@@ -789,3 +789,7 @@ Current implementation status:
 - image-pin extensions no longer rely on the placeholder `Line` plus centered bitmap approach
 - tests cover selection and geometry sanity
 - `scripts/verify.ps1` passes on a machine with the .NET 6 SDK installed
+
+## Follow-on work
+
+Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md)

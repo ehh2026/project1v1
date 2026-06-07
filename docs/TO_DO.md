@@ -8,11 +8,11 @@ The application is functional and ready for demo! Core features are implemented 
 
 ## USER-ADDED TO-DO ITEMS
 
-- [ ] Make the manual-layout seed generator use the same placement algorithm the app uses at runtime
+- [ ] Make the manual-layout seed generator use the same placement algorithm the app uses at runtime — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md) (Phases 1–2)
   - Current state: `scripts/generate_manual_layout_seeds.ps1` is a PowerShell port of the radial placement logic, not a shared code path
   - Goal: extract or expose the placement math so runtime placement and seed generation cannot drift
   - Add verification that generated layout keys and endpoints match the app's current `RadialExtensionCalculator` and `LayoutKeyGenerator` behavior
-- [ ] Make generated manual-layout seeds reliably load in the app
+- [ ] Make generated manual-layout seeds reliably load in the app — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md) (Phase 3)
   - Current state: the app can read saved layouts through `ManualLayoutManager`, and `MainWindow` now respects `ManualLayoutEditor.LayoutStoragePath`
   - Remaining work: make sure generator output keys are compatible with actual zoomed cluster views and that seeded layouts are found/applied without manual intervention
   - Verify with `Images&Content/manual-layouts.json` produced by the generator
@@ -29,24 +29,24 @@ The application is functional and ready for demo! Core features are implemented 
   - Currently every view rebuild recalculates pair selection and transforms from scratch
   - Persist `selected_pair_id`, `head_rotation_deg`, `body_stretch_factor`, local anchors, etc.
   - Add invalidation keyed on layout variant id, viewport size, and geometry metadata version
-- [ ] Decide non-extended pin rendering policy — [plan lines 769–771](exec-plans/active/pin-parts-composite-placement-plan.md#open-decisions)
+- [ ] Decide non-extended pin rendering policy — [pin-parts open decisions](exec-plans/active/pin-parts-composite-placement-plan.md#open-decisions), [composite-pins-unzoomed-plan.md Phase 0](exec-plans/active/composite-pins-unzoomed-plan.md#phase-0--policy-decision-required-gate)
   - Currently non-extended image pins always use legacy `ImagePinMarker`
   - Plan recommends keeping legacy for non-extended until extended-marker behavior is stable
-- [ ] Extend composite pin rendering to all individual location markers, including unzoomed view
+- [ ] Extend composite pin rendering to all individual location markers, including unzoomed view — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) (Phases 2–3)
   - Currently composite pins are only used for extended markers in the radial-extension pipeline (zoomed cluster view, dense groups)
   - Goal: use `CompositePinMarker` for every individual location marker regardless of zoom level or extension state, replacing legacy `ImagePinMarker` everywhere except cluster-aggregate markers
   - Prerequisite: Phase 6 verification should pass and non-extended rendering policy should be decided first
   - Considerations: unzoomed individual markers have no radial extension segment; a default short upward segment (or a configurable zero-extension stub) would need to be defined for the shaft placement when no `ExtendedPosition` exists
   - Verify hit-testing, hover feedback, and click behavior are correct at the unzoomed scale
   - Verify no visual regression for locations that appear as individual markers at both zoom levels
-- [ ] Run Phase 6 verification — [plan Phase 6](exec-plans/active/pin-parts-composite-placement-plan.md#phase-6-verification-and-tuning)
+- [ ] Run Phase 6 verification — [pin-parts Phase 6](exec-plans/active/pin-parts-composite-placement-plan.md#phase-6-verification-and-tuning), [composite-pins-unzoomed-plan.md Phase 5](exec-plans/active/composite-pins-unzoomed-plan.md#phase-5--verification-and-tuning-extends-pin-parts-phase-6)
   - Spot-check composite rendering with `Debug.ShowCompositePinDebugOverlay: true` at common extension angles
   - Capture before/after screenshots for representative angles
   - Run `scripts/verify.ps1` end-to-end on a .NET 6 SDK machine
-- [ ] Make manual edit mode available and verified for composite pin layouts
+- [ ] Make manual edit mode available and verified for composite pin layouts — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) (Phase 4)
   - Edit mode currently forces rebuild to legacy; composite hit-testing exists but needs integration verification
   - Verify drag behavior, hit testing, save/load, and visual feedback in zoomed cluster views
-- [ ] Add support for multiple saved layout variants per cluster/viewport and a way to choose between them
+- [ ] Add support for multiple saved layout variants per cluster/viewport and a way to choose between them — [manual-layout-variants-plan.md](exec-plans/active/manual-layout-variants-plan.md)
   - Current state: layouts are keyed and persisted, but effectively one saved layout is selected per generated key
   - Goal: support named alternatives or slots so different pin arrangements can be saved and loaded intentionally
   - Distinguish `AutoSeed` layouts from user-adjusted `Manual` layouts so generated starting points are never silently treated as user-authored layouts
@@ -59,7 +59,7 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Converting list of people/addresses to Excel file or table with column headings like "Address", "Pixel Coordinates", anything else useful (eg, "Accession Numbers")
 - [ ] Recommend putting all images/content in subfolders grouped by Accession Number or some other key, then copy to subfolder of code
 - [ ] Get map file decided so you can get pixel coordinates
-- [ ] consider addressing issues in REFACTOR ASSESSMENT
+- [ ] consider addressing issues in REFACTOR ASSESSMENT — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
 - [ ] *Add welcome / instructions screen*
 - [ ] Add support for ordering images/content
 - [ ] Add explanatory/bio popup window per marker
@@ -248,4 +248,4 @@ Easy tasks that can be completed quickly:
 - Focus should be on testing and polish for production readiness
 - Optional tasks can be deferred to future releases
 
-**Last Updated:** June 5, 2026
+**Last Updated:** June 7, 2026
