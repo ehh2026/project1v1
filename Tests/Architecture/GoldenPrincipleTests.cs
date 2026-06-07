@@ -123,6 +123,7 @@ public class GoldenPrincipleTests
             var relative = Path.GetRelativePath(RepoRoot, file);
             if (relative.StartsWith("Tests", StringComparison.OrdinalIgnoreCase) ||
                 relative.StartsWith("backups", StringComparison.OrdinalIgnoreCase) ||
+                relative.StartsWith("Tools", StringComparison.OrdinalIgnoreCase) ||
                 relative.Equals(Path.Combine("Services", "FileLogger.cs"), StringComparison.OrdinalIgnoreCase))
             {
                 continue;

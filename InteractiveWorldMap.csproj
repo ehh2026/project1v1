@@ -6,11 +6,13 @@
     <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <LangVersion>10.0</LangVersion>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
     <Compile Remove="backups\**" />
     <Compile Remove="Tests\**" />
+    <Compile Remove="Tools\**" />
     <EmbeddedResource Remove="Tests\**" />
     <None Remove="Tests\**" />
     <Page Remove="Tests\**" />
