@@ -32,6 +32,13 @@ The application is functional and ready for demo! Core features are implemented 
 - [ ] Decide non-extended pin rendering policy — [plan lines 769–771](exec-plans/active/pin-parts-composite-placement-plan.md#open-decisions)
   - Currently non-extended image pins always use legacy `ImagePinMarker`
   - Plan recommends keeping legacy for non-extended until extended-marker behavior is stable
+- [ ] Extend composite pin rendering to all individual location markers, including unzoomed view
+  - Currently composite pins are only used for extended markers in the radial-extension pipeline (zoomed cluster view, dense groups)
+  - Goal: use `CompositePinMarker` for every individual location marker regardless of zoom level or extension state, replacing legacy `ImagePinMarker` everywhere except cluster-aggregate markers
+  - Prerequisite: Phase 6 verification should pass and non-extended rendering policy should be decided first
+  - Considerations: unzoomed individual markers have no radial extension segment; a default short upward segment (or a configurable zero-extension stub) would need to be defined for the shaft placement when no `ExtendedPosition` exists
+  - Verify hit-testing, hover feedback, and click behavior are correct at the unzoomed scale
+  - Verify no visual regression for locations that appear as individual markers at both zoom levels
 - [ ] Run Phase 6 verification — [plan Phase 6](exec-plans/active/pin-parts-composite-placement-plan.md#phase-6-verification-and-tuning)
   - Spot-check composite rendering with `Debug.ShowCompositePinDebugOverlay: true` at common extension angles
   - Capture before/after screenshots for representative angles

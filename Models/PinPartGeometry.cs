@@ -33,6 +33,9 @@ namespace InteractiveWorldMap.Models
 
         [JsonProperty("stub_direction_deg")]
         public double StubDirectionDeg { get; set; }
+
+        [JsonProperty("local_radius")]
+        public double LocalRadius { get; set; }
     }
 
     public class PinPartShaftSegmentation

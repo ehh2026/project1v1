@@ -17,7 +17,8 @@ namespace InteractiveWorldMap.Services
         // -------------------------------------------------------------------------
 
         private sealed record ValidatedInputs(
-            PinPartGeometryEntry     Geometry,
+            PinPartGeometryEntry     Geometry,    // shaft geometry
+            PinPartGeometryEntry     HeadEntry,   // head geometry (may differ from Geometry)
             PinPartImageSize         ShaftSize,
             PinPartImageSize         HeadSize,
             PinPartShaftSegmentation Segmentation,
@@ -62,13 +63,14 @@ namespace InteractiveWorldMap.Services
         // -------------------------------------------------------------------------
 
         public CompositePinRenderPlan BuildPlan(
-            PinPlacementTarget    target,
+            PinPlacementTarget     target,
             PinPartPlacementResult placement,
-            PinPartConfig         config)
+            PinPartConfig          config,
+            PinPartGeometryEntry?  headGeometryOverride = null)
         {
-            var validated  = ValidateInputs(target, placement, config);
+            var validated  = ValidateInputs(target, placement, config, headGeometryOverride);
             var geo        = PrepareGeometry(target, validated);
-            var transforms = CalculateTransforms(geo, validated);
+            var transforms = CalculateTransforms(geo, validated, config);
             var shifted    = CalculateBoundsAndShift(geo, transforms, validated.Segmentation);
             return AssembleResult(placement, config, validated, geo, transforms, shifted);
         }
@@ -80,7 +82,8 @@ namespace InteractiveWorldMap.Services
         private static ValidatedInputs ValidateInputs(
             PinPlacementTarget     target,
             PinPartPlacementResult placement,
-            PinPartConfig          config)
+            PinPartConfig          config,
+            PinPartGeometryEntry?  headGeometryOverride)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -91,17 +94,19 @@ namespace InteractiveWorldMap.Services
             if (config == null)
                 throw new ArgumentNullException(nameof(config));
 
-            var geometry = placement.PairGeometry;
+            var geometry  = placement.PairGeometry;
+            var headEntry = headGeometryOverride ?? geometry;
+
             var shaftSize = geometry.Shaft.ImageSize
                 ?? throw new InvalidOperationException("Shaft image size is required for composite rendering.");
-            var headSize = geometry.Head.ImageSize
+            var headSize = headEntry.Head.ImageSize
                 ?? throw new InvalidOperationException("Head image size is required for composite rendering.");
             var segmentation = geometry.Shaft.Segmentation
                 ?? throw new InvalidOperationException("Shaft segmentation is required for composite rendering.");
-            var headAttach = geometry.Head.LocalAttach
+            var headAttach = headEntry.Head.LocalAttach
                 ?? throw new InvalidOperationException("Head attach point is required for composite rendering.");
 
-            return new ValidatedInputs(geometry, shaftSize, headSize, segmentation, headAttach);
+            return new ValidatedInputs(geometry, headEntry, shaftSize, headSize, segmentation, headAttach);
         }
 
         private static PreparedGeometry PrepareGeometry(
@@ -157,7 +162,8 @@ namespace InteractiveWorldMap.Services
 
         private static ComputedTransforms CalculateTransforms(
             PreparedGeometry geo,
-            ValidatedInputs  v)
+            ValidatedInputs  v,
+            PinPartConfig    config)
         {
             var S   = geo.OverallScale;
             var seg = v.Segmentation;
@@ -190,13 +196,22 @@ namespace InteractiveWorldMap.Services
                 S, S,
                 scaledTipCap + geo.TargetBodyLength - seg.StretchEndDistance * S);
 
-            var nativeAttachToCenterAngle = Normalize360(v.Geometry.Head.StubDirectionDeg + 180.0);
+            var nativeAttachToCenterAngle = Normalize360(v.HeadEntry.Head.StubDirectionDeg + 180.0);
             var headRotationDeg           = NormalizeSignedAngle(geo.TargetAngle - nativeAttachToCenterAngle);
+
+            // Compute head scale: normalise to TargetHeadRadiusPx so all head images appear
+            // at the same screen size.  Fall back to shaft-proportional scale when
+            // TargetHeadRadiusPx or LocalRadius is not set (e.g. test data).
+            var nativeHeadRadius = v.HeadEntry.Head.LocalRadius;
+            var headScale = (config.TargetHeadRadiusPx > 0.0 && nativeHeadRadius > 0.0)
+                ? config.TargetHeadRadiusPx / nativeHeadRadius
+                : S;
+
             var headTransform             = CreateHeadTransform(
                 v.HeadAttach,
                 new Point(geo.TargetDirection.X * geo.TargetLength, geo.TargetDirection.Y * geo.TargetLength),
                 headRotationDeg,
-                S);
+                headScale);
 
             return new ComputedTransforms(tipTransform, bodyTransform, headCapTransform, headTransform, headRotationDeg);
         }
@@ -256,7 +271,7 @@ namespace InteractiveWorldMap.Services
                 ? geometry.ShaftFile.Replace(".png", "_lit.png")
                 : geometry.ShaftFile;
             var shaftPath  = Path.Combine(config.PartsFolderPath, shaftFile);
-            var headPath   = Path.Combine(config.PartsFolderPath, geometry.HeadFile);
+            var headPath   = Path.Combine(config.PartsFolderPath, v.HeadEntry.HeadFile);
 
             return new CompositePinRenderPlan
             {
@@ -275,7 +290,7 @@ namespace InteractiveWorldMap.Services
                 StretchStartLocal   = s.StretchStart,
                 StretchEndLocal     = s.StretchEnd,
                 HeadAttachLocal     = s.JoinAnchor,
-                HeadCenterLocal     = TransformPoint(ToPoint(geometry.Head.LocalCenter), s.HeadTransform),
+                HeadCenterLocal     = TransformPoint(ToPoint(v.HeadEntry.Head.LocalCenter), s.HeadTransform),
                 ShaftTipCapLayer = new CompositePinLayerPlan
                 {
                     SourcePath   = shaftPath,

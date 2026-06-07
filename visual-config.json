@@ -122,7 +122,8 @@
     "MinStretchFactor": 0.75,
     "MaxStretchFactor": 1.35,
     "UseCompositeRendering": true,
-    "UseLitShafts": true
+    "UseLitShafts": true,
+    "TargetHeadRadiusPx": 14.0
   },
 
   "PinMarkers": {
@@ -167,7 +168,7 @@
     "LogRadialExtensionOverlaps": true,
     "LogMarkerPositioning": true,
     "LogAnimationFrames": false,
-    "ShowCompositePinDebugOverlay": true,
+    "ShowCompositePinDebugOverlay": false,
     "WindowedMode": true,
     "WindowedWidth": 1280,
     "WindowedHeight": 800
