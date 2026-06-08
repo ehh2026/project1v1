@@ -86,7 +86,7 @@
                                  "tip_to_head_side_length":  550.6,
                                  "native_angle_deg":  336.7,
                                  "native_length":  550.6,
-                                 "native_shaft_half_width_px":  92.6,
+                                 "native_shaft_half_width_px":  24.2,
                                  "local_tip":  {
                                                    "x":  241.2,
                                                    "y":  513.8
@@ -206,7 +206,7 @@
                                  "tip_to_head_side_length":  566,
                                  "native_angle_deg":  0,
                                  "native_length":  566,
-                                 "native_shaft_half_width_px":  67.5,
+                                 "native_shaft_half_width_px":  17.6,
                                  "local_tip":  {
                                                    "x":  87.5,
                                                    "y":  566
@@ -326,7 +326,7 @@
                                  "tip_to_head_side_length":  556.3,
                                  "native_angle_deg":  24.9,
                                  "native_length":  556.3,
-                                 "native_shaft_half_width_px":  71.7,
+                                 "native_shaft_half_width_px":  21.5,
                                  "local_tip":  {
                                                    "x":  36.7,
                                                    "y":  513.5
@@ -446,7 +446,7 @@
                                  "tip_to_head_side_length":  212.1,
                                  "native_angle_deg":  300.4,
                                  "native_length":  212.1,
-                                 "native_shaft_half_width_px":  80.5,
+                                 "native_shaft_half_width_px":  33.1,
                                  "local_tip":  {
                                                    "x":  199.6,
                                                    "y":  137.3
@@ -566,7 +566,7 @@
                                  "tip_to_head_side_length":  314.7,
                                  "native_angle_deg":  337.7,
                                  "native_length":  314.7,
-                                 "native_shaft_half_width_px":  37.5,
+                                 "native_shaft_half_width_px":  18.2,
                                  "local_tip":  {
                                                    "x":  139.9,
                                                    "y":  297.4
@@ -686,7 +686,7 @@
                                  "tip_to_head_side_length":  512,
                                  "native_angle_deg":  359.9,
                                  "native_length":  512,
-                                 "native_shaft_half_width_px":  35.5,
+                                 "native_shaft_half_width_px":  17.7,
                                  "local_tip":  {
                                                    "x":  53.5,
                                                    "y":  512
@@ -806,7 +806,7 @@
                                  "tip_to_head_side_length":  208.8,
                                  "native_angle_deg":  66.5,
                                  "native_length":  208.8,
-                                 "native_shaft_half_width_px":  46.6,
+                                 "native_shaft_half_width_px":  19.4,
                                  "local_tip":  {
                                                    "x":  4,
                                                    "y":  108.3
@@ -926,7 +926,7 @@
                                  "tip_to_head_side_length":  328.9,
                                  "native_angle_deg":  270.9,
                                  "native_length":  328.9,
-                                 "native_shaft_half_width_px":  57.4,
+                                 "native_shaft_half_width_px":  18.2,
                                  "local_tip":  {
                                                    "x":  329.2,
                                                    "y":  74.1
@@ -1046,7 +1046,7 @@
                                  "tip_to_head_side_length":  193.2,
                                  "native_angle_deg":  183.7,
                                  "native_length":  193.2,
-                                 "native_shaft_half_width_px":  59.4,
+                                 "native_shaft_half_width_px":  20.3,
                                  "local_tip":  {
                                                    "x":  77,
                                                    "y":  2.1
@@ -1166,7 +1166,7 @@
                                  "tip_to_head_side_length":  521,
                                  "native_angle_deg":  180,
                                  "native_length":  521,
-                                 "native_shaft_half_width_px":  38.1,
+                                 "native_shaft_half_width_px":  17.1,
                                  "local_tip":  {
                                                    "x":  54.1,
                                                    "y":  2
@@ -1286,7 +1286,7 @@
                                  "tip_to_head_side_length":  322.4,
                                  "native_angle_deg":  147.1,
                                  "native_length":  322.4,
-                                 "native_shaft_half_width_px":  47.3,
+                                 "native_shaft_half_width_px":  17.7,
                                  "local_tip":  {
                                                    "x":  33.6,
                                                    "y":  17.8
@@ -1406,7 +1406,7 @@
                                  "tip_to_head_side_length":  470.2,
                                  "native_angle_deg":  227.9,
                                  "native_length":  470.2,
-                                 "native_shaft_half_width_px":  71.5,
+                                 "native_shaft_half_width_px":  25.0,
                                  "local_tip":  {
                                                    "x":  366,
                                                    "y":  19.1

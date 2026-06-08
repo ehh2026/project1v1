@@ -449,9 +449,11 @@ static void FitAxis(JsonElement pin, string pinId, string partsDir, string clean
 // ── Measure-shaft mode ────────────────────────────────────────────────────────
 
 /// <summary>
-/// Measures native shaft half-width: the 95th-percentile perpendicular distance
-/// from the axis to all opaque shaft pixels.  Uses cleaned image if available.
-/// Outputs a JSON patch line with native_shaft_half_width_px.
+/// Measures native shaft half-width: the median perpendicular distance from the axis
+/// to opaque pixels that lie within the stretchable body region (stretchStartDistance
+/// to stretchEndDistance along the axis).  Restricting to the body avoids the wide
+/// collar/shoulder at the head end inflating the measurement.
+/// Uses cleaned image if available.
 /// </summary>
 static void MeasureShaft(JsonElement pin, string pinId, string partsDir, string cleanedDir)
 {
@@ -459,6 +461,9 @@ static void MeasureShaft(JsonElement pin, string pinId, string partsDir, string 
     var shaft    = pin.GetProperty("shaft");
     var tip      = ParsePoint(shaft.GetProperty("local_tip"));
     var join     = ParsePoint(shaft.GetProperty("local_join"));
+    var seg      = shaft.GetProperty("segmentation");
+    double strStart = seg.GetProperty("stretch_start_distance").GetDouble();
+    double strEnd   = seg.GetProperty("stretch_end_distance").GetDouble();
 
     // Native axis unit and its left normal
     float aDx = join.X - tip.X, aDy = join.Y - tip.Y;
@@ -482,31 +487,33 @@ static void MeasureShaft(JsonElement pin, string pinId, string partsDir, string 
     Marshal.Copy(bmpData.Scan0, pixels, 0, pixels.Length);
     bmp.UnlockBits(bmpData);
 
-    // Collect absolute perpendicular distances for all opaque pixels
+    // Collect perpendicular distances only for pixels in the body region
     var dists = new List<float>(w * h / 4);
+    int bodyCount = 0;
     for (int py = 0; py < h; py++)
     for (int px = 0; px < w; px++)
     {
         if (pixels[py * stride + px * 4 + 3] < 10) continue;
         float dx   = px - tip.X, dy = py - tip.Y;
-        float perp = MathF.Abs(dx * nNx + dy * nNy);
-        dists.Add(perp);
+        float axial = dx * aDx + dy * aDy;           // projection onto axis
+        if (axial < (float)strStart || axial > (float)strEnd) continue;  // outside body
+        bodyCount++;
+        dists.Add(MathF.Abs(dx * nNx + dy * nNy));  // perpendicular distance
     }
 
-    if (dists.Count == 0) { Console.WriteLine($"  {pinId}: no opaque pixels"); return; }
+    if (dists.Count == 0) { Console.WriteLine($"  {pinId}: no body-region pixels"); return; }
 
     dists.Sort();
-    // 95th percentile: avoids stray antialiasing outliers
-    int p95idx   = (int)(dists.Count * 0.95);
-    float halfW  = dists[Math.Min(p95idx, dists.Count - 1)];
+    // Median: robust against shadow blobs or highlight pixels that stray wide
+    float halfW = dists[dists.Count / 2];
 
     double curVal = shaft.TryGetProperty("native_shaft_half_width_px", out var cur)
                     ? cur.GetDouble() : 0.0;
     bool changed = Math.Abs(halfW - curVal) > 0.5;
 
-    Console.WriteLine($"  {pinId}  [{srcLabel}]  img={w}x{h}  pixels={dists.Count}");
+    Console.WriteLine($"  {pinId}  [{srcLabel}]  img={w}x{h}  body_pixels={bodyCount}");
     Console.WriteLine($"    current  native_shaft_half_width_px : {curVal:F1}");
-    Console.WriteLine($"    measured (95th pct perp dist)       : {halfW:F1}{(changed ? "  ← CHANGED" : "")}");
+    Console.WriteLine($"    measured (body-region median perp)  : {halfW:F1}{(changed ? "  ← CHANGED" : "")}");
     if (changed)
         Console.WriteLine($"    JSON patch: \"native_shaft_half_width_px\": {halfW:F1}");
     Console.WriteLine();
