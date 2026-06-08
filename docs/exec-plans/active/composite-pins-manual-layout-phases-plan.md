@@ -58,7 +58,7 @@ The first draft of this plan had several factual errors. They are fixed below; t
   - [x] OnSaveLayoutButtonClick uses extension line endpoint as MarkerCenter (correct after Auto Assign Pins)
 - [x] Phase 2: Persist shaft/head assignments in saved layouts
 - [x] Phase 3: Right-click shaft override (head override optional second pass)
-- [ ] Phase 4: Composite render-plan disk cache
+- [x] Phase 4: Composite render-plan disk cache
 - [ ] Phase 5: **Delegated** — implement via [manual-layout-variants-plan.md](manual-layout-variants-plan.md)
 
 ### Recommended order

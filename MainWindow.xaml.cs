@@ -74,6 +74,11 @@ namespace InteractiveWorldMap
             new CompositePinShaftMenuModelBuilder(new PinPartPlacementCalculator());
         private readonly ManualLayoutOverrideStore _overrideStore = new ManualLayoutOverrideStore();
 
+        // Phase 4: composite render-plan disk cache
+        private CompositePinPlanCache _compositePinPlanCache = null!;
+        private CompositePinApplicationService _planApplicationService = null!;
+        private string? _pinPartGeometryHash;
+
         // Expose config properties for marker access
         public double LocationMarkerSize => _visualConfig.LocationMarkerSize;
         public double ClusterMarkerSize => _visualConfig.ClusterMarkerSize;
@@ -189,6 +194,11 @@ namespace InteractiveWorldMap
                 // Initialize zoomed region cache with the full-resolution source image.
                 _zoomedRegionCache = new ZoomedRegionCache(_logger, _contentLoader.GetFullResolutionWorldMapPath());
                 _logger.LogInfo("ZoomedRegionCache created");
+
+                // Phase 4: composite render-plan disk cache
+                _compositePinPlanCache  = new CompositePinPlanCache(_logger);
+                _planApplicationService = new CompositePinApplicationService(_compositePinPlanCache, _compositePinPlanningService);
+                _logger.LogInfo("CompositePinPlanCache created");
 
                 // Wire up events
                 Loaded += OnWindowLoaded;
@@ -1660,6 +1670,9 @@ namespace InteractiveWorldMap
             try
             {
                 _pinPartGeometry = _contentLoader.LoadPinPartGeometry(_visualConfig.PinParts.GeometryMetadataPath);
+                // Phase 4: cache hash of geometry file for composite plan cache key
+                _pinPartGeometryHash = CompositePinLayoutContentHasher.ComputeGeometryHash(
+                    IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, _visualConfig.PinParts.GeometryMetadataPath));
                 return _pinPartGeometry.Count > 0;
             }
             catch (Exception ex)
@@ -1729,22 +1742,7 @@ namespace InteractiveWorldMap
                     return false;
                 }
 
-                var compositeMarker = new CompositePinMarker { Location = marker.Location };
-                compositeMarker.SetCompositeImages(
-                    shaftImage,
-                    headImage,
-                    planning.RenderPlan,
-                    _visualConfig.Debug.ShowCompositePinDebugOverlay);
-
-                compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
-                _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);
-                marker.Content = compositeMarker;
-                marker.Width = compositeMarker.Width;
-                marker.Height = compositeMarker.Height;
-                Panel.SetZIndex(marker, 2000);
-                Canvas.SetLeft(marker, originalScreenPos.X - planning.RenderPlan.TipAnchorLocal.X);
-                Canvas.SetTop(marker, originalScreenPos.Y - planning.RenderPlan.TipAnchorLocal.Y);
-
+                ApplyRenderPlanToMarker(marker, originalScreenPos, extendedScreenPos, planning.RenderPlan, shaftImage, headImage);
                 _logger.LogInfo(
                     $"Applied composite pin '{planning.Selection.PairId}' for '{marker.Location.Name}' " +
                     $"targetLength={planning.Selection.TargetLengthPx:F1}px score={planning.Selection.Score:F2}");
@@ -1755,6 +1753,30 @@ namespace InteractiveWorldMap
                 _logger.LogWarning($"Failed to apply composite pin for '{marker.Location.Name}': {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Applies a pre-built render plan to a marker — shared by the normal build path and
+        /// the Phase 4 cache-hit path.  Does NOT call BuildPlan.
+        /// </summary>
+        private void ApplyRenderPlanToMarker(
+            LocationMarker marker,
+            Point originalScreenPos,
+            Point extendedScreenPos,
+            CompositePinRenderPlan plan,
+            BitmapSource shaftImage,
+            BitmapSource headImage)
+        {
+            var compositeMarker = new CompositePinMarker { Location = marker.Location };
+            compositeMarker.SetCompositeImages(shaftImage, headImage, plan, _visualConfig.Debug.ShowCompositePinDebugOverlay);
+            compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
+            _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);
+            marker.Content = compositeMarker;
+            marker.Width   = compositeMarker.Width;
+            marker.Height  = compositeMarker.Height;
+            Panel.SetZIndex(marker, 2000);
+            Canvas.SetLeft(marker, originalScreenPos.X - plan.TipAnchorLocal.X);
+            Canvas.SetTop(marker, originalScreenPos.Y - plan.TipAnchorLocal.Y);
         }
 
         /// <summary>
@@ -2010,6 +2032,10 @@ namespace InteractiveWorldMap
                 // Save (controller sets IsManualLayoutActive and logs)
                 _layoutEditor.TrySave(extensions, assignments);
 
+                // Phase 4: invalidate cached plans so next render builds fresh ones.
+                if (_layoutEditor.CurrentLayoutKey != null)
+                    _planApplicationService.InvalidateGroup(_layoutEditor.CurrentLayoutKey);
+
                 // Pending overrides are now persisted — clear them and hide the indicator.
                 _overrideStore.ClearOverrides();
                 UpdateOverrideIndicator();
@@ -2110,11 +2136,25 @@ namespace InteractiveWorldMap
 
         /// <summary>
         /// Applies a saved manual layout to the current view.
+        /// Phase 4: checks the composite render-plan disk cache before building plans;
+        /// saves plans to cache on a miss.
         /// </summary>
         private void ApplyManualLayout(ManualLayout layout)
         {
             _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
-            
+
+            // Phase 4: try cache before starting the per-marker build loop.
+            var groupKey = _layoutEditor.CurrentLayoutKey ?? layout.GroupKey;
+            IReadOnlyDictionary<string, CompositePinRenderPlan>? cachedPlans = null;
+            string planCacheKey = string.Empty;
+            if (!string.IsNullOrEmpty(groupKey) && _pinPartGeometryHash != null && CanUseCompositePins())
+            {
+                cachedPlans = _planApplicationService.TryCacheLoad(
+                    layout, _visualConfig.PinParts, groupKey,
+                    IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, _visualConfig.PinParts.GeometryMetadataPath),
+                    out planCacheKey);
+            }
+
             // Clear existing extension lines
             _extensionLineRenderer.Clear();
 
@@ -2156,6 +2196,20 @@ namespace InteractiveWorldMap
                         originalPos.Y - application.LineLength * Math.Cos(rad));
                 }
 
+                // Phase 4: use cached plan when available (skips BuildPlan for cache hits).
+                if (cachedPlans != null
+                    && cachedPlans.TryGetValue(application.LocationName, out var cachedPlan)
+                    && _baseMarkerVisuals.TryGetValue(marker, out var bs) && bs.Content is ImagePinMarker)
+                {
+                    var si = LoadPinPartBitmap(cachedPlan.ShaftSourcePath);
+                    var hi = LoadPinPartBitmap(cachedPlan.HeadSourcePath);
+                    if (si != null && hi != null)
+                    {
+                        ApplyRenderPlanToMarker(marker, originalPos, extendedPos, cachedPlan, si, hi);
+                        continue;
+                    }
+                }
+
                 // Try composite pin first; falls back to legacy if disabled or assets missing.
                 // Pass saved shaft/head IDs so replay honours the visual from save time.
                 if (TryApplyCompositePinMarker(marker, originalPos, extendedPos, application.PairId, application.HeadSourcePath))
@@ -2170,6 +2224,13 @@ namespace InteractiveWorldMap
                 {
                     _extensionLineRenderer.AddLine(marker, originalPos, extendedPos);
                 }
+            }
+
+            // Phase 4: save plans built during this pass to disk cache (only on cache miss).
+            if (cachedPlans == null && !string.IsNullOrEmpty(planCacheKey) && !string.IsNullOrEmpty(groupKey))
+            {
+                _planApplicationService.SaveIfMissed(
+                    planCacheKey, groupKey, layout.VariantId, layout.Markers.Select(m => m.LocationName));
             }
 
             // Re-apply any pending shaft overrides on top of the restored layout positions.

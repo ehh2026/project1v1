@@ -6,6 +6,16 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Composite Pins Phase 4 — Render-plan disk cache:**
+  - `Services/CompositePinPlanCache.cs` — SHA-256–keyed disk cache under `%AppData%\InteractiveWorldMap\composite_pin_plan_cache\`. Mirrors `ClusterCache` pattern: `TryLoad`, `Save`, `Invalidate(groupKey)`, `ClearAll`. Includes custom `System.Text.Json` converters for `System.Windows.Point` and `System.Windows.Media.Matrix` (required by `CompositePinLayerPlan`).
+  - `Services/CompositePinLayoutContentHasher.cs` — static helpers that produce viewport-independent hash inputs for the cache key: `ComputeLayoutContentHash` (sorted markers: name + angle + lineLength + pairId + headSourcePath), `ComputeGeometryHash` (SHA-256 of geometry JSON bytes), `ComputeConfigHash` (relevant `PinPartConfig` fields).
+  - `Services/CompositePinApplicationService.cs` — orchestrates cache use for `ApplyManualLayout`: `TryCacheLoad` computes the full cache key and returns a locationName→RenderPlan dict on hit; `SaveIfMissed` collects plans from the planning service's session cache and persists them after a miss; `InvalidateGroup` clears stale entries on layout save. All cache key hashing and file I/O are delegated out of MainWindow.
+  - `Models/CachedCompositePlanEntry.cs` — `sealed record(string LocationId, CompositePinRenderPlan Plan)` payload for serialisation.
+  - `Tests/CompositePinPlanCacheTests.cs` — 16 tests covering miss→hit round-trip, Matrix/Point coefficient preservation, polygon preservation, invalidation, key uniqueness, and all three hasher methods (layout content, geometry file, config).
+  - `ApplyManualLayout` in `MainWindow.xaml.cs` now checks the disk cache before the per-marker build loop and saves plans on miss; logs "Cache hit" at Info level.
+  - `OnSaveLayoutButtonClick` calls `InvalidateGroup` so the next render after a save builds fresh plans.
+  - Extracted `ApplyRenderPlanToMarker` helper shared by the normal build path and the cache-hit path.
+
 - **Composite Pins Phase 1 — Edit-mode roundtrip fix + Reassign Pins:**
   - `ExitEditMode` now replays the saved manual layout (via `ApplyManualLayout`) instead of falling back to `UpdateMarkerPositions()` when `IsManualLayoutActive` is true, so composite pins appear at saved positions after save → exit in the same session.
   - Added **Reassign Pins** button to the edit-mode toolbar in `MainWindow.xaml`. Clicking it rebuilds composite shaft/head selection for all visible extension-line markers at their current canvas positions without saving or exiting edit mode; drag handlers remain intact.

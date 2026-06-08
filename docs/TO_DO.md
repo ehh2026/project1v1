@@ -8,6 +8,7 @@ The application is functional and ready for demo! Core features are implemented 
 
 ## USER-ADDED TO-DO ITEMS
 
+- [ ] Fix or remove the few composite pins that stretch the shadow a lot
 - [ ] Make the manual-layout seed generator use the same placement algorithm the app uses at runtime — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md) (Phases 1–2)
   - Current state: `scripts/generate_manual_layout_seeds.ps1` is a PowerShell port of the radial placement logic, not a shared code path
   - Goal: extract or expose the placement math so runtime placement and seed generation cannot drift
