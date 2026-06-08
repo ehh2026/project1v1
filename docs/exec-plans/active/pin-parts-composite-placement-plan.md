@@ -793,3 +793,6 @@ Current implementation status:
 ## Follow-on work
 
 Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md)
+
+Manual-layout integration, edit-mode roundtrip, shaft overrides, render-plan caching, and
+multi-variant layout management: [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md)
