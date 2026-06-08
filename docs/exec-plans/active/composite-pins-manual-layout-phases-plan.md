@@ -57,7 +57,7 @@ The first draft of this plan had several factual errors. They are fixed below; t
   - [x] BuildExtensions angle convention fix (atan2(dx,-dy) north-up, matching ApplyManualLayout)
   - [x] OnSaveLayoutButtonClick uses extension line endpoint as MarkerCenter (correct after Auto Assign Pins)
 - [x] Phase 2: Persist shaft/head assignments in saved layouts
-- [ ] Phase 3: Right-click shaft override (head override optional second pass)
+- [x] Phase 3: Right-click shaft override (head override optional second pass)
 - [ ] Phase 4: Composite render-plan disk cache
 - [ ] Phase 5: **Delegated** — implement via [manual-layout-variants-plan.md](manual-layout-variants-plan.md)
 

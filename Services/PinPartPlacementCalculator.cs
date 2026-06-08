@@ -41,6 +41,34 @@ namespace InteractiveWorldMap.Services
             return ranked[0];
         }
 
+        /// <summary>
+        /// Returns all candidates ranked by fit score without selecting one.
+        /// Used by the right-click shaft override menu builder.
+        /// </summary>
+        public IReadOnlyList<PinPartPlacementResult> ScoreAll(
+            PinPlacementTarget target,
+            IReadOnlyDictionary<string, PinPartGeometryEntry> candidates,
+            PinPartConfig config)
+        {
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+            if (candidates == null)
+                throw new ArgumentNullException(nameof(candidates));
+            if (config == null)
+                throw new ArgumentNullException(nameof(config));
+            if (candidates.Count == 0)
+                return Array.Empty<PinPartPlacementResult>();
+
+            var targetAngle = GetAngleDegrees(target.StartScreen.X, target.StartScreen.Y, target.EndScreen.X, target.EndScreen.Y);
+            var targetLength = GetDistance(target.StartScreen.X, target.StartScreen.Y, target.EndScreen.X, target.EndScreen.Y);
+
+            return candidates
+                .Select(c => BuildPlacementResult(c.Key, c.Value, targetAngle, targetLength, config))
+                .OrderBy(r => r.Score)
+                .ThenBy(r => r.PairId, StringComparer.Ordinal)
+                .ToList();
+        }
+
         private static PinPartPlacementResult BuildPlacementResult(
             string pairId,
             PinPartGeometryEntry geometry,

@@ -96,6 +96,18 @@
             </Button.Style>
         </Button>
 
+        <!-- Unsaved overrides indicator (shown in non-edit mode when pending shaft overrides exist) -->
+        <TextBlock x:Name="OverridePendingIndicator"
+                   Text="* unsaved overrides"
+                   Visibility="Collapsed"
+                   HorizontalAlignment="Right"
+                   VerticalAlignment="Top"
+                   Margin="0,58,20,0"
+                   Foreground="#FFFFA500"
+                   FontSize="11"
+                   FontStyle="Italic"
+                   Padding="6,3"/>
+
         <!-- Edit Mode Control Panel (shown only in edit mode) -->
         <StackPanel x:Name="EditModePanel"
                     Visibility="Collapsed"

@@ -9,6 +9,7 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
+using System.Windows.Controls.Primitives;
 using System.Windows.Shapes;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
@@ -69,6 +70,9 @@ namespace InteractiveWorldMap
         private readonly CompositePinPlanningService _compositePinPlanningService =
             new CompositePinPlanningService(new PinPartPlacementCalculator(), new CompositePinRenderPlanBuilder());
         private readonly ManualLayoutAssignmentEnricher _assignmentEnricher = new ManualLayoutAssignmentEnricher();
+        private readonly CompositePinShaftMenuModelBuilder _shaftMenuModelBuilder =
+            new CompositePinShaftMenuModelBuilder(new PinPartPlacementCalculator());
+        private readonly ManualLayoutOverrideStore _overrideStore = new ManualLayoutOverrideStore();
 
         // Expose config properties for marker access
         public double LocationMarkerSize => _visualConfig.LocationMarkerSize;
@@ -216,6 +220,7 @@ namespace InteractiveWorldMap
                 _mode = InteractionMode.Editing;
                 EditLayoutButton.Visibility = Visibility.Collapsed;
                 EditModePanel.Visibility = Visibility.Visible;
+                UpdateOverrideIndicator(); // hide indicator while in edit mode
             };
 
             _layoutEditor.EditModeExited += () =>
@@ -230,6 +235,7 @@ namespace InteractiveWorldMap
                 {
                     EditLayoutButton.Visibility = Visibility.Visible;
                 }
+                UpdateOverrideIndicator(); // re-evaluate indicator now that edit mode is off
             };
 
             _layoutEditor.ManualLayoutActivityChanged += isActive =>
@@ -1335,9 +1341,11 @@ namespace InteractiveWorldMap
                     _layoutEditor.SetManualLayoutActive(false);
                     _layoutEditor.SetLayoutKey(null);
                     _currentZoomedCluster = null;
+                    _overrideStore.ClearAll();
                     EditLayoutButton.Visibility = Visibility.Collapsed;
                     EditModePanel.Visibility = Visibility.Collapsed;
                     ManualLayoutIndicator.Visibility = Visibility.Collapsed;
+                    OverridePendingIndicator.Visibility = Visibility.Collapsed;
                 });
             }
             catch (Exception ex)
@@ -1728,6 +1736,8 @@ namespace InteractiveWorldMap
                     planning.RenderPlan,
                     _visualConfig.Debug.ShowCompositePinDebugOverlay);
 
+                compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
+                _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);
                 marker.Content = compositeMarker;
                 marker.Width = compositeMarker.Width;
                 marker.Height = compositeMarker.Height;
@@ -1778,6 +1788,77 @@ namespace InteractiveWorldMap
             }
 
             _logger.LogInfo($"[ReassignPins] Applied composite pins to {applied} markers.");
+        }
+
+        /// <summary>
+        /// Called when the user right-clicks a composite pin to request a shaft change.
+        /// Builds a context menu from ranked candidates and re-renders on selection.
+        /// </summary>
+        private void OnShaftOverrideRequested(LocationMarker marker, string locationName)
+        {
+            if (_layoutEditor.IsEditMode) return;
+            if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null) return;
+            if (!_overrideStore.TryGetEndpoints(locationName, out var originalPos, out var extendedPos)) return;
+
+            var currentPairId = (marker.Content as CompositePinMarker)?.RenderPlan?.PairId;
+            var target = new PinPlacementTarget
+            {
+                StartScreen = originalPos,
+                EndScreen = extendedPos,
+                LocationId = locationName,
+                GroupId = 0
+            };
+
+            var items = _shaftMenuModelBuilder.BuildMenuItems(target, _pinPartGeometry, _visualConfig.PinParts, currentPairId);
+
+            var menu = new ContextMenu();
+            menu.Items.Add(new MenuItem { Header = "Change shaft", IsEnabled = false, FontWeight = FontWeights.Bold });
+            menu.Items.Add(new Separator());
+
+            foreach (var item in items)
+            {
+                var capturedPairId = item.PairId;
+                var menuItem = new MenuItem { Header = item.Label, IsChecked = item.IsSelected };
+                menuItem.Click += (_, _) =>
+                {
+                    _overrideStore.SetOverride(locationName, capturedPairId);
+                    ApplyCompositePinToMarker(marker, originalPos, extendedPos, capturedPairId);
+                    UpdateOverrideIndicator();
+                };
+                menu.Items.Add(menuItem);
+            }
+
+            menu.Placement = PlacementMode.Mouse;
+            menu.IsOpen = true;
+        }
+
+        /// <summary>
+        /// Re-applies all pending shaft overrides after a layout replay (e.g., on exit edit mode).
+        /// Only runs in non-edit mode; relies on endpoints recorded at last composite apply time.
+        /// </summary>
+        private void ReapplyPendingOverrides()
+        {
+            foreach (var kvp in _overrideStore.GetAllOverrides())
+            {
+                var locationName = kvp.Key;
+                var (pairId, headSourcePath) = kvp.Value;
+                var marker = _individualMarkers.FirstOrDefault(m =>
+                    string.Equals(m.Location.Name, locationName, StringComparison.Ordinal));
+                if (marker == null) continue;
+                if (!_overrideStore.TryGetEndpoints(locationName, out var originalPos, out var extendedPos)) continue;
+                ApplyCompositePinToMarker(marker, originalPos, extendedPos, pairId, headSourcePath);
+            }
+        }
+
+        /// <summary>
+        /// Shows or hides the unsaved overrides indicator based on current state.
+        /// </summary>
+        private void UpdateOverrideIndicator()
+        {
+            OverridePendingIndicator.Visibility =
+                _overrideStore.HasPendingOverrides && !_layoutEditor.IsEditMode
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
         }
 
         /// <summary>
@@ -1929,6 +2010,10 @@ namespace InteractiveWorldMap
                 // Save (controller sets IsManualLayoutActive and logs)
                 _layoutEditor.TrySave(extensions, assignments);
 
+                // Pending overrides are now persisted — clear them and hide the indicator.
+                _overrideStore.ClearOverrides();
+                UpdateOverrideIndicator();
+
                 // Show confirmation (unless we just showed a warning)
                 if (validationIssues.Count == 0)
                 {
@@ -1962,6 +2047,10 @@ namespace InteractiveWorldMap
             {
                 // Delete saved layout (controller sets IsManualLayoutActive and logs)
                 _layoutEditor.TryDelete();
+
+                // Clear any pending overrides — layout is gone.
+                _overrideStore.ClearAll();
+                UpdateOverrideIndicator();
 
                 // Exit edit mode
                 ExitEditMode();
@@ -2082,6 +2171,11 @@ namespace InteractiveWorldMap
                     _extensionLineRenderer.AddLine(marker, originalPos, extendedPos);
                 }
             }
+
+            // Re-apply any pending shaft overrides on top of the restored layout positions.
+            // Only valid in non-edit mode; endpoints were just refreshed by composite apply above.
+            if (_overrideStore.HasPendingOverrides && !_layoutEditor.IsEditMode)
+                ReapplyPendingOverrides();
         }
 
         private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)

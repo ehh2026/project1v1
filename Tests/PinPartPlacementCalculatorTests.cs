@@ -61,6 +61,83 @@ public class PinPartPlacementCalculatorTests
     }
 
     [Fact]
+    public void ScoreAll_ReturnsAllCandidatesOrderedByScore()
+    {
+        var calculator = new PinPartPlacementCalculator();
+        var target = new PinPlacementTarget
+        {
+            StartScreen = new Point(0, 0),
+            EndScreen = new Point(0, -100), // north; angle ≈ 0°
+            LocationId = "loc-score",
+            GroupId = 0
+        };
+        var config = new PinPartConfig
+        {
+            SelectionMode = PinPartSelectionMode.NearestFit,
+            MaxResidualRotationDeg = 30.0,
+            MinStretchFactor = 0.5,
+            MaxStretchFactor = 2.0
+        };
+        var candidates = new Dictionary<string, PinPartGeometryEntry>
+        {
+            ["pin_best"] = new()
+            {
+                HeadFile = "pin_best_head.png",
+                ShaftFile = "pin_best_shaft.png",
+                Shaft = new PinPartShaftGeometry
+                {
+                    NativeAngleDeg = 0.0,
+                    NativeLength = 100.0,
+                    LocalTip = new PinPartPoint { X = 5, Y = 50 },
+                    LocalJoin = new PinPartPoint { X = 5, Y = 5 }
+                }
+            },
+            ["pin_ok"] = new()
+            {
+                HeadFile = "pin_ok_head.png",
+                ShaftFile = "pin_ok_shaft.png",
+                Shaft = new PinPartShaftGeometry
+                {
+                    NativeAngleDeg = 20.0,
+                    NativeLength = 100.0,
+                    LocalTip = new PinPartPoint { X = 5, Y = 50 },
+                    LocalJoin = new PinPartPoint { X = 5, Y = 5 }
+                }
+            }
+        };
+
+        var results = calculator.ScoreAll(target, candidates, config);
+
+        Assert.Equal(2, results.Count);
+        Assert.Equal("pin_best", results[0].PairId);
+        Assert.True(results[0].Score < results[1].Score);
+    }
+
+    [Fact]
+    public void ScoreAll_WhenNoCandidates_ReturnsEmpty()
+    {
+        var calculator = new PinPartPlacementCalculator();
+        var target = new PinPlacementTarget
+        {
+            StartScreen = new Point(0, 0),
+            EndScreen = new Point(0, -100),
+            LocationId = "loc-empty",
+            GroupId = 0
+        };
+        var config = new PinPartConfig
+        {
+            SelectionMode = PinPartSelectionMode.NearestFit,
+            MaxResidualRotationDeg = 30.0,
+            MinStretchFactor = 0.5,
+            MaxStretchFactor = 2.0
+        };
+
+        var results = calculator.ScoreAll(target, new Dictionary<string, PinPartGeometryEntry>(), config);
+
+        Assert.Empty(results);
+    }
+
+    [Fact]
     public void CalculatePlacement_WhenNearestFit_ClampsResidualTransform()
     {
         var calculator = new PinPartPlacementCalculator();

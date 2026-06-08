@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
@@ -15,6 +16,13 @@ namespace InteractiveWorldMap.Views
     public partial class CompositePinMarker : UserControl
     {
         private bool _isHovered;
+
+        /// <summary>
+        /// Raised when the user right-clicks the marker to request a shaft override.
+        /// The string argument is <see cref="Location.Name"/>.
+        /// MainWindow subscribes to this event and builds the context menu.
+        /// </summary>
+        public event Action<string>? ShaftOverrideRequested;
 
         public Location Location { get; set; } = null!;
 
@@ -119,6 +127,13 @@ namespace InteractiveWorldMap.Views
         public bool ContainsPoint(Point point)
         {
             return point.X >= 0 && point.X <= Width && point.Y >= 0 && point.Y <= Height;
+        }
+
+        protected override void OnMouseRightButtonUp(MouseButtonEventArgs e)
+        {
+            base.OnMouseRightButtonUp(e);
+            ShaftOverrideRequested?.Invoke(Location.Name);
+            e.Handled = true;
         }
 
         private static void ApplyLayer(Image image, BitmapSource source, CompositePinLayerPlan layer)
