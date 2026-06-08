@@ -13,7 +13,8 @@ namespace InteractiveWorldMap.Services
         public PinPartPlacementResult CalculatePlacement(
             PinPlacementTarget target,
             IReadOnlyDictionary<string, PinPartGeometryEntry> candidates,
-            PinPartConfig config)
+            PinPartConfig config,
+            string? preferredPairId = null)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -26,6 +27,10 @@ namespace InteractiveWorldMap.Services
 
             var targetAngle = GetAngleDegrees(target.StartScreen.X, target.StartScreen.Y, target.EndScreen.X, target.EndScreen.Y);
             var targetLength = GetDistance(target.StartScreen.X, target.StartScreen.Y, target.EndScreen.X, target.EndScreen.Y);
+
+            // Honour saved pair id when it still exists in the current candidate set.
+            if (preferredPairId != null && candidates.TryGetValue(preferredPairId, out var preferred))
+                return BuildPlacementResult(preferredPairId, preferred, targetAngle, targetLength, config);
 
             var ranked = candidates
                 .Select(candidate => BuildPlacementResult(candidate.Key, candidate.Value, targetAngle, targetLength, config))

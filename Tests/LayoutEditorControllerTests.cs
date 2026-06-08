@@ -185,12 +185,36 @@ public class LayoutEditorControllerTests
     {
         var loc    = Loc("b");
         var origin = new Point(0, 0);
-        var center = new Point(1, 0);   // dx=1, dy=0 → atan2(0,1)=0°
+        var center = new Point(1, 0);   // dx=1, dy=0 → north-up: East = 90°
 
         var result = LayoutEditorController.BuildExtensions(
             new[] { (loc, center, origin) });
 
-        Assert.Equal(0.0, result[0].Angle, 3);
+        // North-up convention (matches ApplyManualLayout replay: X + L*sin, Y - L*cos).
+        Assert.Equal(90.0, result[0].Angle, 3);
+    }
+
+    [Fact]
+    public void BuildExtensions_AngleNorthUp_RoundTrips()
+    {
+        // Verify BuildExtensions angle + length can reconstruct extendedPos via the
+        // same sin/cos formula used in ApplyManualLayout.
+        var loc    = Loc("c");
+        var origin = new Point(100, 100);
+        var center = new Point(100, 50); // dx=0, dy=-50 → north-up: North = 0°
+
+        var result = LayoutEditorController.BuildExtensions(
+            new[] { (loc, center, origin) });
+
+        var ext = result[0];
+        var rad = ext.Angle * Math.PI / 180.0;
+        var len = 50.0;
+        var reconstructed = new Point(
+            origin.X + len * Math.Sin(rad),
+            origin.Y - len * Math.Cos(rad));
+
+        Assert.Equal(center.X, reconstructed.X, 3);
+        Assert.Equal(center.Y, reconstructed.Y, 3);
     }
 
     // ─── ValidateLayout ───────────────────────────────────────────────────────
@@ -387,6 +411,55 @@ public class LayoutEditorControllerTests
 
         var loaded = ctrl.TryLoad("key-load");
         Assert.NotNull(loaded);
+    }
+
+    // ─── ExitEditMode manual-layout replay prerequisites ─────────────────────
+    // These tests verify the controller-level invariants that MainWindow.ExitEditMode
+    // relies on when deciding to replay the manual layout (the Phase 1 fix).
+
+    [Fact]
+    public void ExitEditMode_AfterTrySave_IsManualLayoutActiveRemainsTrue()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-exit-roundtrip");
+        ctrl.TrySave(new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location         = Loc("a"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle            = 45.0
+            }
+        });
+        Assert.True(ctrl.IsManualLayoutActive);
+
+        ctrl.ExitEditMode();
+
+        // IsManualLayoutActive must survive ExitEditMode so MainWindow's branch fires.
+        Assert.True(ctrl.IsManualLayoutActive);
+    }
+
+    [Fact]
+    public void TryLoad_AfterSaveAndExitEditMode_ReturnsLayout()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-load-after-exit");
+        ctrl.TrySave(new List<RadialExtension>
+        {
+            new RadialExtension
+            {
+                Location         = Loc("b"),
+                OriginalPosition = new Point(5, 5),
+                ExtendedPosition = new Point(50, 50),
+                Angle            = 90.0
+            }
+        });
+        ctrl.ExitEditMode();
+
+        // TryLoad must return the saved layout so MainWindow's ExitEditMode branch can replay it.
+        var layout = ctrl.TryLoad("key-load-after-exit");
+        Assert.NotNull(layout);
     }
 
     [Fact]

@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Composite Pins Phase 1 — Edit-mode roundtrip fix + Reassign Pins:**
+  - `ExitEditMode` now replays the saved manual layout (via `ApplyManualLayout`) instead of falling back to `UpdateMarkerPositions()` when `IsManualLayoutActive` is true, so composite pins appear at saved positions after save → exit in the same session.
+  - Added **Reassign Pins** button to the edit-mode toolbar in `MainWindow.xaml`. Clicking it rebuilds composite shaft/head selection for all visible extension-line markers at their current canvas positions without saving or exiting edit mode; drag handlers remain intact.
+  - Extracted `ApplyCompositePinToMarker` helper from `TryApplyCompositePinMarker` so composite rendering is reachable from Reassign (bypassing the `CanUseCompositePins()` edit-mode gate).
+  - Added `IExtensionLineRenderer.TryGetLineEndpoint` (and implementation in `ExtensionLineRenderer`) to expose current line endpoints for the Reassign handler.
+  - Added `LayoutEditorControllerTests`: `ExitEditMode_AfterTrySave_IsManualLayoutActiveRemainsTrue` and `TryLoad_AfterSaveAndExitEditMode_ReturnsLayout` — verify the controller invariants that the `ExitEditMode` replay branch depends on.
 - **Docs:** Python venv and script catalog — [scripts/README.md](scripts/README.md); sections in [AGENTS.md](AGENTS.md), [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md), [docs/index.md](docs/index.md)
 - **Exec plans:** [manual-layout-seed-alignment-plan.md](docs/exec-plans/active/manual-layout-seed-alignment-plan.md), [manual-layout-variants-plan.md](docs/exec-plans/active/manual-layout-variants-plan.md), [composite-pins-unzoomed-plan.md](docs/exec-plans/active/composite-pins-unzoomed-plan.md), [refactoring-assessment-followthrough-plan.md](docs/exec-plans/active/refactoring-assessment-followthrough-plan.md) — linked from [docs/TO_DO.md](docs/TO_DO.md)
 - **Security CI (Phases 1–3):** Dependabot (`.github/dependabot.yml`), Gitleaks workflow (`.github/workflows/gitleaks.yml`), NuGet vulnerability gate (`scripts/verify_nuget_vulnerabilities.py` in CI and `verify.ps1` / `verify.sh`)

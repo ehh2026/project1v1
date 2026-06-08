@@ -196,6 +196,17 @@ namespace InteractiveWorldMap.Views
                 Panel.SetZIndex(line, zIndex);
         }
 
+        public bool TryGetLineEndpoint(LocationMarker marker, out Point endpoint)
+        {
+            if (_markerToLine.TryGetValue(marker, out var line))
+            {
+                endpoint = new Point(line.X2, line.Y2);
+                return true;
+            }
+            endpoint = default;
+            return false;
+        }
+
         // -------------------------------------------------------------------------
         // Hover highlighting (moved from MainWindow.OnMarkerMouseEnter/Leave)
         // -------------------------------------------------------------------------

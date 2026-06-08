@@ -223,4 +223,82 @@ public class ManualLayoutManagerTests
             }
         }
     }
+
+    // ─── Phase 2: PairId / HeadSourcePath round-trip ─────────────────────────
+
+    [Fact]
+    public void SaveLayout_WithAssignments_PersistsPairIdAndHeadSourcePath()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var layoutPath = Path.Combine(tempDir, "manual-layouts.json");
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            var extensions = new List<RadialExtension>
+            {
+                new RadialExtension
+                {
+                    Location         = new Location { Id = "a", Name = "Alpha" },
+                    OriginalPosition = new Point(0, 0),
+                    ExtendedPosition = new Point(30, 30),
+                    Angle            = 45.0,
+                    GroupId          = 0
+                }
+            };
+            var assignments = new Dictionary<string, (string PairId, string HeadSourcePath)>
+            {
+                ["Alpha"] = ("pin_07", "Pins_v2/parts/pin_03_head.png")
+            };
+
+            manager.SaveLayout("key-assign", extensions, assignments);
+            var loaded = manager.LoadLayout("key-assign");
+
+            Assert.NotNull(loaded);
+            var marker = Assert.Single(loaded!.Markers);
+            Assert.Equal("pin_07",                     marker.PairId);
+            Assert.Equal("Pins_v2/parts/pin_03_head.png", marker.HeadSourcePath);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SaveLayout_WithoutAssignments_LeavesAssignmentFieldsNull()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var layoutPath = Path.Combine(tempDir, "manual-layouts.json");
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            var extensions = new List<RadialExtension>
+            {
+                new RadialExtension
+                {
+                    Location         = new Location { Id = "b", Name = "Beta" },
+                    OriginalPosition = new Point(0, 0),
+                    ExtendedPosition = new Point(20, 20),
+                    Angle            = 0.0,
+                    GroupId          = 0
+                }
+            };
+
+            manager.SaveLayout("key-no-assign", extensions);
+            var loaded = manager.LoadLayout("key-no-assign");
+
+            Assert.NotNull(loaded);
+            var marker = Assert.Single(loaded!.Markers);
+            Assert.Null(marker.PairId);
+            Assert.Null(marker.HeadSourcePath);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }

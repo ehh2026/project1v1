@@ -28,6 +28,18 @@ namespace InteractiveWorldMap.Models
         /// </summary>
         public double? SourceExtendedY { get; set; }
 
+        /// <summary>
+        /// Shaft pair id from <see cref="CompositePinRenderPlan.PairId"/> at save time.
+        /// Null → scorer chooses the best-fit pair on replay.
+        /// </summary>
+        public string? PairId { get; set; }
+
+        /// <summary>
+        /// Head asset path from <see cref="CompositePinRenderPlan.HeadSourcePath"/> at save time.
+        /// Null → location-hash fallback on replay.
+        /// </summary>
+        public string? HeadSourcePath { get; set; }
+
         public ManualLayoutMarker() { }
 
         public ManualLayoutMarker(string locationName, Point originalPos, Point extendedPos, double angle, double length)

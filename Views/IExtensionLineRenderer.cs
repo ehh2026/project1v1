@@ -39,6 +39,9 @@ namespace InteractiveWorldMap.Views
         /// <summary>Sets the Z-index of the tracked line for a marker (no-op if no line).</summary>
         void SetLineZIndex(LocationMarker marker, int zIndex);
 
+        /// <summary>Gets the current endpoint of the tracked line for a marker. Returns false if no line.</summary>
+        bool TryGetLineEndpoint(LocationMarker marker, out Point endpoint);
+
         // Hover event handlers — subscribe directly to marker.MouseEnter/Leave
         void OnMouseEnter(object sender, MouseEventArgs e);
         void OnMouseLeave(object sender, MouseEventArgs e);

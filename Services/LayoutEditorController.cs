@@ -44,6 +44,11 @@ public sealed class LayoutEditorController
         public double Angle { get; init; }
         /// <summary>Extension line length in screen pixels at save time.</summary>
         public double LineLength { get; init; }
+
+        /// <summary>Saved shaft pair id. Null → scorer chooses on replay.</summary>
+        public string? PairId { get; init; }
+        /// <summary>Saved head asset path. Null → location-hash fallback on replay.</summary>
+        public string? HeadSourcePath { get; init; }
     }
 
     public event Action? EditModeEntered;
@@ -123,8 +128,10 @@ public sealed class LayoutEditorController
             {
                 SourceExtendedX = layoutMarker.SourceExtendedX,
                 SourceExtendedY = layoutMarker.SourceExtendedY,
-                Angle      = layoutMarker.Angle,
-                LineLength = layoutMarker.LineLength
+                Angle         = layoutMarker.Angle,
+                LineLength    = layoutMarker.LineLength,
+                PairId        = layoutMarker.PairId,
+                HeadSourcePath = layoutMarker.HeadSourcePath
             });
 
             _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
@@ -147,7 +154,7 @@ public sealed class LayoutEditorController
         {
             double dx    = markerCenter.X - originalScreen.X;
             double dy    = markerCenter.Y - originalScreen.Y;
-            double angle = Math.Atan2(dy, dx) * (180.0 / Math.PI);
+            double angle = Math.Atan2(dx, -dy) * (180.0 / Math.PI); // north-up convention: 0°=North, matches ApplyManualLayout replay
             extensions.Add(new RadialExtension
             {
                 Location         = location,
@@ -185,12 +192,12 @@ public sealed class LayoutEditorController
 
                 if (GeometryMath.DoesLinePassTooCloseToMarker(
                         e1.OriginalPosition, e1.ExtendedPosition,
-                        e2.ExtendedPosition, markerRadius + 2))
+                        e2.ExtendedPosition, markerRadius))
                     issues.Add($"Line too close to marker: {e1.Location.Name} → {e2.Location.Name}");
 
                 if (GeometryMath.DoesLinePassTooCloseToMarker(
                         e2.OriginalPosition, e2.ExtendedPosition,
-                        e1.ExtendedPosition, markerRadius + 2))
+                        e1.ExtendedPosition, markerRadius))
                     issues.Add($"Line too close to marker: {e2.Location.Name} → {e1.Location.Name}");
 
                 double dx       = e1.ExtendedPosition.X - e2.ExtendedPosition.X;
@@ -209,7 +216,8 @@ public sealed class LayoutEditorController
     /// Sets <see cref="IsManualLayoutActive"/> to true on success.
     /// Returns false if <see cref="CurrentLayoutKey"/> is null or the underlying save fails.
     /// </summary>
-    public bool TrySave(List<RadialExtension> extensions)
+    public bool TrySave(List<RadialExtension> extensions,
+        IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null)
     {
         if (extensions == null) throw new ArgumentNullException(nameof(extensions));
         if (CurrentLayoutKey == null)
@@ -218,7 +226,7 @@ public sealed class LayoutEditorController
             return false;
         }
 
-        bool ok = _layoutManager.SaveLayout(CurrentLayoutKey, extensions);
+        bool ok = _layoutManager.SaveLayout(CurrentLayoutKey, extensions, assignments);
         if (ok)
         {
             SetManualLayoutActive(true);

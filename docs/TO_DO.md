@@ -25,6 +25,11 @@ The application is functional and ready for demo! Core features are implemented 
 - [x] Route manual-layout replay through composite path — [plan Phase 5](exec-plans/active/pin-parts-composite-placement-plan.md#phase-5-mainwindow-integration)
   - Fixed 2026-06-06: `ApplyManualLayout()` now calls `TryApplyCompositePinMarker()` first; falls back to legacy only when composite rendering is disabled or assets are missing
   - Original position is now re-projected from source coords (consistent with `ApplyRadialExtensions` path)
+- [ ] Remove legacy `pins.jpg` / `ImagePinMarker` path — drawn and composite pins only — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
+  - Current state: when `UsePinMarkers=true`, the app can use sprite-sheet image pins (`PinImages` + `pins.jpg`), drawn `PinMarker`, or `CompositePinMarker`; composite rendering is coupled to the legacy image-pin path
+  - Goal: delete `PinImages` config, `ImagePinMarker`, and master-image loading; pin modes are drawn (`PinMarker`) or composite (`CompositePinMarker`) only
+  - Composite asset/planning failure should fall back to drawn pins, not `pins.jpg`
+  - Umbrella for unzoomed all-marker composite rollout, edit-mode decoupling from `ImagePinMarker`, and config/docs cleanup
 - [ ] Add derived composite-placement caching for saved manual layouts — [plan lines 167–199](exec-plans/active/pin-parts-composite-placement-plan.md#canonical-endpoint-data-vs-saved-composite-placement-results)
   - Currently every view rebuild recalculates pair selection and transforms from scratch
   - Persist `selected_pair_id`, `head_rotation_deg`, `body_stretch_factor`, local anchors, etc.

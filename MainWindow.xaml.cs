@@ -68,7 +68,8 @@ namespace InteractiveWorldMap
         private readonly Dictionary<LocationMarker, MarkerVisualState> _baseMarkerVisuals = new Dictionary<LocationMarker, MarkerVisualState>();
         private readonly CompositePinPlanningService _compositePinPlanningService =
             new CompositePinPlanningService(new PinPartPlacementCalculator(), new CompositePinRenderPlanBuilder());
-        
+        private readonly ManualLayoutAssignmentEnricher _assignmentEnricher = new ManualLayoutAssignmentEnricher();
+
         // Expose config properties for marker access
         public double LocationMarkerSize => _visualConfig.LocationMarkerSize;
         public double ClusterMarkerSize => _visualConfig.ClusterMarkerSize;
@@ -858,7 +859,8 @@ namespace InteractiveWorldMap
                     // Third pass: Apply the extensions (now with adjusted lengths)
                     foreach (var group in _denseGroups.Where(g => g.Extensions.Any()))
                     {
-                        _extensionLineRenderer.Apply(group, viewport, containerWidth, containerHeight, _individualMarkers, TryApplyCompositePinMarker);
+                        _extensionLineRenderer.Apply(group, viewport, containerWidth, containerHeight, _individualMarkers,
+                            (m, orig, ext) => TryApplyCompositePinMarker(m, orig, ext));
                     }
 
                     // Position markers not in dense groups normally
@@ -1676,11 +1678,22 @@ namespace InteractiveWorldMap
             return bitmap;
         }
 
-        private bool TryApplyCompositePinMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos)
+        private bool TryApplyCompositePinMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos,
+            string? preferredPairId = null, string? preferredHeadSourcePath = null)
         {
             if (!CanUseCompositePins())
                 return false;
+            return ApplyCompositePinToMarker(marker, originalScreenPos, extendedScreenPos, preferredPairId, preferredHeadSourcePath);
+        }
 
+        /// <summary>
+        /// Core composite-pin apply logic. Used both by the normal (non-edit) path via
+        /// <see cref="TryApplyCompositePinMarker"/> and by Reassign Pins which bypasses the
+        /// edit-mode gate in <see cref="CanUseCompositePins"/>.
+        /// </summary>
+        private bool ApplyCompositePinToMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos,
+            string? preferredPairId = null, string? preferredHeadSourcePath = null)
+        {
             if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
                 return false;
 
@@ -1697,7 +1710,9 @@ namespace InteractiveWorldMap
                     GroupId = 0
                 };
 
-                var planning = _compositePinPlanningService.BuildPlan(target, _pinPartGeometry, _visualConfig.PinParts);
+                var planning = _compositePinPlanningService.BuildPlan(
+                    target, _pinPartGeometry, _visualConfig.PinParts,
+                    preferredPairId, preferredHeadSourcePath);
                 var shaftImage = LoadPinPartBitmap(planning.RenderPlan.ShaftSourcePath);
                 var headImage = LoadPinPartBitmap(planning.RenderPlan.HeadSourcePath);
                 if (shaftImage == null || headImage == null)
@@ -1730,6 +1745,39 @@ namespace InteractiveWorldMap
                 _logger.LogWarning($"Failed to apply composite pin for '{marker.Location.Name}': {ex.Message}");
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Handles Reassign Pins button click — re-runs composite shaft/head selection on the
+        /// current canvas endpoints without saving or exiting edit mode.
+        /// </summary>
+        private void OnReassignPinsButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
+            {
+                _logger.LogWarning("[ReassignPins] Pin part geometry not loaded, cannot reassign.");
+                return;
+            }
+
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null) return;
+
+            var cw = MapDisplay.ActualWidth;
+            var ch = MapDisplay.ActualHeight;
+            int applied = 0;
+
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible && _extensionLineRenderer.HasLine(m)))
+            {
+                var originalPos = viewport.SourceToScreen(marker.Location.PixelX, marker.Location.PixelY, cw, ch);
+
+                if (!_extensionLineRenderer.TryGetLineEndpoint(marker, out var extendedPos))
+                    continue;
+
+                if (ApplyCompositePinToMarker(marker, originalPos, extendedPos))
+                    applied++;
+            }
+
+            _logger.LogInfo($"[ReassignPins] Applied composite pins to {applied} markers.");
         }
 
         /// <summary>
@@ -1782,8 +1830,24 @@ namespace InteractiveWorldMap
         {
             _layoutEditor.EnterEditMode();
 
-            // Rebuild any currently visible composite pins onto the legacy draggable path.
-            UpdateMarkerPositions();
+            // If a manual layout is saved, restore those positions for draggable editing.
+            // CanUseCompositePins() is false in edit mode, so ApplyManualLayout falls through
+            // to the legacy ImagePinMarker + extension-line path.
+            bool loadedSaved = false;
+            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            {
+                var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
+                if (layout != null)
+                {
+                    RestoreBaseMarkerVisuals();
+                    _extensionLineRenderer.Clear();
+                    ApplyManualLayout(layout);
+                    _logger.LogInfo($"[OnEditLayoutButtonClick] Restored saved layout for key={_layoutEditor.CurrentLayoutKey}");
+                    loadedSaved = true;
+                }
+            }
+            if (!loadedSaved)
+                UpdateMarkerPositions();
 
             var visibleMarkers = _individualMarkers.Count(m => m.Visibility == Visibility.Visible);
             _logger.LogInfo($"[OnEditLayoutButtonClick] Entering edit mode");
@@ -1827,14 +1891,22 @@ namespace InteractiveWorldMap
                     return;
                 }
 
-                // Collect current marker positions and delegate extension-building to controller
+                // Collect current marker positions and delegate extension-building to controller.
+                // Use the extension line endpoint as the authoritative MarkerCenter: after "Auto Assign
+                // Pins" the marker's Canvas position is offset to the tip anchor, not the endpoint.
                 var markerSize = _visualConfig.LocationMarkerSize;
                 var markerData = _individualMarkers
                     .Where(m => m.Visibility == Visibility.Visible)
-                    .Select(m => (
-                        m.Location,
-                        MarkerCenter: new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2),
-                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight)));
+                    .Select(m =>
+                    {
+                        var center = _extensionLineRenderer.TryGetLineEndpoint(m, out var lineEnd)
+                            ? lineEnd
+                            : new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2);
+                        return (
+                            m.Location,
+                            MarkerCenter: center,
+                            OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
+                    });
                 var extensions = LayoutEditorController.BuildExtensions(markerData);
 
                 // Validate layout before saving
@@ -1851,8 +1923,11 @@ namespace InteractiveWorldMap
 
                 }
 
+                // Capture shaft/head assignments from the session plan cache before saving.
+                var assignments = _assignmentEnricher.GetAssignments(extensions, _compositePinPlanningService);
+
                 // Save (controller sets IsManualLayoutActive and logs)
-                _layoutEditor.TrySave(extensions);
+                _layoutEditor.TrySave(extensions, assignments);
 
                 // Show confirmation (unless we just showed a warning)
                 if (validationIssues.Count == 0)
@@ -1914,7 +1989,7 @@ namespace InteractiveWorldMap
         private void ExitEditMode()
         {
             _layoutEditor.ExitEditMode();
-            
+
             // Disable dragging on all markers
             foreach (var marker in _individualMarkers)
             {
@@ -1923,12 +1998,24 @@ namespace InteractiveWorldMap
                 marker.MouseMove -= OnMarkerDragMove;
                 marker.MouseLeftButtonUp -= OnMarkerDragEnd;
             }
-            
+
             _draggedMarker = null;
-            
+
             _logger.LogInfo("Edit mode deactivated");
 
-            // Restore the current non-edit rendering path, including composite markers if enabled.
+            // If a manual layout is active, replay it so composite pins appear at the saved positions.
+            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            {
+                var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
+                if (layout != null)
+                {
+                    _logger.LogInfo($"[ExitEditMode] Replaying manual layout for key={_layoutEditor.CurrentLayoutKey}");
+                    ApplyManualLayout(layout);
+                    return;
+                }
+            }
+
+            // Auto path: no manual layout saved yet (or load failed).
             UpdateMarkerPositions();
         }
 
@@ -1981,7 +2068,8 @@ namespace InteractiveWorldMap
                 }
 
                 // Try composite pin first; falls back to legacy if disabled or assets missing.
-                if (TryApplyCompositePinMarker(marker, originalPos, extendedPos))
+                // Pass saved shaft/head IDs so replay honours the visual from save time.
+                if (TryApplyCompositePinMarker(marker, originalPos, extendedPos, application.PairId, application.HeadSourcePath))
                     continue;
 
                 // Legacy fallback: position marker at extended location + draw extension line.

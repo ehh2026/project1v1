@@ -5,7 +5,8 @@ namespace InteractiveWorldMap.Services;
 
 public interface IManualLayoutManager
 {
-    bool SaveLayout(string key, List<RadialExtension> extensions);
+    bool SaveLayout(string key, List<RadialExtension> extensions,
+        IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null);
     ManualLayout? LoadLayout(string key);
     bool DeleteLayout(string key);
     bool LayoutExists(string key);

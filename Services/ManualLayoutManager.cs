@@ -27,11 +27,25 @@ namespace InteractiveWorldMap.Services
         /// <summary>
         /// Save a manual layout
         /// </summary>
-        public bool SaveLayout(string key, List<RadialExtension> extensions)
+        public bool SaveLayout(string key, List<RadialExtension> extensions,
+            IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null)
         {
             try
             {
                 var markers = extensions.Select(ManualLayoutMarker.FromRadialExtension).ToList();
+
+                // Enrich markers with saved shaft/head assignments when provided.
+                if (assignments != null)
+                {
+                    foreach (var marker in markers)
+                    {
+                        if (assignments.TryGetValue(marker.LocationName, out var a))
+                        {
+                            marker.PairId        = a.PairId;
+                            marker.HeadSourcePath = a.HeadSourcePath;
+                        }
+                    }
+                }
                 var collection = LoadLayoutCollection();
 
                 if (!collection.LayoutGroups.TryGetValue(key, out var group))

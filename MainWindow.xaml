@@ -190,6 +190,44 @@
                 </Button.Style>
             </Button>
 
+            <!-- Auto Assign Pins Button -->
+            <Button x:Name="ReassignPinsButton"
+                    Content="Auto Assign Pins"
+                    Padding="15,8"
+                    Margin="5"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CC8B4513"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    Click="OnReassignPinsButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DDA0522D"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+
             <!-- Exit Edit Mode Button -->
             <Button x:Name="ExitEditModeButton"
                     Content="Exit Edit Mode"
