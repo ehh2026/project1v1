@@ -24,9 +24,12 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 ## Refactoring & quality
 
+Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08)
+
 - [ ] Refactoring assessment follow-through — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
-- [ ] Split `Tools/PinDebugger/Program.cs` (1051 lines; taste check REMEDIATION: partial classes or extract Services) — blocks `verify.ps1`
-- [ ] Resolve nullable reference warnings (CS8602/CS8604) — Phase 13 in same plan
+- [x] Split `Tools/PinDebugger/Program.cs` — see assessment §2 (TD-013 resolved)
+- [x] Decompose `MainWindow.xaml.cs` (TD-001) — orchestrators + partials; primary file ~732 lines
+- [ ] Resolve nullable reference warnings (CS8602/CS8604) — Phase 13 in follow-through plan
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
 ## User ideas (product)
@@ -59,6 +62,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 ## Recently done
 
+- Large-file refactoring Phases 1–4 — PinDebugger split, `MarkerPlacementOrchestrator`, `BuildApplyInstructions`, MainWindow partials (2026-06-08); see [CHANGELOG.md](../CHANGELOG.md)
 - Manual layout variants — [manual-layout-variants-plan.md](exec-plans/completed/manual-layout-variants-plan.md) (2026-06-08)
 - Unzoomed marker offset — fixed 2026-06-06 ([UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](assessments/UNZOOMED_MARKER_OFFSET_ASSESSMENT.md))
 - Security CI — [security-ci-plan.md](exec-plans/completed/security-ci-plan.md)

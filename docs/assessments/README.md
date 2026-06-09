@@ -5,6 +5,7 @@ Investigations, audits, and code-quality analyses. Conclusions belong at the top
 | Doc | Description |
 |-----|-------------|
 | [REFACTORING_ASSESSMENT.md](REFACTORING_ASSESSMENT.md) | Code quality analysis; follow-through in [refactoring-assessment-followthrough-plan.md](../exec-plans/active/refactoring-assessment-followthrough-plan.md) |
+| [LARGE_FILE_REFACTORING_ASSESSMENT.md](LARGE_FILE_REFACTORING_ASSESSMENT.md) | Files ≥1000 lines — bloat hotspots and safe split plans (`MainWindow`, `PinDebugger`) |
 | [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md) | Full-map marker offset (fixed 2026-06-06) |
 | [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](ZOOM_LEVELS_AUDIT_ASSESSMENT.md) | Intended vs operational zoom levels |
 | [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md) | Dense-region zoom regression |

@@ -2,13 +2,14 @@
 
 Thin index of known debt. Detail and checklists live in linked plans — not duplicated here.
 
-Sources: [TO_DO.md](../TO_DO.md), [REFACTORING_ASSESSMENT.md](../assessments/REFACTORING_ASSESSMENT.md)
+Sources: [TO_DO.md](../TO_DO.md), [REFACTORING_ASSESSMENT.md](../assessments/REFACTORING_ASSESSMENT.md), [LARGE_FILE_REFACTORING_ASSESSMENT.md](../assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md)
 
 ## High Priority
 
 | ID | Item | Plan / doc | Status |
 |----|------|------------|--------|
-| TD-001 | `MainWindow.xaml.cs` god object | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) | Open |
+| TD-001 | `MainWindow.xaml.cs` god object | [LARGE_FILE_REFACTORING_ASSESSMENT.md](../assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) §1, [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) | Resolved (2026-06-08) — primary ~732 lines; partials for layout, composite pins, navigation, content |
+| TD-013 | `Tools/PinDebugger/Program.cs` | [LARGE_FILE_REFACTORING_ASSESSMENT.md](../assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) §2 | Resolved (2026-06-08) |
 | TD-003 | Property-based tests (FsCheck) | [.kiro/specs/.../tasks.md](../../.kiro/specs/interactive-world-map/tasks.md) `*` items | Open |
 | TD-004 | UI/integration tests | [TO_DO.md](../TO_DO.md) | Open |
 

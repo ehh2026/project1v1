@@ -335,4 +335,63 @@ public class CompositePinPlanCacheTests
             CompositePinLayoutContentHasher.ComputeConfigHash(c1),
             CompositePinLayoutContentHasher.ComputeConfigHash(c2));
     }
+
+    [Fact]
+    public void BuildApplyInstructions_ReconstructsExtendedFromAngleAndLength()
+    {
+        var cache    = new CompositePinPlanCache(new MockLogger());
+        var planning = new CompositePinPlanningService(
+            new PinPartPlacementCalculator(),
+            new CompositePinRenderPlanBuilder());
+        var service = new CompositePinApplicationService(cache, planning);
+
+        var layout = new ManualLayout
+        {
+            GroupKey  = "g1",
+            VariantId = "manual-default",
+            Markers   = new List<ManualLayoutMarker>()
+        };
+
+        var applications = new List<LayoutEditorController.LayoutMarkerApplication>
+        {
+            new("LocA", new Point(100, 200), new Point(150, 180), true)
+            {
+                Angle      = 90,
+                LineLength = 50
+            }
+        };
+
+        var sourceCoords = new Dictionary<string, (double PixelX, double PixelY)>
+        {
+            ["LocA"] = (1100, 900)
+        };
+
+        var viewport = new ViewportState
+        {
+            SourceImageWidth  = 8198,
+            SourceImageHeight = 5542,
+            ViewportX         = 1000,
+            ViewportY         = 800,
+            ViewportWidth     = 500,
+            ViewportHeight    = 400,
+            ZoomLevel         = 55
+        };
+
+        var result = service.BuildApplyInstructions(
+            layout,
+            applications,
+            sourceCoords,
+            viewport,
+            1920,
+            1080,
+            new PinPartConfig(),
+            "group-key",
+            Path.Combine(Path.GetTempPath(), "missing_geometry.json"),
+            canUseCompositePins: false);
+
+        var instruction = Assert.Single(result.Instructions);
+        Assert.NotEqual(applications[0].OriginalPosition, instruction.OriginalScreen);
+        Assert.Equal(instruction.OriginalScreen.X + 50, instruction.ExtendedScreen.X, 3);
+        Assert.False(result.ShouldSaveToCache);
+    }
 }

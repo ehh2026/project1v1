@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using InteractiveWorldMap.Models;
 using IOPath = System.IO.Path;
 
@@ -82,5 +84,90 @@ namespace InteractiveWorldMap.Services
         /// Call after a layout is saved so the next <c>ApplyManualLayout</c> builds fresh plans.
         /// </summary>
         public void InvalidateGroup(string groupKey) => _planCache.Invalidate(groupKey);
+
+        /// <summary>
+        /// Builds per-marker screen positions and optional cached render plans for manual layout replay.
+        /// Does not load bitmaps or mutate WPF markers.
+        /// </summary>
+        public ManualLayoutApplyResult BuildApplyInstructions(
+            ManualLayout layout,
+            IReadOnlyList<LayoutEditorController.LayoutMarkerApplication> applications,
+            IReadOnlyDictionary<string, (double PixelX, double PixelY)> markerSourceCoords,
+            ViewportState? viewport,
+            double containerWidth,
+            double containerHeight,
+            PinPartConfig config,
+            string groupKey,
+            string absoluteGeometryPath,
+            bool canUseCompositePins)
+        {
+            IReadOnlyDictionary<string, CompositePinRenderPlan>? cachedPlans = null;
+            string cacheKey = string.Empty;
+            bool cacheAttempted = !string.IsNullOrEmpty(groupKey) && canUseCompositePins;
+
+            if (cacheAttempted)
+            {
+                cachedPlans = TryCacheLoad(
+                    layout, config, groupKey, absoluteGeometryPath, out cacheKey);
+            }
+
+            var instructions = new List<ManualLayoutApplyInstruction>(applications.Count);
+            bool hasViewport = viewport != null && containerWidth > 0 && containerHeight > 0;
+
+            foreach (var application in applications)
+            {
+                Point originalPos;
+                if (hasViewport
+                    && markerSourceCoords.TryGetValue(application.LocationName, out var source))
+                {
+                    originalPos = viewport!.SourceToScreen(
+                        source.PixelX, source.PixelY, containerWidth, containerHeight);
+                }
+                else
+                {
+                    originalPos = application.OriginalPosition;
+                }
+
+                Point extendedPos;
+                if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue && hasViewport)
+                {
+                    extendedPos = viewport!.SourceToScreen(
+                        application.SourceExtendedX.Value,
+                        application.SourceExtendedY.Value,
+                        containerWidth,
+                        containerHeight);
+                }
+                else
+                {
+                    var rad = application.Angle * Math.PI / 180.0;
+                    extendedPos = new Point(
+                        originalPos.X + application.LineLength * Math.Sin(rad),
+                        originalPos.Y - application.LineLength * Math.Cos(rad));
+                }
+
+                CompositePinRenderPlan? cachedPlan = null;
+                if (cachedPlans != null
+                    && cachedPlans.TryGetValue(application.LocationName, out var plan))
+                {
+                    cachedPlan = plan;
+                }
+
+                instructions.Add(new ManualLayoutApplyInstruction(
+                    application.LocationName,
+                    originalPos,
+                    extendedPos,
+                    application.RequiresExtensionLine,
+                    application.PairId,
+                    application.HeadSourcePath,
+                    cachedPlan));
+            }
+
+            return new ManualLayoutApplyResult
+            {
+                Instructions      = instructions,
+                CacheKey          = cacheKey,
+                ShouldSaveToCache = cacheAttempted && cachedPlans == null && !string.IsNullOrEmpty(cacheKey)
+            };
+        }
     }
 }

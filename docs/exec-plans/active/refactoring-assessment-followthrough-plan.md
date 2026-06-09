@@ -194,7 +194,18 @@ Update [refactoring-plan.md](../completed/refactoring-plan.md) with Phases 11+ c
 
 **Acceptance:** Each extraction reduces `MainWindow.xaml.cs` by ≥100 lines with tests; no feature regression
 
-## Deferred (document only — not in scope)
+### Large-file refactor (June 2026) — complete
+
+Mapped from [LARGE_FILE_REFACTORING_ASSESSMENT.md](../../assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md):
+
+| Step | Deliverable | Status |
+|------|-------------|--------|
+| 1 | PinDebugger split (TD-013) | Done — all `Tools/PinDebugger/*.cs` ≤ 800 lines |
+| 2 | `MarkerPlacementOrchestrator` + tests | Done |
+| 3 | `CompositePinApplicationService.BuildApplyInstructions` | Done |
+| 4 | MainWindow partial classes; remove `FILE_SIZE_GRANDFATHER` | Done — primary ~732 lines |
+
+Further Phase 18 targets (SubwindowManager, ZoomAnimationController, MarkerFactory) remain optional follow-ups.
 
 | Item | Reason |
 |------|--------|

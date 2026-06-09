@@ -1,0 +1,590 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
+using System.Windows.Media.Imaging;
+using System.Windows.Controls.Primitives;
+using System.Windows.Shapes;
+using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
+using InteractiveWorldMap.Views;
+using IOPath = System.IO.Path;
+
+namespace InteractiveWorldMap
+{
+    public partial class MainWindow
+    {
+        private void WireLayoutEditorEvents()
+        {
+            _layoutEditor.EditModeEntered += () =>
+            {
+                _mode = InteractionMode.Editing;
+                EditLayoutButton.Visibility = Visibility.Collapsed;
+                EditModePanel.Visibility = Visibility.Visible;
+                UpdateOverrideIndicator(); // hide indicator while in edit mode
+            };
+
+            _layoutEditor.EditModeExited += () =>
+            {
+                if (_mode == InteractionMode.Editing)
+                {
+                    _mode = InteractionMode.Normal;
+                }
+
+                EditModePanel.Visibility = Visibility.Collapsed;
+                if (_visualConfig.ManualLayoutEditor.Enabled)
+                {
+                    EditLayoutButton.Visibility = Visibility.Visible;
+                }
+                UpdateOverrideIndicator(); // re-evaluate indicator now that edit mode is off
+            };
+
+            _layoutEditor.ManualLayoutActivityChanged += isActive =>
+            {
+                ManualLayoutIndicator.Visibility =
+                    isActive && _visualConfig.ManualLayoutEditor.ShowLayoutIndicator
+                        ? Visibility.Visible
+                        : Visibility.Collapsed;
+            };
+
+            _layoutEditor.VariantsChanged += variants => PopulateVariantPicker(variants);
+            VariantPickerComboBox.SelectionChanged += OnVariantPickerSelectionChanged;
+        }
+
+        // ─── Variant picker helpers ───────────────────────────────────────────
+
+        private void PopulateVariantPicker(IReadOnlyList<ManualLayoutSummary> variants)
+        {
+            VariantPickerComboBox.SelectionChanged -= OnVariantPickerSelectionChanged;
+            VariantPickerComboBox.Items.Clear();
+            foreach (var s in variants) VariantPickerComboBox.Items.Add(s);
+            VariantPickerComboBox.SelectedItem = variants.FirstOrDefault(s => s.VariantId == _layoutEditor.ActiveVariantId);
+            VariantPickerComboBox.SelectionChanged += OnVariantPickerSelectionChanged;
+            UpdateVariantUI();
+        }
+
+        private void UpdateVariantUI()
+        {
+            var active = VariantPickerComboBox.SelectedItem as ManualLayoutSummary;
+            VariantStatusText.Text = active != null ? $"Loaded: {active.DisplayName} ({active.Origin})" : "";
+            DeleteVariantButton.IsEnabled = active?.Origin == ManualLayoutOrigin.Manual;
+        }
+
+        private void OnVariantPickerSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (VariantPickerComboBox.SelectedItem is ManualLayoutSummary s && s.VariantId != _layoutEditor.ActiveVariantId)
+                SwitchToVariantInEditor(s.VariantId);
+        }
+
+        private void SwitchToVariantInEditor(string variantId)
+        {
+            var layout = _layoutEditor.SwitchToVariant(variantId);
+            if (layout == null) return;
+            RestoreBaseMarkerVisuals();
+            _extensionLineRenderer.Clear();
+            ApplyManualLayout(layout);
+            UpdateVariantUI();
+        }
+
+        private void OnSaveAsVariantButtonClick(object sender, RoutedEventArgs e)
+        {
+            SaveAsNameTextBox.Text = "";
+            SaveAsInputRow.Visibility = Visibility.Visible;
+            SaveAsNameTextBox.Focus();
+        }
+
+        private void OnSaveAsCancelButtonClick(object sender, RoutedEventArgs e) =>
+            SaveAsInputRow.Visibility = Visibility.Collapsed;
+
+        private void OnSaveAsNameKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) OnSaveAsConfirmButtonClick(sender, new RoutedEventArgs());
+            else if (e.Key == Key.Escape) SaveAsInputRow.Visibility = Visibility.Collapsed;
+        }
+
+        private async void OnSaveAsConfirmButtonClick(object sender, RoutedEventArgs e)
+        {
+            SaveAsInputRow.Visibility = Visibility.Collapsed;
+            var name = SaveAsNameTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+            var extensions = CollectCurrentExtensions();
+            if (extensions == null) return;
+            var assignments = _assignmentEnricher.GetAssignments(extensions, _compositePinPlanningService);
+            bool ok = _layoutEditor.TrySaveAsVariant(name, extensions, assignments);
+            EditModeStatusText.Text       = ok ? "✓ VARIANT SAVED" : "✗ SAVE FAILED";
+            EditModeStatusText.Foreground = ok ? new SolidColorBrush(Color.FromRgb(50, 205, 50)) : new SolidColorBrush(Colors.Red);
+            await ResetEditModeStatusAfterDelayAsync(2000);
+        }
+
+        private void OnDeleteVariantButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Delete this variant?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            bool ok = _layoutEditor.TryDeleteActiveVariant();
+            if (!ok) return;
+            var nextId = _layoutEditor.ActiveVariantId;
+            if (nextId != null) SwitchToVariantInEditor(nextId);
+            else UpdateMarkerPositions();
+        }
+
+        /// <summary>Returns current marker positions as extensions, or null if not ready.</summary>
+        private List<RadialExtension>? CollectCurrentExtensions()
+        {
+            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null) return null;
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null) return null;
+            var markerSize = _visualConfig.LocationMarkerSize;
+            var markerData = _individualMarkers
+                .Where(m => m.Visibility == Visibility.Visible)
+                .Select(m =>
+                {
+                    var center = _extensionLineRenderer.TryGetLineEndpoint(m, out var lineEnd)
+                        ? lineEnd
+                        : new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2);
+                    return (m.Location, MarkerCenter: center,
+                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
+                });
+            return LayoutEditorController.BuildExtensions(markerData);
+        }
+        #region Manual Layout Editor Methods
+
+        /// <summary>
+        /// Handles Edit Layout button click - enters edit mode.
+        /// </summary>
+        private void OnEditLayoutButtonClick(object sender, RoutedEventArgs e)
+        {
+            _layoutEditor.EnterEditMode();
+
+            // If a manual layout is saved, restore those positions for draggable editing.
+            // CanUseCompositePins() is false in edit mode, so ApplyManualLayout falls through
+            // to the legacy ImagePinMarker + extension-line path.
+            bool loadedSaved = false;
+            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            {
+                var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
+                if (layout != null)
+                {
+                    RestoreBaseMarkerVisuals();
+                    _extensionLineRenderer.Clear();
+                    ApplyManualLayout(layout);
+                    _logger.LogInfo($"[OnEditLayoutButtonClick] Restored saved layout for key={_layoutEditor.CurrentLayoutKey}");
+                    loadedSaved = true;
+                }
+            }
+            if (!loadedSaved)
+                UpdateMarkerPositions();
+
+            var visibleMarkers = _individualMarkers.Count(m => m.Visibility == Visibility.Visible);
+            _logger.LogInfo($"[OnEditLayoutButtonClick] Entering edit mode");
+            _logger.LogInfo($"  Visible markers: {visibleMarkers}");
+            _logger.LogInfo($"  Extension lines: {_extensionLineRenderer.LineCount}");
+            _logger.LogInfo($"  Marker-to-line mappings: {_extensionLineRenderer.MarkerMappingCount}");
+
+            // Enable dragging on all visible markers
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                marker.Cursor = Cursors.Hand;
+                marker.MouseLeftButtonDown += OnMarkerDragStart;
+                marker.MouseMove           += OnMarkerDragMove;
+                marker.MouseLeftButtonUp   += OnMarkerDragEnd;
+
+                _logger.LogInfo(_extensionLineRenderer.HasLine(marker)
+                    ? $"    Marker '{marker.Location.Name}' has line"
+                    : $"    Marker '{marker.Location.Name}' has NO line");
+            }
+
+            _logger.LogInfo("Edit mode activated");
+
+            // Populate variant picker with the loaded group's variants.
+            PopulateVariantPicker(_layoutEditor.GetVariants());
+        }
+
+        /// <summary>
+        /// Handles Save Layout button click - saves current marker positions.
+        /// If the active variant is AutoSeed, redirects to the inline Save As prompt.
+        /// </summary>
+        private async void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
+            {
+                _logger.LogWarning("Cannot save layout - key or cluster is null");
+                return;
+            }
+
+            // If editing an AutoSeed layout, redirect to the Save As prompt.
+            if (_layoutEditor.ActiveVariantOrigin == ManualLayoutOrigin.AutoSeed)
+            {
+                OnSaveAsVariantButtonClick(sender, e);
+                return;
+            }
+
+            try
+            {
+                var viewport = MapDisplay.CurrentViewport;
+                if (viewport == null)
+                {
+                    _logger.LogWarning("Cannot save layout - viewport is null");
+                    return;
+                }
+
+                // Collect current marker positions and delegate extension-building to controller.
+                // Use the extension line endpoint as the authoritative MarkerCenter: after "Auto Assign
+                // Pins" the marker's Canvas position is offset to the tip anchor, not the endpoint.
+                var markerSize = _visualConfig.LocationMarkerSize;
+                var markerData = _individualMarkers
+                    .Where(m => m.Visibility == Visibility.Visible)
+                    .Select(m =>
+                    {
+                        var center = _extensionLineRenderer.TryGetLineEndpoint(m, out var lineEnd)
+                            ? lineEnd
+                            : new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2);
+                        return (
+                            m.Location,
+                            MarkerCenter: center,
+                            OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
+                    });
+                var extensions = LayoutEditorController.BuildExtensions(markerData);
+
+                // Validate layout before saving
+                var validationIssues = _layoutEditor.ValidateLayout(extensions);
+                if (validationIssues.Count > 0)
+                {
+                    _logger.LogWarning($"Layout validation found {validationIssues.Count} issues:");
+                    foreach (var issue in validationIssues)
+                        _logger.LogWarning($"  - {issue}");
+
+                    // Show warning but allow save
+                    EditModeStatusText.Text       = $"⚠ {validationIssues.Count} Issues Found";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0));
+
+                }
+
+                // Capture shaft/head assignments from the session plan cache before saving.
+                var assignments = _assignmentEnricher.GetAssignments(extensions, _compositePinPlanningService);
+
+                // Save (controller sets IsManualLayoutActive and logs)
+                _layoutEditor.TrySave(extensions, assignments);
+
+                // Phase 4: invalidate cached plans so next render builds fresh ones.
+                if (_layoutEditor.CurrentLayoutKey != null)
+                    _planApplicationService.InvalidateGroup(_layoutEditor.CurrentLayoutKey);
+
+                // Pending overrides are now persisted — clear them and hide the indicator.
+                _overrideStore.ClearOverrides();
+                UpdateOverrideIndicator();
+
+                // Show confirmation (unless we just showed a warning)
+                if (validationIssues.Count == 0)
+                {
+                    EditModeStatusText.Text       = "✓ LAYOUT SAVED";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50));
+
+                }
+
+                await ResetEditModeStatusAfterDelayAsync(validationIssues.Count > 0 ? 3000 : 2000);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to save layout: {ex.Message}");
+                EditModeStatusText.Text       = "✗ SAVE FAILED";
+                EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+            }
+        }
+
+        /// <summary>
+        /// Handles Delete & Recalculate button click - removes saved layout and recalculates.
+        /// </summary>
+        private void OnDeleteLayoutButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
+            {
+                _logger.LogWarning("Cannot delete layout - key or cluster is null");
+                return;
+            }
+
+            try
+            {
+                // Delete saved layout (controller sets IsManualLayoutActive and logs)
+                _layoutEditor.TryDelete();
+
+                // Clear any pending overrides — layout is gone.
+                _overrideStore.ClearAll();
+                UpdateOverrideIndicator();
+
+                // Exit edit mode
+                ExitEditMode();
+                
+                // Recalculate positions
+                ShowZoomedView(_currentZoomedCluster);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to delete layout: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handles Exit Edit Mode button click - exits edit mode without saving.
+        /// </summary>
+        private void OnExitEditModeButtonClick(object sender, RoutedEventArgs e)
+        {
+            ExitEditMode();
+        }
+
+        /// <summary>
+        /// Exits edit mode and restores normal interaction.
+        /// </summary>
+        private void ExitEditMode()
+        {
+            _layoutEditor.ExitEditMode();
+
+            // Disable dragging on all markers
+            foreach (var marker in _individualMarkers)
+            {
+                marker.Cursor = Cursors.Arrow;
+                marker.MouseLeftButtonDown -= OnMarkerDragStart;
+                marker.MouseMove -= OnMarkerDragMove;
+                marker.MouseLeftButtonUp -= OnMarkerDragEnd;
+            }
+
+            _draggedMarker = null;
+
+            _logger.LogInfo("Edit mode deactivated");
+
+            // If a manual layout is active, replay it so composite pins appear at the saved positions.
+            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            {
+                var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
+                if (layout != null)
+                {
+                    _logger.LogInfo($"[ExitEditMode] Replaying manual layout for key={_layoutEditor.CurrentLayoutKey}");
+                    ApplyManualLayout(layout);
+                    return;
+                }
+            }
+
+            // Auto path: no manual layout saved yet (or load failed).
+            UpdateMarkerPositions();
+        }
+
+        /// <summary>
+        /// Applies a saved manual layout to the current view.
+        /// Phase 4: checks the composite render-plan disk cache before building plans;
+        /// saves plans to cache on a miss.
+        /// </summary>
+        private void ApplyManualLayout(ManualLayout layout)
+        {
+            _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
+
+            var groupKey = _layoutEditor.CurrentLayoutKey ?? layout.GroupKey;
+            _extensionLineRenderer.Clear();
+
+            var visibleMarkers = _individualMarkers
+                .Where(m => m.Visibility == Visibility.Visible)
+                .GroupBy(m => m.Location.Name)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.Ordinal);
+
+            var viewport = MapDisplay.CurrentViewport;
+            var cw = MapDisplay.ActualWidth;
+            var ch = MapDisplay.ActualHeight;
+
+            var sourceCoords = visibleMarkers.ToDictionary(
+                kvp => kvp.Key,
+                kvp => (kvp.Value.Location.PixelX, kvp.Value.Location.PixelY),
+                StringComparer.Ordinal);
+
+            var applications = _layoutEditor.CreateLayoutApplications(layout, visibleMarkers.Keys);
+            var geometryPath = IOPath.Combine(
+                AppDomain.CurrentDomain.BaseDirectory,
+                _visualConfig.PinParts.GeometryMetadataPath);
+
+            var applyPlan = _planApplicationService.BuildApplyInstructions(
+                layout,
+                applications,
+                sourceCoords,
+                viewport,
+                cw,
+                ch,
+                _visualConfig.PinParts,
+                groupKey ?? string.Empty,
+                geometryPath,
+                CanUseCompositePins() && _pinPartGeometryHash != null);
+
+            foreach (var instruction in applyPlan.Instructions)
+            {
+                if (!visibleMarkers.TryGetValue(instruction.LocationName, out var marker))
+                    continue;
+
+                if (instruction.CachedPlan != null
+                    && _baseMarkerVisuals.TryGetValue(marker, out var baseState)
+                    && baseState.Content is ImagePinMarker)
+                {
+                    var shaftImage = LoadPinPartBitmap(instruction.CachedPlan.ShaftSourcePath);
+                    var headImage  = LoadPinPartBitmap(instruction.CachedPlan.HeadSourcePath);
+                    if (shaftImage != null && headImage != null)
+                    {
+                        ApplyRenderPlanToMarker(
+                            marker,
+                            instruction.OriginalScreen,
+                            instruction.ExtendedScreen,
+                            instruction.CachedPlan,
+                            shaftImage,
+                            headImage);
+                        continue;
+                    }
+                }
+
+                if (TryApplyCompositePinMarker(
+                        marker,
+                        instruction.OriginalScreen,
+                        instruction.ExtendedScreen,
+                        instruction.PairId,
+                        instruction.HeadSourcePath))
+                    continue;
+
+                var markerSize = _visualConfig.LocationMarkerSize;
+                Canvas.SetLeft(marker, instruction.ExtendedScreen.X - (markerSize / 2));
+                Canvas.SetTop(marker, instruction.ExtendedScreen.Y - (markerSize / 2));
+
+                if (instruction.RequiresExtensionLine)
+                    _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+            }
+
+            if (applyPlan.ShouldSaveToCache && !string.IsNullOrEmpty(groupKey))
+            {
+                _planApplicationService.SaveIfMissed(
+                    applyPlan.CacheKey,
+                    groupKey,
+                    layout.VariantId,
+                    layout.Markers.Select(m => m.LocationName));
+            }
+
+            if (_overrideStore.HasPendingOverrides && !_layoutEditor.IsEditMode)
+                ReapplyPendingOverrides();
+        }
+
+        private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)
+        {
+            await Task.Delay(delayMs);
+            EditModeStatusText.Text = "EDIT MODE ACTIVE";
+            EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+        }
+
+        /// <summary>
+        /// Handles marker drag start.
+        /// </summary>
+        private void OnMarkerDragStart(object sender, MouseButtonEventArgs e)
+        {
+            if (!_layoutEditor.IsEditMode || sender is not LocationMarker marker)
+                return;
+
+            _draggedMarker = marker;
+            _dragStartPosition = e.GetPosition(MapDisplay.Markers);
+            marker.CaptureMouse();
+            
+            // Highlight the dragged marker
+            marker.Opacity = 0.7;
+            
+            // Bring marker and its line to front
+            Panel.SetZIndex(marker, 2000);
+            _extensionLineRenderer.SetLineZIndex(marker, 1999);
+
+            e.Handled = true;
+        }
+
+        /// <summary>
+        /// Handles marker drag movement.
+        /// </summary>
+        private void OnMarkerDragMove(object sender, MouseEventArgs e)
+        {
+            if (!_layoutEditor.IsEditMode || _draggedMarker == null || sender != _draggedMarker)
+                return;
+
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                var currentPosition = e.GetPosition(MapDisplay.Markers);
+                var markerSize = _visualConfig.LocationMarkerSize;
+                
+                LogDragDebug($"[DRAG] Mouse position: ({currentPosition.X:F1}, {currentPosition.Y:F1}), MarkerSize: {markerSize}");
+                
+                // Calculate new position (centered on cursor)
+                var newX = currentPosition.X - (markerSize / 2);
+                var newY = currentPosition.Y - (markerSize / 2);
+                
+                LogDragDebug($"[DRAG] Calculated position before bounds: ({newX:F1}, {newY:F1})");
+                
+                // Constrain to canvas bounds
+                var canvasWidth = MapDisplay.Markers.ActualWidth;
+                var canvasHeight = MapDisplay.Markers.ActualHeight;
+                newX = Math.Max(0, Math.Min(newX, canvasWidth - markerSize));
+                newY = Math.Max(0, Math.Min(newY, canvasHeight - markerSize));
+                
+                LogDragDebug($"[DRAG] Final position after bounds ({canvasWidth:F0}x{canvasHeight:F0}): ({newX:F1}, {newY:F1})");
+                
+                // Get current marker position for comparison
+                var currentMarkerX = Canvas.GetLeft(_draggedMarker);
+                var currentMarkerY = Canvas.GetTop(_draggedMarker);
+                LogDragDebug($"[DRAG] Current marker position: ({currentMarkerX:F1}, {currentMarkerY:F1})");
+                
+                // Update marker position
+                Canvas.SetLeft(_draggedMarker, newX);
+                Canvas.SetTop(_draggedMarker, newY);
+                
+                // Verify marker position was updated
+                var updatedMarkerX = Canvas.GetLeft(_draggedMarker);
+                var updatedMarkerY = Canvas.GetTop(_draggedMarker);
+                LogDragDebug($"[DRAG] Updated marker position: ({updatedMarkerX:F1}, {updatedMarkerY:F1})");
+                
+                // Update line if it exists
+                if (_extensionLineRenderer.HasLine(_draggedMarker))
+                {
+                    var markerCenterX = newX + (markerSize / 2);
+                    var markerCenterY = newY + (markerSize / 2);
+                    _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, new Point(markerCenterX, markerCenterY));
+                    LogDragDebug($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1})");
+                }
+                else
+                {
+                    LogDragDebug($"[OnMarkerDragMove] No line found for marker: {_draggedMarker.Location.Name}");
+                }
+            }
+        }
+
+        private void LogDragDebug(string message)
+        {
+            if (_visualConfig.Debug.LogRadialExtensionCalculation)
+            {
+                _logger.LogInfo(message);
+            }
+        }
+
+        /// <summary>
+        /// Handles marker drag end.
+        /// </summary>
+        private void OnMarkerDragEnd(object sender, MouseButtonEventArgs e)
+        {
+            if (!_layoutEditor.IsEditMode || _draggedMarker == null)
+                return;
+
+            _draggedMarker.ReleaseMouseCapture();
+            
+            // Restore marker appearance
+            _draggedMarker.Opacity = 1.0;
+            Panel.SetZIndex(_draggedMarker, 0);
+            _extensionLineRenderer.SetLineZIndex(_draggedMarker, 0);
+
+            _draggedMarker = null;
+            
+            e.Handled = true;
+        }
+
+        #endregion
+
+    }
+}

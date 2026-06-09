@@ -21,8 +21,7 @@ MAX_ACTIVE_PLAN_DAYS = 30
 EXCLUDE_DIRS = {"bin", "obj", "scripts/venv", ".git", "Tests"}
 
 # Pre-harness debt — remove entries as files are cleaned up (see docs/exec-plans/tech-debt-tracker.md)
-FILE_SIZE_GRANDFATHER = {
-    "MainWindow.xaml.cs",  # TD-001: extract services from god object
+FILE_SIZE_GRANDFATHER: set[str] = {
 }
 CONSOLE_GRANDFATHER = {
     "Services/FileLogger.cs",  # intentional console mirror for dev
@@ -35,7 +34,7 @@ def find_cs_files() -> list[Path]:
     files = []
     for path in REPO_ROOT.rglob("*.cs"):
         parts = set(path.relative_to(REPO_ROOT).parts)
-        if parts & {"bin", "obj", "Tests"}:
+        if parts & {"bin", "obj", "Tests", "backups"}:
             continue
         files.append(path)
     return files
