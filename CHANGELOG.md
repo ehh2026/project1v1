@@ -7,8 +7,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Fixed
 
 - **Gitleaks false positive:** `LayoutKeyGeneratorTests` no longer hardcodes 16-char hex layout-cache key fixtures that matched `generic-api-key`; `AreKeysCompatible` tests now build keys via `GenerateKey`.
+- **Nullable warnings (CS8602):** Guard nullable XML nodes in `ExcelCoordinateReader` and nullable `Cluster` on visible cluster markers in `MainWindow.xaml.cs`.
 
 ### Changed
+
+- **CI / Dependabot:** GitHub Actions bumped to `actions/checkout@v6`, `actions/setup-dotnet@v5`, and `gitleaks/gitleaks-action@v3` (Node 24–compatible); Newtonsoft.Json 13.0.3 → 13.0.4.
 
 - **Composite pin head placement fix (Phases 1–3):** Head-ball anchor uses `local_center`; pin_07 shaft geometry recalibrated after shadow removal. Tests pass; visual check OK. Plan parked in [docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md](docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md); optional collar/shading/`TargetHeadRadiusPx` polish tracked in [docs/TO_DO.md](docs/TO_DO.md) inactive section.
 

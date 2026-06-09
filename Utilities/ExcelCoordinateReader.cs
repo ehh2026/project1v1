@@ -121,9 +121,9 @@ public class ExcelCoordinateReader
                 foreach (XmlElement si in sis)
                 {
                     var t = si.GetElementsByTagName("t");
-                    if (t.Count > 0)
+                    if (t.Count > 0 && t.Item(0) is XmlElement textElement)
                     {
-                        sharedStrings[index] = t[0].InnerText;
+                        sharedStrings[index] = textElement.InnerText;
                     }
                     index++;
                 }
@@ -210,10 +210,10 @@ public class ExcelCoordinateReader
         try
         {
             var vElement = cell.GetElementsByTagName("v");
-            if (vElement.Count == 0)
+            if (vElement.Count == 0 || vElement.Item(0) is not XmlElement valueElement)
                 return string.Empty;
 
-            var value = vElement[0].InnerText;
+            var value = valueElement.InnerText;
             var cellType = cell.GetAttribute("t");
 
             // If it's a shared string reference

@@ -443,8 +443,8 @@ namespace InteractiveWorldMap
                 .ToList();
 
             var visibleClusterCenters = _clusterMarkers
-                .Where(m => m.Visibility == Visibility.Visible)
-                .Select(m => m.Cluster.CenterPoint)
+                .Where(m => m.Visibility == Visibility.Visible && m.Cluster != null)
+                .Select(m => m.Cluster!.CenterPoint)
                 .ToList();
 
             var plan = _placementOrchestrator.Compute(

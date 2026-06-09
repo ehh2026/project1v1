@@ -76,7 +76,7 @@ InteractiveWorldMap/
 
 ## Dependencies
 
-- **Newtonsoft.Json** (v13.0.3): JSON parsing for location data
+- **Newtonsoft.Json** (v13.0.4): JSON parsing for location data
 
 ## Logging
 

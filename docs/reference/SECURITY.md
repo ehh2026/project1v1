@@ -35,7 +35,7 @@ Project-specific security guidance for agents. This is a local Windows desktop a
 ### Dependencies
 
 - Minimize NuGet additions; evaluate security advisories before adding packages
-- Current sole runtime dependency: Newtonsoft.Json 13.0.3
+- Current sole runtime dependency: Newtonsoft.Json 13.0.4
 - CI runs a NuGet vulnerability gate (`scripts/verify_nuget_vulnerabilities.py`) after restore — fails on **High** and **Critical** advisories (direct and transitive)
 - Dependabot opens weekly PRs for NuGet and GitHub Actions updates (see `.github/dependabot.yml`)
 
