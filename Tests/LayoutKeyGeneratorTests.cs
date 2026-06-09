@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using Xunit;
@@ -155,15 +156,39 @@ public class LayoutKeyGeneratorTests
     [Fact]
     public void AreKeysCompatible_SameKey_ReturnsTrue()
     {
-        var key = "abcdef1234567890_z55.00_c1000.00_2000.00_s179x101_m3_p10.0_l50.0_n13.0";
+        var locations = new List<Location>
+        {
+            new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+            new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+        };
+        var key = LayoutKeyGenerator.GenerateKey(locations, MakeZoomedViewport(), MakeConfig());
+
         Assert.True(LayoutKeyGenerator.AreKeysCompatible(key, key));
     }
 
     [Fact]
     public void AreKeysCompatible_DifferentHash_ReturnsFalse()
     {
-        var k1 = "abcdef1234567890_z55.00_c1000.00_2000.00_s179x101_m3_p10.0_l50.0_n13.0";
-        var k2 = "000000aaaaaaaaaa_z55.00_c1000.00_2000.00_s179x101_m3_p10.0_l50.0_n13.0";
+        var vp  = MakeZoomedViewport();
+        var cfg = MakeConfig();
+
+        var k1 = LayoutKeyGenerator.GenerateKey(
+            new List<Location>
+            {
+                new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+                new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+            },
+            vp,
+            cfg);
+        var k2 = LayoutKeyGenerator.GenerateKey(
+            new List<Location>
+            {
+                new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+                new() { Name = "Gamma", PixelX = 120, PixelY = 220 }
+            },
+            vp,
+            cfg);
+
         Assert.False(LayoutKeyGenerator.AreKeysCompatible(k1, k2));
     }
 
@@ -171,8 +196,15 @@ public class LayoutKeyGeneratorTests
     public void AreKeysCompatible_DifferentViewportSizeSameHash_ReturnsTrue()
     {
         // Different s{w}x{h} components should still be compatible (only hash+zoom checked)
-        var k1920 = "abcdef1234567890_z55.00_c1000.00_2000.00_s179x101_m3_p10.0_l50.0_n13.0";
-        var k1440 = "abcdef1234567890_z55.00_c1000.00_2000.00_s161x101_m3_p10.0_l50.0_n13.0";
+        var locations = new List<Location>
+        {
+            new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+            new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+        };
+        var k1920 = LayoutKeyGenerator.GenerateKey(locations, MakeZoomedViewport(), MakeConfig());
+        var k1440 = Regex.Replace(k1920, @"s\d+x\d+", "s161x101");
+
+        Assert.NotEqual(k1920, k1440);
         Assert.True(LayoutKeyGenerator.AreKeysCompatible(k1920, k1440));
     }
 }

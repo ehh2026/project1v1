@@ -16,7 +16,6 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Track | Plan | Status | Next action |
 |-------|------|--------|-------------|
 | Core placement | [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md) | Phase 5 partial | Phase 6 verification |
-| Head anchor fix | [composite-pin-head-placement-fix-plan.md](composite-pin-head-placement-fix-plan.md) | Phase 3 in progress | pin_07 recalibration |
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Blocked | Phase 0 policy decision |
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
 | Rendering polish | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Not started | Shaft anti-aliasing (Part 1A) |
@@ -33,9 +32,13 @@ pin-parts Phase 6 verify
 manual-layout-seed-alignment Phases 1–3
   → reliable auto-seed loading at runtime
 
-composite-pin-head-placement-fix
-  → pin-rendering-improvements (independent, lower priority)
+pin-rendering-improvements
+  → independent, lower priority
 ```
+
+## Inactive (../inactive/)
+
+- [composite-pin-head-placement-fix-plan.md](../inactive/composite-pin-head-placement-fix-plan.md) — Phases 1–3 done; optional collar/shading/radius polish in TO_DO
 
 ## Completed (moved to ../completed/)
 

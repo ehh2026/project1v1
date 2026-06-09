@@ -13,7 +13,7 @@ edit mode drag → save → exit/reload preserves composite rendering; per-pin s
 cached render plans; coordination with multi-variant layout management.
 
 **Parent plan:** [pin-parts-composite-placement-plan.md](../active/pin-parts-composite-placement-plan.md)  
-**Fix context:** [composite-pin-head-placement-fix-plan.md](../active/composite-pin-head-placement-fix-plan.md)  
+**Fix context:** [composite-pin-head-placement-fix-plan.md](../inactive/composite-pin-head-placement-fix-plan.md)  
 **Variant UI/API (Phase 5 scope):** [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md) — canonical plan for multi-variant storage and picker UI  
 **Seed alignment:** [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) — `SourceExtendedX/Y` on seed markers; user saves still use angle/length replay
 
@@ -466,7 +466,7 @@ Cache and variant selection both key off `LayoutKeyGenerator.GenerateKey()`. Sma
 
 ### Geometry recalibration
 
-[composite-pin-head-placement-fix-plan.md](../active/composite-pin-head-placement-fix-plan.md) may change visual appearance even when `PairId` is stable. `geometryHash` invalidates render-plan cache; stored assignments remain valid if geometry entries still exist.
+[composite-pin-head-placement-fix-plan.md](../inactive/composite-pin-head-placement-fix-plan.md) may change visual appearance even when `PairId` is stable. `geometryHash` invalidates render-plan cache; stored assignments remain valid if geometry entries still exist.
 
 ### Test strategy
 

@@ -4,7 +4,13 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Gitleaks false positive:** `LayoutKeyGeneratorTests` no longer hardcodes 16-char hex layout-cache key fixtures that matched `generic-api-key`; `AreKeysCompatible` tests now build keys via `GenerateKey`.
+
 ### Changed
+
+- **Composite pin head placement fix (Phases 1–3):** Head-ball anchor uses `local_center`; pin_07 shaft geometry recalibrated after shadow removal. Tests pass; visual check OK. Plan parked in [docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md](docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md); optional collar/shading/`TargetHeadRadiusPx` polish tracked in [docs/TO_DO.md](docs/TO_DO.md) inactive section.
 
 - **Large-file refactoring (Phases 1–4):** Per [LARGE_FILE_REFACTORING_ASSESSMENT.md](docs/assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — closed TD-013 and reduced TD-001; `verify.ps1` taste check green (MainWindow removed from `FILE_SIZE_GRANDFATHER`).
   - **Phase 1 — PinDebugger:** Split `Tools/PinDebugger/Program.cs` (1051 lines) into focused files (`PinDebuggerContext`, `ShaftPixelSampler`, `ShaftCleaner`, `JoinAnalysis`, `Annotator`, `CompositePreviewRenderer`, slim `Program.cs`); deduplicated LockBits pixel sampling.
