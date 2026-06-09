@@ -21,7 +21,6 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
 | Rendering polish | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Not started | Shaft anti-aliasing (Part 1A) |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
-| Layout variants | [manual-layout-variants-plan.md](manual-layout-variants-plan.md) | Phases 1–4 done | Remaining verification / polish |
 
 ## Dependency order
 
@@ -31,8 +30,8 @@ pin-parts Phase 6 verify
   → composite-pins-unzoomed Phases 2–4
   → remove-pins-jpg-legacy-path
 
-manual-layout-seed-alignment Phase 3
-  → manual-layout-variants (remaining)
+manual-layout-seed-alignment Phases 1–3
+  → reliable auto-seed loading at runtime
 
 composite-pin-head-placement-fix
   → pin-rendering-improvements (independent, lower priority)
@@ -41,6 +40,7 @@ composite-pin-head-placement-fix
 ## Completed (moved to ../completed/)
 
 - [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md) — Phases 1–4; Phase 5 delegated to manual-layout-variants
+- [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md) — variant CRUD, edit-mode UI, seed merge; manual smoke passed 2026-06-08
 
 ## Rules
 

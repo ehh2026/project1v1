@@ -19,13 +19,13 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Composite pins on all individual markers — same plan, Phases 2–3
 - [ ] Phase 6 verification — [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
 - [ ] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
-- [ ] Multiple layout variants per cluster — [manual-layout-variants-plan.md](exec-plans/active/manual-layout-variants-plan.md) (Phases 1–4 done; remaining polish/verification)
 - [ ] Head placement fix (pin_07 recalibration) — [composite-pin-head-placement-fix-plan.md](exec-plans/active/composite-pin-head-placement-fix-plan.md)
 - [ ] Pin rendering polish (anti-aliasing, depth sort) — [pin-rendering-improvements-plan.md](exec-plans/active/pin-rendering-improvements-plan.md)
 
 ## Refactoring & quality
 
 - [ ] Refactoring assessment follow-through — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
+- [ ] Split `Tools/PinDebugger/Program.cs` (1051 lines; taste check REMEDIATION: partial classes or extract Services) — blocks `verify.ps1`
 - [ ] Resolve nullable reference warnings (CS8602/CS8604) — Phase 13 in same plan
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
@@ -59,6 +59,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 ## Recently done
 
+- Manual layout variants — [manual-layout-variants-plan.md](exec-plans/completed/manual-layout-variants-plan.md) (2026-06-08)
 - Unzoomed marker offset — fixed 2026-06-06 ([UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](assessments/UNZOOMED_MARKER_OFFSET_ASSESSMENT.md))
 - Security CI — [security-ci-plan.md](exec-plans/completed/security-ci-plan.md)
-- Composite pin Phases 1–5 partial; manual-layout variants Phases 1–4 — see [CHANGELOG.md](../CHANGELOG.md)
+- Composite pin Phases 1–5 partial — see [CHANGELOG.md](../CHANGELOG.md)

@@ -14,7 +14,7 @@ cached render plans; coordination with multi-variant layout management.
 
 **Parent plan:** [pin-parts-composite-placement-plan.md](../active/pin-parts-composite-placement-plan.md)  
 **Fix context:** [composite-pin-head-placement-fix-plan.md](../active/composite-pin-head-placement-fix-plan.md)  
-**Variant UI/API (Phase 5 scope):** [manual-layout-variants-plan.md](../active/manual-layout-variants-plan.md) — canonical plan for multi-variant storage and picker UI  
+**Variant UI/API (Phase 5 scope):** [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md) — canonical plan for multi-variant storage and picker UI  
 **Seed alignment:** [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) — `SourceExtendedX/Y` on seed markers; user saves still use angle/length replay
 
 ---
@@ -59,7 +59,7 @@ The first draft of this plan had several factual errors. They are fixed below; t
 - [x] Phase 2: Persist shaft/head assignments in saved layouts
 - [x] Phase 3: Right-click shaft override (head override optional second pass)
 - [x] Phase 4: Composite render-plan disk cache
-- [ ] Phase 5: **Delegated** — implement via [manual-layout-variants-plan.md](../active/manual-layout-variants-plan.md)
+- [ ] Phase 5: **Delegated** — implement via [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md)
 
 ### Recommended order
 
@@ -136,7 +136,7 @@ The first draft of this plan had several factual errors. They are fixed below; t
 3. **Assignments not persisted.** `ManualLayoutMarker` stores endpoints/angle/length only; shaft/head recomputed via scoring + hash on every replay.
 4. **No render-plan cache.** Every `TryApplyCompositePinMarker` call rebuilds plans synchronously.
 5. **No per-pin override UI.** No right-click path for manual shaft choice surviving save/reload.
-6. **Multi-variant UI/API.** Storage model supports variants; picker and `SelectedVariants` persistence are scoped to [manual-layout-variants-plan.md](../active/manual-layout-variants-plan.md).
+6. **Multi-variant UI/API.** Storage model supports variants; picker and `SelectedVariants` persistence are scoped to [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md).
 
 ---
 
@@ -435,7 +435,7 @@ Auto variant uses `variantId = "auto"` and `layoutContentHash` from computed ext
 
 ## Phase 5 — Multi-Variant Layouts (Delegated)
 
-**This plan no longer defines Phase 5 implementation.** Use [manual-layout-variants-plan.md](../active/manual-layout-variants-plan.md).
+**This plan no longer defines Phase 5 implementation.** Use [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md).
 
 ### What belongs there (not here)
 
@@ -454,7 +454,7 @@ When user selects a variant (edit mode per variants plan MVP):
 
 **Coordination:** Complete Phase 1–2 before variant UI so switching variants shows correct composite assignments.
 
-> **Builder note (Phase 5 / variants plan):** Variant picker UI in `MainWindow.xaml` is fine, but list/load/save-as logic must stay in `ManualLayoutManager` + `LayoutEditorController` per [manual-layout-variants-plan.md](../active/manual-layout-variants-plan.md). Composite replay on variant switch = one call to `CompositePinApplicationService` / `ApplyManualLayout`, not duplicated in picker handlers.
+> **Builder note (Phase 5 / variants plan):** Variant picker UI in `MainWindow.xaml` is fine, but list/load/save-as logic must stay in `ManualLayoutManager` + `LayoutEditorController` per [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md). Composite replay on variant switch = one call to `CompositePinApplicationService` / `ApplyManualLayout`, not duplicated in picker handlers.
 
 ---
 

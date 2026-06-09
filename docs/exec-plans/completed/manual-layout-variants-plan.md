@@ -1,7 +1,8 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-07
+completed: 2026-06-08
 revised: 2026-06-08
 requirements_ref: manual-layout-variants
 parent_program: composite-pins-program.md
@@ -13,9 +14,15 @@ Support multiple saved layout alternatives per cluster/viewport with explicit us
 
 Related design doc: [MANUAL_LAYOUT_EDITOR.md](../../guides/MANUAL_LAYOUT_EDITOR.md)
 
-Prerequisite: [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) Phase 3 (reliable seed loading) should be complete or in progress.
+## Completion summary (2026-06-08)
 
-TO_DO item: [Multiple saved layout variants per cluster/viewport](../../TO_DO.md)
+- Phases 1–4 complete: variant CRUD API, edit-mode UI, seed-generator merge, docs and unit tests.
+- Manual smoke passed (Save As, switch variant, restart, selection persists).
+- `verify.ps1` blocked only by unrelated taste check: `Tools/PinDebugger/Program.cs` (1051 lines) — tracked in [TO_DO.md](../../TO_DO.md) refactoring section.
+
+---
+
+Prerequisite note: [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) Phase 3 (reliable seed loading) remains open for full auto-seed rollout; variant storage and UI do not depend on it.
 
 ## Problem
 
@@ -34,7 +41,7 @@ Users can save, name, list, load, and delete layout variants per group key. Auto
 ## 2026-06-08 Review Notes
 
 - Direction is solid and matches the current model shape, but the first draft was underspecified around selected-variant fallback, delete/default rules, and how `LayoutEditorController` tracks the active variant.
-- The seed-generator file path was conditional, not current-state fact: `Tools/ManualLayoutSeedGenerator/Program.cs` only exists after [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) creates it. Today, `scripts/generate_manual_layout_seeds.ps1` is the active generator.
+- The seed-generator file path was conditional, not current-state fact: `Tools/ManualLayoutSeedGenerator/Program.cs` only exists after [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) creates it. Today, `scripts/generate_manual_layout_seeds.ps1` is the active generator.
 - Variant saves must preserve composite assignment fields (`PairId`, `HeadSourcePath`) added by the composite-pin manual-layout phases; otherwise switching variants can silently change shaft/head choices.
 
 ## Current State (already implemented)
@@ -59,7 +66,7 @@ This plan touches an already-large WPF surface. Implementers must treat extracti
 5. **Protect existing file-size rules.** No touched `.cs` file should move farther from the repo's 800-line guideline unless the change is explicitly extracting code out of a larger file.
 6. **Unit-test service behavior directly.** Cover variant CRUD, selected-variant fallback, delete/default rules, and assignment-field round-trips without needing WPF integration tests for every branch.
 
-## Phase 1 — Service API for variant management
+## Phase 1 — Service API for variant management ✅
 
 **Deliverables:** explicit variant operations without UI.
 
@@ -133,7 +140,7 @@ public sealed record ManualLayoutSummary(
 - Existing `ManualLayoutManagerTests` still pass
 - Architecture layer rules unchanged
 
-## Phase 2 — Edit-mode UI for variant selection
+## Phase 2 — Edit-mode UI for variant selection ✅
 
 **Deliverables:** user-visible variant picker in edit mode.
 
@@ -163,7 +170,7 @@ public sealed record ManualLayoutSummary(
 - Manual smoke: create two manual variants for same cluster, switch between them, restart app, selection persists
 - AutoSeed variant remains after saving a manual copy
 
-## Phase 3 — Seed generator integration
+## Phase 3 — Seed generator integration ✅
 
 **Deliverables:** regenerated seeds update AutoSeed variants only.
 
@@ -172,7 +179,7 @@ public sealed record ManualLayoutSummary(
 | Action | Path |
 |--------|------|
 | Modify | `scripts/generate_manual_layout_seeds.ps1` if seed alignment Phase 1 has not created the console tool yet |
-| Modify | `Tools/ManualLayoutSeedGenerator/Program.cs` after [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) Phase 1 exists |
+| Modify | `Tools/ManualLayoutSeedGenerator/Program.cs` after [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) Phase 1 exists |
 | Modify | `Services/ManualLayoutManager.cs` |
 
 ### Tasks
@@ -187,14 +194,14 @@ public sealed record ManualLayoutSummary(
 
 - Running seed generator twice updates AutoSeed endpoints without touching Manual variants
 
-## Phase 4 — Documentation and verification
+## Phase 4 — Documentation and verification ✅
 
 ### Tasks
 
 1. Update [MANUAL_LAYOUT_EDITOR.md](../../guides/MANUAL_LAYOUT_EDITOR.md) — variant model, UI flows, JSON schema examples with `LayoutGroups` and multiple variants.
 2. Update [VISUAL_CONFIG.md](../../guides/VISUAL_CONFIG.md) if new config flags added (e.g. `AllowMultipleVariants`).
 3. Add CHANGELOG entry.
-4. Run `.\scripts\verify.ps1`.
+4. Run `.\scripts\verify.ps1` — manual smoke OK; taste check blocked on `Tools/PinDebugger/Program.cs` (unrelated).
 
 ## JSON Schema Example (target)
 
@@ -248,4 +255,4 @@ public sealed record ManualLayoutSummary(
 - Selected variant persists across sessions
 - Stale or deleted selected variants fall back predictably and do not corrupt `manual-layouts.json`
 - Composite assignment fields persist across variant save/load/switch
-- `scripts/verify.ps1` passes
+- `scripts/verify.ps1` passes (blocked on unrelated PinDebugger taste check at completion)

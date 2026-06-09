@@ -27,12 +27,12 @@ started: YYYY-MM-DD
 | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Shaft anti-aliasing and perspective depth sorting |
 | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
-| [manual-layout-variants-plan.md](manual-layout-variants-plan.md) | Multiple saved layout variants per cluster + UI |
 
 ## Recently completed (moved to ../completed/)
 
 - `refactoring-plan.md` — MainWindow decomposition tracker (Phases 1–10) — moved 2026-06-08
 - `composite-pins-manual-layout-phases-plan.md` — Composite-pin manual-layout integration (Phases 1–4 done; Phase 5 delegated to `manual-layout-variants-plan.md`) — moved 2026-06-08
+- `manual-layout-variants-plan.md` — Multiple saved layout variants per cluster + edit-mode UI — moved 2026-06-08
 
 Completed plans move to [../completed/](../completed/).
 
