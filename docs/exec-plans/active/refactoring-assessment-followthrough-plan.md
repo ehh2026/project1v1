@@ -3,13 +3,13 @@ status: active
 owner: agent
 started: 2026-06-07
 requirements_ref: refactoring-assessment-followthrough
-assessment: REFACTORING_ASSESSMENT.md
-tracker: refactoring-plan.md
+assessment: assessments/REFACTORING_ASSESSMENT.md
+tracker: ../completed/refactoring-plan.md
 ---
 
 # Refactoring Assessment Follow-Through Plan
 
-Close remaining items from [REFACTORING_ASSESSMENT.md](../../REFACTORING_ASSESSMENT.md) not already completed in [refactoring-plan.md](refactoring-plan.md) (Phases 1–10).
+Close remaining items from [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) not already completed in [refactoring-plan.md](../completed/refactoring-plan.md) (Phases 1–10).
 
 TO_DO item: [Consider addressing issues in REFACTOR ASSESSMENT](../../TO_DO.md)
 
@@ -190,7 +190,7 @@ Reduce remaining assessment debt in priority order without breaking demo-ready b
 | Zoom animation orchestration callbacks | extend existing animation helper or `Services/ZoomAnimationController.cs` |
 | Marker factory (`CreateImagePinMarker`, cluster markers) | `Services/MarkerFactory.cs` |
 
-Update [refactoring-plan.md](refactoring-plan.md) with Phases 11+ checkboxes as each lands.
+Update [refactoring-plan.md](../completed/refactoring-plan.md) with Phases 11+ checkboxes as each lands.
 
 **Acceptance:** Each extraction reduces `MainWindow.xaml.cs` by ≥100 lines with tests; no feature regression
 
@@ -216,7 +216,7 @@ Update [refactoring-plan.md](refactoring-plan.md) with Phases 11+ checkboxes as 
 
 After each phase:
 
-- Update [refactoring-plan.md](refactoring-plan.md) checkbox
+- Update [refactoring-plan.md](../completed/refactoring-plan.md) checkbox
 - Update [tech-debt-tracker.md](../tech-debt-tracker.md) if TD item closed
 - CHANGELOG entry under `[Unreleased]`
 
@@ -225,5 +225,5 @@ After each phase:
 - All Phase 11–14 complete
 - At least one Phase 18 extraction complete
 - Phases 15–17 triaged (done or explicitly deferred with issue link in tech-debt-tracker)
-- `REFACTORING_ASSESSMENT.md` header note pointing to this plan and completion status
+- `assessments/REFACTORING_ASSESSMENT.md` header note pointing to this plan and completion status
 - `scripts/verify.ps1` passes

@@ -25,7 +25,7 @@ Grades track harness maturity and code health. Update after each harness phase o
 
 1. After completing an exec plan milestone
 2. After a harness phase ships
-3. Monthly doc-gardening (see [agent-workflows.md](agent-workflows.md))
+3. Monthly doc-gardening (see [agent-workflows.md](../agent-workflows.md))
 
 ## History
 

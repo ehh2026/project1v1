@@ -65,4 +65,4 @@ When the same rule is violated twice:
 
 - Review after each agent failure post-mortem
 - Review monthly during doc-gardening (see [agent-workflows.md](../agent-workflows.md))
-- Update [QUALITY_SCORE.md](../QUALITY_SCORE.md) when principles change
+- Update [QUALITY_SCORE.md](../reference/QUALITY_SCORE.md) when principles change

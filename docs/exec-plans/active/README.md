@@ -10,16 +10,38 @@ started: YYYY-MM-DD
 ---
 ```
 
+## Program dashboards
+
+| Plan | Scope |
+|------|--------|
+| [composite-pins-program.md](composite-pins-program.md) | Umbrella for all composite-pin and manual-layout tracks |
+
 ## Active plans
 
 | Plan | Scope |
 |------|--------|
-| [refactoring-plan.md](refactoring-plan.md) | MainWindow decomposition tracker (Phases 1–10) |
-| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../REFACTORING_ASSESSMENT.md) items (Phases 11+) |
+| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
 | [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md) | Composite pin parts — extended markers, placement calculator |
+| [composite-pin-head-placement-fix-plan.md](composite-pin-head-placement-fix-plan.md) | Head-ball anchor fix (`CompositePinRenderPlanBuilder`) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
+| [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Shaft anti-aliasing and perspective depth sorting |
 | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [manual-layout-variants-plan.md](manual-layout-variants-plan.md) | Multiple saved layout variants per cluster + UI |
 
+## Recently completed (moved to ../completed/)
+
+- `refactoring-plan.md` — MainWindow decomposition tracker (Phases 1–10) — moved 2026-06-08
+- `composite-pins-manual-layout-phases-plan.md` — Composite-pin manual-layout integration (Phases 1–4 done; Phase 5 delegated to `manual-layout-variants-plan.md`) — moved 2026-06-08
+
 Completed plans move to [../completed/](../completed/).
+
+## Maintenance rules
+
+1. **New multi-step work** — create a plan here with front-matter, add a row to the tables above, add one bullet to [TO_DO.md](../../TO_DO.md).
+2. **Composite-pin work** — also register in [composite-pins-program.md](composite-pins-program.md); keep phase detail in child plans, not `TO_DO.md`.
+3. **Plan finishes** — move file to `../completed/`, update [CHANGELOG.md](../../../CHANGELOG.md), remove or shorten the `TO_DO.md` bullet.
+4. **Investigations** — live in [../../assessments/](../../assessments/); feature how-to in [../../guides/](../../guides/).
+5. **Historical only** — move to [../../archive/planning/](../../archive/planning/), not `docs/` root.
+
+Full doc model: [agent-workflows.md](../../agent-workflows.md#documentation-maintenance). Harness: `scripts/doc_gardening.py`.

@@ -20,15 +20,15 @@ Workflow config: [`.config.kiro`](../../.kiro/specs/interactive-world-map/.confi
 
 | Topic | Doc |
 |-------|-----|
-| Visual configuration | [../VISUAL_CONFIG.md](../VISUAL_CONFIG.md) |
-| Content popups | [../CONTENT_FEATURES.md](../CONTENT_FEATURES.md) |
-| Manual layout editor | [../MANUAL_LAYOUT_EDITOR.md](../MANUAL_LAYOUT_EDITOR.md) |
-| Marker clustering | [../MARKER_CLUSTERING_PLAN.md](../MARKER_CLUSTERING_PLAN.md) |
-| Viewport zoom | [../VIEWPORT_ZOOM_PLAN.md](../VIEWPORT_ZOOM_PLAN.md) |
-| Radial extensions | [../RADIAL_EXTENSION_IMPLEMENTATION.md](../RADIAL_EXTENSION_IMPLEMENTATION.md) |
+| Visual configuration | [../guides/VISUAL_CONFIG.md](../guides/VISUAL_CONFIG.md) |
+| Content popups | [../guides/CONTENT_FEATURES.md](../guides/CONTENT_FEATURES.md) |
+| Manual layout editor | [../guides/MANUAL_LAYOUT_EDITOR.md](../guides/MANUAL_LAYOUT_EDITOR.md) |
+| Marker clustering | [../archive/planning/MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md) (archived) |
+| Viewport zoom | [../archive/planning/VIEWPORT_ZOOM_PLAN.md](../archive/planning/VIEWPORT_ZOOM_PLAN.md) (archived) |
+| Radial extensions | [../archive/planning/RADIAL_EXTENSION_IMPLEMENTATION.md](../archive/planning/RADIAL_EXTENSION_IMPLEMENTATION.md) (archived) |
 
 ## Architecture
 
 - Top-level map: [../../ARCHITECTURE.md](../../ARCHITECTURE.md)
-- Change history: [../ARCHITECTURE_CHANGES.md](../ARCHITECTURE_CHANGES.md)
-- Refactoring targets: [../REFACTORING_ASSESSMENT.md](../REFACTORING_ASSESSMENT.md)
+- Change history: [../archive/planning/ARCHITECTURE_CHANGES.md](../archive/planning/ARCHITECTURE_CHANGES.md) (archived)
+- Refactoring targets: [../assessments/REFACTORING_ASSESSMENT.md](../assessments/REFACTORING_ASSESSMENT.md)

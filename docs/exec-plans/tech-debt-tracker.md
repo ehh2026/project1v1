@@ -1,37 +1,39 @@
 # Tech Debt Tracker
 
-Known debt distilled from [TO_DO.md](../TO_DO.md) and [REFACTORING_ASSESSMENT.md](../REFACTORING_ASSESSMENT.md).
+Thin index of known debt. Detail and checklists live in linked plans — not duplicated here.
+
+Sources: [TO_DO.md](../TO_DO.md), [REFACTORING_ASSESSMENT.md](../assessments/REFACTORING_ASSESSMENT.md)
 
 ## High Priority
 
-| ID | Item | Source | Status |
-|----|------|--------|--------|
-| TD-001 | `MainWindow.xaml.cs` god object (~680+ lines) | REFACTORING_ASSESSMENT | Open |
-| TD-002 | Map filename inconsistency (`World Map 1976.jpg` vs `World Map Extra Large.jpg`) | StartupValidator vs ContentLoader | Resolved (2026-06-04) — `Models/ContentFileNames.cs` |
-| TD-003 | Property-based tests (FsCheck) from Kiro design | tasks.md `*` items | Open |
-| TD-004 | UI/integration tests | TO_DO.md | Open |
+| ID | Item | Plan / doc | Status |
+|----|------|------------|--------|
+| TD-001 | `MainWindow.xaml.cs` god object | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) | Open |
+| TD-003 | Property-based tests (FsCheck) | [.kiro/specs/.../tasks.md](../../.kiro/specs/interactive-world-map/tasks.md) `*` items | Open |
+| TD-004 | UI/integration tests | [TO_DO.md](../TO_DO.md) | Open |
 
 ## Medium Priority
 
-| ID | Item | Source | Status |
-|----|------|--------|--------|
+| ID | Item | Plan / doc | Status |
+|----|------|------------|--------|
 | TD-005 | Empty `ViewModels/` — MVVM incomplete | Project structure | Open |
-| TD-006 | Marker distortion at 50x+ zoom | TO_DO.md | Open |
-| TD-007 | Misplaced markers when zoomed out | TO_DO.md | Open |
+| TD-006 | Marker distortion at 50x+ zoom | [TO_DO.md](../TO_DO.md) | Open |
 | TD-008 | README staleness | README.md | Resolved (2026-06-04) |
 
 ## Low Priority / Features
 
-| ID | Item | Source | Status |
-|----|------|--------|--------|
-| TD-009 | Home/welcome screen before map | TO_DO.md | Open |
-| TD-010 | Subwindow opens near pin, not center | TO_DO.md | Open |
-| TD-011 | Touch screen support | TOUCH_SCREEN_SUPPORT.md | Open |
+| ID | Item | Plan / doc | Status |
+|----|------|------------|--------|
+| TD-009 | Home/welcome screen before map | [TO_DO.md](../TO_DO.md) | Open |
+| TD-010 | Subwindow opens near pin, not center | [TO_DO.md](../TO_DO.md) | Open |
+| TD-011 | Touch screen support | [TOUCH_SCREEN_SUPPORT.md](../guides/TOUCH_SCREEN_SUPPORT.md) | Open |
 
 ## Resolved
 
 | ID | Item | Resolved |
 |----|------|----------|
+| TD-002 | Map filename inconsistency | 2026-06-04 — `Models/ContentFileNames.cs` |
+| TD-007 | Misplaced markers when zoomed out | 2026-06-06 — [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](../assessments/UNZOOMED_MARKER_OFFSET_ASSESSMENT.md) |
 | TD-012 | No agent harness (AGENTS.md, CI, verify scripts) | 2026-06-04 |
 
 ## Promotion Rule

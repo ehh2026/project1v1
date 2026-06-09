@@ -4,7 +4,24 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Changed
+
+- **Docs folder layout:** `docs/guides/` (feature how-to), `docs/assessments/` (investigations), `docs/reference/` (quality/reliability/security); `docs/` root keeps harness files only (`index.md`, `TO_DO.md`, `agent-workflows.md`, `agent-failures.md`). Removed empty stub files. Updated links across repo.
+- **Documentation cleanup:** Slimmed [docs/TO_DO.md](docs/TO_DO.md) to a short human backlog; added [composite-pins-program.md](docs/exec-plans/active/composite-pins-program.md) as the composite-pin status dashboard; completed [exec-plans/active/README.md](docs/exec-plans/active/README.md) registry; archived historical plans to [docs/archive/planning/](docs/archive/planning/); refreshed [docs/index.md](docs/index.md) and [tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md); extended `scripts/doc_gardening.py` with TO_DO size, active-plan registry, and front-matter checks; documented maintenance rules in [agent-workflows.md](docs/agent-workflows.md#documentation-maintenance) and linked from [AGENTS.md](AGENTS.md).
+
 ### Added
+
+- **Manual Layout Variants (Phases 1–4):**
+  - `Models/ManualLayoutSummary.cs` — lightweight `sealed record` for variant list display (GroupKey, VariantId, DisplayName, Origin, UpdatedUtc, IsDefault, IsSelected, MarkerCount).
+  - `ManualLayoutCollection.SelectedVariants` — new per-group user selection dictionary (`groupKey → variantId`); persisted in `manual-layouts.json` and honoured by `LoadLayout`.
+  - `IManualLayoutManager` — seven new variant CRUD methods: `ListVariants`, `LoadVariant`, `SaveVariant`, `DeleteVariant`, `SetDefaultVariant`, `GetSelectedVariantId`, `SetSelectedVariantId`. Flat key methods (`SaveLayout`, `LoadLayout`, `DeleteLayout`) kept as compatibility wrappers.
+  - `ManualLayoutManager` — implemented all new APIs with guards: AutoSeed cannot overwrite Manual variants; last variant in a group cannot be deleted; AutoSeed deletion rejected by service; cap of 10 Manual/Imported variants per group; stale `SelectedVariants` entry is cleared on load and logged once; `SelectPreferredVariant` honours `SelectedVariants` before priority-order fallback.
+  - `LayoutEditorController` — added `ActiveVariantId`, `ActiveVariantOrigin`, `ActiveVariantDisplayName` state; `VariantsChanged` event; `SwitchToVariant`, `TrySaveAsVariant`, `TryDeleteActiveVariant`, `GetVariants` methods; `TrySave` targets the active Manual variant or "manual-default"; `TryDelete` clears active-variant state.
+  - `Tests/ManualLayoutVariantTests.cs` — 10 unit tests covering: list, save-as, select variant B, persist across restart, stale-id fallback, delete selected variant, reject last-variant delete, AutoSeed regen preserves Manual, assignment round-trip, cap enforcement.
+  - Edit-mode UI — variant picker ComboBox (DisplayName [Origin]), `VariantStatusText`, inline Save As row (`SaveAsInputRow`), "Save As..." button, "Delete Variant" button added to `MainWindow.xaml` EditModePanel; thin handlers in `MainWindow.xaml.cs` (≤15 lines each); `CollectCurrentExtensions` helper extracts marker-position collection.
+  - "Save Layout" button auto-redirects to Save As prompt when the active variant is AutoSeed.
+  - `generate_manual_layout_seeds.ps1` now merges seeds into existing groups instead of overwriting: loads existing JSON at startup, preserves Manual/Imported variants and `SelectedVariants`, replaces only the `seed-default` AutoSeed variant per group.
+  - `MANUAL_LAYOUT_EDITOR.md` updated with current JSON schema, variant model table, and edit-mode variant UI flows.
 
 - **Composite Pins Phase 4 — Render-plan disk cache:**
   - `Services/CompositePinPlanCache.cs` — SHA-256–keyed disk cache under `%AppData%\InteractiveWorldMap\composite_pin_plan_cache\`. Mirrors `ClusterCache` pattern: `TryLoad`, `Save`, `Invalidate(groupKey)`, `ClearAll`. Includes custom `System.Text.Json` converters for `System.Windows.Point` and `System.Windows.Media.Matrix` (required by `CompositePinLayerPlan`).

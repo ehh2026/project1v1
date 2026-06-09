@@ -7,7 +7,7 @@ completed: 2026-06-06
 
 # Security CI Plan — Dependabot, Secrets, NuGet Audit
 
-Closes the gap between [docs/SECURITY.md](../../SECURITY.md) guidance (“evaluate advisories”, “never hardcode credentials”) and automated enforcement. Defers container scanners (Grype/Trivy) until the repo ships Docker or grows a large dependency graph.
+Closes the gap between [docs/reference/SECURITY.md](../../reference/SECURITY.md) guidance (“evaluate advisories”, “never hardcode credentials”) and automated enforcement. Defers container scanners (Grype/Trivy) until the repo ships Docker or grows a large dependency graph.
 
 **Related:** [TO_DO.md](../../TO_DO.md) → High Priority → Security & CI (complete)
 
@@ -51,7 +51,7 @@ Closes the gap between [docs/SECURITY.md](../../SECURITY.md) guidance (“evalua
 
 - [x] Add [`.github/workflows/gitleaks.yml`](../../../.github/workflows/gitleaks.yml) — `ubuntu-latest`, `fetch-depth: 0`, `gitleaks/gitleaks-action@v2`
 - [x] No `.gitleaks.toml` at baseline
-- [x] Document remediation in [docs/SECURITY.md](../../SECURITY.md)
+- [x] Document remediation in [docs/reference/SECURITY.md](../../reference/SECURITY.md)
 
 **Org repos:** add `GITLEAKS_LICENSE` secret from https://gitleaks.io if the workflow requires it.
 
@@ -85,7 +85,7 @@ Deferred per plan — Phases 1–3 deliver sufficient value for this repo size.
 
 - [x] `scripts/verify_nuget_vulnerabilities.py` passes locally after transitive pin
 - [x] `.\scripts\verify.ps1` passes on Windows with .NET 6 SDK
-- [x] [docs/SECURITY.md](../../SECURITY.md) and [AGENTS.md](../../../AGENTS.md) updated
+- [x] [docs/reference/SECURITY.md](../../reference/SECURITY.md) and [AGENTS.md](../../../AGENTS.md) updated
 - [ ] Dependabot PR merges cleanly — after first Dependabot PR
 - [ ] Gitleaks workflow green on `main` — after push to GitHub
 

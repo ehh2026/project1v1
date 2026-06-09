@@ -69,7 +69,7 @@ Enforced by `Tests/Architecture/LayerDependencyTests.cs`.
 - Interface: `Services/ILogger.cs`
 - Implementation: `Services/FileLogger.cs`
 - Output: `%APPDATA%\InteractiveWorldMap\logs\app.log`
-- See [docs/RELIABILITY.md](docs/RELIABILITY.md)
+- See [docs/reference/RELIABILITY.md](docs/reference/RELIABILITY.md)
 
 ### Configuration
 
@@ -89,7 +89,7 @@ Enforced by `Tests/Architecture/LayerDependencyTests.cs`.
 2. **Content paths via ContentLoader** — Views and MainWindow must not construct `Images&Content` paths directly except through Services.
 3. **Coordinate math in Utilities** — Projection and validation live in `CoordinateMapper` / `CoordinateValidator`.
 4. **Views stay thin** — Event wiring and binding only; business logic belongs in Services.
-5. **File size** — Keep source files under 800 lines; extract Services when code-behind grows (see [docs/REFACTORING_ASSESSMENT.md](docs/REFACTORING_ASSESSMENT.md)).
+5. **File size** — Keep source files under 800 lines; extract Services when code-behind grows (see [docs/assessments/REFACTORING_ASSESSMENT.md](docs/assessments/REFACTORING_ASSESSMENT.md)).
 6. **No secrets in source** — Credentials and keys via environment or external config, never hardcoded.
 
 ## Domain Map

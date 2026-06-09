@@ -65,5 +65,11 @@ namespace InteractiveWorldMap.Models
     {
         public Dictionary<string, ManualLayout> Layouts { get; set; } = new Dictionary<string, ManualLayout>();
         public Dictionary<string, ManualLayoutGroup> LayoutGroups { get; set; } = new Dictionary<string, ManualLayoutGroup>();
+
+        /// <summary>
+        /// Per-group explicit user selection: groupKey → variantId.
+        /// Takes precedence over the origin-priority-based selection in <see cref="ManualLayoutManager"/>.
+        /// </summary>
+        public Dictionary<string, string> SelectedVariants { get; set; } = new Dictionary<string, string>();
     }
 }

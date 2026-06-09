@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Utilities;
@@ -22,9 +23,16 @@ public sealed class LayoutEditorController
 
     // ─── Observable state ────────────────────────────────────────────────────
 
-    public bool    IsEditMode          { get; private set; }
+    public bool    IsEditMode           { get; private set; }
     public bool    IsManualLayoutActive { get; private set; }
-    public string? CurrentLayoutKey    { get; private set; }
+    public string? CurrentLayoutKey     { get; private set; }
+
+    /// <summary>VariantId of the variant that is currently loaded into the editor.</summary>
+    public string?             ActiveVariantId      { get; private set; }
+    /// <summary>Origin of the currently-active variant (null when no variant is loaded).</summary>
+    public ManualLayoutOrigin? ActiveVariantOrigin  { get; private set; }
+    /// <summary>Display name of the currently-active variant.</summary>
+    public string?             ActiveVariantDisplayName { get; private set; }
 
     public sealed record LayoutMarkerApplication(
         string LocationName,
@@ -55,6 +63,9 @@ public sealed class LayoutEditorController
     public event Action? EditModeExited;
     public event Action<bool>? ManualLayoutActivityChanged;
 
+    /// <summary>Fired whenever the variant list for <see cref="CurrentLayoutKey"/> changes (save, save-as, delete).</summary>
+    public event Action<IReadOnlyList<ManualLayoutSummary>>? VariantsChanged;
+
     // ─── Constructor ─────────────────────────────────────────────────────────
 
     public LayoutEditorController(
@@ -81,7 +92,16 @@ public sealed class LayoutEditorController
         EditModeExited?.Invoke();
     }
 
-    public void SetLayoutKey(string? key)    => CurrentLayoutKey = key;
+    public void SetLayoutKey(string? key)
+    {
+        CurrentLayoutKey = key;
+        if (key == null)
+        {
+            ActiveVariantId          = null;
+            ActiveVariantOrigin      = null;
+            ActiveVariantDisplayName = null;
+        }
+    }
 
     public void SetManualLayoutActive(bool active)
     {
@@ -91,8 +111,44 @@ public sealed class LayoutEditorController
 
     // ─── Data operations ─────────────────────────────────────────────────────
 
-    /// <summary>Loads the preferred layout variant for <paramref name="key"/>, or null if none exists.</summary>
-    public ManualLayout? TryLoad(string key) => _layoutManager.LoadLayout(key);
+    /// <summary>
+    /// Loads the preferred layout variant for <paramref name="key"/>, or null if none exists.
+    /// Updates <see cref="ActiveVariantId"/> and <see cref="ActiveVariantOrigin"/> on success.
+    /// </summary>
+    public ManualLayout? TryLoad(string key)
+    {
+        var layout = _layoutManager.LoadLayout(key);
+        if (layout != null)
+        {
+            ActiveVariantId          = layout.VariantId;
+            ActiveVariantOrigin      = layout.Origin;
+            ActiveVariantDisplayName = layout.DisplayName;
+        }
+        return layout;
+    }
+
+    /// <summary>
+    /// Loads a specific variant by id, sets it as the persisted selection,
+    /// and updates active-variant state.
+    /// </summary>
+    public ManualLayout? SwitchToVariant(string variantId)
+    {
+        if (CurrentLayoutKey == null) return null;
+        var layout = _layoutManager.LoadVariant(CurrentLayoutKey, variantId);
+        if (layout == null) return null;
+        _layoutManager.SetSelectedVariantId(CurrentLayoutKey, variantId);
+        ActiveVariantId          = variantId;
+        ActiveVariantOrigin      = layout.Origin;
+        ActiveVariantDisplayName = layout.DisplayName;
+        return layout;
+    }
+
+    /// <summary>Returns the variant list for <see cref="CurrentLayoutKey"/>.</summary>
+    public IReadOnlyList<ManualLayoutSummary> GetVariants()
+    {
+        if (CurrentLayoutKey == null) return Array.Empty<ManualLayoutSummary>();
+        return _layoutManager.ListVariants(CurrentLayoutKey);
+    }
 
     /// <summary>
     /// Creates UI-neutral instructions for applying a saved layout to currently visible markers.
@@ -128,10 +184,10 @@ public sealed class LayoutEditorController
             {
                 SourceExtendedX = layoutMarker.SourceExtendedX,
                 SourceExtendedY = layoutMarker.SourceExtendedY,
-                Angle         = layoutMarker.Angle,
-                LineLength    = layoutMarker.LineLength,
-                PairId        = layoutMarker.PairId,
-                HeadSourcePath = layoutMarker.HeadSourcePath
+                Angle           = layoutMarker.Angle,
+                LineLength      = layoutMarker.LineLength,
+                PairId          = layoutMarker.PairId,
+                HeadSourcePath  = layoutMarker.HeadSourcePath
             });
 
             _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
@@ -154,7 +210,7 @@ public sealed class LayoutEditorController
         {
             double dx    = markerCenter.X - originalScreen.X;
             double dy    = markerCenter.Y - originalScreen.Y;
-            double angle = Math.Atan2(dx, -dy) * (180.0 / Math.PI); // north-up convention: 0°=North, matches ApplyManualLayout replay
+            double angle = Math.Atan2(dx, -dy) * (180.0 / Math.PI);
             extensions.Add(new RadialExtension
             {
                 Location         = location,
@@ -212,9 +268,9 @@ public sealed class LayoutEditorController
     }
 
     /// <summary>
-    /// Saves extensions under <see cref="CurrentLayoutKey"/>.
+    /// Saves extensions to the currently-active Manual variant (or "manual-default" if none).
+    /// If the active variant is AutoSeed, callers should redirect to <see cref="TrySaveAsVariant"/> instead.
     /// Sets <see cref="IsManualLayoutActive"/> to true on success.
-    /// Returns false if <see cref="CurrentLayoutKey"/> is null or the underlying save fails.
     /// </summary>
     public bool TrySave(List<RadialExtension> extensions,
         IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null)
@@ -226,19 +282,99 @@ public sealed class LayoutEditorController
             return false;
         }
 
-        bool ok = _layoutManager.SaveLayout(CurrentLayoutKey, extensions, assignments);
+        string targetVariantId   = "manual-default";
+        string targetDisplayName = "Manual Layout";
+        bool   setAsDefault      = true;
+
+        if (!string.IsNullOrEmpty(ActiveVariantId) && ActiveVariantOrigin == ManualLayoutOrigin.Manual)
+        {
+            targetVariantId   = ActiveVariantId;
+            targetDisplayName = ActiveVariantDisplayName ?? "Manual Layout";
+            setAsDefault      = targetVariantId == "manual-default";
+        }
+
+        bool ok = _layoutManager.SaveVariant(CurrentLayoutKey, targetVariantId, targetDisplayName,
+            ManualLayoutOrigin.Manual, extensions, assignments,
+            setAsDefault: setAsDefault, setAsSelected: true);
         if (ok)
         {
+            ActiveVariantId          = targetVariantId;
+            ActiveVariantOrigin      = ManualLayoutOrigin.Manual;
+            ActiveVariantDisplayName = targetDisplayName;
             SetManualLayoutActive(true);
-            _logger.LogInfo($"Saved manual layout: {extensions.Count} markers, key={CurrentLayoutKey}");
+            NotifyVariantsChanged();
+            _logger.LogInfo($"Saved manual layout variant '{targetVariantId}': {extensions.Count} markers, key={CurrentLayoutKey}");
         }
         return ok;
     }
 
     /// <summary>
-    /// Deletes the manual layout variant for <see cref="CurrentLayoutKey"/>.
+    /// Creates a new named Manual variant from current marker positions.
+    /// The slug + 8-char guid suffix becomes the <c>variantId</c>.
+    /// Sets the new variant as selected and fires <see cref="VariantsChanged"/>.
+    /// </summary>
+    public bool TrySaveAsVariant(string displayName, List<RadialExtension> extensions,
+        IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null)
+    {
+        if (extensions == null) throw new ArgumentNullException(nameof(extensions));
+        if (CurrentLayoutKey == null)
+        {
+            _logger.LogWarning("LayoutEditorController.TrySaveAsVariant: CurrentLayoutKey is null");
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(displayName)) return false;
+
+        var variantId    = MakeVariantId(displayName);
+        var basedOnId    = ActiveVariantId;
+
+        bool ok = _layoutManager.SaveVariant(CurrentLayoutKey, variantId, displayName,
+            ManualLayoutOrigin.Manual, extensions, assignments,
+            setAsDefault: false, setAsSelected: true, basedOnVariantId: basedOnId);
+        if (ok)
+        {
+            ActiveVariantId          = variantId;
+            ActiveVariantOrigin      = ManualLayoutOrigin.Manual;
+            ActiveVariantDisplayName = displayName;
+            SetManualLayoutActive(true);
+            NotifyVariantsChanged();
+            _logger.LogInfo($"SaveAs variant '{variantId}' ({displayName}) for key={CurrentLayoutKey}");
+        }
+        return ok;
+    }
+
+    /// <summary>
+    /// Deletes the currently-active variant (Manual only; AutoSeed rejection is enforced by the service).
+    /// Updates <see cref="ActiveVariantId"/> to the next preferred variant after deletion.
+    /// Sets <see cref="IsManualLayoutActive"/> to false if no Manual variants remain.
+    /// </summary>
+    public bool TryDeleteActiveVariant()
+    {
+        if (CurrentLayoutKey == null || string.IsNullOrEmpty(ActiveVariantId))
+        {
+            _logger.LogWarning("LayoutEditorController.TryDeleteActiveVariant: no active variant to delete");
+            return false;
+        }
+
+        bool ok = _layoutManager.DeleteVariant(CurrentLayoutKey, ActiveVariantId);
+        if (ok)
+        {
+            var remaining = _layoutManager.ListVariants(CurrentLayoutKey);
+            var next = remaining.FirstOrDefault(s => s.Origin == ManualLayoutOrigin.Manual)
+                    ?? remaining.FirstOrDefault();
+            ActiveVariantId          = next?.VariantId;
+            ActiveVariantOrigin      = next?.Origin;
+            ActiveVariantDisplayName = next?.DisplayName;
+            bool hasManual = remaining.Any(s => s.Origin == ManualLayoutOrigin.Manual);
+            SetManualLayoutActive(hasManual);
+            NotifyVariantsChanged();
+            _logger.LogInfo($"Deleted variant, key={CurrentLayoutKey}");
+        }
+        return ok;
+    }
+
+    /// <summary>
+    /// Deletes the manual layout variant for <see cref="CurrentLayoutKey"/> (all Manual variants).
     /// Sets <see cref="IsManualLayoutActive"/> to false on success.
-    /// Returns false if <see cref="CurrentLayoutKey"/> is null or the underlying delete fails.
     /// </summary>
     public bool TryDelete()
     {
@@ -251,9 +387,24 @@ public sealed class LayoutEditorController
         bool ok = _layoutManager.DeleteLayout(CurrentLayoutKey);
         if (ok)
         {
+            ActiveVariantId          = null;
+            ActiveVariantOrigin      = null;
+            ActiveVariantDisplayName = null;
             SetManualLayoutActive(false);
+            NotifyVariantsChanged();
             _logger.LogInfo($"Deleted manual layout, key={CurrentLayoutKey}");
         }
         return ok;
+    }
+
+    // ─── Private helpers ──────────────────────────────────────────────────────
+
+    private void NotifyVariantsChanged() => VariantsChanged?.Invoke(GetVariants());
+
+    private static string MakeVariantId(string displayName)
+    {
+        var slug = Regex.Replace(displayName.ToLowerInvariant(), @"[^a-z0-9]+", "-").Trim('-');
+        if (slug.Length > 20) slug = slug.Substring(0, 20);
+        return slug + "-" + Guid.NewGuid().ToString("N").Substring(0, 8);
     }
 }

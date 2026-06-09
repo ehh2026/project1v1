@@ -789,8 +789,35 @@ $viewportSizes = @(
     @{ Width = 3440.0; Height = 1440.0 }   # 21:9
 )
 
+# Load existing layout file to preserve Manual variants and SelectedVariants.
+$existingLayoutGroups     = [ordered]@{}
+$existingSelectedVariants = [ordered]@{}
+if (Test-Path $outputFullPath) {
+    try {
+        $existingJson = Get-Content $outputFullPath -Raw | ConvertFrom-Json
+        if ($null -ne $existingJson.LayoutGroups) {
+            foreach ($prop in $existingJson.LayoutGroups.PSObject.Properties) {
+                $existingLayoutGroups[$prop.Name] = $prop.Value
+            }
+        }
+        if ($null -ne $existingJson.SelectedVariants) {
+            foreach ($prop in $existingJson.SelectedVariants.PSObject.Properties) {
+                $existingSelectedVariants[$prop.Name] = $prop.Value
+            }
+        }
+        Write-Host "Loaded existing layout file: $($existingLayoutGroups.Count) groups, $($existingSelectedVariants.Count) selections."
+    }
+    catch {
+        Write-Warning "Could not parse existing layout file; starting fresh. Error: $_"
+    }
+}
+
 $layouts = [ordered]@{}
+# Start from existing groups so Manual/Imported variants are preserved across seed regen.
 $layoutGroups = [ordered]@{}
+foreach ($k in $existingLayoutGroups.Keys) {
+    $layoutGroups[$k] = $existingLayoutGroups[$k]
+}
 $multiLocationClusters = $clusters | Where-Object { $_.Locations.Count -gt 1 }
 
 foreach ($cluster in $multiLocationClusters) {
@@ -873,19 +900,42 @@ foreach ($cluster in $multiLocationClusters) {
             Markers = $markers
         }
         $layouts[$key] = $variant
-        $layoutGroups[$key] = [ordered]@{
-            GroupKey = $key
-            Variants = @($variant)
+
+        # Merge seed-default variant into existing group, preserving Manual/Imported variants.
+        if ($layoutGroups.Contains($key)) {
+            $existingGroup = $layoutGroups[$key]
+            $mergedVariants = New-Object System.Collections.ArrayList
+            $seedReplaced   = $false
+            foreach ($v in $existingGroup.Variants) {
+                if ($v.VariantId -eq "seed-default" -and $v.Origin -eq "AutoSeed") {
+                    [void]$mergedVariants.Add($variant)
+                    $seedReplaced = $true
+                } else {
+                    [void]$mergedVariants.Add($v)
+                }
+            }
+            if (-not $seedReplaced) {
+                [void]$mergedVariants.Insert(0, $variant)
+            }
+            $layoutGroups[$key] = [ordered]@{
+                GroupKey = $key
+                Variants = $mergedVariants.ToArray()
+            }
+        } else {
+            $layoutGroups[$key] = [ordered]@{
+                GroupKey = $key
+                Variants = @($variant)
+            }
         }
     }
 }
 
 $payload = [ordered]@{
-    Layouts = $layouts
-    LayoutGroups = $layoutGroups
+    LayoutGroups      = $layoutGroups
+    SelectedVariants  = $existingSelectedVariants
 }
 
 $payload | ConvertTo-Json -Depth 8 | Set-Content -Path $outputFullPath -Encoding UTF8
 
-Write-Host "Generated $($layouts.Count) rough layout seeds for $($multiLocationClusters.Count) multi-location clusters."
+Write-Host "Generated $($layouts.Count) seed variant(s) for $($multiLocationClusters.Count) multi-location clusters."
 Write-Host "Saved: $outputFullPath"

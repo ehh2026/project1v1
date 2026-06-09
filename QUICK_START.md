@@ -54,6 +54,6 @@ Project1v1/
 
 ## Need Help?
 
-- See `docs/UPDATING_COORDINATES.md` for coordinate details
-- See `docs/CONTENT_FEATURES.md` for content setup
+- See `docs/guides/UPDATING_COORDINATES.md` for coordinate details
+- See `docs/guides/CONTENT_FEATURES.md` for content setup
 - Check application logs for any errors during startup

@@ -3,6 +3,7 @@ status: active
 owner: agent
 started: 2026-06-05
 requirements_ref: pin-parts-composite-placement
+parent_program: composite-pins-program.md
 ---
 
 # Pin Parts Composite Placement Plan
@@ -14,7 +15,9 @@ Use the split `Pins_v2/parts` assets to render composite pins where:
 - the head is rotated so its residual stub sits on top of the shaft
 - shaft choice favors the closest native angle/length, with optional residual rotation
 
-This plan supersedes the single-bitmap assumptions in [docs/PIN_IMAGE_PLACEMENT_ASSESSMENT.md](../../PIN_IMAGE_PLACEMENT_ASSESSMENT.md) where useful.
+Program dashboard: [composite-pins-program.md](composite-pins-program.md)
+
+This plan supersedes the single-bitmap assumptions in [PIN_IMAGE_PLACEMENT_ASSESSMENT.md](../../archive/planning/PIN_IMAGE_PLACEMENT_ASSESSMENT.md) where useful.
 
 ## Execution Checklist
 
@@ -795,4 +798,4 @@ Current implementation status:
 Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md)
 
 Manual-layout integration, edit-mode roundtrip, shaft overrides, render-plan caching, and
-multi-variant layout management: [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md)
+multi-variant layout management: [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md)

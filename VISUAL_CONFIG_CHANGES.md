@@ -8,7 +8,7 @@ A runtime configuration system that allows easy adjustment of marker sizes and c
 
 1. **visual-config.json** - Configuration file with all adjustable parameters
 2. **Models/VisualConfig.cs** - Configuration model with load/save functionality
-3. **docs/VISUAL_CONFIG.md** - User documentation with examples
+3. **docs/guides/VISUAL_CONFIG.md** - User documentation with examples
 
 ## Files Modified
 
@@ -51,7 +51,7 @@ All values are in pixels unless otherwise noted:
 
 ## Usage
 
-Simply edit `visual-config.json` and restart the application. See `docs/VISUAL_CONFIG.md` for detailed instructions and example configurations.
+Simply edit `visual-config.json` and restart the application. See `docs/guides/VISUAL_CONFIG.md` for detailed instructions and example configurations.
 
 ## Benefits
 

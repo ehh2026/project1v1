@@ -40,12 +40,39 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 | Windows | Full verify, UI run, log query, startup validation | — |
 | macOS/Linux | `dotnet build`, `dotnet test`, Python harness scripts | WPF UI, `validate_startup.ps1` step 4 against built output |
 
+## Documentation maintenance
+
+### Doc roles (do not duplicate across files)
+
+| Doc | Holds | Does not hold |
+|-----|-------|---------------|
+| [TO_DO.md](TO_DO.md) | Short human backlog bullets + plan links | Phase checklists, acceptance criteria, implementation detail |
+| [exec-plans/active/](exec-plans/active/) | Multi-step checklists, phases, acceptance criteria | Long product wishlists |
+| [exec-plans/completed/](exec-plans/completed/) | Finished plans (read-only archive) | Active checkboxes |
+| [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md) | Debt IDs linking to plans | Duplicated task lists |
+| [guides/](guides/) (`MANUAL_LAYOUT_EDITOR.md`, etc.) | How the app works **now** | Future work |
+| [assessments/](assessments/) | Investigations and audits | Active execution checklists |
+| [reference/](reference/) | Quality, reliability, security | Feature how-to |
+| [archive/planning/](archive/planning/) | Historical plans | Active execution |
+
+### When starting or finishing work
+
+| Event | Action |
+|-------|--------|
+| New multi-step task | New plan in `exec-plans/active/` with YAML front-matter + row in [active/README.md](exec-plans/active/README.md) + one line in `TO_DO.md` |
+| Composite-pin / manual-layout task | Also update [composite-pins-program.md](exec-plans/active/composite-pins-program.md) dashboard |
+| Phase or plan completes | Check off child plan; update program dashboard if applicable; move finished plan to `exec-plans/completed/` |
+| Investigation concludes | Put conclusion at top of file in `assessments/`; stop tracking in `TO_DO.md` |
+| Behavior stabilizes | Merge durable knowledge into `guides/`; archive or complete the plan |
+
+Enforced by `scripts/doc_gardening.py` (TO_DO size cap, active-plan registry, front-matter, no active/completed duplicates).
+
 ## Doc Gardening (monthly)
 
-- [ ] `python scripts/doc_gardening.py` passes (links, AGENTS size, stale active plans)
+- [ ] `python scripts/doc_gardening.py` passes (links, AGENTS/TO_DO size, active plan registry, front-matter)
 - [ ] `AGENTS.md` under 150 lines
 - [ ] Completed exec plans moved to `exec-plans/completed/`
-- [ ] [QUALITY_SCORE.md](QUALITY_SCORE.md) updated
+- [ ] [QUALITY_SCORE.md](reference/QUALITY_SCORE.md) updated
 - [ ] README matches current features
 
 ## Escalate to Human When

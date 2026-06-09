@@ -2,7 +2,7 @@
 
 Date: 2026-06-06  
 Status: Investigation complete (read-only; no code changes)  
-Related backlog: [TO_DO.md — Navigation & Zoom](TO_DO.md)  
+Related backlog: [TO_DO.md — Navigation & Zoom](../TO_DO.md)  
 See also: [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md), [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md)
 
 ## Executive summary
@@ -14,7 +14,7 @@ See also: [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REG
 | **Changed since March 18, 2026?** | **Zoom level count and core viewport math: no.** `ViewportState`, `ViewportCalculator`, `MapDisplayControl`, and `MapNavigationService` are **byte-identical** to commit `5f32adb`. `ZoomScale` was already **55.0** on March 18. Post–March 18 work refactored `MainWindow` animation wiring and fixed high-res cache source path — not the number of zoom states. |
 | **Hidden complexity?** | Continuous `ZoomLevel` during animation (~30 keyframes, 1.0→55.0); radial-extension **threshold** at 10.0 (not a third user level); vestigial `ZoomState` navigation stack (depth 1, popped data unused). |
 
-**Bottom line:** The app implements **two operational zoom states**, consistent with [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) and [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md). Docs and examples that mention 3.5× or arbitrary multi-level zoom are **stale**. The March 18 baseline already used viewport rendering and `ZoomScale: 55.0` — not the earlier transform-era `3.5` constant.
+**Bottom line:** The app implements **two operational zoom states**, consistent with [MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md) and [pin-parts-composite-placement-plan.md](../exec-plans/active/pin-parts-composite-placement-plan.md). Docs and examples that mention 3.5× or arbitrary multi-level zoom are **stale**. The March 18 baseline already used viewport rendering and `ZoomScale: 55.0` — not the earlier transform-era `3.5` constant.
 
 ---
 
@@ -28,7 +28,7 @@ The word is overloaded. Distinct concepts:
 | **`ViewportState.ZoomLevel`** | `1.0` at full map; `ZoomScale` (55.0) when zoomed; continuous during animation | Internal scalar, not a level picker |
 | **`visual-config.json` → `ZoomScale`** | `55.0` — target magnification for cluster zoom | Config tuning, not “level 55 of N” |
 | **`RadialExtension.ZoomThresholdForExtensions`** | `10.0` — minimum `ZoomLevel` to compute radial extensions | Feature gate, not a navigable zoom stop |
-| **Future backlog** ([TO_DO.md](TO_DO.md) “Zoom in/out on map”, “Pan/drag”) | Not implemented | N/A |
+| **Future backlog** ([TO_DO.md](../TO_DO.md) “Zoom in/out on map”, “Pan/drag”) | Not implemented | N/A |
 
 There is **no** enum, level index, or wheel/pinch step table. “Level” in layout keys (`LayoutKeyGenerator`, `ManualLayoutManager`) means the numeric `ZoomLevel` on the viewport at save time (effectively `1.0` or `55.0` at rest).
 
@@ -38,19 +38,19 @@ There is **no** enum, level index, or wheel/pinch step table. “Level” in lay
 
 ### Primary spec: two states only
 
-[MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) (Phase 3–3.4):
+[MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md) (Phase 3–3.4):
 
 - “Only two states needed — zoomed in or zoomed out (no arbitrary levels)”
 - “Only one zoom level — either zoomed in (on cluster) or zoomed out (full map)”
 - Recommended `ZoomScale = 3.0` (historical tuning example)
 - Navigation: Back returns to full map; stack tracks prior state
 
-[exec-plans/active/pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md) (2026):
+[exec-plans/active/pin-parts-composite-placement-plan.md](../exec-plans/active/pin-parts-composite-placement-plan.md) (2026):
 
 - “Effectively operating in two display states” (full-map cluster view vs zoomed cluster view)
 - No continuous re-clustering by zoom level
 
-[VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md):
+[VIEWPORT_ZOOM_PLAN.md](../archive/planning/VIEWPORT_ZOOM_PLAN.md):
 
 - Introduced viewport rendering for performance
 - Examples use `ZoomLevel` `1.0` (full) vs `3.5` (zoomed) — **illustrative**, predates `ZoomScale` 55
@@ -58,7 +58,7 @@ There is **no** enum, level index, or wheel/pinch step table. “Level” in lay
 
 ### Explicitly not intended (yet)
 
-[TO_DO.md](TO_DO.md) Future Enhancements: “Zoom in/out on map”, “Pan/drag map navigation” — **not built**.
+[TO_DO.md](../TO_DO.md) Future Enhancements: “Zoom in/out on map”, “Pan/drag map navigation” — **not built**.
 
 ---
 
@@ -93,7 +93,7 @@ stateDiagram-v2
 
 ### Transient behavior (animation only)
 
-`AnimateViewportTransition` ([MainWindow.xaml.cs](../MainWindow.xaml.cs)):
+`AnimateViewportTransition` ([MainWindow.xaml.cs](../../MainWindow.xaml.cs)):
 
 - Pre-renders **30 keyframes**; `ViewportCalculator.Interpolate` linearly lerps `ZoomLevel` from start to end (e.g. `1.0` → `55.0`)
 - `_isAnimating = true` skips radial extension layout during animation
@@ -112,7 +112,7 @@ Effective stack depth: **0 or 1** (`CanGoBack` is a boolean gate). Not multi-lev
 
 ### Config (live)
 
-From [visual-config.json](../visual-config.json):
+From [visual-config.json](../../visual-config.json):
 
 | Key | Value | Role |
 |-----|-------|------|
@@ -120,7 +120,7 @@ From [visual-config.json](../visual-config.json):
 | `AnimationDurationMs` | 390 | Zoom animation duration |
 | `RadialExtension.ZoomThresholdForExtensions` | **10.0** | Extension feature gate on `ZoomLevel` |
 
-`VisualConfig.ZoomScale` default if JSON missing: **30.0** ([Models/VisualConfig.cs](../Models/VisualConfig.cs)) — runtime uses checked-in JSON (55.0).
+`VisualConfig.ZoomScale` default if JSON missing: **30.0** ([Models/VisualConfig.cs](../../Models/VisualConfig.cs)) — runtime uses checked-in JSON (55.0).
 
 ### Dead / unused zoom API
 
@@ -241,9 +241,9 @@ No code was run for this audit. To confirm in the app:
 
 ## References
 
-- [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md)
-- [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md)
-- [exec-plans/active/pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
+- [MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md)
+- [VIEWPORT_ZOOM_PLAN.md](../archive/planning/VIEWPORT_ZOOM_PLAN.md)
+- [exec-plans/active/pin-parts-composite-placement-plan.md](../exec-plans/active/pin-parts-composite-placement-plan.md)
 - [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md)
-- [TO_DO.md](TO_DO.md)
+- [TO_DO.md](../TO_DO.md)
 - Git baseline: `5f32adb` (2026-03-18)

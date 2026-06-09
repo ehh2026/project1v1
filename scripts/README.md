@@ -19,7 +19,7 @@ py -3 -m venv scripts\venv
 pip install -r scripts\requirements.txt
 ```
 
-Full setup: [docs/SETUP_GUIDE.md](../docs/SETUP_GUIDE.md#python-harness-and-optional-tooling).
+Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-harness-and-optional-tooling).
 
 ## Script catalog
 
@@ -31,7 +31,7 @@ Full setup: [docs/SETUP_GUIDE.md](../docs/SETUP_GUIDE.md#python-harness-and-opti
 | `verify_nuget_vulnerabilities.py` | `verify.ps1`, `verify.sh`, CI | stdlib | Fail on High/Critical NuGet advisories |
 | `verify_doc_links.py` | `verify.ps1`, `verify.sh`, doc-gardening CI | stdlib | Markdown link integrity |
 | `verify_taste.py` | `verify.ps1`, `verify.sh` | stdlib | Architecture taste invariants (Views, JObject, etc.) |
-| `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS size, stale active plans |
+| `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter |
 | `extract_pins.py` | Manual | venv | Extract pin blobs from source image at configurable thresholds |
 | `extract_pins_v2.py` | Manual | venv | Alternate pin extraction pipeline |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |

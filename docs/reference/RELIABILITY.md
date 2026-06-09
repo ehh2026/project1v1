@@ -50,7 +50,7 @@ Enable in `visual-config.json`:
 }
 ```
 
-See [VISUAL_CONFIG.md](VISUAL_CONFIG.md) for all debug flags.
+See [VISUAL_CONFIG.md](../guides/VISUAL_CONFIG.md) for all debug flags.
 
 ### Agent Guidance
 
@@ -85,7 +85,7 @@ Exit codes: `0` = pass, `1` = validation errors, `2` = build failure.
 
 Lighter check used at runtime: content folder + canonical map file from `ContentFileNames.WorldMapFileName`.
 
-**Note:** Map filenames differ between StartupValidator and ContentLoader — known inconsistency tracked in [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md).
+**Note:** Map filenames differ between StartupValidator and ContentLoader — known inconsistency tracked in [exec-plans/tech-debt-tracker.md](../exec-plans/tech-debt-tracker.md).
 
 ## Error Handling
 

@@ -4,6 +4,7 @@ owner: agent
 started: 2026-06-08
 requirements_ref: remove-pins-jpg
 supersedes_partial: composite-pins-unzoomed-plan.md
+parent_program: composite-pins-program.md
 parent_plan: pin-parts-composite-placement-plan.md
 ---
 
@@ -58,7 +59,7 @@ After this plan:
 - **Remove** entire `PinImages` section from `visual-config.json`.
 - **Remove** `Models/PinImageConfig.cs`, `Models/PinImageInfo` (in same file).
 - **Keep** `UsePinMarkers`, `PinMarkers`, `PinParts` as the only pin controls.
-- Document the two pin modes clearly in `docs/VISUAL_CONFIG.md`.
+- Document the two pin modes clearly in `docs/guides/VISUAL_CONFIG.md`.
 
 Optional future polish (out of scope unless trivial): add a string enum `PinRenderingMode: "drawn" | "composite"` that maps 1:1 to `PinParts.UseCompositeRendering`. Not required if the boolean pair is documented well.
 
@@ -68,7 +69,7 @@ Optional future polish (out of scope unless trivial): add a string enum `PinRend
 |------|--------------|
 | [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md) | Parent — composite pipeline already built |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | **Partially superseded** — Phases 2–3 (all-marker composite rollout) become prerequisites of this plan, not a separate legacy fallback |
-| [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md) | **Must revise** — edit-mode drag wrapper must stop depending on `ImagePinMarker` |
+| [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md) | **Must revise** — edit-mode drag wrapper must stop depending on `ImagePinMarker` |
 | [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Marker factory extraction should target the new two-path factory |
 
 When this plan completes, mark the “replace `ImagePinMarker` everywhere” items in `docs/TO_DO.md` and `composite-pins-unzoomed-plan.md` as done or redirect here.
@@ -105,12 +106,12 @@ Also update conflicting active-plan language in `composite-pins-unzoomed-plan.md
 
 | File | Changes |
 |------|---------|
-| `docs/VISUAL_CONFIG.md` | Rewrite “Pin Rendering Modes” for two pin types |
+| `docs/guides/VISUAL_CONFIG.md` | Rewrite “Pin Rendering Modes” for two pin types |
 | `docs/TO_DO.md` | Close or redirect legacy-image-pin items |
 | `ARCHITECTURE.md` | Drop `PinImageConfig` from config table |
 | `CHANGELOG.md` | Breaking config change under `[Unreleased]` |
 | `docs/exec-plans/active/README.md` | Add this plan |
-| `docs/PIN_IMAGE_PLACEMENT_ASSESSMENT.md` | Add deprecation note at top (historical reference only) |
+| `docs/archive/planning/PIN_IMAGE_PLACEMENT_ASSESSMENT.md` | Add deprecation note at top (historical reference only) |
 
 ### Scripts (non-runtime)
 
@@ -268,7 +269,7 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 ## Phase 4 — Edit mode without `ImagePinMarker`
 
-**Deliverables:** Manual layout edit mode works without legacy image pins — revises [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md) assumptions.
+**Deliverables:** Manual layout edit mode works without legacy image pins — revises [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md) assumptions.
 
 | Modify | `MainWindow.xaml.cs` — enter/exit edit mode, drag handlers |
 | Modify | `Services/LayoutEditorController.cs` — if any ImagePin assumptions |
@@ -301,7 +302,7 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 - [ ] Delete `Views/ImagePinMarker.xaml` and `.xaml.cs`
 - [ ] Remove from `.csproj` if explicit Compile entries exist (SDK-style projects usually auto-glob)
-- [ ] Update `docs/VISUAL_CONFIG.md` — two pin modes + `UsePinMarkers = false` dots
+- [ ] Update `docs/guides/VISUAL_CONFIG.md` — two pin modes + `UsePinMarkers = false` dots
 - [ ] Update `ARCHITECTURE.md`, `CHANGELOG.md`, `docs/TO_DO.md`
 - [ ] Update `composite-pins-unzoomed-plan.md` and `composite-pins-manual-layout-phases-plan.md` to remove or redirect stale `ImagePinMarker` wrapper instructions.
 - [ ] Update `scripts/verify_taste.py` if it whitelists `ImagePinMarker.xaml.cs`

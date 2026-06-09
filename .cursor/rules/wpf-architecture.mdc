@@ -35,4 +35,4 @@ Violation remediation: move logic to Services/ or Models/; inject via constructo
 ## References
 
 - [ARCHITECTURE.md](../../ARCHITECTURE.md)
-- [docs/VISUAL_CONFIG.md](../../docs/VISUAL_CONFIG.md)
+- [docs/guides/VISUAL_CONFIG.md](../../docs/guides/VISUAL_CONFIG.md)

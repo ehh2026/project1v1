@@ -9,6 +9,7 @@ Requirements: Python 3.8+ (stdlib only)
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 from datetime import datetime, timedelta
@@ -16,7 +17,10 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 MAX_AGENTS_LINES = 150
+MAX_TODO_LINES = 120
 MAX_ACTIVE_PLAN_DAYS = 30
+ACTIVE_README = REPO_ROOT / "docs" / "exec-plans" / "active" / "README.md"
+README_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)]+\.md)\)")
 
 
 def run_doc_link_check(errors: list[str]) -> None:
@@ -47,12 +51,26 @@ def check_agents_size(errors: list[str]) -> None:
         )
 
 
+def check_todo_size(errors: list[str]) -> None:
+    todo = REPO_ROOT / "docs" / "TO_DO.md"
+    if not todo.exists():
+        return
+    lines = todo.read_text(encoding="utf-8").count("\n") + 1
+    if lines > MAX_TODO_LINES:
+        errors.append(
+            f"docs/TO_DO.md has {lines} lines (max {MAX_TODO_LINES}). "
+            "REMEDIATION: Keep TO_DO.md as a short backlog; move detail to exec-plans/active/."
+        )
+
+
 def check_stale_active_plans(errors: list[str]) -> None:
     active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
     if not active_dir.exists():
         return
     cutoff = datetime.now() - timedelta(days=MAX_ACTIVE_PLAN_DAYS)
     for plan in active_dir.glob("*.md"):
+        if plan.name == "README.md":
+            continue
         mtime = datetime.fromtimestamp(plan.stat().st_mtime)
         if mtime < cutoff and "status: completed" not in plan.read_text(encoding="utf-8"):
             rel = plan.relative_to(REPO_ROOT)
@@ -62,11 +80,72 @@ def check_stale_active_plans(errors: list[str]) -> None:
             )
 
 
+def _plans_linked_in_active_readme() -> set[str]:
+    if not ACTIVE_README.exists():
+        return set()
+    names: set[str] = set()
+    for match in README_LINK_PATTERN.findall(ACTIVE_README.read_text(encoding="utf-8")):
+        link = match.split("#")[0].strip()
+        if link and not link.startswith(("http://", "https://", "../")):
+            names.add(Path(link).name)
+    return names
+
+
+def check_active_plans_listed(errors: list[str]) -> None:
+    active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
+    if not active_dir.exists():
+        return
+    listed = _plans_linked_in_active_readme()
+    for plan in sorted(active_dir.glob("*.md")):
+        if plan.name == "README.md":
+            continue
+        if plan.name not in listed:
+            rel = plan.relative_to(REPO_ROOT)
+            errors.append(
+                f"{rel} is not linked from docs/exec-plans/active/README.md. "
+                "REMEDIATION: Add a row to the Active plans table."
+            )
+
+
+def check_active_plan_front_matter(errors: list[str]) -> None:
+    active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
+    if not active_dir.exists():
+        return
+    for plan in active_dir.glob("*.md"):
+        if plan.name == "README.md":
+            continue
+        text = plan.read_text(encoding="utf-8")
+        if not text.startswith("---\n") or "status: active" not in text.split("---", 2)[1]:
+            rel = plan.relative_to(REPO_ROOT)
+            errors.append(
+                f"{rel} missing YAML front-matter with status: active. "
+                "REMEDIATION: Add front-matter per docs/exec-plans/active/README.md."
+            )
+
+
+def check_duplicate_active_completed_plans(errors: list[str]) -> None:
+    active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
+    completed_dir = REPO_ROOT / "docs" / "exec-plans" / "completed"
+    if not active_dir.exists() or not completed_dir.exists():
+        return
+    active_names = {p.name for p in active_dir.glob("*.md") if p.name != "README.md"}
+    for completed in completed_dir.glob("*.md"):
+        if completed.name in active_names:
+            errors.append(
+                f"{completed.name} exists in both active/ and completed/. "
+                "REMEDIATION: Remove the active copy or rename the completed archive."
+            )
+
+
 def main() -> int:
     errors: list[str] = []
     run_doc_link_check(errors)
     check_agents_size(errors)
+    check_todo_size(errors)
     check_stale_active_plans(errors)
+    check_active_plans_listed(errors)
+    check_active_plan_front_matter(errors)
+    check_duplicate_active_completed_plans(errors)
 
     if errors:
         print("Doc gardening FAILED:", file=sys.stderr)

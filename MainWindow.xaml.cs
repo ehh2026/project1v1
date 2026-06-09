@@ -255,6 +255,104 @@ namespace InteractiveWorldMap
                         ? Visibility.Visible
                         : Visibility.Collapsed;
             };
+
+            _layoutEditor.VariantsChanged += variants => PopulateVariantPicker(variants);
+            VariantPickerComboBox.SelectionChanged += OnVariantPickerSelectionChanged;
+        }
+
+        // ─── Variant picker helpers ───────────────────────────────────────────
+
+        private void PopulateVariantPicker(IReadOnlyList<ManualLayoutSummary> variants)
+        {
+            VariantPickerComboBox.SelectionChanged -= OnVariantPickerSelectionChanged;
+            VariantPickerComboBox.Items.Clear();
+            foreach (var s in variants) VariantPickerComboBox.Items.Add(s);
+            VariantPickerComboBox.SelectedItem = variants.FirstOrDefault(s => s.VariantId == _layoutEditor.ActiveVariantId);
+            VariantPickerComboBox.SelectionChanged += OnVariantPickerSelectionChanged;
+            UpdateVariantUI();
+        }
+
+        private void UpdateVariantUI()
+        {
+            var active = VariantPickerComboBox.SelectedItem as ManualLayoutSummary;
+            VariantStatusText.Text = active != null ? $"Loaded: {active.DisplayName} ({active.Origin})" : "";
+            DeleteVariantButton.IsEnabled = active?.Origin == ManualLayoutOrigin.Manual;
+        }
+
+        private void OnVariantPickerSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (VariantPickerComboBox.SelectedItem is ManualLayoutSummary s && s.VariantId != _layoutEditor.ActiveVariantId)
+                SwitchToVariantInEditor(s.VariantId);
+        }
+
+        private void SwitchToVariantInEditor(string variantId)
+        {
+            var layout = _layoutEditor.SwitchToVariant(variantId);
+            if (layout == null) return;
+            RestoreBaseMarkerVisuals();
+            _extensionLineRenderer.Clear();
+            ApplyManualLayout(layout);
+            UpdateVariantUI();
+        }
+
+        private void OnSaveAsVariantButtonClick(object sender, RoutedEventArgs e)
+        {
+            SaveAsNameTextBox.Text = "";
+            SaveAsInputRow.Visibility = Visibility.Visible;
+            SaveAsNameTextBox.Focus();
+        }
+
+        private void OnSaveAsCancelButtonClick(object sender, RoutedEventArgs e) =>
+            SaveAsInputRow.Visibility = Visibility.Collapsed;
+
+        private void OnSaveAsNameKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter) OnSaveAsConfirmButtonClick(sender, new RoutedEventArgs());
+            else if (e.Key == Key.Escape) SaveAsInputRow.Visibility = Visibility.Collapsed;
+        }
+
+        private async void OnSaveAsConfirmButtonClick(object sender, RoutedEventArgs e)
+        {
+            SaveAsInputRow.Visibility = Visibility.Collapsed;
+            var name = SaveAsNameTextBox.Text.Trim();
+            if (string.IsNullOrEmpty(name)) return;
+            var extensions = CollectCurrentExtensions();
+            if (extensions == null) return;
+            var assignments = _assignmentEnricher.GetAssignments(extensions, _compositePinPlanningService);
+            bool ok = _layoutEditor.TrySaveAsVariant(name, extensions, assignments);
+            EditModeStatusText.Text       = ok ? "✓ VARIANT SAVED" : "✗ SAVE FAILED";
+            EditModeStatusText.Foreground = ok ? new SolidColorBrush(Color.FromRgb(50, 205, 50)) : new SolidColorBrush(Colors.Red);
+            await ResetEditModeStatusAfterDelayAsync(2000);
+        }
+
+        private void OnDeleteVariantButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (MessageBox.Show("Delete this variant?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            bool ok = _layoutEditor.TryDeleteActiveVariant();
+            if (!ok) return;
+            var nextId = _layoutEditor.ActiveVariantId;
+            if (nextId != null) SwitchToVariantInEditor(nextId);
+            else UpdateMarkerPositions();
+        }
+
+        /// <summary>Returns current marker positions as extensions, or null if not ready.</summary>
+        private List<RadialExtension>? CollectCurrentExtensions()
+        {
+            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null) return null;
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null) return null;
+            var markerSize = _visualConfig.LocationMarkerSize;
+            var markerData = _individualMarkers
+                .Where(m => m.Visibility == Visibility.Visible)
+                .Select(m =>
+                {
+                    var center = _extensionLineRenderer.TryGetLineEndpoint(m, out var lineEnd)
+                        ? lineEnd
+                        : new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2);
+                    return (m.Location, MarkerCenter: center,
+                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
+                });
+            return LayoutEditorController.BuildExtensions(markerData);
         }
 
         /// <summary>
@@ -1972,16 +2070,27 @@ namespace InteractiveWorldMap
             }
 
             _logger.LogInfo("Edit mode activated");
+
+            // Populate variant picker with the loaded group's variants.
+            PopulateVariantPicker(_layoutEditor.GetVariants());
         }
 
         /// <summary>
         /// Handles Save Layout button click - saves current marker positions.
+        /// If the active variant is AutoSeed, redirects to the inline Save As prompt.
         /// </summary>
         private async void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
         {
             if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
             {
                 _logger.LogWarning("Cannot save layout - key or cluster is null");
+                return;
+            }
+
+            // If editing an AutoSeed layout, redirect to the Save As prompt.
+            if (_layoutEditor.ActiveVariantOrigin == ManualLayoutOrigin.AutoSeed)
+            {
+                OnSaveAsVariantButtonClick(sender, e);
                 return;
             }
 

@@ -23,11 +23,11 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **Platform note:** WPF requires Windows for UI. macOS can build and run unit tests only.
 
-**SDK:** `global.json` pins **.NET 6 SDK** for this repo (side-by-side with newer SDKs). If `dotnet test` fails locally, install .NET 6 SDK — see [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md).
+**SDK:** `global.json` pins **.NET 6 SDK** for this repo (side-by-side with newer SDKs). If `dotnet test` fails locally, install .NET 6 SDK — see [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md).
 
 **Merge gate:** GitHub Actions on `windows-latest` runs build, test, NuGet vulnerability scan, doc links, taste checks, and headless startup validation; **Gitleaks** runs separately on Ubuntu. Local Windows gate: `.\scripts\verify.ps1`. macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
 
-**Python (optional tooling):** Harness scripts use stdlib only — `verify.ps1` / `verify.sh` call system `python` or `py -3`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/SETUP_GUIDE.md](docs/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
+**Python (optional tooling):** Harness scripts use stdlib only — `verify.ps1` / `verify.sh` call system `python` or `py -3`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
 
 ## Repository Layout
 
@@ -60,17 +60,19 @@ Violations are caught by `Tests/Architecture/LayerDependencyTests.cs`.
 |------|------|
 | Doc catalog | [docs/index.md](docs/index.md) |
 | Architecture detail | [ARCHITECTURE.md](ARCHITECTURE.md) |
-| Quality grades | [docs/QUALITY_SCORE.md](docs/QUALITY_SCORE.md) |
-| Logging & startup | [docs/RELIABILITY.md](docs/RELIABILITY.md) |
-| Security | [docs/SECURITY.md](docs/SECURITY.md) |
+| Quality grades | [docs/reference/QUALITY_SCORE.md](docs/reference/QUALITY_SCORE.md) |
+| Logging & startup | [docs/reference/RELIABILITY.md](docs/reference/RELIABILITY.md) |
+| Security | [docs/reference/SECURITY.md](docs/reference/SECURITY.md) |
 | Agent workflow | [docs/agent-workflows.md](docs/agent-workflows.md) |
 | Agent failure log | [docs/agent-failures.md](docs/agent-failures.md) |
 | Golden principles | [docs/design-docs/golden-principles.md](docs/design-docs/golden-principles.md) |
-| Active work | [docs/exec-plans/active/](docs/exec-plans/active/) |
+| Human backlog | [docs/TO_DO.md](docs/TO_DO.md) (short bullets; detail in exec plans) |
+| Active work | [docs/exec-plans/active/](docs/exec-plans/active/) — composite pins: [composite-pins-program.md](docs/exec-plans/active/composite-pins-program.md) |
 | Tech debt | [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md) |
+| Doc maintenance rules | [docs/agent-workflows.md](docs/agent-workflows.md#documentation-maintenance) |
 | Formal spec | [.kiro/specs/interactive-world-map/](.kiro/specs/interactive-world-map/) |
-| Feature docs | [docs/VISUAL_CONFIG.md](docs/VISUAL_CONFIG.md), [docs/CONTENT_FEATURES.md](docs/CONTENT_FEATURES.md) |
-| Demo checklist | [docs/DEMO_INSTRUCTIONS.md](docs/DEMO_INSTRUCTIONS.md) |
+| Feature guides | [docs/guides/](docs/guides/) — `VISUAL_CONFIG`, `CONTENT_FEATURES`, `MANUAL_LAYOUT_EDITOR`, … |
+| Demo checklist | [docs/guides/DEMO_INSTRUCTIONS.md](docs/guides/DEMO_INSTRUCTIONS.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 
 ## Agent Workflow (summary)
@@ -79,7 +81,7 @@ Violations are caught by `Tests/Architecture/LayerDependencyTests.cs`.
 2. Implement smallest vertical slice
 3. Run `scripts/verify.sh` or `scripts/verify.ps1`
 4. Self-review diff against acceptance criteria
-5. Update exec plan progress and [CHANGELOG.md](CHANGELOG.md)
+5. Update exec plan progress, program dashboard if applicable, and [CHANGELOG.md](CHANGELOG.md) — follow [doc maintenance rules](docs/agent-workflows.md#documentation-maintenance)
 6. Loop until verification passes — do not ask humans to "try harder"
 
 Full loop: [docs/agent-workflows.md](docs/agent-workflows.md)

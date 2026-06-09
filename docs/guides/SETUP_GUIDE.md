@@ -18,7 +18,7 @@ dotnet build InteractiveWorldMap.sln
 dotnet test Tests/InteractiveWorldMap.Tests.csproj
 ```
 
-Future: consider upgrading to **.NET 8 LTS** — tracked in [TO_DO.md](TO_DO.md).
+Future: consider upgrading to **.NET 8 LTS** — tracked in [TO_DO.md](../TO_DO.md).
 
 ## Python (harness and optional tooling)
 
@@ -49,7 +49,7 @@ pip install -r scripts/requirements.txt
 .\scripts\venv\Scripts\python.exe scripts\extract_pins.py
 ```
 
-Script catalog: [scripts/README.md](../scripts/README.md).
+Script catalog: [scripts/README.md](../../scripts/README.md).
 
 ## Content prerequisites
 

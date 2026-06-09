@@ -4,18 +4,22 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 
 **Other entry points:** [ARCHITECTURE.md](../ARCHITECTURE.md) (code layers), [scripts/README.md](../scripts/README.md) (Python scripts and venv), [README.md](../README.md) (user overview).
 
-## Harness & Architecture
+## Harness (docs root)
 
 | Doc | Description |
 |-----|-------------|
 | [../AGENTS.md](../AGENTS.md) | Agent entry map (~100 lines) |
-| [../scripts/README.md](../scripts/README.md) | Script catalog, Python venv, `requirements.txt` |
-| [../ARCHITECTURE.md](../ARCHITECTURE.md) | Layer model, invariants, domain map |
-| [QUALITY_SCORE.md](QUALITY_SCORE.md) | Per-domain quality grades |
-| [RELIABILITY.md](RELIABILITY.md) | Logging, startup validation, error handling |
-| [SECURITY.md](SECURITY.md) | Project-specific security guidance |
-| [agent-workflows.md](agent-workflows.md) | Ralph Wiggum loop and agent procedures |
+| [agent-workflows.md](agent-workflows.md) | Ralph Wiggum loop, doc maintenance rules |
 | [agent-failures.md](agent-failures.md) | Agent mistake log and harness promotions |
+| [TO_DO.md](TO_DO.md) | Human backlog (links to exec plans) |
+
+## Reference
+
+| Doc | Description |
+|-----|-------------|
+| [reference/](reference/) | Quality, reliability, security |
+| [../ARCHITECTURE.md](../ARCHITECTURE.md) | Layer model, invariants, domain map |
+| [../scripts/README.md](../scripts/README.md) | Script catalog, Python venv |
 
 ## Design & Specs
 
@@ -31,42 +35,27 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 
 | Doc | Description |
 |-----|-------------|
-| [exec-plans/active/](exec-plans/active/) | In-progress work ([refactoring-plan.md](exec-plans/active/refactoring-plan.md), …) |
+| [exec-plans/active/](exec-plans/active/) | In-progress work — composite pins: [composite-pins-program.md](exec-plans/active/composite-pins-program.md) |
 | [exec-plans/completed/](exec-plans/completed/) | Finished plans |
-| [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md) | Known debt and refactoring targets |
+| [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md) | Known debt index (links to plans) |
 
-## Feature & Operations
-
-| Doc | Description |
-|-----|-------------|
-| [VISUAL_CONFIG.md](VISUAL_CONFIG.md) | `visual-config.json` schema and usage |
-| [CONTENT_FEATURES.md](CONTENT_FEATURES.md) | Content loading and popup behavior |
-| [MANUAL_LAYOUT_EDITOR.md](MANUAL_LAYOUT_EDITOR.md) | Drag-and-save marker layout |
-| [UPDATING_COORDINATES.md](UPDATING_COORDINATES.md) | Excel coordinate workflow |
-| [DEMO_INSTRUCTIONS.md](DEMO_INSTRUCTIONS.md) | Demo and smoke-test checklist |
-| [SETUP_GUIDE.md](SETUP_GUIDE.md) | .NET SDK and Python venv setup |
-| [DEBUGGING_IMPROVEMENTS.md](DEBUGGING_IMPROVEMENTS.md) | Debug logging tips |
-
-## Planning & Analysis
-
-> Historical plans — prefer [exec-plans/active/](exec-plans/active/) for current work unless a plan is explicitly reopened.
+## Assessments
 
 | Doc | Description |
 |-----|-------------|
-| [TO_DO.md](TO_DO.md) | Backlog and user-requested items |
-| [REFACTORING_ASSESSMENT.md](REFACTORING_ASSESSMENT.md) | Code quality analysis |
-| [ARCHITECTURE_CHANGES.md](ARCHITECTURE_CHANGES.md) | Historical architecture decisions |
-| [MARKER_CLUSTERING_PLAN.md](MARKER_CLUSTERING_PLAN.md) | Clustering feature plan |
-| [MARKER_CLUSTERING_ANALYSIS.md](MARKER_CLUSTERING_ANALYSIS.md) | Clustering analysis |
-| [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md) | Dense-region zoom regression assessment |
-| [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md) | Full-map marker offset investigation |
-| [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](ZOOM_LEVELS_AUDIT_ASSESSMENT.md) | Intended vs operational zoom levels (incl. March 18 baseline) |
-| [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) | Viewport zoom design |
-| [ZOOM_REFACTORING_PLAN.md](ZOOM_REFACTORING_PLAN.md) | Zoom refactoring plan |
-| [RADIAL_MARKER_EXTENSION_PLAN.md](RADIAL_MARKER_EXTENSION_PLAN.md) | Radial extension plan |
-| [RADIAL_EXTENSION_IMPLEMENTATION.md](RADIAL_EXTENSION_IMPLEMENTATION.md) | Radial extension implementation |
-| [TOUCH_SCREEN_SUPPORT.md](TOUCH_SCREEN_SUPPORT.md) | Touch input considerations |
-| [REFACTORING_COMPLETE.md](REFACTORING_COMPLETE.md) | Completed refactoring notes |
+| [assessments/](assessments/) | Investigations and audits |
+
+## Guides
+
+| Doc | Description |
+|-----|-------------|
+| [guides/](guides/) | Feature how-to, setup, demo, coordinates |
+
+## Archive
+
+| Doc | Description |
+|-----|-------------|
+| [archive/planning/](archive/planning/) | Historical plans (clustering, viewport zoom, radial extension, etc.) |
 
 ## Root Docs
 

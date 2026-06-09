@@ -3,6 +3,7 @@ status: active
 owner: agent
 started: 2026-06-07
 requirements_ref: composite-pins-unzoomed
+parent_program: composite-pins-program.md
 parent_plan: pin-parts-composite-placement-plan.md
 ---
 
@@ -161,7 +162,7 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 2. Capture before/after screenshots; store in `docs/screenshots/composite-pins-unzoomed/` (gitignored or committed per repo convention).
 3. Run `.\scripts\verify.ps1` on .NET 6 SDK machine.
 4. Update pin-parts plan Phase 6 checklist items as complete.
-5. Update [VISUAL_CONFIG.md](../../VISUAL_CONFIG.md) — document stub length and unzoomed behavior.
+5. Update [VISUAL_CONFIG.md](../../guides/VISUAL_CONFIG.md) — document stub length and unzoomed behavior.
 
 **Acceptance:**
 

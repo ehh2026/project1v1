@@ -3,13 +3,14 @@ status: active
 owner: agent
 started: 2026-06-07
 requirements_ref: manual-layout-seed-alignment
+parent_program: composite-pins-program.md
 ---
 
 # Manual Layout Seed Alignment Plan
 
 Align offline seed generation with runtime placement so `Images&Content/manual-layouts.json` loads without manual fixes.
 
-Related design doc: [MANUAL_LAYOUT_EDITOR.md](../../MANUAL_LAYOUT_EDITOR.md)
+Related design doc: [MANUAL_LAYOUT_EDITOR.md](../../guides/MANUAL_LAYOUT_EDITOR.md)
 
 TO_DO items: [Make seed generator use runtime algorithm](../../TO_DO.md), [Make generated seeds reliably load](../../TO_DO.md)
 
@@ -118,7 +119,7 @@ Keep `scripts/generate_manual_layout_seeds.ps1` as a thin wrapper that invokes `
 
 ### Tasks
 
-1. Update [MANUAL_LAYOUT_EDITOR.md](../../MANUAL_LAYOUT_EDITOR.md) — seed generation section references console tool, not PowerShell math port.
+1. Update [MANUAL_LAYOUT_EDITOR.md](../../guides/MANUAL_LAYOUT_EDITOR.md) — seed generation section references console tool, not PowerShell math port.
 2. Update [AGENTS.md](../../../AGENTS.md) quick commands if a new script entry is added.
 3. Add CHANGELOG entry under `[Unreleased]`.
 4. Move this plan to `exec-plans/completed/` when all phases pass.

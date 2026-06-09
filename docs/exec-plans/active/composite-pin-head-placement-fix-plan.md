@@ -1,4 +1,14 @@
+---
+status: active
+owner: agent
+started: 2026-06-07
+requirements_ref: composite-pin-head-placement-fix
+parent_program: composite-pins-program.md
+---
+
 # Composite Pin Head Placement Fix Plan
+
+Program dashboard: [composite-pins-program.md](composite-pins-program.md)
 
 **Status:** Phase 1 implemented (all 211 tests pass) — Phase 2 investigation complete — Phase 3 (pin_07 recalibration) in progress
 **Scope:** `CompositePinRenderPlanBuilder.cs`, head-placement logic only

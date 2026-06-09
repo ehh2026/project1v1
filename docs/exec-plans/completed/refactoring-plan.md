@@ -7,7 +7,7 @@ started: 2026-06-05
 # Refactoring Plan — Active Execution Tracker
 
 Full plan: [REFACTORING_PLAN.md](../../../REFACTORING_PLAN.md)
-Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
+Assessment: [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md)
 
 ---
 
@@ -153,4 +153,4 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../../docs/REFACTORING_ASSESSMENT.md)
 
 ## Follow-on work
 
-Remaining assessment items: [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) (Phases 11+)
+Remaining assessment items: [refactoring-assessment-followthrough-plan.md](../active/refactoring-assessment-followthrough-plan.md) (Phases 11+)

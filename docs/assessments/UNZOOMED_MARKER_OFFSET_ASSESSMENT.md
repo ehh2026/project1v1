@@ -2,7 +2,7 @@
 
 Date: 2026-06-05
 Status: Fixed 2026-06-06 — H1 confirmed; see fix summary below.
-Related backlog: [TO_DO.md — High Priority → Bugs](TO_DO.md)
+Related backlog: [TO_DO.md](../TO_DO.md)
 
 ## Symptom (reported)
 
@@ -18,7 +18,7 @@ Static code review, coordinate math, and comparison with prior architecture. **N
 |------|----------------|
 | Display map | `Images&Content/World Map Extra Large.jpg` (`8198×5542`) via `ContentLoader.LoadMapImageAsync()` |
 | Full-res cache source | `World Map 1976.jpg` (`16397×11085`) — used only for final zoomed high-quality crops |
-| Excel coordinates | Columns E/F = **half-size** pixel coords (`0–8198`, `0–5542`) — see [UPDATING_COORDINATES.md](UPDATING_COORDINATES.md) |
+| Excel coordinates | Columns E/F = **half-size** pixel coords (`0–8198`, `0–5542`) — see [UPDATING_COORDINATES.md](../guides/UPDATING_COORDINATES.md) |
 | `MainWindow` constants | `ImageWidth = 8198`, `ImageHeight = 5542` — used for zoom target math, subwindow placement |
 | Viewport init at load | `MapDisplayControl.LoadMapImage()` uses **actual** `BitmapSource.PixelWidth/Height` |
 
@@ -57,7 +57,7 @@ All marker screen positions ultimately flow through:
     }
 ```
 
-`MapImage` uses `Stretch="Fill"` and fills the control ([MapDisplayControl.xaml](../Views/MapDisplayControl.xaml)).
+`MapImage` uses `Stretch="Fill"` and fills the control ([MapDisplayControl.xaml](../../Views/MapDisplayControl.xaml)).
 
 ### Unzoomed vs zoomed divergence
 
@@ -129,7 +129,7 @@ That is equivalent to mapping source image edges to control edges — **no virtu
 
 | Challenge | Response |
 |-----------|----------|
-| VIEWPORT_ZOOM_PLAN marked edge-case handling done | Plan notes clamping in `GetSourceRect()` ([VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) §2.1) but does **not** require adjusting `SourceToScreen` to match the clamped crop — likely an incomplete edge-case fix. |
+| VIEWPORT_ZOOM_PLAN marked edge-case handling done | Plan notes clamping in `GetSourceRect()` ([VIEWPORT_ZOOM_PLAN.md](../archive/planning/VIEWPORT_ZOOM_PLAN.md) §2.1) but does **not** require adjusting `SourceToScreen` to match the clamped crop — likely an incomplete edge-case fix. |
 | Center of map should look fine | True for H1; user may still perceive global “shift” if most markers are off-center, or if they compare to geographic features near edges. |
 | Wouldn't zoom-out after cluster also look wrong? | **Yes — H1 predicts zoom-out is also wrong** at `ZoomLevel ≈ 1.0`. If user only checked initial view, both match. If zoom-out looks correct but initial does not, H1 is weakened → investigate H2. |
 | Animations interpolate through bad viewports | During zoom animation markers use the same `SourceToScreen`; error shrinks as viewport tightens — consistent with “fixes itself when zoomed.” |
@@ -144,8 +144,8 @@ That is equivalent to mapping source image edges to control edges — **no virtu
 
 **Evidence for:**
 
-- `InitializeAsync` loads the map, waits **100 ms**, then calls `AddClustersToMap` → `UpdateMarkerPositions()` ([MainWindow.xaml.cs](../MainWindow.xaml.cs)).
-- `LoadMapImage` **skips** viewport creation when `ActualWidth/Height` are 0 ([MapDisplayControl.xaml.cs](../Views/MapDisplayControl.xaml.cs)).
+- `InitializeAsync` loads the map, waits **100 ms**, then calls `AddClustersToMap` → `UpdateMarkerPositions()` ([MainWindow.xaml.cs](../../MainWindow.xaml.cs)).
+- `LoadMapImage` **skips** viewport creation when `ActualWidth/Height` are 0 ([MapDisplayControl.xaml.cs](../../Views/MapDisplayControl.xaml.cs)).
 - `MainWindow.OnSizeChanged` re-runs `UpdateMarkerPositions()` when viewport exists.
 
 **Evidence against:**
@@ -301,7 +301,7 @@ This is a no-change for zoomed views where the viewport is already inside image 
 
 ## References
 
-- [VIEWPORT_ZOOM_PLAN.md](VIEWPORT_ZOOM_PLAN.md) — viewport architecture
+- [VIEWPORT_ZOOM_PLAN.md](../archive/planning/VIEWPORT_ZOOM_PLAN.md) — viewport architecture
 - [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md) — related zoom alignment issue (zoomed final frame)
-- [UPDATING_COORDINATES.md](UPDATING_COORDINATES.md) — half-size coordinate convention
-- [TO_DO.md](TO_DO.md) — tracking item
+- [UPDATING_COORDINATES.md](../guides/UPDATING_COORDINATES.md) — half-size coordinate convention
+- [TO_DO.md](../TO_DO.md) — tracking item
