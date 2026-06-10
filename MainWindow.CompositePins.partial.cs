@@ -142,6 +142,26 @@ namespace InteractiveWorldMap
         private bool ApplyCompositePinToMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos,
             string? preferredPairId = null, string? preferredHeadSourcePath = null)
         {
+            var target = _compositePinTargetBuilder.Build(
+                marker.Location,
+                new ViewportState(),
+                containerWidth: 0,
+                containerHeight: 0,
+                _visualConfig.PinParts,
+                new RadialExtension
+                {
+                    Location = marker.Location,
+                    OriginalPosition = originalScreenPos,
+                    ExtendedPosition = extendedScreenPos,
+                    GroupId = 0
+                });
+
+            return ApplyCompositePinTargetToMarker(marker, target, preferredPairId, preferredHeadSourcePath);
+        }
+
+        private bool ApplyCompositePinTargetToMarker(LocationMarker marker, PinPlacementTarget target,
+            string? preferredPairId = null, string? preferredHeadSourcePath = null)
+        {
             if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
                 return false;
 
@@ -150,14 +170,6 @@ namespace InteractiveWorldMap
 
             try
             {
-                var target = new PinPlacementTarget
-                {
-                    StartScreen = originalScreenPos,
-                    EndScreen = extendedScreenPos,
-                    LocationId = marker.Location.Name,
-                    GroupId = 0
-                };
-
                 var planning = _compositePinPlanningService.BuildPlan(
                     target, _pinPartGeometry, _visualConfig.PinParts,
                     preferredPairId, preferredHeadSourcePath);
@@ -169,7 +181,7 @@ namespace InteractiveWorldMap
                     return false;
                 }
 
-                ApplyRenderPlanToMarker(marker, originalScreenPos, extendedScreenPos, planning.RenderPlan, shaftImage, headImage);
+                ApplyRenderPlanToMarker(marker, target.StartScreen, target.EndScreen, planning.RenderPlan, shaftImage, headImage);
                 _logger.LogInfo(
                     $"Applied composite pin '{planning.Selection.PairId}' for '{marker.Location.Name}' " +
                     $"targetLength={planning.Selection.TargetLengthPx:F1}px score={planning.Selection.Score:F2}");
@@ -241,6 +253,33 @@ namespace InteractiveWorldMap
             {
                 if (markerById.TryGetValue(sorted[i].MarkerId, out var marker))
                     Panel.SetZIndex(marker, 2000 + i);
+            }
+        }
+
+        private void ApplyCompositePinsToNormalPlacements(
+            IReadOnlyList<MarkerScreenPlacement> placements,
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight)
+        {
+            if (!CanUseCompositePins() || IsAnimating)
+                return;
+
+            foreach (var placement in placements)
+            {
+                var marker = _individualMarkers.FirstOrDefault(
+                    m => m.Visibility == Visibility.Visible
+                         && string.Equals(m.Location.Name, placement.LocationName, StringComparison.Ordinal));
+                if (marker == null || _extensionLineRenderer.HasLine(marker))
+                    continue;
+
+                var target = _compositePinTargetBuilder.Build(
+                    marker.Location,
+                    viewport,
+                    containerWidth,
+                    containerHeight,
+                    _visualConfig.PinParts);
+                ApplyCompositePinTargetToMarker(marker, target);
             }
         }
 

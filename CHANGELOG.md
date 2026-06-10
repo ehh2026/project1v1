@@ -13,6 +13,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Composite pins unzoomed rollout (Phases 1–3):** Added `CompositePinTargetBuilder` and applied screen-up stub composite pins to visible non-extended individual image markers; unzoomed cluster aggregate markers remain unchanged.
+
 - **CI / Dependabot:** GitHub Actions bumped to `actions/checkout@v6`, `actions/setup-dotnet@v5`, and `gitleaks/gitleaks-action@v3` (Node 24–compatible); Newtonsoft.Json 13.0.3 → 13.0.4.
 
 - **Composite pin unzoomed Phase 0:** Recorded Option A stub-segment policy — `PinPartConfig.DefaultStubLengthPixels` (default 24, screen-up) in `visual-config.json`; unzoomed individual markers in scope; unzoomed `ClusterMarker` aggregates excluded. Runtime stub rendering deferred to [composite-pins-unzoomed-plan.md](docs/exec-plans/active/composite-pins-unzoomed-plan.md) Phase 2.

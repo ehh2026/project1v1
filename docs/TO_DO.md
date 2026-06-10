@@ -14,7 +14,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
 - [ ] Reliable seed loading in app — same plan, Phase 3
 - [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
-- [ ] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–3 (Phase 0 ✅ Option A stub; unzoomed individuals yes, unzoomed cluster aggregates no)
+- [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–3 (non-edit rendering; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [ ] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
 - [ ] Pin rendering polish — [pin-rendering-improvements-plan.md](exec-plans/active/pin-rendering-improvements-plan.md) (Parts 1A–2 ✅; optional Part 1B pre-rasterization only if visual review still shows aliasing)
 

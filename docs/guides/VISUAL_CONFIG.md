@@ -139,7 +139,7 @@ Important behavior:
 
 - `PinParts.Enabled = true` alone does not turn on composite marker rendering
 - the live renderer is only used when `PinParts.UseCompositeRendering = true`
-- current rollout scope is **extended image pins in zoomed cluster view** only; unzoomed stub rollout is planned ([composite-pins-unzoomed-plan.md](../exec-plans/active/composite-pins-unzoomed-plan.md) Phase 0 ✅)
+- current rollout scope covers **visible individual image markers** in non-edit rendering, including radial-extension composites and screen-up stub composites for non-extended markers
 - stub policy (Option A): unzoomed **individual** markers get a screen-up stub; unzoomed **cluster aggregate** markers do not
 - edit mode currently stays on the legacy marker path even if composite rendering is enabled
 

@@ -39,6 +39,13 @@ This split causes:
 
 When `PinParts.UseCompositeRendering` is true, every individual location marker uses `CompositePinMarker` at all zoom levels. Cluster aggregate markers (`ClusterMarker`) remain unchanged.
 
+## Current status
+
+- Phase 0 complete: Option A screen-up stub policy recorded.
+- Phases 1–3 complete for non-edit rendering: visible individual image markers now use composite targets for extended and non-extended placements; cluster aggregate markers remain unchanged.
+- Phase 4 remains open: edit mode still uses the existing legacy/edit-mode behavior.
+- Phase 5 remains open: manual visual capture/tuning is still pending.
+
 ## Phase 0 — Policy decision ✅ (2026-06-09)
 
 **Deliverable:** documented decision recorded in pin-parts plan Open Decisions §3.
@@ -73,7 +80,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 **Acceptance:** ✅ Decision recorded; `DefaultStubLengthPixels` added to config (unused by runtime until Phase 2).
 
-## Phase 1 — Unified target segment builder
+## Phase 1 — Unified target segment builder ✅ (2026-06-10)
 
 **Deliverables:** single helper that produces composite render targets for any marker.
 
@@ -87,18 +94,18 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 ### Tasks
 
-1. Create `CompositePinTargetBuilder.Build(Location, ViewportState, containerSize, RadialExtension?, PinPartsConfig)` returning `(Point start, Point end, double angleDeg)`.
-2. When `RadialExtension` present: start = original screen, end = extended screen (current behavior).
-3. When no extension: start = location screen position, end = start + stub vector per Phase 0 policy.
-4. Unit tests: extended case matches current pipeline; stub case produces expected length and direction.
-5. Refactor `TryApplyCompositePinMarker` to accept targets from builder regardless of extension state.
+1. [x] Create `CompositePinTargetBuilder.Build(...)` returning `PinPlacementTarget`.
+2. [x] When `RadialExtension` present: start = original screen, end = extended screen (current behavior).
+3. [x] When no extension: start = location screen position, end = start + stub vector per Phase 0 policy.
+4. [x] Unit tests: extended case matches current pipeline; stub case produces expected length and direction.
+5. [x] Refactor composite apply path to accept built targets regardless of extension state.
 
 **Acceptance:**
 
 - Builder tests pass
 - No behavior change for existing extended composite pins
 
-## Phase 2 — Unzoomed individual marker integration
+## Phase 2 — Unzoomed individual marker integration ✅ (2026-06-10)
 
 **Scope:** Only markers rendered as **individual** location pins at unzoomed zoom (`ZoomLevel` below cluster threshold). **Exclude** `ClusterMarker` aggregates — dense groups collapsed at low zoom stay unchanged.
 
@@ -113,11 +120,11 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 ### Tasks
 
-1. In `CreateImagePinMarker` (or post-create hook), when composite enabled, create `CompositePinMarker` instead of `ImagePinMarker`.
-2. Position unzoomed markers via `CompositePinTargetBuilder` stub targets, not centered bitmap placement.
-3. Ensure marker wrapper bounds and hit-testing match composite bounds at unzoomed scale.
-4. Verify hover feedback and click → subwindow behavior unchanged.
-5. Verify locations visible as individual markers at both zoom levels do not jump visually on zoom in/out (same pin part pair where possible — store pair id on marker state if needed).
+1. [x] Post-create/update hook applies `CompositePinMarker` when composite rendering is enabled and a visible individual marker is not extended.
+2. [x] Position unzoomed markers via `CompositePinTargetBuilder` stub targets, not centered bitmap placement.
+3. [x] Ensure marker wrapper bounds follow composite bounds after render-plan application.
+4. [ ] Verify hover feedback and click → subwindow behavior unchanged in manual smoke.
+5. [ ] Verify locations visible as individual markers at both zoom levels do not jump visually on zoom in/out.
 
 **Acceptance:**
 
@@ -125,7 +132,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 - No regression in subwindow open on click
 - Manual smoke at 1920×1080 and one high-DPI display if available
 
-## Phase 3 — Non-extended markers in **zoomed** cluster view
+## Phase 3 — Non-extended markers in **zoomed** cluster view ✅ (2026-06-10)
 
 **Scope:** Applies only after zooming into a dense group (above `RadialExtension.ZoomThresholdForExtensions`). Not unzoomed cluster aggregates.
 
@@ -133,9 +140,9 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 ### Tasks
 
-1. After `ApplyRadialExtensions`, for markers skipped by extension (below `MinLocationsForExtension` or non-dense), apply stub composite targets.
-2. Confirm extension line renderer does not draw lines for stub-only markers (per Phase 0 — no lines for stubs).
-3. Update `ExtensionLineRenderer.Apply` call sites to pass composite applier for all image markers in group.
+1. [x] After placement, markers skipped by extension use stub composite targets.
+2. [x] Extension line renderer does not draw lines for stub-only markers.
+3. [x] Existing extended-marker `ExtensionLineRenderer.Apply` call stays focused on true extension groups; normal placement hook handles non-extended image markers.
 
 **Acceptance:**
 

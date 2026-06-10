@@ -75,6 +75,7 @@ namespace InteractiveWorldMap
             new CompositePinShaftMenuModelBuilder(new PinPartPlacementCalculator());
         private readonly ManualLayoutOverrideStore _overrideStore = new ManualLayoutOverrideStore();
         private readonly CompositePinDepthSorter _compositePinDepthSorter = new CompositePinDepthSorter();
+        private readonly CompositePinTargetBuilder _compositePinTargetBuilder = new CompositePinTargetBuilder();
 
         // Phase 4: composite render-plan disk cache
         private CompositePinPlanCache _compositePinPlanCache = null!;
@@ -474,6 +475,7 @@ namespace InteractiveWorldMap
 
             ApplyIndividualPlacements(plan.IndividualPlacements);
             ApplyClusterPlacements(plan.ClusterPlacements);
+            ApplyCompositePinsToNormalPlacements(plan.IndividualPlacements, viewport, containerWidth, containerHeight);
             ApplyCompositePinDepthSort();
         }
 
