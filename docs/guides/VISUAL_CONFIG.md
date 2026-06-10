@@ -132,12 +132,15 @@ Key fields:
 - `MinStretchFactor`
 - `MaxStretchFactor`
 - `UseCompositeRendering`
+- `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
+- `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
 
 Important behavior:
 
 - `PinParts.Enabled = true` alone does not turn on composite marker rendering
 - the live renderer is only used when `PinParts.UseCompositeRendering = true`
-- current rollout scope is extended image pins only
+- current rollout scope is **extended image pins in zoomed cluster view** only; unzoomed stub rollout is planned ([composite-pins-unzoomed-plan.md](../exec-plans/active/composite-pins-unzoomed-plan.md) Phase 0 ✅)
+- stub policy (Option A): unzoomed **individual** markers get a screen-up stub; unzoomed **cluster aggregate** markers do not
 - edit mode currently stays on the legacy marker path even if composite rendering is enabled
 
 ## Radial Extension Interaction

@@ -14,8 +14,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
 - [ ] Reliable seed loading in app — same plan, Phase 3
 - [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
-- [ ] Non-extended pin rendering policy — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 0
-- [ ] Composite pins on all individual markers — same plan, Phases 2–3
+- [ ] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–3 (Phase 0 ✅ Option A stub; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [ ] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
 - [ ] Pin rendering polish (anti-aliasing, depth sort) — [pin-rendering-improvements-plan.md](exec-plans/active/pin-rendering-improvements-plan.md)
 
@@ -63,6 +62,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Recently done
 
+- Composite pin unzoomed Phase 0 — Option A stub segment (`DefaultStubLengthPixels = 24`, screen-up); unzoomed individual markers in scope; unzoomed cluster aggregates excluded — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) (2026-06-09)
 - Composite pin head placement fix — Phases 1–3 (`local_center` anchor, pin_07 geometry); tests pass, visual OK; plan parked 2026-06-09 — [composite-pin-head-placement-fix-plan.md](exec-plans/inactive/composite-pin-head-placement-fix-plan.md)
 - Composite pin core placement — Phases 1–6, saved-layout cache, common-angle verification, preview grids, and `verify.ps1` passed 2026-06-09 — [pin-parts-composite-placement-plan.md](exec-plans/completed/pin-parts-composite-placement-plan.md)
 - Large-file refactoring Phases 1–4 — PinDebugger split, `MarkerPlacementOrchestrator`, `BuildApplyInstructions`, MainWindow partials (2026-06-08); see [CHANGELOG.md](../CHANGELOG.md)

@@ -124,7 +124,8 @@
     "UseCompositeRendering": true,
     "UseLitShafts": true,
     "TargetHeadRadiusPx": 8.0,
-    "TargetShaftHalfWidthPx": 1.75
+    "TargetShaftHalfWidthPx": 1.75,
+    "DefaultStubLengthPixels": 24.0
   },
 
   "PinMarkers": {

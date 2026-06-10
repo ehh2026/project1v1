@@ -796,8 +796,9 @@ Current implementation status:
    - [x] heuristic cap/body/cap segmented stretch — **implemented**
    - manual overrides only if heuristics fail
 3. Non-extended image pins:
-   - [x] keep legacy rendering — **chosen; unzoomed rollout in [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md)**
-   - or convert all image pins to composite markers
+   - ~~keep legacy rendering~~ — **superseded 2026-06-09:** Option A stub segment per [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md) Phase 0
+   - [x] **Option A stub segment** — `DefaultStubLengthPixels = 24`, screen-up direction; unzoomed individual markers yes; unzoomed `ClusterMarker` aggregates no
+   - convert all image pins to composite markers (Phases 2–3 of unzoomed plan)
 4. Head/shaft pairing:
    - [x] strict pairing only — **implemented**
    - or compatible-group mixing

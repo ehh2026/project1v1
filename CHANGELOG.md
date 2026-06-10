@@ -13,6 +13,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **CI / Dependabot:** GitHub Actions bumped to `actions/checkout@v6`, `actions/setup-dotnet@v5`, and `gitleaks/gitleaks-action@v3` (Node 24–compatible); Newtonsoft.Json 13.0.3 → 13.0.4.
 
+- **Composite pin unzoomed Phase 0:** Recorded Option A stub-segment policy — `PinPartConfig.DefaultStubLengthPixels` (default 24, screen-up) in `visual-config.json`; unzoomed individual markers in scope; unzoomed `ClusterMarker` aggregates excluded. Runtime stub rendering deferred to [composite-pins-unzoomed-plan.md](docs/exec-plans/active/composite-pins-unzoomed-plan.md) Phase 2.
+
 - **Composite pin head placement fix (Phases 1–3):** Head-ball anchor uses `local_center`; pin_07 shaft geometry recalibrated after shadow removal. Tests pass; visual check OK. Plan parked in [docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md](docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md); optional collar/shading/`TargetHeadRadiusPx` polish tracked in [docs/TO_DO.md](docs/TO_DO.md) inactive section.
 
 - **Composite pin core placement completed:** [pin-parts-composite-placement-plan.md](docs/exec-plans/completed/pin-parts-composite-placement-plan.md) moved to completed after Phase 6. Added common-angle endpoint drift coverage for 0, 45, 90, 135, 180, 225, 270, and 315 degrees; regenerated `Tools/PinDebugger/composites/` preview grids; `scripts/verify.ps1` passed on 2026-06-09.

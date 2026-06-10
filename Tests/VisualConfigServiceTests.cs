@@ -89,6 +89,46 @@ public class VisualConfigServiceTests
         }
     }
 
+    [Fact]
+    public void Load_PinPartsDefaultStubLengthPixels_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""DefaultStubLengthPixels"": 18.0 } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal(18.0, config.PinParts.DefaultStubLengthPixels);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_PinPartsDefaultStubLengthPixels_UsesDefaultWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""Enabled"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal(24.0, config.PinParts.DefaultStubLengthPixels);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDir()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-visual-config-" + Guid.NewGuid().ToString("N"));

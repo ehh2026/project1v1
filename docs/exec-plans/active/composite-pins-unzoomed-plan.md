@@ -20,8 +20,8 @@ TO_DO items: [Decide non-extended pin rendering policy](../../TO_DO.md), [Extend
 | Prerequisite | Plan reference |
 |--------------|----------------|
 | Extended-marker composite path stable | pin-parts Phase 5 ✅ |
-| Phase 6 verification (debug overlay, angle spot-checks) | pin-parts Phase 6 |
-| Non-extended rendering policy decided | This plan Phase 0 |
+| Phase 6 verification (debug overlay, angle spot-checks) | pin-parts Phase 6 ✅ |
+| Non-extended rendering policy decided | This plan Phase 0 ✅ |
 
 Do **not** start unzoomed rollout until Phase 6 acceptance criteria pass on extended markers in zoomed cluster view.
 
@@ -39,25 +39,39 @@ This split causes:
 
 When `PinParts.UseCompositeRendering` is true, every individual location marker uses `CompositePinMarker` at all zoom levels. Cluster aggregate markers (`ClusterMarker`) remain unchanged.
 
-## Phase 0 — Policy decision (required gate)
+## Phase 0 — Policy decision ✅ (2026-06-09)
 
 **Deliverable:** documented decision recorded in pin-parts plan Open Decisions §3.
 
-### Options
+### Decision: Option A — Stub segment
+
+| Field | Choice |
+|-------|--------|
+| **Policy** | Option A — default short upward stub shaft when no radial extension exists |
+| **Default length** | `DefaultStubLengthPixels = 24` (screen px); config in `PinPartConfig` / `visual-config.json` |
+| **Stub direction** | Fixed **screen-up** (negative Y in WPF screen coordinates) |
+| **Extension lines** | Do not draw radial extension lines for stub-only markers |
+
+### Scope
+
+| Marker context | Composite stub? |
+|----------------|-----------------|
+| Unzoomed **individual** location markers (visible as their own marker, not aggregated) | **Yes** — stub composite |
+| Unzoomed **cluster aggregate** markers (`ClusterMarker` — dense groups collapsed at low zoom) | **No** — unchanged |
+| Zoomed cluster — extended members (radial extension active) | **Yes** — existing composite path |
+| Zoomed cluster — non-extended members in dense group | **Yes** — stub composite (Phase 3) |
+
+**Rationale:** Unzoomed individual markers get a consistent composite look without forcing composite rendering onto cluster blobs. Dense groups at low zoom remain aggregate cluster markers until the user zooms in.
+
+### Options considered
 
 | Option | Description | Trade-off |
 |--------|-------------|-----------|
-| **A — Stub segment** | Non-extended pins use a default short upward shaft (configurable length, e.g. 24 px at current scale) from original position | Consistent composite look; arbitrary stub direction |
-| **B — Tip-only composite** | Render head + minimal shaft cap anchored at location with zero-length logical segment | Less visual noise; may look like floating head |
+| **A — Stub segment** ✅ | Non-extended pins use a default short upward shaft from original position | Consistent composite look; arbitrary stub direction |
+| **B — Tip-only composite** | Render head + minimal shaft cap with zero-length logical segment | Less visual noise; may look like floating head |
 | **C — Keep legacy at unzoomed only** | Extended = composite; unzoomed individual = legacy | Minimal work; inconsistent cross-zoom |
 
-### Recommended MVP: Option A
-
-- Add `PinParts.DefaultStubLengthPixels` to `visual-config.json` / `Models/PinPartConfig.cs`
-- Stub direction: toward nearest map edge center or fixed "up" in screen space (document choice)
-- Update pin-parts plan Open Decisions with chosen option
-
-**Acceptance:** Decision recorded; config property added (can be unused until Phase 2)
+**Acceptance:** ✅ Decision recorded; `DefaultStubLengthPixels` added to config (unused by runtime until Phase 2).
 
 ## Phase 1 — Unified target segment builder
 
@@ -86,6 +100,8 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 ## Phase 2 — Unzoomed individual marker integration
 
+**Scope:** Only markers rendered as **individual** location pins at unzoomed zoom (`ZoomLevel` below cluster threshold). **Exclude** `ClusterMarker` aggregates — dense groups collapsed at low zoom stay unchanged.
+
 **Deliverables:** full-map view uses composite pins for all individual markers.
 
 ### Files
@@ -109,14 +125,16 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 - No regression in subwindow open on click
 - Manual smoke at 1920×1080 and one high-DPI display if available
 
-## Phase 3 — Non-extended markers in zoomed cluster view
+## Phase 3 — Non-extended markers in **zoomed** cluster view
+
+**Scope:** Applies only after zooming into a dense group (above `RadialExtension.ZoomThresholdForExtensions`). Not unzoomed cluster aggregates.
 
 **Deliverables:** dense-group members without radial extension also use composite rendering.
 
 ### Tasks
 
 1. After `ApplyRadialExtensions`, for markers skipped by extension (below `MinLocationsForExtension` or non-dense), apply stub composite targets.
-2. Confirm extension line renderer does not draw lines for stub-only markers (or draw optional faint stub — decide in Phase 0).
+2. Confirm extension line renderer does not draw lines for stub-only markers (per Phase 0 — no lines for stubs).
 3. Update `ExtensionLineRenderer.Apply` call sites to pass composite applier for all image markers in group.
 
 **Acceptance:**

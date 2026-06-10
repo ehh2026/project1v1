@@ -41,5 +41,12 @@ namespace InteractiveWorldMap.Models
         /// of pin length. Set to 0 to fall back to proportional scaling (normalScale = S).
         /// </summary>
         public double TargetShaftHalfWidthPx { get; set; } = 0.0;
+
+        /// <summary>
+        /// Default stub shaft length in screen pixels for non-extended individual markers
+        /// (Option A policy). Stub runs from the map anchor upward in screen space.
+        /// Set to 0 for head-only placement. Unused until unzoomed composite rollout Phase 2.
+        /// </summary>
+        public double DefaultStubLengthPixels { get; set; } = 24.0;
     }
 }

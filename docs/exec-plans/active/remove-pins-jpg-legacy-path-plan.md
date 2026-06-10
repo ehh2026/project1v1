@@ -125,7 +125,7 @@ Also update conflicting active-plan language in `composite-pins-unzoomed-plan.md
 
 **Deliverable:** Confirm decisions before implementation.
 
-- [ ] **Non-extended composite policy:** Adopt **stub segment** from [composite-pins-unzoomed-plan.md Phase 0](composite-pins-unzoomed-plan.md#phase-0--policy-decision-required-gate) — default short upward shaft (e.g. 24 px) when no radial extension exists. Record chosen default in `PinPartConfig` (add `DefaultStubLengthPixels` if not present).
+- [x] **Non-extended composite policy:** Adopt **stub segment** (Option A) from [composite-pins-unzoomed-plan.md Phase 0](composite-pins-unzoomed-plan.md#phase-0--policy-decision--2026-06-09) — `DefaultStubLengthPixels = 24`, screen-up stub for unzoomed individual markers only; unzoomed `ClusterMarker` aggregates excluded. Recorded 2026-06-09.
 - [ ] **Edit-mode drag target:** When `ImagePinMarker` is removed, dragging must attach to `LocationMarker` canvas item (preferred) or `PinMarker` / `CompositePinMarker` with preserved handlers. Document choice before Phase 4.
 - [ ] **Composite failure fallback:** Always `PinMarker`, never reintroduce a third image path.
 
