@@ -21,6 +21,8 @@ Two independent improvements:
 
 ## Part 1 — Shaft/Head Anti-Aliasing
 
+**Status:** Part 1A completed 2026-06-10. Part 1B remains optional pending visual review.
+
 ### Root-cause analysis
 
 The current rendering pipeline applies a `MatrixTransform` (RenderTransform) per layer on top of a native-sized `Image` element.  Three things fight against clean edges:
@@ -32,7 +34,7 @@ The current rendering pipeline applies a `MatrixTransform` (RenderTransform) per
 | Per-segment clip boundary aliasing | `CompositePinRenderPlanBuilder.cs` → `CompositePinMarker.xaml.cs` | The clip polygon for each shaft segment (TipCap, Body, HeadCap) is a PathGeometry clipped at a line. WPF clips geometry without anti-aliasing the clip edge itself, so the seam boundary between segments can appear as a hard-aliased line, especially when viewed at an angle. The existing 1.5 px `SeamOverlapPx` eliminates *gaps* but not *aliasing at the clip edge*. |
 | `BitmapScalingMode="HighQuality"` may fall back | `CompositePinMarker.xaml` | `HighQuality` asks WPF to use a higher-quality path, but it is not guaranteed to apply when the element also has a non-uniform MatrixTransform (especially body-stretch). `Fant` mode explicitly specifies the resampling algorithm. |
 
-### Approach A — XAML property changes (low-risk, implement first)
+### Approach A — XAML property changes ✅ (2026-06-10)
 
 Changes to `CompositePinMarker.xaml`:
 
@@ -196,6 +198,6 @@ Call sites:
 
 ## Implementation order
 
-1. **Part 1A** — XAML changes only (5 min, zero risk). Verify visually.
+1. **Part 1A** — XAML changes only (5 min, zero risk). ✅ Completed 2026-06-10; automated structural test added.
 2. **Part 2** — depth sorter service + MainWindow integration.
 3. **Part 1B** — only if Part 1A did not sufficiently improve quality.
