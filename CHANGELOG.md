@@ -14,6 +14,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Composite pin rendering plan completed:** Moved [pin-rendering-improvements-plan.md](docs/exec-plans/completed/pin-rendering-improvements-plan.md) to completed after anti-aliasing, gated pre-rasterization, and depth sorting; added [COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md](docs/assessments/COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md) for the next shaft/stub contrast pass.
+
 - **Composite pins unzoomed rollout (Phases 1–3):** Added `CompositePinTargetBuilder` and applied screen-up stub composite pins to visible non-extended individual image markers; unzoomed cluster aggregate markers remain unchanged.
 
 - **CI / Dependabot:** GitHub Actions bumped to `actions/checkout@v6`, `actions/setup-dotnet@v5`, and `gitleaks/gitleaks-action@v3` (Node 24–compatible); Newtonsoft.Json 13.0.3 → 13.0.4.

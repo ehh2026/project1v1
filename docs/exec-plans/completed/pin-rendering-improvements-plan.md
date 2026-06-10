@@ -1,14 +1,15 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-08
+completed: 2026-06-10
 requirements_ref: pin-rendering-improvements
 parent_program: composite-pins-program.md
 ---
 
 # Pin Rendering Improvements Plan
 
-Program dashboard: [composite-pins-program.md](composite-pins-program.md)
+Program dashboard: [composite-pins-program.md](../active/composite-pins-program.md)
 
 ## Overview
 
@@ -21,7 +22,7 @@ Two independent improvements:
 
 ## Part 1 — Shaft/Head Anti-Aliasing
 
-**Status:** Part 1A completed 2026-06-10. Part 1B remains optional pending visual review.
+**Status:** Part 1A completed 2026-06-10. Part 1B implemented behind default-off `PinParts.UsePrerasterizedRendering` on 2026-06-10.
 
 ### Root-cause analysis
 
