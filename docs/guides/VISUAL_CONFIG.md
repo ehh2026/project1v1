@@ -132,6 +132,7 @@ Key fields:
 - `MinStretchFactor`
 - `MaxStretchFactor`
 - `UseCompositeRendering`
+- `UsePrerasterizedRendering` — default `false`; when `true`, each composite pin flattens shaft/head layers to one bitmap inside `CompositePinMarker`
 - `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
 - `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
 
@@ -139,6 +140,7 @@ Important behavior:
 
 - `PinParts.Enabled = true` alone does not turn on composite marker rendering
 - the live renderer is only used when `PinParts.UseCompositeRendering = true`
+- pre-rasterized rendering is opt-in via `PinParts.UsePrerasterizedRendering`; leave it `false` unless visual review shows the live layered renderer is still too aliased
 - current rollout scope covers **visible individual image markers** in non-edit rendering, including radial-extension composites and screen-up stub composites for non-extended markers
 - stub policy (Option A): unzoomed **individual** markers get a screen-up stub; unzoomed **cluster aggregate** markers do not
 - edit mode currently stays on the legacy marker path even if composite rendering is enabled

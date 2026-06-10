@@ -122,6 +122,7 @@
     "MinStretchFactor": 0.75,
     "MaxStretchFactor": 1.35,
     "UseCompositeRendering": true,
+    "UsePrerasterizedRendering": true,
     "UseLitShafts": true,
     "TargetHeadRadiusPx": 8.0,
     "TargetShaftHalfWidthPx": 1.75,

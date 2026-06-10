@@ -18,7 +18,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Core placement | [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) | Complete | Baseline for unzoomed rollout and legacy removal |
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Phases 1–3 done | Phase 4 — composite edit mode verification |
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
-| Rendering polish | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Parts 1A–2 done | Visual review; optional pre-rasterization (Part 1B) only if needed |
+| Rendering polish | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Parts 1A–2 + gated 1B done | Visual review; keep `UsePrerasterizedRendering` disabled unless needed |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
 
 ## Dependency order

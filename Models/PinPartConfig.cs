@@ -22,6 +22,13 @@ namespace InteractiveWorldMap.Models
         public bool UseCompositeRendering { get; set; } = false;
 
         /// <summary>
+        /// When true, flattens each composite pin's transformed shaft/head layers to a
+        /// single bitmap inside CompositePinMarker. Default is false so the live
+        /// layered renderer remains the baseline unless visual review needs this.
+        /// </summary>
+        public bool UsePrerasterizedRendering { get; set; } = false;
+
+        /// <summary>
         /// When true, loads the _lit variant of each shaft image (e.g. pin_01_shaft_lit.png).
         /// </summary>
         public bool UseLitShafts { get; set; } = false;
@@ -45,7 +52,7 @@ namespace InteractiveWorldMap.Models
         /// <summary>
         /// Default stub shaft length in screen pixels for non-extended individual markers
         /// (Option A policy). Stub runs from the map anchor upward in screen space.
-        /// Set to 0 for head-only placement. Unused until unzoomed composite rollout Phase 2.
+        /// Set to 0 for head-only placement.
         /// </summary>
         public double DefaultStubLengthPixels { get; set; } = 24.0;
     }

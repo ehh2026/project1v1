@@ -207,7 +207,12 @@ namespace InteractiveWorldMap
             BitmapSource headImage)
         {
             var compositeMarker = new CompositePinMarker { Location = marker.Location };
-            compositeMarker.SetCompositeImages(shaftImage, headImage, plan, _visualConfig.Debug.ShowCompositePinDebugOverlay);
+            compositeMarker.SetCompositeImages(
+                shaftImage,
+                headImage,
+                plan,
+                _visualConfig.Debug.ShowCompositePinDebugOverlay,
+                _visualConfig.PinParts.UsePrerasterizedRendering);
             compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
             _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);
             marker.Content = compositeMarker;

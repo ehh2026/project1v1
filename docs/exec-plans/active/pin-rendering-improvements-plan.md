@@ -47,28 +47,35 @@ Expected outcome: the shaft silhouette edges and the clip seam lines should be n
 
 Risk: *none* — these are rendering hints only; they do not change geometry or layout behaviour.
 
-### Approach B — Pre-rasterization (if A is insufficient)
+### Approach B — Pre-rasterization ✅ (config-gated, 2026-06-10)
+
+**Status:** Implemented behind `PinParts.UsePrerasterizedRendering` (default `false`). Keep disabled unless visual review shows Part 1A is insufficient.
 
 Instead of letting WPF composite four independently-transformed images at draw time, render the full composite pin to a single off-screen `RenderTargetBitmap` and display it as one image with no clip or transform.
 
-New method on `CompositePinMarker` (or extracted as a helper):
+Important contract:
+
+- Keep `LocationMarker.Content` as `CompositePinMarker`; do **not** replace it with a raw `Image`. Depth sorting, hover/click animation, right-click shaft overrides, and debug metadata all depend on `CompositePinMarker.RenderPlan`.
+- Flatten the shaft/head layer canvas inside `CompositePinMarker` and show a `FlattenedImage` child when the config flag is enabled.
+- Keep `DebugOverlayCanvas` separate from the flattened bitmap so debug dots/lines can still be shown on top of the rasterized pin.
+- If rasterization fails or dimensions are invalid, fall back to the live four-layer rendering path.
+
+New methods on `CompositePinMarker`:
 
 ```
-RenderTargetBitmap FlattenToRasterBitmap(double dpiX = 96, double dpiY = 96)
+bool TryApplyPrerasterizedRendering(double dpiX = 96, double dpiY = 96)
 {
     var rtb = new RenderTargetBitmap(
         (int)Math.Ceiling(Width), (int)Math.Ceiling(Height),
         dpiX, dpiY, PixelFormats.Pbgra32);
-    rtb.Render(RootCanvas);   // Renders all layers with their MatrixTransforms
+    rtb.Render(LayerCanvas);  // Renders shaft/head layers only
     rtb.Freeze();
-    return rtb;
+    FlattenedImage.Source = rtb;
+    return true;
 }
 ```
 
-In `ApplyRenderPlanToMarker` (MainWindow), after `SetCompositeImages` succeeds:
-- Call `FlattenToRasterBitmap()`.
-- Replace `marker.Content` with a simple `Image { Source = flatBitmap, Width = plan.Width, Height = plan.Height }`.
-- Continue to set `Canvas.SetLeft/Top` using `plan.TipAnchorLocal`.
+In `ApplyRenderPlanToMarker` (MainWindow), pass `_visualConfig.PinParts.UsePrerasterizedRendering` into `SetCompositeImages(...)`.
 
 Benefits:
 - All four layers are composited in software at full sub-pixel accuracy before display.
@@ -77,8 +84,8 @@ Benefits:
 
 Costs:
 - Slightly higher peak memory (one RGBA bitmap per pin at screen resolution).
-- Hover/click animations currently animate `MarkerTransform` (ScaleTransform on RootCanvas). After flattening, `MarkerTransform` is on the now-unused `RootCanvas`, not the displayed image. The animation would need to be applied to the replacement `Image` element or to a `ScaleTransform` wrapping it.
-- The `DebugOverlayCanvas` would not appear in the flattened result. Keep it as a separate overlay canvas positioned on top of the replacement image if debug overlays are needed.
+- The live layer images still exist in memory as sources for rasterization, even when hidden after flattening.
+- The first render for each marker does more work; keep the flag off unless visual review shows Part 1A is insufficient.
 
 > **Recommendation**: Implement Approach A first (one XAML file, no code changes). If visual quality is still not acceptable at steep angles, implement Approach B.
 
@@ -190,8 +197,9 @@ Call sites:
 | File | Change | Part |
 |---|---|---|
 | `Views/CompositePinMarker.xaml` | Remove `SnapsToDevicePixels`, `UseLayoutRounding`; change `BitmapScalingMode` to `Fant`; add `EdgeMode` | 1A |
-| `Views/CompositePinMarker.xaml.cs` | (Approach B only) Add `FlattenToRasterBitmap()` | 1B |
-| `MainWindow.xaml.cs` | (Approach B only) Flatten after `SetCompositeImages`; update animation targets | 1B |
+| `Models/PinPartConfig.cs`, `visual-config.json` | Add `UsePrerasterizedRendering` default-off flag | 1B |
+| `Views/CompositePinMarker.xaml`, `Views/CompositePinMarker.xaml.cs` | Add internal flattened image host and `TryApplyPrerasterizedRendering()` | 1B |
+| `MainWindow.CompositePins.partial.cs` | Pass `PinParts.UsePrerasterizedRendering` into `SetCompositeImages(...)` | 1B |
 | `Models/CompositePinDepthItem.cs` | New model-level sort input so Services do not reference Views | 2 |
 | `Services/CompositePinDepthSorter.cs` | New file — depth sort service | 2 |
 | `MainWindow.xaml.cs`, `MainWindow.CompositePins.partial.cs`, `MainWindow.LayoutEditor.partial.cs` | Add sorter field; add `ApplyCompositePinDepthSort()`; call after viewport update, layout apply, reassign, shaft override, and drag-end | 2 |
@@ -203,4 +211,4 @@ Call sites:
 
 1. **Part 1A** — XAML changes only (5 min, zero risk). ✅ Completed 2026-06-10; automated structural test added.
 2. **Part 2** — depth sorter service + MainWindow integration. ✅ Completed 2026-06-10; service tests added.
-3. **Part 1B** — only if Part 1A did not sufficiently improve quality.
+3. **Part 1B** — pre-rasterized rendering behind default-off flag. ✅ Implemented 2026-06-10; visual review decides whether to enable.

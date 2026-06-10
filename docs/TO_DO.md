@@ -16,7 +16,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
 - [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–3 (non-edit rendering; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [ ] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
-- [ ] Pin rendering polish — [pin-rendering-improvements-plan.md](exec-plans/active/pin-rendering-improvements-plan.md) (Parts 1A–2 ✅; optional Part 1B pre-rasterization only if visual review still shows aliasing)
+- [ ] Pin rendering polish — [pin-rendering-improvements-plan.md](exec-plans/active/pin-rendering-improvements-plan.md) (Parts 1A–2 ✅; Part 1B available behind `UsePrerasterizedRendering`; visual review still pending)
 
 ## Inactive (optional polish)
 

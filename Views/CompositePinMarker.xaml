@@ -8,30 +8,38 @@
             <ScaleTransform x:Name="MarkerTransform" ScaleX="1.0" ScaleY="1.0"/>
         </Canvas.RenderTransform>
 
-        <Image x:Name="ShaftTipCapImage"
+        <Canvas x:Name="LayerCanvas">
+            <Image x:Name="ShaftTipCapImage"
+                   Stretch="None"
+                   RenderOptions.BitmapScalingMode="Fant"
+                   RenderOptions.EdgeMode="Unspecified"/>
+            <Image x:Name="ShaftBodyImage"
+                   Stretch="None"
+                   RenderOptions.BitmapScalingMode="Fant"
+                   RenderOptions.EdgeMode="Unspecified"/>
+            <Image x:Name="ShaftHeadCapImage"
+                   Stretch="None"
+                   RenderOptions.BitmapScalingMode="Fant"
+                   RenderOptions.EdgeMode="Unspecified"/>
+            <Image x:Name="HeadImage"
+                   Stretch="None"
+                   RenderOptions.BitmapScalingMode="Fant"
+                   RenderOptions.EdgeMode="Unspecified">
+                <Image.Effect>
+                    <DropShadowEffect Color="Black"
+                                      Direction="315"
+                                      ShadowDepth="2"
+                                      BlurRadius="3"
+                                      Opacity="0.35"/>
+                </Image.Effect>
+            </Image>
+        </Canvas>
+
+        <Image x:Name="FlattenedImage"
                Stretch="None"
+               Visibility="Collapsed"
                RenderOptions.BitmapScalingMode="Fant"
                RenderOptions.EdgeMode="Unspecified"/>
-        <Image x:Name="ShaftBodyImage"
-               Stretch="None"
-               RenderOptions.BitmapScalingMode="Fant"
-               RenderOptions.EdgeMode="Unspecified"/>
-        <Image x:Name="ShaftHeadCapImage"
-               Stretch="None"
-               RenderOptions.BitmapScalingMode="Fant"
-               RenderOptions.EdgeMode="Unspecified"/>
-        <Image x:Name="HeadImage"
-               Stretch="None"
-               RenderOptions.BitmapScalingMode="Fant"
-               RenderOptions.EdgeMode="Unspecified">
-            <Image.Effect>
-                <DropShadowEffect Color="Black"
-                                  Direction="315"
-                                  ShadowDepth="2"
-                                  BlurRadius="3"
-                                  Opacity="0.35"/>
-            </Image.Effect>
-        </Image>
 
         <Canvas x:Name="DebugOverlayCanvas"
                 IsHitTestVisible="False"

@@ -129,6 +129,46 @@ public class VisualConfigServiceTests
         }
     }
 
+    [Fact]
+    public void Load_PinPartsUsePrerasterizedRendering_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""UsePrerasterizedRendering"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.True(config.PinParts.UsePrerasterizedRendering);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_PinPartsUsePrerasterizedRendering_UsesDefaultWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""Enabled"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.False(config.PinParts.UsePrerasterizedRendering);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDir()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-visual-config-" + Guid.NewGuid().ToString("N"));

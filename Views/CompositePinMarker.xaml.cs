@@ -52,7 +52,8 @@ namespace InteractiveWorldMap.Views
             BitmapSource shaftImageSource,
             BitmapSource headImageSource,
             CompositePinRenderPlan plan,
-            bool showDebugOverlay = false)
+            bool showDebugOverlay = false,
+            bool usePrerasterizedRendering = false)
         {
             if (shaftImageSource == null)
                 throw new ArgumentNullException(nameof(shaftImageSource));
@@ -66,12 +67,24 @@ namespace InteractiveWorldMap.Views
             Height = plan.Height;
             RootCanvas.Width = plan.Width;
             RootCanvas.Height = plan.Height;
+            LayerCanvas.Width = plan.Width;
+            LayerCanvas.Height = plan.Height;
+            LayerCanvas.Visibility = Visibility.Visible;
+            FlattenedImage.Source = null;
+            FlattenedImage.Visibility = Visibility.Collapsed;
+            FlattenedImage.Width = plan.Width;
+            FlattenedImage.Height = plan.Height;
+            Canvas.SetLeft(FlattenedImage, 0);
+            Canvas.SetTop(FlattenedImage, 0);
 
             ApplyLayer(ShaftTipCapImage, shaftImageSource, plan.ShaftTipCapLayer);
             ApplyLayer(ShaftBodyImage, shaftImageSource, plan.ShaftBodyLayer);
             ApplyLayer(ShaftHeadCapImage, shaftImageSource, plan.ShaftHeadCapLayer);
             ApplyLayer(HeadImage, headImageSource, plan.HeadLayer);
             ApplyDebugOverlay(plan, showDebugOverlay);
+
+            if (usePrerasterizedRendering)
+                TryApplyPrerasterizedRendering();
         }
 
         public Point GetTipAnchorPoint()
@@ -134,6 +147,43 @@ namespace InteractiveWorldMap.Views
             base.OnMouseRightButtonUp(e);
             ShaftOverrideRequested?.Invoke(Location.Name);
             e.Handled = true;
+        }
+
+        public bool TryApplyPrerasterizedRendering(double dpiX = 96, double dpiY = 96)
+        {
+            var width = (int)Math.Ceiling(Width);
+            var height = (int)Math.Ceiling(Height);
+            if (width <= 0 || height <= 0)
+                return false;
+
+            try
+            {
+                LayerCanvas.Visibility = Visibility.Visible;
+                FlattenedImage.Visibility = Visibility.Collapsed;
+
+                var renderSize = new Size(Width, Height);
+                LayerCanvas.Measure(renderSize);
+                LayerCanvas.Arrange(new Rect(renderSize));
+                LayerCanvas.UpdateLayout();
+
+                var bitmap = new RenderTargetBitmap(width, height, dpiX, dpiY, PixelFormats.Pbgra32);
+                bitmap.Render(LayerCanvas);
+                bitmap.Freeze();
+
+                FlattenedImage.Source = bitmap;
+                FlattenedImage.Width = Width;
+                FlattenedImage.Height = Height;
+                LayerCanvas.Visibility = Visibility.Collapsed;
+                FlattenedImage.Visibility = Visibility.Visible;
+                return true;
+            }
+            catch
+            {
+                FlattenedImage.Source = null;
+                FlattenedImage.Visibility = Visibility.Collapsed;
+                LayerCanvas.Visibility = Visibility.Visible;
+                return false;
+            }
         }
 
         private static void ApplyLayer(Image image, BitmapSource source, CompositePinLayerPlan layer)
