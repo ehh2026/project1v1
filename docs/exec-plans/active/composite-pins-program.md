@@ -19,6 +19,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Phases 1–3 done | Phase 4 — composite edit mode verification |
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
+| Shaft visibility | [composite-pin-shaft-visibility-plan.md](composite-pin-shaft-visibility-plan.md) | Planned | Asset variant spike and visual review |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
 
 ## Dependency order
@@ -33,7 +34,7 @@ manual-layout-seed-alignment Phases 1–3
   → reliable auto-seed loading at runtime
 
 pin-rendering-improvements ✅
-  → shaft visibility / contrast follow-up assessment
+  → composite-pin-shaft-visibility asset-variant plan
 ```
 
 ## Inactive (../inactive/)

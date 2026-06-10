@@ -22,6 +22,7 @@ started: YYYY-MM-DD
 |------|--------|
 | [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
+| [composite-pin-shaft-visibility-plan.md](composite-pin-shaft-visibility-plan.md) | Improve shaft/stub contrast with baked asset variants |
 | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 

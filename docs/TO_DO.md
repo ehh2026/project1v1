@@ -16,7 +16,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
 - [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–3 (non-edit rendering; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [ ] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
-- [ ] Composite shaft visibility / contrast — [COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md](assessments/COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md)
+- [ ] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/active/composite-pin-shaft-visibility-plan.md)
 
 ## Inactive (optional polish)
 
