@@ -21,7 +21,6 @@ started: YYYY-MM-DD
 | Plan | Scope |
 |------|--------|
 | [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
-| [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md) | Composite pin parts — extended markers, placement calculator |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Shaft anti-aliasing and perspective depth sorting |
 | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
@@ -32,6 +31,7 @@ started: YYYY-MM-DD
 - `refactoring-plan.md` — MainWindow decomposition tracker (Phases 1–10) — moved 2026-06-08
 - `composite-pins-manual-layout-phases-plan.md` — Composite-pin manual-layout integration (Phases 1–4 done; Phase 5 delegated to `manual-layout-variants-plan.md`) — moved 2026-06-08
 - `manual-layout-variants-plan.md` — Multiple saved layout variants per cluster + edit-mode UI — moved 2026-06-08
+- `pin-parts-composite-placement-plan.md` — Extended-marker composite placement Phases 1–6 — moved 2026-06-09
 
 Completed plans move to [../completed/](../completed/). Parked plans (core done, optional follow-ups) move to [../inactive/](../inactive/).
 

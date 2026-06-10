@@ -14,7 +14,7 @@ See also: [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REG
 | **Changed since March 18, 2026?** | **Zoom level count and core viewport math: no.** `ViewportState`, `ViewportCalculator`, `MapDisplayControl`, and `MapNavigationService` are **byte-identical** to commit `5f32adb`. `ZoomScale` was already **55.0** on March 18. Post–March 18 work refactored `MainWindow` animation wiring and fixed high-res cache source path — not the number of zoom states. |
 | **Hidden complexity?** | Continuous `ZoomLevel` during animation (~30 keyframes, 1.0→55.0); radial-extension **threshold** at 10.0 (not a third user level); vestigial `ZoomState` navigation stack (depth 1, popped data unused). |
 
-**Bottom line:** The app implements **two operational zoom states**, consistent with [MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md) and [pin-parts-composite-placement-plan.md](../exec-plans/active/pin-parts-composite-placement-plan.md). Docs and examples that mention 3.5× or arbitrary multi-level zoom are **stale**. The March 18 baseline already used viewport rendering and `ZoomScale: 55.0` — not the earlier transform-era `3.5` constant.
+**Bottom line:** The app implements **two operational zoom states**, consistent with [MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md) and [pin-parts-composite-placement-plan.md](../exec-plans/completed/pin-parts-composite-placement-plan.md). Docs and examples that mention 3.5× or arbitrary multi-level zoom are **stale**. The March 18 baseline already used viewport rendering and `ZoomScale: 55.0` — not the earlier transform-era `3.5` constant.
 
 ---
 
@@ -45,7 +45,7 @@ There is **no** enum, level index, or wheel/pinch step table. “Level” in lay
 - Recommended `ZoomScale = 3.0` (historical tuning example)
 - Navigation: Back returns to full map; stack tracks prior state
 
-[exec-plans/active/pin-parts-composite-placement-plan.md](../exec-plans/active/pin-parts-composite-placement-plan.md) (2026):
+[exec-plans/completed/pin-parts-composite-placement-plan.md](../exec-plans/completed/pin-parts-composite-placement-plan.md) (2026):
 
 - “Effectively operating in two display states” (full-map cluster view vs zoomed cluster view)
 - No continuous re-clustering by zoom level
@@ -243,7 +243,7 @@ No code was run for this audit. To confirm in the app:
 
 - [MARKER_CLUSTERING_PLAN.md](../archive/planning/MARKER_CLUSTERING_PLAN.md)
 - [VIEWPORT_ZOOM_PLAN.md](../archive/planning/VIEWPORT_ZOOM_PLAN.md)
-- [exec-plans/active/pin-parts-composite-placement-plan.md](../exec-plans/active/pin-parts-composite-placement-plan.md)
+- [exec-plans/completed/pin-parts-composite-placement-plan.md](../exec-plans/completed/pin-parts-composite-placement-plan.md)
 - [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md)
 - [TO_DO.md](../TO_DO.md)
 - Git baseline: `5f32adb` (2026-03-18)

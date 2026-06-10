@@ -1,6 +1,6 @@
 # Pin Image Placement Strategy - Feasibility Assessment
 
-> **Archived / historical.** Superseded by [pin-parts-composite-placement-plan.md](../../exec-plans/active/pin-parts-composite-placement-plan.md). Kept for reference only.
+> **Archived / historical.** Superseded by [pin-parts-composite-placement-plan.md](../../exec-plans/completed/pin-parts-composite-placement-plan.md). Kept for reference only.
 
 ## Current State Summary
 

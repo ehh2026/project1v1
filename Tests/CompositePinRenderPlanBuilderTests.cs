@@ -83,6 +83,49 @@ public class CompositePinRenderPlanBuilderTests
         Assert.Equal(90.0, plan.TargetAngleDeg, 1);
     }
 
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(45.0)]
+    [InlineData(90.0)]
+    [InlineData(135.0)]
+    [InlineData(180.0)]
+    [InlineData(225.0)]
+    [InlineData(270.0)]
+    [InlineData(315.0)]
+    public void BuildPlan_CommonExtensionAngles_DoNotDriftFromTargetEndpoints(double angleDeg)
+    {
+        var builder = new CompositePinRenderPlanBuilder();
+        var start = new Point(240, 240);
+        const double length = 220.0;
+        var target = new PinPlacementTarget
+        {
+            StartScreen = start,
+            EndScreen = Project(start, length, angleDeg),
+            LocationId = $"angle-{angleDeg:F0}",
+            GroupId = 1
+        };
+        var placement = new PinPartPlacementResult
+        {
+            PairId = "pin_a",
+            PairGeometry = CreateVerticalGeometry(),
+            TargetAngleDeg = angleDeg,
+            TargetLengthPx = length,
+            RequestedRotationDeg = angleDeg,
+            RequestedStretchFactor = 1.375
+        };
+
+        var plan = builder.BuildPlan(target, placement, new PinPartConfig());
+
+        var markerLeft = target.StartScreen.X - plan.TipAnchorLocal.X;
+        var markerTop = target.StartScreen.Y - plan.TipAnchorLocal.Y;
+        AssertClose(target.StartScreen, ToScreen(plan.TipAnchorLocal, markerLeft, markerTop));
+        AssertClose(target.EndScreen, ToScreen(plan.JoinAnchorLocal, markerLeft, markerTop));
+        AssertClose(target.EndScreen, ToScreen(plan.HeadAttachLocal, markerLeft, markerTop));
+        AssertClose(target.EndScreen, ToScreen(plan.HeadCenterLocal, markerLeft, markerTop));
+        Assert.True(IsBetween(plan.TipAnchorLocal, plan.JoinAnchorLocal, plan.StretchStartLocal));
+        Assert.True(IsBetween(plan.TipAnchorLocal, plan.JoinAnchorLocal, plan.StretchEndLocal));
+    }
+
     private static PinPartGeometryEntry CreateVerticalGeometry()
     {
         return new PinPartGeometryEntry
@@ -234,5 +277,34 @@ public class CompositePinRenderPlanBuilderTests
         var dx = b.X - a.X;
         var dy = b.Y - a.Y;
         return System.Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    private static Point Project(Point start, double length, double angleDeg)
+    {
+        var radians = angleDeg * System.Math.PI / 180.0;
+        return new Point(
+            start.X + (System.Math.Sin(radians) * length),
+            start.Y - (System.Math.Cos(radians) * length));
+    }
+
+    private static Point ToScreen(Point local, double markerLeft, double markerTop)
+    {
+        return new Point(local.X + markerLeft, local.Y + markerTop);
+    }
+
+    private static void AssertClose(Point expected, Point actual)
+    {
+        Assert.Equal(expected.X, actual.X, 3);
+        Assert.Equal(expected.Y, actual.Y, 3);
+    }
+
+    private static bool IsBetween(Point start, Point end, Point candidate)
+    {
+        var segment = end - start;
+        var point = candidate - start;
+        var cross = System.Math.Abs((segment.X * point.Y) - (segment.Y * point.X));
+        var dot = (segment.X * point.X) + (segment.Y * point.Y);
+        var lengthSquared = (segment.X * segment.X) + (segment.Y * segment.Y);
+        return cross < 0.001 && dot >= -0.001 && dot <= lengthSquared + 0.001;
     }
 }

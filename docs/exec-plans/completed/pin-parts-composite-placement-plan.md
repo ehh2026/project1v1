@@ -1,9 +1,10 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-05
+revised: 2026-06-09
 requirements_ref: pin-parts-composite-placement
-parent_program: composite-pins-program.md
+parent_program: ../active/composite-pins-program.md
 ---
 
 # Pin Parts Composite Placement Plan
@@ -15,20 +16,22 @@ Use the split `Pins_v2/parts` assets to render composite pins where:
 - the head is rotated so its residual stub sits on top of the shaft
 - shaft choice favors the closest native angle/length, with optional residual rotation
 
-Program dashboard: [composite-pins-program.md](composite-pins-program.md)
+Program dashboard: [composite-pins-program.md](../active/composite-pins-program.md)
 
 This plan supersedes the single-bitmap assumptions in [PIN_IMAGE_PLACEMENT_ASSESSMENT.md](../../archive/planning/PIN_IMAGE_PLACEMENT_ASSESSMENT.md) where useful.
+
+**Overall status (2026-06-09):** Phases 1-6 complete for the extended-marker MVP. Manual-layout replay, assignment persistence, disk cache, head-anchor fix, common-angle endpoint coverage, regenerated composite preview grids, and the full Windows verification gate are complete. Non-extended / unzoomed composite rollout is tracked in [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md).
 
 ## Execution Checklist
 
 ### Phase Status
 
 - [x] Phase 1: Metadata completion
-- [ ] Phase 2: Config and loading model
+- [x] Phase 2: Config and loading model
 - [x] Phase 3: Composite marker rendering
-- [ ] Phase 4: Placement calculator
-- [ ] Phase 5: MainWindow integration
-- [ ] Phase 6: Verification and tuning
+- [x] Phase 4: Placement calculator
+- [x] Phase 5: MainWindow integration (extended markers + manual-layout replay)
+- [x] Phase 6: Verification and tuning
 
 ### Recommended Execution Order
 
@@ -38,14 +41,14 @@ This plan supersedes the single-bitmap assumptions in [PIN_IMAGE_PLACEMENT_ASSES
 - [x] Add deterministic pair/transform selection logic and unit coverage
 - [x] Integrate composite pins into extended image-pin rendering only
 - [x] Preserve edit mode, manual layout replay, and variant-aware auto-load behavior
-- [ ] Add verification overlays and screenshots for common extension angles
+- [x] Add verification overlays and screenshots for common extension angles
 
 ### Transition Strategy
 
 - [x] Keep the current single-bitmap pin path available during rollout
 - [x] Gate composite-pin rendering behind an explicit config switch or staged integration seam
 - [x] Use composite pins first for extended markers only
-- [ ] Leave non-extended pins on legacy rendering until extended-marker behavior is stable
+- [x] Leave non-extended pins on legacy rendering until extended-marker behavior is stable *(intentional MVP — see [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md))*
 - [x] Avoid replacing edit-mode or manual-layout workflows until composite hit-testing and anchoring are verified
 
 ## Goal
@@ -589,12 +592,13 @@ Tasks:
 - [x] Add explicit `ShaftJoinLocal` naming instead of relying on generic `head_side`.
 - [x] Derive `StretchStartDistance` and `StretchEndDistance`.
 - [x] Add `TipCapLength` and `HeadCapLength`.
-- [ ] Emit a debug overlay or preview data so segmentation can be visually checked quickly.
+- [x] Emit a debug overlay or preview data so segmentation can be visually checked quickly.
+  - `Tools/PinDebugger` annotate mode; optional runtime overlay via `Debug.ShowCompositePinDebugOverlay`.
 
 Acceptance:
 
-- one metadata file is sufficient to place both parts and the shaft segmentation without referring back to the old full-pin crop rectangles
-- each pair has enough information to align shaft tip and head attach point deterministically
+- [x] one metadata file is sufficient to place both parts and the shaft segmentation without referring back to the old full-pin crop rectangles
+- [x] each pair has enough information to align shaft tip and head attach point deterministically
 
 ## Phase 2: Config and loading model
 
@@ -613,11 +617,12 @@ Tasks:
   - segmented stretch clamp values
   - optional compatible-style groups
 - [x] Extend `ContentLoader` to resolve and load part assets plus metadata.
-- [ ] Keep `Views/` free of direct path construction.
+- [x] Keep `Views/` free of direct path construction.
+  - Part paths and geometry load via `ContentLoader` / `MainWindow` orchestration only.
 
 Acceptance:
 
-- the app can load part definitions and their images through existing app orchestration
+- [x] the app can load part definitions and their images through existing app orchestration
 
 ## Phase 3: Composite marker rendering
 
@@ -628,28 +633,28 @@ Deliverables:
 
 Tasks:
 
-1. Create `CompositePinMarker` rather than expanding `ImagePinMarker` indefinitely.
-2. Give it:
-   - shaft tip-cap layer
-   - shaft body layer
-   - shaft head-cap layer
-   - head image layer
-   - a local canvas coordinate system
-3. Add a placement API that accepts:
-   - chosen asset pair
-   - target start/end points
-   - computed transforms
-4. Preserve hover/click animation behavior.
+- [x] Create `CompositePinMarker` rather than expanding `ImagePinMarker` indefinitely.
+- [x] Give it:
+  - shaft tip-cap layer
+  - shaft body layer
+  - shaft head-cap layer
+  - head image layer
+  - a local canvas coordinate system
+- [x] Add a placement API that accepts:
+  - chosen asset pair
+  - target start/end points
+  - computed transforms
+- [x] Preserve hover/click animation behavior.
 
 Acceptance:
 
-- one composite marker can be placed correctly on an arbitrary start/end segment in isolation without stretching the shaft end caps
+- [x] one composite marker can be placed correctly on an arbitrary start/end segment in isolation without stretching the shaft end caps
 
 Implementation note:
 
-- `CompositePinRenderPlanBuilder` now computes exact tip/join anchoring plus segmented shaft-body stretch and head rotation in isolation.
-- `CompositePinMarker` now renders the shaft as tip/body/head-cap layers plus a rotated head image from that render plan.
-- Live `MainWindow` integration is still pending.
+- `CompositePinRenderPlanBuilder` computes exact tip/join anchoring plus segmented shaft-body stretch and head rotation.
+- `CompositePinMarker` renders the shaft as tip/body/head-cap layers plus a rotated head image from that render plan.
+- Live `MainWindow` integration completed in Phase 5.
 
 ## Phase 4: Placement calculator
 
@@ -664,27 +669,30 @@ Tasks:
   - target segment
   - available shaft/head pair metadata
   - selection mode
-- [ ] Outputs:
+- [x] Outputs:
   - chosen pair
   - shaft transform
   - head transform
   - bounding box / local marker size
+  - *(via `CompositePinPlanningService` → `CompositePinRenderPlan` / `CompositePinPlanningResult`)*
 - [x] Implement scoring:
   - angle error
   - length error
   - style compatibility penalty
   - residual transform penalty
 - [x] Clamp rotation and segmented-body stretch in MVP mode.
-- [ ] Reconcile selection-time clamp fields with exact segment-fit rendering output before live integration.
+- [x] Reconcile selection-time clamp fields with exact segment-fit rendering output before live integration.
+  - `CompositePinRenderPlanBuilder` is the exact-fit authority downstream of pair selection; head anchor uses `local_center` per inactive head-placement fix.
 
 Acceptance:
 
-- for a fixed target segment and asset set, selection is deterministic and testable
+- [x] for a fixed target segment and asset set, selection is deterministic and testable
+  - `Tests/PinPartPlacementCalculatorTests.cs`, `Tests/CompositePinPlanningServiceTests.cs`, `Tests/CompositePinRenderPlanBuilderTests.cs`
 
-Open integration gap:
+~~Open integration gap~~ *(resolved 2026-06-09):*
 
-- the current `PinPartPlacementCalculator` clamp fields are useful for ranking and diagnostics, but the live composite renderer still needs exact target-segment output for the chosen pair
-- before Phase 5, either the calculator should emit both exact-fit render transforms and bounded-fit diagnostics, or the render-plan builder should become the single exact-fit authority downstream of pair selection
+- ~~the current `PinPartPlacementCalculator` clamp fields are useful for ranking and diagnostics, but the live composite renderer still needs exact target-segment output for the chosen pair~~
+- ~~before Phase 5, either the calculator should emit both exact-fit render transforms and bounded-fit diagnostics, or the render-plan builder should become the single exact-fit authority downstream of pair selection~~
 
 ## Phase 5: MainWindow integration
 
@@ -694,29 +702,37 @@ Deliverables:
 
 Tasks:
 
-1. Replace the current "draw line + center marker on endpoint" path for image pins.
-2. Build the runtime target dictionary:
-   - start = original location screen position
-   - end = extended screen position
-3. For non-extended pins, decide one of:
-   - keep legacy single-pin rendering
-   - create a default short segment pointing inward from the nearest map edge
-4. Update marker sizing and hit-testing so wrapper bounds match the composed pin bounds.
-5. Preserve existing extension hover highlighting, or redefine it around shaft visuals.
-6. Route manual-layout replay through the same composite planner when composite rendering is active.
-7. Persist derived composite-placement results for saved manual layouts so replay can skip unnecessary recomputation when viewport/config inputs are unchanged.
+- [x] Replace the current "draw line + center marker on endpoint" path for image pins (extended composite path).
+- [x] Build the runtime target dictionary:
+  - start = original location screen position
+  - end = extended screen position
+  - *(built per marker in `ApplyCompositePinToMarker` / `MarkerPlacementOrchestrator`)*
+- [x] For non-extended pins, decide one of:
+  - keep legacy single-pin rendering
+  - create a default short segment pointing inward from the nearest map edge
+  - **Decision:** keep legacy for non-extended markers (MVP); unzoomed rollout deferred to [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md).
+- [x] Update marker sizing and hit-testing so wrapper bounds match the composed pin bounds.
+  - `ApplyRenderPlanToMarker` sets `marker.Width`/`Height` from plan bounds and positions by tip anchor.
+- [x] Preserve existing extension hover highlighting, or redefine it around shaft visuals.
+  - Extension lines retained; `CompositePinMarker.AnimateClick` for marker click feedback.
+- [x] Route manual-layout replay through the same composite planner when composite rendering is active.
+  - `ApplyManualLayout`, `ExitEditMode` replay, variant switch — see [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md).
+- [x] Persist derived composite-placement results for saved manual layouts so replay can skip unnecessary recomputation when viewport/config inputs are unchanged.
+  - `Services/CompositePinPlanCache.cs`, `CompositePinApplicationService`, `CompositePinLayoutContentHasher`.
 
 Acceptance:
 
-- dense-group image pins render as composite shaft + head rather than line + centered bitmap
+- [x] dense-group image pins render as composite shaft + head rather than line + centered bitmap
 
-Current implementation status:
+Current implementation status (2026-06-09):
 
-- composite pins are now wired into the live radial-extension path for extended image pins only
-- rollout is gated by `PinParts.Enabled` plus `PinParts.UseCompositeRendering`
-- the legacy image-pin path remains available and is still used for non-extended markers, edit mode, and any composite fallback/error case
-- entering edit mode now forces an immediate rebuild onto the legacy draggable path, and exiting edit mode refreshes the current view back to the active non-edit rendering path
-- the remaining Phase 5 work is mostly about hit-testing, drag/edit semantics, manual-layout replay through the composite path, derived composite-result persistence, and deciding whether any non-extended pins should ever switch to composite rendering
+- composite pins wired into the live radial-extension path for **extended** image pins only
+- rollout gated by `PinParts.Enabled` plus `PinParts.UseCompositeRendering`
+- legacy image-pin path remains for non-extended markers, edit mode, and composite fallback/error cases
+- edit mode uses legacy draggable pins; **Auto Assign Pins** and exit replay restore composites at saved endpoints
+- shaft override via right-click context menu; assignments persisted on save (`PairId`, `HeadSourcePath`)
+- render-plan disk cache keyed by layout content + geometry + config hashes
+- **Out of scope here:** composite pins on unzoomed/non-extended individual markers -> [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md)
 
 ## Phase 6: Verification and tuning
 
@@ -726,29 +742,37 @@ Deliverables:
 
 Tasks:
 
-1. Add unit tests for the placement calculator.
-2. Add geometry tests for metadata completeness and coordinate sanity.
-3. Add a visual debug mode that overlays:
-   - start point
-   - end point
-   - shaft tip anchor
-   - head attach anchor
-   - stretch start
-   - stretch end
-4. Capture before/after screenshots for representative extension angles.
-5. Run `scripts/verify.ps1` on a machine with the .NET 6 SDK installed.
+- [x] Add unit tests for the placement calculator.
+  - `Tests/PinPartPlacementCalculatorTests.cs`, `Tests/CompositePinPlanningServiceTests.cs`, `Tests/CompositePinRenderPlanBuilderTests.cs`, `Tests/CompositePinPlanCacheTests.cs`
+- [x] Add geometry tests for metadata completeness and coordinate sanity.
+  - `Tests/ContentLoaderTests.LoadPinPartGeometry_WithValidJson_ReturnsEntries`; render-plan builder geometry fixtures
+- [x] Add a visual debug mode that overlays:
+  - start point
+  - end point
+  - shaft tip anchor
+  - head attach anchor
+  - stretch start
+  - stretch end
+  - gated by `Debug.ShowCompositePinDebugOverlay` (disabled by default for startup harness)
+- [x] Capture before/after screenshots for representative extension angles.
+  - Representative angle-grid previews regenerated with `dotnet run --project Tools\PinDebugger -- --composites` for 0, 45, 90, 135, 180, 225, 270, and 315 degrees in `Tools/PinDebugger/composites/`.
+- [x] Run `scripts/verify.ps1` on a machine with the .NET 6 SDK installed.
+  - Passed 2026-06-09: restore, NuGet vulnerability gate, build, 263 tests, doc links, taste checks, and headless startup validation.
 
 Acceptance:
 
-- no obvious gap between shaft and head
-- no obvious endpoint drift at common extension angles
-- no architecture rule regressions
+- [x] no obvious gap between shaft and head *(manual visual check + head-placement fix, 2026-06-09)*
+- [x] no obvious endpoint drift at common extension angles
+  - `CompositePinRenderPlanBuilderTests.BuildPlan_CommonExtensionAngles_DoNotDriftFromTargetEndpoints` covers 0, 45, 90, 135, 180, 225, 270, and 315 degrees.
+- [x] no architecture rule regressions
+  - verified by `scripts/verify.ps1` on 2026-06-09.
 
 Current implementation status:
 
-- composite markers now support an optional debug overlay showing tip, join, stretch-band anchors, and head center
+- composite markers support an optional debug overlay showing tip, join, stretch-band anchors, and head center
 - the overlay is gated by `Debug.ShowCompositePinDebugOverlay`
-- screenshot capture is still manual; the current repo does not yet automate those captures
+- representative angle-grid previews are generated by `Tools/PinDebugger --composites`
+- full verification passed with debug overlay disabled by default for startup harness compatibility
 
 ## Specific Risks and Solutions
 
@@ -763,39 +787,41 @@ Current implementation status:
 
 ## Open Decisions
 
+*(MVP choices recorded in [Recommended MVP Decisions](#recommended-mvp-decisions) — implemented for extended markers.)*
+
 1. MVP selection mode:
-   - exact-fit Option A
-   - nearest-fit Option B with clamps
+   - [x] exact-fit Option A
+   - [x] nearest-fit Option B with clamps — **chosen for pair ranking; exact-fit rendering via `CompositePinRenderPlanBuilder`**
 2. Shaft rendering strategy:
-   - heuristic cap/body/cap segmented stretch
+   - [x] heuristic cap/body/cap segmented stretch — **implemented**
    - manual overrides only if heuristics fail
 3. Non-extended image pins:
-   - keep legacy rendering
+   - [x] keep legacy rendering — **chosen; unzoomed rollout in [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md)**
    - or convert all image pins to composite markers
 4. Head/shaft pairing:
-   - strict pairing only
+   - [x] strict pairing only — **implemented**
    - or compatible-group mixing
 
 ## Recommended MVP Decisions
 
-1. Use Option B selection first.
-2. Use strict shaft/head pairing first.
-3. Keep legacy rendering for non-extended pins first.
-4. Use heuristic segmented shaft rendering first; only fall back to full-shaft clamp temporarily if a specific shaft fails segmentation.
+1. [x] Use Option B selection first.
+2. [x] Use strict shaft/head pairing first.
+3. [x] Keep legacy rendering for non-extended pins first.
+4. [x] Use heuristic segmented shaft rendering first; only fall back to full-shaft clamp temporarily if a specific shaft fails segmentation.
 
 ## Definition of Done
 
-- part metadata includes shaft tip, shaft join, head attach point, head stub direction, and shaft stretch-band boundaries
-- a composite pin can be anchored exactly to a start/end segment
-- the shaft end caps are not stretched during normal placement
-- `MainWindow` uses a runtime target dictionary for extended image pins
-- image-pin extensions no longer rely on the placeholder `Line` plus centered bitmap approach
-- tests cover selection and geometry sanity
-- `scripts/verify.ps1` passes on a machine with the .NET 6 SDK installed
+- [x] part metadata includes shaft tip, shaft join, head attach point, head stub direction, and shaft stretch-band boundaries
+- [x] a composite pin can be anchored exactly to a start/end segment
+- [x] the shaft end caps are not stretched during normal placement
+- [x] `MainWindow` uses a runtime target dictionary for extended image pins
+- [x] image-pin extensions no longer rely on the placeholder `Line` plus centered bitmap approach *(for extended composite path)*
+- [x] tests cover selection and geometry sanity
+- [x] `scripts/verify.ps1` passes on a machine with the .NET 6 SDK installed *(formal Phase 6 gate passed 2026-06-09)*
 
 ## Follow-on work
 
-Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md)
+Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md)
 
 Manual-layout integration, edit-mode roundtrip, shaft overrides, render-plan caching, and
-multi-variant layout management: [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md)
+multi-variant layout management: [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md)

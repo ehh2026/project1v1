@@ -15,7 +15,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 
 | Track | Plan | Status | Next action |
 |-------|------|--------|-------------|
-| Core placement | [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md) | Phase 5 partial | Phase 6 verification |
+| Core placement | [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) | Complete | Baseline for unzoomed rollout and legacy removal |
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Blocked | Phase 0 policy decision |
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
 | Rendering polish | [pin-rendering-improvements-plan.md](pin-rendering-improvements-plan.md) | Not started | Shaft anti-aliasing (Part 1A) |
@@ -24,7 +24,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 ## Dependency order
 
 ```text
-pin-parts Phase 6 verify
+pin-parts completed baseline
   → composite-pins-unzoomed Phase 0 policy
   → composite-pins-unzoomed Phases 2–4
   → remove-pins-jpg-legacy-path
@@ -44,6 +44,7 @@ pin-rendering-improvements
 
 - [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md) — Phases 1–4; Phase 5 delegated to manual-layout-variants
 - [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md) — variant CRUD, edit-mode UI, seed merge; manual smoke passed 2026-06-08
+- [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) — extended-marker composite placement Phases 1–6; `verify.ps1` passed 2026-06-09
 
 ## Rules
 

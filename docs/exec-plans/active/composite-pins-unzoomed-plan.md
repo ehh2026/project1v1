@@ -11,7 +11,7 @@ parent_plan: pin-parts-composite-placement-plan.md
 
 Extend `CompositePinMarker` to every individual location marker (zoomed and unzoomed), replacing legacy `ImagePinMarker` everywhere except cluster-aggregate markers.
 
-Parent plan: [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md)
+Parent plan: [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md)
 
 TO_DO items: [Decide non-extended pin rendering policy](../../TO_DO.md), [Extend composite to all individual markers](../../TO_DO.md), [Run Phase 6 verification](../../TO_DO.md), [Manual edit mode for composite](../../TO_DO.md)
 

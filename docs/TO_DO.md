@@ -14,10 +14,8 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
 - [ ] Reliable seed loading in app — same plan, Phase 3
 - [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
-- [ ] Composite placement caching for saved layouts — [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
 - [ ] Non-extended pin rendering policy — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 0
 - [ ] Composite pins on all individual markers — same plan, Phases 2–3
-- [ ] Phase 6 verification — [pin-parts-composite-placement-plan.md](exec-plans/active/pin-parts-composite-placement-plan.md)
 - [ ] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
 - [ ] Pin rendering polish (anti-aliasing, depth sort) — [pin-rendering-improvements-plan.md](exec-plans/active/pin-rendering-improvements-plan.md)
 
@@ -66,6 +64,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## Recently done
 
 - Composite pin head placement fix — Phases 1–3 (`local_center` anchor, pin_07 geometry); tests pass, visual OK; plan parked 2026-06-09 — [composite-pin-head-placement-fix-plan.md](exec-plans/inactive/composite-pin-head-placement-fix-plan.md)
+- Composite pin core placement — Phases 1–6, saved-layout cache, common-angle verification, preview grids, and `verify.ps1` passed 2026-06-09 — [pin-parts-composite-placement-plan.md](exec-plans/completed/pin-parts-composite-placement-plan.md)
 - Large-file refactoring Phases 1–4 — PinDebugger split, `MarkerPlacementOrchestrator`, `BuildApplyInstructions`, MainWindow partials (2026-06-08); see [CHANGELOG.md](../CHANGELOG.md)
 - Manual layout variants — [manual-layout-variants-plan.md](exec-plans/completed/manual-layout-variants-plan.md) (2026-06-08)
 - Unzoomed marker offset — fixed 2026-06-06 ([UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](assessments/UNZOOMED_MARKER_OFFSET_ASSESSMENT.md))

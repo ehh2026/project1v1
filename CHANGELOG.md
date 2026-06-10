@@ -15,6 +15,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **Composite pin head placement fix (Phases 1–3):** Head-ball anchor uses `local_center`; pin_07 shaft geometry recalibrated after shadow removal. Tests pass; visual check OK. Plan parked in [docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md](docs/exec-plans/inactive/composite-pin-head-placement-fix-plan.md); optional collar/shading/`TargetHeadRadiusPx` polish tracked in [docs/TO_DO.md](docs/TO_DO.md) inactive section.
 
+- **Composite pin core placement completed:** [pin-parts-composite-placement-plan.md](docs/exec-plans/completed/pin-parts-composite-placement-plan.md) moved to completed after Phase 6. Added common-angle endpoint drift coverage for 0, 45, 90, 135, 180, 225, 270, and 315 degrees; regenerated `Tools/PinDebugger/composites/` preview grids; `scripts/verify.ps1` passed on 2026-06-09.
+
 - **Large-file refactoring (Phases 1–4):** Per [LARGE_FILE_REFACTORING_ASSESSMENT.md](docs/assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — closed TD-013 and reduced TD-001; `verify.ps1` taste check green (MainWindow removed from `FILE_SIZE_GRANDFATHER`).
   - **Phase 1 — PinDebugger:** Split `Tools/PinDebugger/Program.cs` (1051 lines) into focused files (`PinDebuggerContext`, `ShaftPixelSampler`, `ShaftCleaner`, `JoinAnalysis`, `Annotator`, `CompositePreviewRenderer`, slim `Program.cs`); deduplicated LockBits pixel sampling.
   - **Phase 2 — Marker placement:** Added `Services/MarkerPlacementOrchestrator` and `Models/MarkerPlacementResult`; slimmed `UpdateMarkerPositions` in `MainWindow.xaml.cs`; gated verbose placement logging on `Debug.LogRadialExtensionCalculation`; added `Tests/MarkerPlacementOrchestratorTests.cs`.
@@ -140,7 +142,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - `scripts/doc_gardening.py` and `.github/workflows/doc-gardening.yml` — weekly doc drift checks
 - `docs/agent-failures.md` — harness feedback log for repeatable agent mistakes
 - `scripts/compute_pin_part_geometry.ps1` and `Images&Content/Pins_v2/parts/pin_part_geometry.json` — derive shaft endpoints and head centers for cropped pin part PNGs in both local and original pin coordinates
-- `docs/exec-plans/active/pin-parts-composite-placement-plan.md` — plan the shift from single-bitmap pins to composite shaft/head placement using `Pins_v2/parts`
+- `docs/exec-plans/completed/pin-parts-composite-placement-plan.md` — plan the shift from single-bitmap pins to composite shaft/head placement using `Pins_v2/parts`
 
  - `Models/PinPartConfig.cs`, `Models/PinPartGeometry.cs`, `Models/PinPlacementTarget.cs`, and `Services/PinPartPlacementCalculator.cs` â€” add typed pin-part metadata/config and deterministic pair-selection logic
  - `Models/CompositePinRenderPlan.cs`, `Services/CompositePinRenderPlanBuilder.cs`, and `Views/CompositePinMarker.xaml*` â€” add the first isolated composite-pin render path with segmented shaft layers and rotated head placement
@@ -150,7 +152,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - `ManualLayout` storage and loading - support grouped layout variants with explicit origins (`AutoSeed`, `Manual`, `Imported`) so generated seeds and user-adjusted layouts stay distinct
 
-- `docs/PIN_IMAGE_PLACEMENT_ASSESSMENT.md` and `docs/exec-plans/active/pin-parts-composite-placement-plan.md` - clarify that the automatic radial endpoint distributor and manual layout edit/save/load workflow are still present and should remain the upstream source of endpoint placement
+- `docs/PIN_IMAGE_PLACEMENT_ASSESSMENT.md` and `docs/exec-plans/completed/pin-parts-composite-placement-plan.md` - clarify that the automatic radial endpoint distributor and manual layout edit/save/load workflow are still present and should remain the upstream source of endpoint placement
 - `MainWindow` and `ManualLayoutManager` â€” respect `ManualLayoutEditor.LayoutStoragePath` and fall back to compatible layout keys so generated manual-layout seeds can be found and applied more reliably
 - `scripts/generate_manual_layout_seeds.ps1` and `Images&Content/manual-layouts.json` â€” add a rough manual-layout seed generator and save an initial seed set for multi-location clusters
 
@@ -177,11 +179,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - `scripts/compute_pin_part_geometry.ps1` and `pin_part_geometry.json` Ã¢â‚¬â€ now emit head attach points, stub directions, shaft image sizes, and segmented-shaft heuristics for composite rendering
 - `visual-config.json` and `Models/VisualConfig.cs` Ã¢â‚¬â€ add `PinParts` configuration for geometry loading and staged composite rendering
-- `docs/exec-plans/active/pin-parts-composite-placement-plan.md` Ã¢â‚¬â€ now tracks the completed isolated render slice and the remaining exact-fit vs clamp integration gap
+- `docs/exec-plans/completed/pin-parts-composite-placement-plan.md` Ã¢â‚¬â€ now tracks the completed isolated render slice and the remaining exact-fit vs clamp integration gap
 - `MainWindow.xaml.cs` Ã¢â‚¬â€ now swaps extended image pins onto the composite shaft/head renderer behind the `PinParts.UseCompositeRendering` gate and restores legacy marker visuals automatically when extensions are not active
 - `MainWindow.xaml.cs` Ã¢â‚¬â€ entering edit mode now immediately rebuilds extended markers onto the legacy draggable path, and exiting edit mode refreshes back to the active non-edit rendering path
 - `Views/CompositePinMarker.xaml*`, `Models/CompositePinRenderPlan.cs`, `Models/DebugConfig.cs`, `visual-config.json`, and `MainWindow.xaml.cs` Ã¢â‚¬â€ add an optional composite-pin debug overlay for validating tip, join, stretch-band, and head-center placement live in the app
-- `docs/exec-plans/active/pin-parts-composite-placement-plan.md` Ã¢â‚¬â€ now clarifies manual-layout canonical endpoint data vs optional persisted composite-placement results, including recommended cache invalidation inputs and replay policy
+- `docs/exec-plans/completed/pin-parts-composite-placement-plan.md` Ã¢â‚¬â€ now clarifies manual-layout canonical endpoint data vs optional persisted composite-placement results, including recommended cache invalidation inputs and replay policy
 
 ### Impact
 
