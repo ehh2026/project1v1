@@ -206,6 +206,44 @@ namespace InteractiveWorldMap
             Canvas.SetTop(marker, originalScreenPos.Y - plan.TipAnchorLocal.Y);
         }
 
+        private void ApplyCompositePinDepthSort()
+        {
+            var markerById = new Dictionary<string, LocationMarker>(StringComparer.Ordinal);
+            var depthItems = new List<CompositePinDepthItem>();
+
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                if (marker.Content is not CompositePinMarker compositeMarker || compositeMarker.RenderPlan == null)
+                    continue;
+
+                var markerId = marker.Location.Name;
+                if (markerById.ContainsKey(markerId))
+                    continue;
+
+                var plan = compositeMarker.RenderPlan;
+                var left = Canvas.GetLeft(marker);
+                var top = Canvas.GetTop(marker);
+                if (double.IsNaN(left) || double.IsNaN(top))
+                    continue;
+
+                markerById[markerId] = marker;
+                depthItems.Add(new CompositePinDepthItem(
+                    markerId,
+                    new Point(left + plan.TipAnchorLocal.X, top + plan.TipAnchorLocal.Y),
+                    plan.JoinAnchorLocal - plan.TipAnchorLocal));
+            }
+
+            if (depthItems.Count == 0)
+                return;
+
+            var sorted = _compositePinDepthSorter.Sort(depthItems);
+            for (var i = 0; i < sorted.Count; i++)
+            {
+                if (markerById.TryGetValue(sorted[i].MarkerId, out var marker))
+                    Panel.SetZIndex(marker, 2000 + i);
+            }
+        }
+
         /// <summary>
         /// Handles Reassign Pins button click — re-runs composite shaft/head selection on the
         /// current canvas endpoints without saving or exiting edit mode.
@@ -236,6 +274,7 @@ namespace InteractiveWorldMap
                     applied++;
             }
 
+            ApplyCompositePinDepthSort();
             _logger.LogInfo($"[ReassignPins] Applied composite pins to {applied} markers.");
         }
 
@@ -272,6 +311,7 @@ namespace InteractiveWorldMap
                 {
                     _overrideStore.SetOverride(locationName, capturedPairId);
                     ApplyCompositePinToMarker(marker, originalPos, extendedPos, capturedPairId);
+                    ApplyCompositePinDepthSort();
                     UpdateOverrideIndicator();
                 };
                 menu.Items.Add(menuItem);

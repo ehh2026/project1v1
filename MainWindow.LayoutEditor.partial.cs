@@ -467,6 +467,8 @@ namespace InteractiveWorldMap
 
             if (_overrideStore.HasPendingOverrides && !_layoutEditor.IsEditMode)
                 ReapplyPendingOverrides();
+
+            ApplyCompositePinDepthSort();
         }
 
         private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)
@@ -578,6 +580,7 @@ namespace InteractiveWorldMap
             _draggedMarker.Opacity = 1.0;
             Panel.SetZIndex(_draggedMarker, 0);
             _extensionLineRenderer.SetLineZIndex(_draggedMarker, 0);
+            ApplyCompositePinDepthSort();
 
             _draggedMarker = null;
             

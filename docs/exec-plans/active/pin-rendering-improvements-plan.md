@@ -15,7 +15,7 @@ Program dashboard: [composite-pins-program.md](composite-pins-program.md)
 Two independent improvements:
 
 1. **Shaft anti-aliasing** — reduce jagged edges / interpolation artifacts on pin shafts and heads when they are rotated and scaled.
-2. **Perspective depth sorting** — render "interior" pins (physically closer to the viewer in the implied 3D scene) on top of the pins they overlap.
+2. **Perspective depth sorting** — render "interior" pins (physically closer to the viewer in the implied 3D scene) on top of the pins they overlap. ✅ Completed 2026-06-10.
 
 ---
 
@@ -86,6 +86,8 @@ Costs:
 
 ## Part 2 — Perspective Depth Sorting
 
+**Status:** Completed 2026-06-10. `CompositePinDepthSorter` sorts model-level `CompositePinDepthItem` records to preserve layer boundaries; MainWindow adapts visible composite markers into depth items and applies increasing `ZIndex` values.
+
 ### Definition
 
 Given two placed pins A and B, their shaft direction vectors (tip → head, in screen coordinates) are:
@@ -135,8 +137,8 @@ No new fields are needed on `ManualLayoutMarker` or any model.
 ```csharp
 public class CompositePinDepthSorter
 {
-    // Returns markers in ascending ZIndex order (index 0 = background).
-    public IReadOnlyList<LocationMarker> Sort(IEnumerable<LocationMarker> markers);
+    // Returns items in ascending ZIndex order (index 0 = background).
+    public IReadOnlyList<CompositePinDepthItem> Sort(IEnumerable<CompositePinDepthItem> items);
 
     // Exposed for tests.
     public static bool IsInterior(
@@ -190,8 +192,9 @@ Call sites:
 | `Views/CompositePinMarker.xaml` | Remove `SnapsToDevicePixels`, `UseLayoutRounding`; change `BitmapScalingMode` to `Fant`; add `EdgeMode` | 1A |
 | `Views/CompositePinMarker.xaml.cs` | (Approach B only) Add `FlattenToRasterBitmap()` | 1B |
 | `MainWindow.xaml.cs` | (Approach B only) Flatten after `SetCompositeImages`; update animation targets | 1B |
+| `Models/CompositePinDepthItem.cs` | New model-level sort input so Services do not reference Views | 2 |
 | `Services/CompositePinDepthSorter.cs` | New file — depth sort service | 2 |
-| `MainWindow.xaml.cs` | Add `_depthSorter` field; add `ApplyCompositePinDepthSort()`; call at layout apply + drag-end | 2 |
+| `MainWindow.xaml.cs`, `MainWindow.CompositePins.partial.cs`, `MainWindow.LayoutEditor.partial.cs` | Add sorter field; add `ApplyCompositePinDepthSort()`; call after viewport update, layout apply, reassign, shaft override, and drag-end | 2 |
 | `Tests/CompositePinDepthSorterTests.cs` | New file — unit tests for `IsInterior` and `Sort` | 2 |
 
 ---
@@ -199,5 +202,5 @@ Call sites:
 ## Implementation order
 
 1. **Part 1A** — XAML changes only (5 min, zero risk). ✅ Completed 2026-06-10; automated structural test added.
-2. **Part 2** — depth sorter service + MainWindow integration.
+2. **Part 2** — depth sorter service + MainWindow integration. ✅ Completed 2026-06-10; service tests added.
 3. **Part 1B** — only if Part 1A did not sufficiently improve quality.
