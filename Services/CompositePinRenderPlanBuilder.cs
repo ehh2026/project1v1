@@ -272,13 +272,10 @@ namespace InteractiveWorldMap.Services
             ComputedTransforms     t,
             ShiftedGeometry        s)
         {
-            var geometry   = v.Geometry;
-            var seg        = v.Segmentation;
-            var shaftFile  = config.UseLitShafts
-                ? geometry.ShaftFile.Replace(".png", "_lit.png")
-                : geometry.ShaftFile;
-            var shaftPath  = Path.Combine(config.PartsFolderPath, shaftFile);
-            var headPath   = Path.Combine(config.PartsFolderPath, v.HeadEntry.HeadFile);
+            var geometry  = v.Geometry;
+            var seg       = v.Segmentation;
+            var shaftPath = ResolveShaftPath(config, geometry);
+            var headPath  = Path.Combine(config.PartsFolderPath, v.HeadEntry.HeadFile);
 
             // Each adjacent clip band shares an exact boundary in source pixel space.
             // Different RenderTransforms on the three shaft layers can map that same boundary
@@ -354,6 +351,24 @@ namespace InteractiveWorldMap.Services
         private static Point ToPoint(PinPartPoint point)
         {
             return new Point(point.X, point.Y);
+        }
+
+        private static string ResolveShaftPath(PinPartConfig config, PinPartGeometryEntry geometry)
+        {
+            if (!string.IsNullOrWhiteSpace(config.ShaftAssetVariant))
+            {
+                return Path.Combine(
+                    config.PartsFolderPath,
+                    "shaft_variants",
+                    config.ShaftAssetVariant.Trim(),
+                    geometry.ShaftFile);
+            }
+
+            var shaftFile = config.UseLitShafts
+                ? geometry.ShaftFile.Replace(".png", "_lit.png")
+                : geometry.ShaftFile;
+
+            return Path.Combine(config.PartsFolderPath, shaftFile);
         }
 
         private static double GetDistance(Point start, Point end)

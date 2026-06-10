@@ -60,7 +60,8 @@ namespace InteractiveWorldMap.Services
                       $"{config.MaxStretchFactor:F3}:" +
                       $"{config.TargetHeadRadiusPx:F2}:" +
                       $"{config.TargetShaftHalfWidthPx:F2}:" +
-                      $"{config.UseLitShafts}";
+                      $"{config.UseLitShafts}:" +
+                      $"{config.ShaftAssetVariant}";
             return Sha256Short(key);
         }
 

@@ -34,6 +34,14 @@ namespace InteractiveWorldMap.Models
         public bool UseLitShafts { get; set; } = false;
 
         /// <summary>
+        /// Optional shaft-only asset variant folder under PartsFolderPath/shaft_variants.
+        /// When empty, the renderer uses the existing UseLitShafts/base shaft filename behavior.
+        /// Example: "outline_dark" resolves pin_01_shaft.png to
+        /// Pins_v2/parts/shaft_variants/outline_dark/pin_01_shaft.png.
+        /// </summary>
+        public string ShaftAssetVariant { get; set; } = string.Empty;
+
+        /// <summary>
         /// Target head radius in screen pixels. Each head image is scaled so its
         /// local_radius maps to exactly this many screen pixels, giving all heads a
         /// consistent size regardless of their native image dimensions.

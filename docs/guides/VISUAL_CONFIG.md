@@ -135,6 +135,7 @@ Key fields:
 - `UsePrerasterizedRendering` — default `false`; when `true`, each composite pin flattens shaft/head layers to one bitmap inside `CompositePinMarker`
 - `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
 - `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
+- `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set to `outline_dark` or `outline_dark_bold`, composite pins use the baked shaft variant while heads remain loaded from the base parts folder
 
 Important behavior:
 

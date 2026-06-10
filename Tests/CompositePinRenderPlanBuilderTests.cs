@@ -83,6 +83,40 @@ public class CompositePinRenderPlanBuilderTests
         Assert.Equal(90.0, plan.TargetAngleDeg, 1);
     }
 
+    [Fact]
+    public void BuildPlan_WhenShaftAssetVariantConfigured_UsesVariantShaftPath()
+    {
+        var builder = new CompositePinRenderPlanBuilder();
+        var target = new PinPlacementTarget
+        {
+            StartScreen = new Point(100, 320),
+            EndScreen = new Point(100, 100),
+            LocationId = "loc-variant",
+            GroupId = 1
+        };
+        var placement = new PinPartPlacementResult
+        {
+            PairId = "pin_a",
+            PairGeometry = CreateVerticalGeometry(),
+            TargetAngleDeg = 0.0,
+            TargetLengthPx = 220.0
+        };
+        var config = new PinPartConfig
+        {
+            PartsFolderPath = "Pins_v2/parts",
+            UseLitShafts = true,
+            ShaftAssetVariant = "outline_dark"
+        };
+
+        var plan = builder.BuildPlan(target, placement, config);
+
+        Assert.Equal(@"Pins_v2/parts\shaft_variants\outline_dark\pin_a_shaft.png", plan.ShaftSourcePath);
+        Assert.Equal(plan.ShaftSourcePath, plan.ShaftTipCapLayer.SourcePath);
+        Assert.Equal(plan.ShaftSourcePath, plan.ShaftBodyLayer.SourcePath);
+        Assert.Equal(plan.ShaftSourcePath, plan.ShaftHeadCapLayer.SourcePath);
+        Assert.Equal(@"Pins_v2/parts\pin_a_head.png", plan.HeadSourcePath);
+    }
+
     [Theory]
     [InlineData(0.0)]
     [InlineData(45.0)]

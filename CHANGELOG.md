@@ -14,6 +14,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Composite shaft visibility:** Added config-gated baked shaft asset variants (`outline_dark`, `outline_dark_bold`) for improving shaft/stub contrast without repeated runtime image processing.
 - **Composite shaft visibility planning:** Added [composite-pin-shaft-visibility-plan.md](docs/exec-plans/active/composite-pin-shaft-visibility-plan.md), an asset-variant-first plan for improving shaft/stub contrast without repeated runtime image processing.
 
 - **Composite pin rendering plan completed:** Moved [pin-rendering-improvements-plan.md](docs/exec-plans/completed/pin-rendering-improvements-plan.md) to completed after anti-aliasing, gated pre-rasterization, and depth sorting; added [COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md](docs/assessments/COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md) for the next shaft/stub contrast pass.

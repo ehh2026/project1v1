@@ -107,7 +107,7 @@ Do not make `ShaftAssetVariant` an enum in the MVP. Asset folders are content, n
 
 ### Steps
 
-- [ ] **Step 1: Add failing config tests**
+- [x] **Step 1: Add failing config tests**
 
 Add these tests to `Tests/VisualConfigServiceTests.cs` near the existing `PinParts` tests:
 
@@ -161,7 +161,7 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: the new tests fail because `PinPartConfig.ShaftAssetVariant` does not exist.
 
-- [ ] **Step 2: Add failing render-plan path test**
+- [x] **Step 2: Add failing render-plan path test**
 
 Add this test to `Tests/CompositePinRenderPlanBuilderTests.cs`:
 
@@ -209,7 +209,7 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: the new test fails because runtime path selection does not know about `ShaftAssetVariant`.
 
-- [ ] **Step 3: Add failing cache-hash test**
+- [x] **Step 3: Add failing cache-hash test**
 
 Create `Tests/CompositePinLayoutContentHasherTests.cs`:
 
@@ -255,7 +255,7 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: the test fails until the config field and hash input are added.
 
-- [ ] **Step 4: Implement `PinPartConfig.ShaftAssetVariant`**
+- [x] **Step 4: Implement `PinPartConfig.ShaftAssetVariant`**
 
 Add this property after `UseLitShafts` in `Models/PinPartConfig.cs`:
 
@@ -269,7 +269,7 @@ Add this property after `UseLitShafts` in `Models/PinPartConfig.cs`:
 public string ShaftAssetVariant { get; set; } = string.Empty;
 ```
 
-- [ ] **Step 5: Implement shaft path resolution**
+- [x] **Step 5: Implement shaft path resolution**
 
 In `Services/CompositePinRenderPlanBuilder.cs`, replace the inline `shaftFile` / `shaftPath` logic in `AssembleResult` with a helper:
 
@@ -300,7 +300,7 @@ private static string ResolveShaftPath(PinPartConfig config, PinPartGeometryEntr
 }
 ```
 
-- [ ] **Step 6: Include the shaft variant in the cache hash**
+- [x] **Step 6: Include the shaft variant in the cache hash**
 
 In `Services/CompositePinLayoutContentHasher.cs`, add the variant to `ComputeConfigHash`:
 
@@ -334,7 +334,7 @@ Expected: all targeted tests pass.
 
 ### Steps
 
-- [ ] **Step 1: Add the asset generation script**
+- [x] **Step 1: Add the asset generation script**
 
 Create `scripts/create_shaft_asset_variants.py` with these concrete behaviors:
 
@@ -433,7 +433,7 @@ Expected:
 - `Images&Content/Pins_v2/parts/shaft_variants/outline_dark/` contains 12 shaft PNGs plus `preview_shafts.png`.
 - `Images&Content/Pins_v2/parts/shaft_variants/outline_dark_bold/` contains 12 shaft PNGs plus `preview_shafts.png`.
 
-- [ ] **Step 2: Document the script**
+- [x] **Step 2: Document the script**
 
 Add this row to `scripts/README.md`:
 
@@ -441,7 +441,7 @@ Add this row to `scripts/README.md`:
 | `create_shaft_asset_variants.py` | Manual | venv | Generate low-runtime-cost composite shaft contrast variants and preview grids |
 ```
 
-- [ ] **Step 3: Verify generated assets are complete**
+- [x] **Step 3: Verify generated assets are complete**
 
 Run:
 
@@ -465,7 +465,7 @@ Expected: 26 files are listed: 12 shaft files plus one preview per variant.
 
 ### Steps
 
-- [ ] **Step 1: Add the config field without forcing a default switch**
+- [x] **Step 1: Add the config field without forcing a default switch**
 
 Add this field near `UseLitShafts` in `visual-config.json`:
 
@@ -487,7 +487,7 @@ or:
 
 Acceptance: leaving the field empty preserves the current `_lit` behavior when `UseLitShafts` is true.
 
-- [ ] **Step 2: Document the field**
+- [x] **Step 2: Document the field**
 
 In `docs/guides/VISUAL_CONFIG.md`, extend the PinParts section with:
 
@@ -498,7 +498,7 @@ In `docs/guides/VISUAL_CONFIG.md`, extend the PinParts section with:
   loaded from the base parts folder.
 ```
 
-- [ ] **Step 3: Add implementation changelog note**
+- [x] **Step 3: Add implementation changelog note**
 
 Under `[Unreleased]`, add:
 
@@ -512,7 +512,7 @@ Under `[Unreleased]`, add:
 
 ### Steps
 
-- [ ] **Step 1: Run targeted tests**
+- [x] **Step 1: Run targeted tests**
 
 ```powershell
 dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~VisualConfigServiceTests|FullyQualifiedName~CompositePinRenderPlanBuilderTests|FullyQualifiedName~CompositePinLayoutContentHasherTests" -c Release
@@ -520,7 +520,7 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: all targeted tests pass.
 
-- [ ] **Step 2: Run full verification**
+- [x] **Step 2: Run full verification**
 
 ```powershell
 .\scripts\verify.ps1

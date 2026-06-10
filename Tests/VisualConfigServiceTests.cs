@@ -169,6 +169,46 @@ public class VisualConfigServiceTests
         }
     }
 
+    [Fact]
+    public void Load_PinPartsShaftAssetVariant_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""ShaftAssetVariant"": ""outline_dark"" } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal("outline_dark", config.PinParts.ShaftAssetVariant);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_PinPartsShaftAssetVariant_UsesDefaultWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""Enabled"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal(string.Empty, config.PinParts.ShaftAssetVariant);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDir()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-visual-config-" + Guid.NewGuid().ToString("N"));
