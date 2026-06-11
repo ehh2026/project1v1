@@ -43,7 +43,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 - Phase 0 complete: Option A screen-up stub policy recorded.
 - Phases 1–3 complete for non-edit rendering: visible individual image markers now use composite targets for extended and non-extended placements; cluster aggregate markers remain unchanged.
-- Phase 4 remains open: edit mode still uses the existing legacy/edit-mode behavior.
+- Phase 4 complete (2026-06-11): edit mode now works on composite pins — removed `IsEditMode` gate, added extension lines as drag guides, rebuilt composite pins during drag, added composite-pin endpoint fallback, skipped `RestoreBaseMarkerVisuals` in edit mode.
 - Phase 5 remains open: manual visual capture/tuning is still pending.
 
 ## Phase 0 — Policy decision ✅ (2026-06-09)
@@ -150,7 +150,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 ## Phase 4 — Edit mode on composite markers
 
-**Deliverables:** edit mode drags composite pins, not legacy fallback.
+**Deliverables:** edit mode drags composite pins (both extended and stub) at all zoom levels, not legacy `ImagePinMarker` fallback.
 
 Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_DO.md)
 
@@ -158,22 +158,81 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 
 | Action | Path |
 |--------|------|
-| Modify | `MainWindow.xaml.cs` — edit mode enter/exit rebuild |
-| Modify | `Services/LayoutEditorController.cs` |
-| Modify | `Views/CompositePinMarker.xaml.cs` — drag hit targets |
+| Modify | `MainWindow.xaml.cs` — `CanUseCompositePins`, `OnEditLayoutButtonClick`, `ExitEditMode` |
+| Modify | `MainWindow.LayoutEditor.partial.cs` — `OnMarkerDragMove`, `CollectCurrentExtensions`, `ApplyManualLayout` |
+| Modify | `MainWindow.CompositePins.partial.cs` — `ApplyCompositePinsToNormalPlacements` (if needed) |
+| Create | `Tests/CompositePinEditModeTests.cs` |
+| Modify | `docs/TO_DO.md` |
+
+### Technical constraints discovered during code review
+
+1. **Positioning mismatch** — Legacy markers are **center-anchored** (`Canvas.Left = extendedPos.X - markerSize/2`). Composite pins are **tip-anchored** (`Canvas.Left = originalPos.X - plan.TipAnchorLocal.X`). Dragging the existing `LocationMarker` wrapper moves the tip, not the head. We must rebuild the composite pin each drag frame so the head follows the mouse.
+2. **Extension lines are absent for composite pins** — `ExtensionLineRenderer.Apply` skips drawing lines when `tryCompositePinApplier` succeeds. This breaks `CollectCurrentExtensions` (uses `TryGetLineEndpoint` as primary source) and leaves no visual drag target. We must add lines for composite pins in edit mode.
+3. **`RestoreBaseMarkerVisuals()` destroys composite pins** — `OnEditLayoutButtonClick` calls it before `ApplyManualLayout`, reverting to `ImagePinMarker`. We must skip this when composite rendering is active.
+4. **Drag events live on `LocationMarker`, not `CompositePinMarker`** — `CompositePinMarker` is just `Content`. The plan's "drag hit targets" note is a red herring.
 
 ### Tasks
 
-1. Remove or narrow "force legacy on edit mode enter" gate — edit mode should drag composite marker anchor (extended endpoint / stub end).
-2. Verify drag updates extension line endpoint and `ManualLayoutMarker.ExtendedPosition` in source or screen space consistently with save format.
-3. Verify save/load round-trip through `LayoutEditorController` with composite markers active.
-4. Exit edit mode refreshes composite rendering without legacy flash.
-5. Manual smoke: full edit → save → reload → zoom out → zoom in cycle.
+1. **Remove the edit-mode gate from `CanUseCompositePins()`**
+   - Delete `&& !_layoutEditor.IsEditMode` from the `CanUseCompositePins()` return expression.
+   - This lets composite pins render everywhere, including edit mode.
+
+2. **Keep extension lines as visual guides in edit mode**
+   - In `ApplyManualLayout`, when `instruction.CachedPlan != null` (composite pin applied) and `_layoutEditor.IsEditMode`, still add an extension line via `_extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen)` so `CollectCurrentExtensions` has a reliable endpoint and the user sees a drag target.
+   - Same for `TryApplyCompositePinMarker` in the normal build path — if `IsEditMode`, add a line after applying the composite pin.
+
+3. **Fix `OnMarkerDragMove` for composite pins**
+   - Detect composite marker: `marker.Content is CompositePinMarker`.
+   - For composite markers:
+     - `originalPos` = fixed from `viewport.SourceToScreen(location.PixelX, location.PixelY)`.
+     - `mousePos` = current cursor position.
+     - Rebuild `PinPlacementTarget` with `StartScreen = originalPos`, `EndScreen = mousePos`.
+     - Call `ApplyCompositePinToMarker(marker, originalPos, mousePos)` to re-render the pin at the new angle/length.
+     - Move the line endpoint via `_extensionLineRenderer.MoveLineEndpoint(marker, mousePos)`.
+   - For legacy markers, keep existing drag behavior.
+   - Ensure `newX/newY` bounds logic still works (composite pin `Canvas.Left` is tip-based, not center-based).
+
+4. **Fix `CollectCurrentExtensions` for composite pins**
+   - `TryGetLineEndpoint` will work once Task 2 is done (lines always present in edit mode).
+   - Add a composite fallback: if no line and `marker.Content is CompositePinMarker cmp`, use `cmp.RenderPlan.EndScreen` (or compute from `Canvas.Left/Top + plan.TipAnchorLocal + (JoinAnchorLocal - TipAnchorLocal)`).
+
+5. **Skip `RestoreBaseMarkerVisuals()` in edit mode when composite is active**
+   - In `OnEditLayoutButtonClick`, wrap `RestoreBaseMarkerVisuals()` in a guard: `if (!CanUseCompositePins()) RestoreBaseMarkerVisuals();`.
+   - When composite is active, `ApplyManualLayout` (which rebuilds composite pins) is the only visual path needed.
+
+6. **Save/load round-trip verification**
+   - `CollectCurrentExtensions` must produce correct `RadialExtension` with `ExtendedPosition` = endpoint.
+   - `LayoutEditorController.BuildExtensions` must produce correct angles/lengths.
+   - `ApplyManualLayout` replay must restore composite pins with the same endpoint.
+   - Add unit test: `LayoutEditorController.BuildExtensions` with composite-pin endpoint.
+
+7. **Exit edit mode without legacy flash**
+   - `ExitEditMode` already replays `ApplyManualLayout` when `IsManualLayoutActive` is true — this is correct.
+   - Ensure the `UpdateMarkerPositions()` fallback path also applies composite pins correctly (it already does via `ApplyCompositePinsToNormalPlacements`).
+
+8. **Unzoomed edit mode**
+   - Verify stub composite pins are draggable in full-map view.
+   - `CollectCurrentExtensions` must capture the stub endpoint.
+   - Save/load must round-trip stub positions.
+
+9. **Tests**
+   - `Tests/CompositePinEditModeTests.cs`:
+     - `CanUseCompositePins_ReturnsTrue_InEditMode`
+     - `ApplyManualLayout_AddsExtensionLines_WhenEditModeAndComposite`
+     - `CollectCurrentExtensions_FallsBackToCompositePlan_WhenNoLine`
+     - `BuildExtensions_CorrectAngleForCompositePin`
+
+10. **Manual smoke checklist**
+    - Zoom into cluster → enter edit mode → drag composite pin → save → exit edit mode → confirm composite pin at saved position.
+    - Zoom out → zoom back in → confirm layout still loads.
+    - Full-map view → edit mode → drag stub composite pin → save → exit → confirm.
 
 **Acceptance:**
 
-- Edit mode works on composite pins in zoomed cluster view
+- Edit mode works on composite pins in zoomed cluster view and unzoomed full-map view
 - Saved layouts replay correctly with composite rendering enabled
+- `scripts\verify.ps1` passes
+- No regression in legacy marker edit mode when `UseCompositeRendering = false`
 
 ## Phase 5 — Verification and tuning (extends pin-parts Phase 6)
 

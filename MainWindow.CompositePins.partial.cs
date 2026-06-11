@@ -85,8 +85,7 @@ namespace InteractiveWorldMap
             return _visualConfig.UsePinMarkers &&
                    _visualConfig.PinImages.Enabled &&
                    _visualConfig.PinParts.Enabled &&
-                   _visualConfig.PinParts.UseCompositeRendering &&
-                   !_layoutEditor.IsEditMode;
+                   _visualConfig.PinParts.UseCompositeRendering;
         }
 
         private bool EnsurePinPartGeometryLoaded()
@@ -131,7 +130,11 @@ namespace InteractiveWorldMap
         {
             if (!CanUseCompositePins())
                 return false;
-            return ApplyCompositePinToMarker(marker, originalScreenPos, extendedScreenPos, preferredPairId, preferredHeadSourcePath);
+            var ok = ApplyCompositePinToMarker(marker, originalScreenPos, extendedScreenPos, preferredPairId, preferredHeadSourcePath);
+            // Phase 4: extension line as drag guide + endpoint source in edit mode
+            if (ok && _layoutEditor.IsEditMode)
+                _extensionLineRenderer.AddLine(marker, originalScreenPos, extendedScreenPos);
+            return ok;
         }
 
         /// <summary>
@@ -284,7 +287,12 @@ namespace InteractiveWorldMap
                     containerWidth,
                     containerHeight,
                     _visualConfig.PinParts);
-                ApplyCompositePinTargetToMarker(marker, target);
+                if (ApplyCompositePinTargetToMarker(marker, target))
+                {
+                    // Phase 4: stub line as drag guide + endpoint source in edit mode
+                    if (_layoutEditor.IsEditMode)
+                        _extensionLineRenderer.AddLine(marker, target.StartScreen, target.EndScreen);
+                }
             }
         }
 

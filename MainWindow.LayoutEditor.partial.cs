@@ -139,18 +139,36 @@ namespace InteractiveWorldMap
             if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null) return null;
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null) return null;
-            var markerSize = _visualConfig.LocationMarkerSize;
             var markerData = _individualMarkers
                 .Where(m => m.Visibility == Visibility.Visible)
                 .Select(m =>
                 {
-                    var center = _extensionLineRenderer.TryGetLineEndpoint(m, out var lineEnd)
-                        ? lineEnd
-                        : new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2);
+                    var center = GetMarkerEndpoint(m);
                     return (m.Location, MarkerCenter: center,
                         OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
                 });
             return LayoutEditorController.BuildExtensions(markerData);
+        }
+
+        /// <summary>
+        /// Phase 4: returns the endpoint of a marker for layout saving.
+        /// Uses extension line endpoint first, then composite pin head center, then marker center fallback.
+        /// </summary>
+        private Point GetMarkerEndpoint(LocationMarker marker)
+        {
+            if (_extensionLineRenderer.TryGetLineEndpoint(marker, out var lineEnd))
+                return lineEnd;
+
+            if (marker.Content is CompositePinMarker cmp && cmp.RenderPlan != null)
+            {
+                var plan = cmp.RenderPlan;
+                return new Point(
+                    Canvas.GetLeft(marker) + plan.HeadCenterLocal.X,
+                    Canvas.GetTop(marker) + plan.HeadCenterLocal.Y);
+            }
+
+            var markerSize = _visualConfig.LocationMarkerSize;
+            return new Point(Canvas.GetLeft(marker) + markerSize / 2, Canvas.GetTop(marker) + markerSize / 2);
         }
         #region Manual Layout Editor Methods
 
@@ -162,15 +180,16 @@ namespace InteractiveWorldMap
             _layoutEditor.EnterEditMode();
 
             // If a manual layout is saved, restore those positions for draggable editing.
-            // CanUseCompositePins() is false in edit mode, so ApplyManualLayout falls through
-            // to the legacy ImagePinMarker + extension-line path.
+            // Phase 4: when composite rendering is active, skip RestoreBaseMarkerVisuals so
+            // composite pins remain composite during editing.
             bool loadedSaved = false;
             if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
             {
                 var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
                 if (layout != null)
                 {
-                    RestoreBaseMarkerVisuals();
+                    if (!CanUseCompositePins())
+                        RestoreBaseMarkerVisuals();
                     _extensionLineRenderer.Clear();
                     ApplyManualLayout(layout);
                     _logger.LogInfo($"[OnEditLayoutButtonClick] Restored saved layout for key={_layoutEditor.CurrentLayoutKey}");
@@ -236,14 +255,11 @@ namespace InteractiveWorldMap
                 // Collect current marker positions and delegate extension-building to controller.
                 // Use the extension line endpoint as the authoritative MarkerCenter: after "Auto Assign
                 // Pins" the marker's Canvas position is offset to the tip anchor, not the endpoint.
-                var markerSize = _visualConfig.LocationMarkerSize;
                 var markerData = _individualMarkers
                     .Where(m => m.Visibility == Visibility.Visible)
                     .Select(m =>
                     {
-                        var center = _extensionLineRenderer.TryGetLineEndpoint(m, out var lineEnd)
-                            ? lineEnd
-                            : new Point(Canvas.GetLeft(m) + markerSize / 2, Canvas.GetTop(m) + markerSize / 2);
+                        var center = GetMarkerEndpoint(m);
                         return (
                             m.Location,
                             MarkerCenter: center,
@@ -436,6 +452,9 @@ namespace InteractiveWorldMap
                             instruction.CachedPlan,
                             shaftImage,
                             headImage);
+                        // Phase 4: extension line as drag guide + endpoint source in edit mode
+                        if (_layoutEditor.IsEditMode)
+                            _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
                         continue;
                     }
                 }
@@ -446,7 +465,12 @@ namespace InteractiveWorldMap
                         instruction.ExtendedScreen,
                         instruction.PairId,
                         instruction.HeadSourcePath))
+                {
+                    // Phase 4: extension line as drag guide + endpoint source in edit mode
+                    if (_layoutEditor.IsEditMode)
+                        _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
                     continue;
+                }
 
                 var markerSize = _visualConfig.LocationMarkerSize;
                 Canvas.SetLeft(marker, instruction.ExtendedScreen.X - (markerSize / 2));
@@ -502,6 +526,7 @@ namespace InteractiveWorldMap
 
         /// <summary>
         /// Handles marker drag movement.
+        /// Phase 4: composite pins are rebuilt so the head follows the mouse while the tip stays fixed.
         /// </summary>
         private void OnMarkerDragMove(object sender, MouseEventArgs e)
         {
@@ -511,6 +536,43 @@ namespace InteractiveWorldMap
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentPosition = e.GetPosition(MapDisplay.Markers);
+                var viewport = MapDisplay.CurrentViewport;
+                var cw = MapDisplay.ActualWidth;
+                var ch = MapDisplay.ActualHeight;
+
+                // Phase 4: composite pin drag — rebuild pin so head follows mouse, tip stays fixed
+                if (_draggedMarker.Content is CompositePinMarker)
+                {
+                    if (viewport == null) return;
+                    var originalPos = viewport.SourceToScreen(
+                        _draggedMarker.Location.PixelX,
+                        _draggedMarker.Location.PixelY,
+                        cw, ch);
+
+                    // Constrain to canvas bounds
+                    var boundsWidth = MapDisplay.Markers.ActualWidth;
+                    var boundsHeight = MapDisplay.Markers.ActualHeight;
+                    var mousePos = new Point(
+                        Math.Max(0, Math.Min(currentPosition.X, boundsWidth)),
+                        Math.Max(0, Math.Min(currentPosition.Y, boundsHeight)));
+
+                    // Rebuild composite pin with new target
+                    ApplyCompositePinToMarker(_draggedMarker, originalPos, mousePos);
+
+                    // Update extension line endpoint
+                    if (_extensionLineRenderer.HasLine(_draggedMarker))
+                    {
+                        _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, mousePos);
+                    }
+
+                    // Record the new endpoint for save
+                    _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, mousePos);
+
+                    LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head moved to ({mousePos.X:F1}, {mousePos.Y:F1})");
+                    return;
+                }
+
+                // Legacy marker drag (existing behavior)
                 var markerSize = _visualConfig.LocationMarkerSize;
                 
                 LogDragDebug($"[DRAG] Mouse position: ({currentPosition.X:F1}, {currentPosition.Y:F1}), MarkerSize: {markerSize}");

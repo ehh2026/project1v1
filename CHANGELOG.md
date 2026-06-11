@@ -19,7 +19,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **Composite pin rendering plan completed:** Moved [pin-rendering-improvements-plan.md](docs/exec-plans/completed/pin-rendering-improvements-plan.md) to completed after anti-aliasing, gated pre-rasterization, and depth sorting; added [COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md](docs/assessments/COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md) for the next shaft/stub contrast pass.
 
-- **Composite pins unzoomed rollout (Phases 1–3):** Added `CompositePinTargetBuilder` and applied screen-up stub composite pins to visible non-extended individual image markers; unzoomed cluster aggregate markers remain unchanged.
+- **Composite pins unzoomed rollout (Phases 1–4):** Added `CompositePinTargetBuilder` and applied screen-up stub composite pins to visible non-extended individual image markers; unzoomed cluster aggregate markers remain unchanged. Phase 4 — edit mode now works on composite pins: removed `IsEditMode` gate from `CanUseCompositePins`, added extension lines as drag guides in edit mode, rebuilt composite pins during drag so head follows mouse, added `GetMarkerEndpoint` helper with composite-pin head-center fallback, and skipped `RestoreBaseMarkerVisuals` in edit mode when composite is active. Added `Tests/CompositePinEditModeTests.cs` with 5 tests covering edit-mode gate removal, endpoint extraction, and angle computation.
 
 - **CI / Dependabot:** GitHub Actions bumped to `actions/checkout@v6`, `actions/setup-dotnet@v5`, and `gitleaks/gitleaks-action@v3` (Node 24–compatible); Newtonsoft.Json 13.0.3 → 13.0.4.
 
