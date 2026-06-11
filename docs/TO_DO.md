@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 10, 2026
+**Last updated:** June 11, 2026
 
 ---
 
@@ -16,7 +16,9 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
 - [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–4 (non-edit and edit mode; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [x] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4
-- [ ] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/active/composite-pin-shaft-visibility-plan.md)
+- [ ] Composite pins persist during zoom — wherever composite shows at unzoomed, keep `CompositePinMarker` through zoom in/out (no `pins.jpg` / `ImagePinMarker` flash or fallback drawn pins when composite is enabled) — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 2 follow-up
+- [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
+- [ ] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/`)
 
 ## Inactive (optional polish)
 
@@ -62,6 +64,8 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Recently done
 
+- Composite shaft visibility — baked `outline_dark_7px` variant generated, enabled as default in `visual-config.json`; plan complete 2026-06-11 — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md)
+- Composite edit mode (Phase 4) — composite pins draggable in edit mode at all zoom levels; `CompositePinEditModeTests` added 2026-06-11 — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md)
 - Pin rendering polish — anti-aliasing, gated pre-rasterization, and depth sorting; plan moved 2026-06-10 — [pin-rendering-improvements-plan.md](exec-plans/completed/pin-rendering-improvements-plan.md)
 - Composite pin unzoomed Phase 0 — Option A stub segment (`DefaultStubLengthPixels = 24`, screen-up); unzoomed individual markers in scope; unzoomed cluster aggregates excluded — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) (2026-06-09)
 - Composite pin head placement fix — Phases 1–3 (`local_center` anchor, pin_07 geometry); tests pass, visual OK; plan parked 2026-06-09 — [composite-pin-head-placement-fix-plan.md](exec-plans/inactive/composite-pin-head-placement-fix-plan.md)

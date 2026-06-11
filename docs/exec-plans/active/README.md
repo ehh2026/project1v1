@@ -22,7 +22,6 @@ started: YYYY-MM-DD
 |------|--------|
 | [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
-| [composite-pin-shaft-visibility-plan.md](composite-pin-shaft-visibility-plan.md) | Improve shaft/stub contrast with baked asset variants |
 | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 
@@ -33,6 +32,7 @@ started: YYYY-MM-DD
 - `manual-layout-variants-plan.md` — Multiple saved layout variants per cluster + edit-mode UI — moved 2026-06-08
 - `pin-parts-composite-placement-plan.md` — Extended-marker composite placement Phases 1–6 — moved 2026-06-09
 - `pin-rendering-improvements-plan.md` — Anti-aliasing, gated pre-rasterization, and depth sorting — moved 2026-06-10
+- `composite-pin-shaft-visibility-plan.md` — Baked shaft contrast variants; default `outline_dark_7px` — moved 2026-06-11
 
 Completed plans move to [../completed/](../completed/). Parked plans (core done, optional follow-ups) move to [../inactive/](../inactive/).
 

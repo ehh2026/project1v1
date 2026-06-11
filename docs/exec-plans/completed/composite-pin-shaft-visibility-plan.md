@@ -1,13 +1,16 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-10
+completed: 2026-06-11
 requirements_ref: composite-pin-shaft-visibility
 parent_program: composite-pins-program.md
 source_assessment: ../../assessments/COMPOSITE_PIN_SHAFT_VISIBILITY_ASSESSMENT.md
 ---
 
 # Composite Pin Shaft Visibility Implementation Plan
+
+**Completed 2026-06-11.** Default shaft variant: `outline_dark_7px` in `visual-config.json`. Width-tuned variants (`outline_dark_3px` … `outline_dark_10px`) generated via `scripts/create_shaft_asset_variants.py`.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -528,14 +531,9 @@ Expected: all targeted tests pass.
 
 Expected: build, unit tests, doc links, taste checks, and headless startup validation pass.
 
-- [ ] **Step 3: Capture visual comparison**
+- [x] **Step 3: Capture visual comparison**
 
-Manual review on Windows:
-
-1. Set `PinParts.ShaftAssetVariant` to `""`, launch the app, and capture the problem area from the assessment.
-2. Set `PinParts.ShaftAssetVariant` to `"outline_dark"`, relaunch, and capture the same area.
-3. Set `PinParts.ShaftAssetVariant` to `"outline_dark_bold"`, relaunch, and capture the same area.
-4. Compare the short stubs and long shafts over dark labels, beige texture, blue rivers, and green map areas.
+Compared `_lit` baseline against `outline_dark_3px` … `outline_dark_10px` on stubs and extended shafts over dark labels, beige texture, and blue/green map areas. `outline_dark_7px` balances contrast without the heaviness of `outline_dark_8px` / `outline_dark_10px`.
 
 Acceptance criteria:
 
@@ -545,21 +543,13 @@ Acceptance criteria:
 - Heads remain unchanged.
 - No new per-marker runtime bitmap processing is added.
 
-- [ ] **Step 4: Choose the default**
-
-If a candidate clearly wins, update `visual-config.json`:
+- [x] **Step 4: Choose the default**
 
 ```json
-"ShaftAssetVariant": "outline_dark"
+"ShaftAssetVariant": "outline_dark_7px"
 ```
 
-or:
-
-```json
-"ShaftAssetVariant": "outline_dark_bold"
-```
-
-If neither candidate is acceptable, leave `ShaftAssetVariant` empty and extend this plan with a narrow runtime halo prototype using the assessment's `ShaftHaloEnabled`, `ShaftHaloColor`, `ShaftHaloThicknessPx`, and `ShaftHaloOpacity` fields.
+Assets generated under `Images&Content/Pins_v2/parts/shaft_variants/outline_dark_7px/`. Runtime halo prototype deferred — baked variants sufficient.
 
 ## Out of Scope
 

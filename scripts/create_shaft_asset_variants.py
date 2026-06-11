@@ -1,17 +1,40 @@
+"""
+Generate baked composite-pin shaft asset variants for improved contrast.
+
+Inputs:
+  - Source lit shaft PNGs under Images&Content/Pins_v2/parts/pin_XX_shaft_lit.png
+  - Variant name (e.g. outline_dark_7px) selecting outline kernel width
+
+Outputs:
+  - Per-pin shaft PNGs under parts/shaft_variants/<variant>/
+  - preview_shafts.png grid for visual review
+
+Requirements: Pillow (scripts/venv — see scripts/README.md).
+"""
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageFilter, ImageOps
 
 PIN_COUNT = 12
+OUTLINE_DARK_PX_PATTERN = re.compile(r"^outline_dark_(\d+)px$")
+
+# Default outline styling for outline_dark_Npx variants (kernel width = N, odd integer).
+OUTLINE_DARK_PX_CONTRAST = 0.18
+OUTLINE_DARK_PX_COLOR = (32, 28, 22, 170)
 
 
-def alpha_outline(source: Image.Image, radius: int, color: tuple[int, int, int, int]) -> Image.Image:
+def alpha_outline(source: Image.Image, kernel_size: int, color: tuple[int, int, int, int]) -> Image.Image:
+    """Expand alpha by a square MaxFilter kernel and composite a dark outline under the shaft."""
+    if kernel_size < 3 or kernel_size % 2 == 0:
+        raise ValueError(f"Outline kernel size must be an odd integer >= 3; got {kernel_size}")
+
     rgba = source.convert("RGBA")
     alpha = rgba.getchannel("A")
-    grown = alpha.filter(ImageFilter.MaxFilter((radius * 2) + 1))
+    grown = alpha.filter(ImageFilter.MaxFilter(kernel_size))
     outline_alpha = ImageChops.subtract(grown, alpha)
     outline = Image.new("RGBA", rgba.size, color)
     outline.putalpha(ImageChops.multiply(outline_alpha, Image.new("L", rgba.size, color[3])))
@@ -26,16 +49,31 @@ def boost_contrast(source: Image.Image, amount: float) -> Image.Image:
     return result
 
 
+def outline_kernel_size_from_px_label(px: int) -> int:
+    """Map folder suffix N in outline_dark_Npx to an odd MaxFilter kernel size."""
+    if px < 3:
+        raise ValueError(f"Outline width must be >= 3px; got {px}")
+    return px if px % 2 == 1 else px + 1
+
+
 def make_variant(source: Image.Image, name: str) -> Image.Image:
     if name == "outline_dark":
         contrasted = boost_contrast(source, 0.18)
-        return alpha_outline(contrasted, radius=1, color=(32, 28, 22, 170))
+        return alpha_outline(contrasted, kernel_size=3, color=(32, 28, 22, 170))
 
     if name == "outline_dark_bold":
         contrasted = boost_contrast(source, 0.28)
-        return alpha_outline(contrasted, radius=2, color=(24, 22, 18, 210))
+        return alpha_outline(contrasted, kernel_size=5, color=(24, 22, 18, 210))
 
-    raise ValueError(f"Unknown variant: {name}")
+    px_match = OUTLINE_DARK_PX_PATTERN.match(name)
+    if px_match:
+        kernel = outline_kernel_size_from_px_label(int(px_match.group(1)))
+        contrasted = boost_contrast(source, OUTLINE_DARK_PX_CONTRAST)
+        return alpha_outline(contrasted, kernel_size=kernel, color=OUTLINE_DARK_PX_COLOR)
+
+    raise ValueError(
+        f"Unknown variant: {name}. Use outline_dark, outline_dark_bold, or outline_dark_<N>px (e.g. outline_dark_7px)."
+    )
 
 
 def make_preview(images: list[Image.Image], output_path: Path) -> None:
@@ -70,12 +108,17 @@ def generate(parts_dir: Path, variants: list[str]) -> None:
             preview_images.append(result)
 
         make_preview(preview_images, output_dir / "preview_shafts.png")
+        print(f"Wrote {PIN_COUNT} shafts + preview to {output_dir}")
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate composite pin shaft visibility asset variants.")
     parser.add_argument("--parts-dir", default="Images&Content/Pins_v2/parts")
-    parser.add_argument("--variant", action="append", choices=["outline_dark", "outline_dark_bold"])
+    parser.add_argument(
+        "--variant",
+        action="append",
+        help="Variant folder name (outline_dark, outline_dark_bold, outline_dark_7px, ...). Repeatable.",
+    )
     return parser.parse_args()
 
 

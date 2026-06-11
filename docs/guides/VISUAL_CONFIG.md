@@ -135,16 +135,16 @@ Key fields:
 - `UsePrerasterizedRendering` — default `false`; when `true`, each composite pin flattens shaft/head layers to one bitmap inside `CompositePinMarker`
 - `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
 - `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
-- `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set to `outline_dark` or `outline_dark_bold`, composite pins use the baked shaft variant while heads remain loaded from the base parts folder
+- `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set (default: `outline_dark_7px`), composite pins load shafts from that baked variant folder while heads remain in the base parts folder. Supported names: `outline_dark`, `outline_dark_bold`, and `outline_dark_<N>px` width variants (e.g. `outline_dark_3px`, `outline_dark_7px`, `outline_dark_10px`). Generate variants with `scripts/create_shaft_asset_variants.py`.
 
 Important behavior:
 
 - `PinParts.Enabled = true` alone does not turn on composite marker rendering
 - the live renderer is only used when `PinParts.UseCompositeRendering = true`
 - pre-rasterized rendering is opt-in via `PinParts.UsePrerasterizedRendering`; leave it `false` unless visual review shows the live layered renderer is still too aliased
-- current rollout scope covers **visible individual image markers** in non-edit rendering, including radial-extension composites and screen-up stub composites for non-extended markers
+- current rollout scope covers **visible individual image markers** at all zoom levels when `UseCompositeRendering` is true, including radial-extension composites, screen-up stub composites for non-extended markers, and composite edit mode
 - stub policy (Option A): unzoomed **individual** markers get a screen-up stub; unzoomed **cluster aggregate** markers do not
-- edit mode currently stays on the legacy marker path even if composite rendering is enabled
+- baked shaft contrast uses `ShaftAssetVariant` (`outline_dark_7px` by default) for improved legibility over busy map backgrounds
 
 ## Radial Extension Interaction
 

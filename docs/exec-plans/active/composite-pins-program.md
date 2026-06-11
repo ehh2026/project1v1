@@ -19,7 +19,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Phases 1–4 done | Phase 5 — visual verification and tuning |
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
-| Shaft visibility | [composite-pin-shaft-visibility-plan.md](composite-pin-shaft-visibility-plan.md) | Planned | Asset variant spike and visual review |
+| Shaft visibility | [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) | Complete | Default `outline_dark_7px` in `visual-config.json` |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
 
 ## Dependency order
@@ -47,6 +47,7 @@ pin-rendering-improvements ✅
 - [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md) — variant CRUD, edit-mode UI, seed merge; manual smoke passed 2026-06-08
 - [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) — extended-marker composite placement Phases 1–6; `verify.ps1` passed 2026-06-09
 - [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) — anti-aliasing, gated pre-rasterization, and depth sorting; `verify.ps1` passed 2026-06-10
+- [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) — baked shaft variants; default `outline_dark_7px`; `verify.ps1` passed 2026-06-11
 
 ## Rules
 
