@@ -35,7 +35,7 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `extract_pins.py` | Manual | venv | Extract pin blobs from source image at configurable thresholds |
 | `extract_pins_v2.py` | Manual | venv | Alternate pin extraction pipeline |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
-| `create_shaft_asset_variants.py` | Manual | venv | Generate baked shaft contrast variants (`outline_dark_7px`, etc.) and preview grids |
+| `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 
 ## Related docs
 

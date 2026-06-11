@@ -135,7 +135,17 @@ Key fields:
 - `UsePrerasterizedRendering` — default `false`; when `true`, each composite pin flattens shaft/head layers to one bitmap inside `CompositePinMarker`
 - `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
 - `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
-- `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set (default: `outline_dark_7px`), composite pins load shafts from that baked variant folder while heads remain in the base parts folder. Supported names: `outline_dark`, `outline_dark_bold`, and `outline_dark_<N>px` width variants (e.g. `outline_dark_3px`, `outline_dark_7px`, `outline_dark_10px`). Generate variants with `scripts/create_shaft_asset_variants.py`.
+- `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set (default: `outline_dark_7px`), composite pins load shafts from that baked variant folder while heads remain in the base parts folder. Generate variants with `scripts/create_shaft_asset_variants.py`.
+
+  **Outer outline:** `outline_dark`, `outline_dark_bold`, `outline_dark_<N>px` (e.g. `outline_dark_6px`, `outline_dark_7px`) — dark halo grows **outside** the shaft alpha.
+
+  **Inner edge (no outward growth):** `inner_dark_<N>px` (e.g. `inner_dark_2px` … `inner_dark_6px`) — blends an **N** px inward band to **pure black** (100%); does not grow alpha outward.
+
+  **Combined:** `outline_dark_<O>px_in<I>px` — outer **O** = 6–10px; inner **I** = 2–8px (e.g. `outline_dark_9px_in4px`).
+
+  **Combined + bright core:** `outline_dark_<O>px_in<I>px_bright` — lit-core / black-rim look. Outer **O** = 6–10px; inner **I** = 2–8px. Example: `outline_dark_8px_in5px_bright`, `outline_dark_10px_in7px_bright`.
+
+  Preview grids: `Images&Content/Pins_v2/parts/shaft_variants/<variant>/preview_shafts.png`.
 
 Important behavior:
 

@@ -19,6 +19,8 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Composite pins persist during zoom — wherever composite shows at unzoomed, keep `CompositePinMarker` through zoom in/out (no `pins.jpg` / `ImagePinMarker` flash or fallback drawn pins when composite is enabled) — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 2 follow-up
 - [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
 - [ ] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/`)
+- [ ] Allow setting/changing pin heads as well as shafts; persist head choice in manual layout save
+- [ ] Do not use bright yellow pin heads unless manually assigned
 
 ## Inactive (optional polish)
 
