@@ -124,7 +124,7 @@
     "UseCompositeRendering": true,
     "UsePrerasterizedRendering": true,
     "UseLitShafts": true,
-    "ShaftAssetVariant": "outline_dark_bold",
+    "ShaftAssetVariant": "outline_dark_10px",
     "TargetHeadRadiusPx": 8.0,
     "TargetShaftHalfWidthPx": 1.75,
     "DefaultStubLengthPixels": 24.0
