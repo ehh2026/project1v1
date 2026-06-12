@@ -21,6 +21,86 @@ namespace InteractiveWorldMap
 {
     public partial class MainWindow
     {
+        private bool IsFullMapRootView()
+        {
+            var viewport = MapDisplay.CurrentViewport;
+            return _currentZoomedCluster == null &&
+                   viewport != null &&
+                   viewport.ZoomLevel <= 1.01;
+        }
+
+        private bool IsFullMapLayoutSessionActive()
+        {
+            return _isFullMapLayoutSession && _currentZoomedCluster == null;
+        }
+
+        private string GenerateCurrentFullMapGroupKey()
+        {
+            return LayoutKeyGenerator.GenerateFullMapGroupKey(MapDisplay.ActualWidth, MapDisplay.ActualHeight);
+        }
+
+        private bool TrySetFullMapLayoutKey(bool editSession)
+        {
+            if (!IsFullMapRootView())
+                return false;
+
+            _isFullMapLayoutSession = editSession;
+            _layoutEditor.SetLayoutKey(GenerateCurrentFullMapGroupKey());
+            return true;
+        }
+
+        private void ClearFullMapLayoutSession()
+        {
+            _isFullMapLayoutSession = false;
+        }
+
+        private void UpdateEditLayoutButtonVisibility()
+        {
+            if (!_visualConfig.ManualLayoutEditor.Enabled || _layoutEditor.IsEditMode)
+            {
+                EditLayoutButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            EditLayoutButton.Visibility =
+                IsFullMapRootView() || _currentZoomedCluster != null
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+        }
+
+        private void ShowEditModeNavigationBlockedStatus()
+        {
+            _logger.LogInfo("Navigation blocked while edit mode is active");
+            if (EditModePanel.Visibility == Visibility.Visible)
+            {
+                EditModeStatusText.Text = "Exit edit mode to zoom";
+                EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
+            }
+        }
+
+        private bool TryApplyFullMapManualLayout()
+        {
+            if (_layoutEditor.IsEditMode || !IsFullMapRootView())
+                return false;
+
+            var key = GenerateCurrentFullMapGroupKey();
+            _layoutEditor.SetLayoutKey(key);
+
+            var layout = _layoutEditor.TryLoad(key);
+            if (layout == null)
+            {
+                _layoutEditor.SetManualLayoutActive(false);
+                UpdateEditLayoutButtonVisibility();
+                return false;
+            }
+
+            _logger.LogInfo($"[TryApplyFullMapManualLayout] Replaying full-map layout for key={key}");
+            ApplyManualLayout(layout);
+            _layoutEditor.SetManualLayoutActive(true);
+            UpdateEditLayoutButtonVisibility();
+            return true;
+        }
+
         private void WireLayoutEditorEvents()
         {
             _layoutEditor.EditModeEntered += () =>
@@ -39,10 +119,7 @@ namespace InteractiveWorldMap
                 }
 
                 EditModePanel.Visibility = Visibility.Collapsed;
-                if (_visualConfig.ManualLayoutEditor.Enabled)
-                {
-                    EditLayoutButton.Visibility = Visibility.Visible;
-                }
+                UpdateEditLayoutButtonVisibility();
                 UpdateOverrideIndicator(); // re-evaluate indicator now that edit mode is off
             };
 
@@ -87,7 +164,8 @@ namespace InteractiveWorldMap
         {
             var layout = _layoutEditor.SwitchToVariant(variantId);
             if (layout == null) return;
-            RestoreBaseMarkerVisuals();
+            if (!CanUseCompositePins())
+                RestoreBaseMarkerVisuals();
             _extensionLineRenderer.Clear();
             ApplyManualLayout(layout);
             UpdateVariantUI();
@@ -130,13 +208,19 @@ namespace InteractiveWorldMap
             if (!ok) return;
             var nextId = _layoutEditor.ActiveVariantId;
             if (nextId != null) SwitchToVariantInEditor(nextId);
-            else UpdateMarkerPositions();
+            else
+            {
+                UpdateMarkerPositions();
+                if (IsFullMapLayoutSessionActive())
+                    TryApplyFullMapManualLayout();
+            }
         }
 
         /// <summary>Returns current marker positions as extensions, or null if not ready.</summary>
         private List<RadialExtension>? CollectCurrentExtensions()
         {
-            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null) return null;
+            if (_layoutEditor.CurrentLayoutKey == null) return null;
+            if (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()) return null;
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null) return null;
             var markerData = _individualMarkers
@@ -177,6 +261,19 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnEditLayoutButtonClick(object sender, RoutedEventArgs e)
         {
+            if (_currentZoomedCluster == null)
+            {
+                if (!TrySetFullMapLayoutKey(editSession: true))
+                {
+                    _logger.LogWarning("Cannot enter full-map layout edit - full-map viewport is not ready");
+                    return;
+                }
+            }
+            else
+            {
+                ClearFullMapLayoutSession();
+            }
+
             _layoutEditor.EnterEditMode();
 
             // If a manual layout is saved, restore those positions for draggable editing.
@@ -230,9 +327,10 @@ namespace InteractiveWorldMap
         /// </summary>
         private async void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
+            if (_layoutEditor.CurrentLayoutKey == null ||
+                (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
-                _logger.LogWarning("Cannot save layout - key or cluster is null");
+                _logger.LogWarning("Cannot save layout - no layout key or active layout session");
                 return;
             }
 
@@ -318,14 +416,17 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnDeleteLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutEditor.CurrentLayoutKey == null || _currentZoomedCluster == null)
+            if (_layoutEditor.CurrentLayoutKey == null ||
+                (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
-                _logger.LogWarning("Cannot delete layout - key or cluster is null");
+                _logger.LogWarning("Cannot delete layout - no layout key or active layout session");
                 return;
             }
 
             try
             {
+                var wasFullMapSession = IsFullMapLayoutSessionActive();
+
                 // Delete saved layout (controller sets IsManualLayoutActive and logs)
                 _layoutEditor.TryDelete();
 
@@ -335,9 +436,17 @@ namespace InteractiveWorldMap
 
                 // Exit edit mode
                 ExitEditMode();
-                
+
                 // Recalculate positions
-                ShowZoomedView(_currentZoomedCluster);
+                if (wasFullMapSession)
+                {
+                    UpdateMarkerPositions();
+                    TryApplyFullMapManualLayout();
+                }
+                else if (_currentZoomedCluster != null)
+                {
+                    ShowZoomedView(_currentZoomedCluster);
+                }
             }
             catch (Exception ex)
             {
@@ -358,6 +467,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void ExitEditMode()
         {
+            var wasFullMapSession = IsFullMapLayoutSessionActive();
             _layoutEditor.ExitEditMode();
 
             // Disable dragging on all markers
@@ -381,12 +491,16 @@ namespace InteractiveWorldMap
                 {
                     _logger.LogInfo($"[ExitEditMode] Replaying manual layout for key={_layoutEditor.CurrentLayoutKey}");
                     ApplyManualLayout(layout);
+                    if (wasFullMapSession)
+                        ClearFullMapLayoutSession();
                     return;
                 }
             }
 
             // Auto path: no manual layout saved yet (or load failed).
             UpdateMarkerPositions();
+            if (wasFullMapSession)
+                ClearFullMapLayoutSession();
         }
 
         /// <summary>

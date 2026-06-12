@@ -58,6 +58,14 @@ namespace InteractiveWorldMap.Services
         }
 
         /// <summary>
+        /// Generate the manual layout group key for full-map layouts.
+        /// </summary>
+        public static string GenerateFullMapGroupKey(double canvasWidth, double canvasHeight)
+        {
+            return $"fullmap_s{canvasWidth:F0}x{canvasHeight:F0}";
+        }
+
+        /// <summary>
         /// Compute SHA256 hash of a string
         /// </summary>
         private static string ComputeHash(string input)
@@ -75,6 +83,9 @@ namespace InteractiveWorldMap.Services
         /// </summary>
         public static bool AreKeysCompatible(string key1, string key2, double zoomTolerance = 0.1)
         {
+            if (IsFullMapKey(key1) || IsFullMapKey(key2))
+                return string.Equals(key1, key2, StringComparison.Ordinal);
+
             var parts1 = key1.Split('_');
             var parts2 = key2.Split('_');
 
@@ -103,6 +114,11 @@ namespace InteractiveWorldMap.Services
             if (zoomPart.StartsWith("z") && double.TryParse(zoomPart.Substring(1), out double zoom))
                 return zoom;
             return 0;
+        }
+
+        private static bool IsFullMapKey(string key)
+        {
+            return key.StartsWith("fullmap_s", StringComparison.Ordinal);
         }
     }
 }

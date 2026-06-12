@@ -207,4 +207,20 @@ public class LayoutKeyGeneratorTests
         Assert.NotEqual(k1920, k1440);
         Assert.True(LayoutKeyGenerator.AreKeysCompatible(k1920, k1440));
     }
+
+    [Fact]
+    public void GenerateFullMapGroupKey_RoundsCanvasSize()
+    {
+        var key = LayoutKeyGenerator.GenerateFullMapGroupKey(1919.6, 1080.4);
+
+        Assert.Equal("fullmap_s1920x1080", key);
+    }
+
+    [Fact]
+    public void AreKeysCompatible_FullMapDifferentSizes_ReturnsFalse()
+    {
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(
+            "fullmap_s1920x1080",
+            "fullmap_s1440x900"));
+    }
 }

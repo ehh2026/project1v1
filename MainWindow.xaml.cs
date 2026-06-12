@@ -55,6 +55,7 @@ namespace InteractiveWorldMap
         private IManualLayoutManager? _layoutManager;
         private LocationCluster? _currentZoomedCluster = null;
         private ManualLayout? _savedLayoutToApply = null;
+        private bool _isFullMapLayoutSession = false;
         
         // Map image dimensions
         private const double ImageWidth = 8198.0;
@@ -326,6 +327,8 @@ namespace InteractiveWorldMap
             
             // Update marker positions based on current viewport
             UpdateMarkerPositions();
+            TryApplyFullMapManualLayout();
+            UpdateEditLayoutButtonVisibility();
         }
 
         /// <summary>
@@ -358,6 +361,8 @@ namespace InteractiveWorldMap
                 // Don't handle clicks in edit mode (dragging takes precedence)
                 if (_layoutEditor.IsEditMode)
                 {
+                    ShowEditModeNavigationBlockedStatus();
+                    e.Handled = true;
                     return;
                 }
                 
@@ -410,6 +415,13 @@ namespace InteractiveWorldMap
             // Add click handler
             marker.MouseLeftButtonDown += (s, e) =>
             {
+                if (_layoutEditor.IsEditMode)
+                {
+                    ShowEditModeNavigationBlockedStatus();
+                    e.Handled = true;
+                    return;
+                }
+
                 marker.AnimateClick();
                 OnClusterClicked(cluster);
                 e.Handled = true;
@@ -623,6 +635,12 @@ namespace InteractiveWorldMap
 
         private void OnClusterClicked(LocationCluster cluster)
         {
+            if (_layoutEditor.IsEditMode)
+            {
+                ShowEditModeNavigationBlockedStatus();
+                return;
+            }
+
             _logger.LogInfo($"Cluster clicked: {cluster.Count} locations");
             AnimateZoomToCluster(cluster);
         }
@@ -684,6 +702,12 @@ namespace InteractiveWorldMap
 
         private void OnBackButtonClick(object sender, RoutedEventArgs e)
         {
+            if (_layoutEditor.IsEditMode)
+            {
+                ShowEditModeNavigationBlockedStatus();
+                return;
+            }
+
             AnimateZoomOut();
         }
 
@@ -724,6 +748,8 @@ namespace InteractiveWorldMap
             if (MapDisplay.CurrentViewport != null)
             {
                 UpdateMarkerPositions();
+                TryApplyFullMapManualLayout();
+                UpdateEditLayoutButtonVisibility();
             }
         }
 

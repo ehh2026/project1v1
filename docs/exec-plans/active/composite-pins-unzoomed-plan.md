@@ -45,7 +45,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 - Phases 1–3 complete for non-edit rendering: visible individual image markers now use composite targets for extended and non-extended placements; cluster aggregate markers remain unchanged.
 - Phase 4 complete (2026-06-11): edit mode now works on composite pins — removed `IsEditMode` gate, added extension lines as drag guides, rebuilt composite pins during drag, added composite-pin endpoint fallback, skipped `RestoreBaseMarkerVisuals` in edit mode.
 - Phase 5 remains open: manual visual capture/tuning is still pending.
-- Phase 6 remains open: **fully zoomed-out** manual layout edit — Edit Layout UI, layout keying, and save/load at full-map zoom (Phase 4 wired composite stub drag in code, but Edit Layout is still zoomed-cluster-only today).
+- Phase 6 in progress: **fully zoomed-out** manual layout edit — implementation and automated coverage landed 2026-06-12; manual smoke remains pending.
 
 ## Phase 0 — Policy decision ✅ (2026-06-09)
 
@@ -257,45 +257,119 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 
 ## Phase 6 — Manual layout edit on fully zoomed-out map
 
-**Scope:** User is at **full-map zoom** (fully zoomed out, `ZoomLevel ≈ 1.0`). Visible **individual** stub composite pins only — not zoomed-cluster radial extensions, not unzoomed `ClusterMarker` aggregates.
+**Scope:** User is at **full-map zoom** (fully zoomed out, `ZoomLevel ≈ 1.0`, `_currentZoomedCluster == null`). Editable targets are **only visible single-location individual markers** (stub composite pins). Not multi-location `ClusterMarker` blobs; not markers hidden because they belong to a dense cluster.
 
-**Problem:** Phase 4 enabled composite pin dragging when edit mode is active, but **Edit Layout** is only offered after zooming into a cluster (`ShowZoomedView`). Zoom-out exits edit mode and hides the button. Users cannot adjust stub pin head/endpoint placement on the world map at default zoom.
+**Problem:** Phase 4 enabled composite pin dragging when edit mode is active, but **Edit Layout** is only offered after zooming into a cluster (`ShowZoomedView`). Save/delete require `_currentZoomedCluster != null`. Zoom-out exits edit mode and hides the button.
 
-**Deliverables:** full-map manual layout edit parity with zoomed-cluster edit for stub-only composite markers.
+**Deliverables:** Edit, save, load, and variant-manage stub pin placement on the full map — same variant UX as zoomed-cluster edit, keyed by window size.
+
+### Design decisions (2026-06-11)
+
+| # | Decision |
+|---|----------|
+| 1 | **Edit scope:** Only markers visible as **single-location individuals** at full map (`ShowOnlyClusterMarkers` visibility rules). Do not surface hidden cluster members. |
+| 2 | **Layout group key:** `fullmap_s{W}x{H}` — **canvas/window size only** (rounded `MapDisplay.ActualWidth` × `ActualHeight`). See [Layout key](#layout-key-recommendation) below. |
+| 3 | **Save/delete:** Remove `_currentZoomedCluster == null` as a hard blocker when in full-map edit; use explicit full-map session flag + group key above. |
+| 4 | **Load/replay:** After auto-placement on full map, overlay saved variant if one exists — see [Load/replay](#loadreplay-plain-language) below. |
+| 5 | **Head/shaft on save:** Reuse existing `_assignmentEnricher` path (same as zoomed save); head-picker UI remains separate TO_DO. |
+| 6 | **Variants:** Reuse `manual-layouts.json` variant model — **multiple Manual variants per** `fullmap_sWxH` group (picker, Save As, delete variant). No AutoSeed for full-map MVP. |
+| 7 | **No zoom while editing:** Block zoom-in (cluster click, single-pin click zoom, zoom gestures), zoom-out (Back), and viewport navigation for **any** edit mode (full-map or cluster) until user exits edit mode. Show brief status if blocked. |
+| 8 | **Full-map session state:** Track an explicit full-map edit/replay session state; do not infer full-map editing solely from `_currentZoomedCluster == null`. |
+
+#### Layout key recommendation
+
+**Group key (storage + variants):**
+
+```text
+fullmap_s1920x1080
+```
+
+- Format: `fullmap_s{W:F0}x{H:F0}` from `MapDisplay.ActualWidth` / `ActualHeight` at enter-edit and at load.
+- `LayoutEditorController.CurrentLayoutKey` = this group key for full-map sessions (same as zoomed-cluster pattern).
+- Full-map key compatibility is exact for MVP. Update `LayoutKeyGenerator.AreKeysCompatible` / `ManualLayoutManager` compatible-layout lookup so `fullmap_s1920x1080` never falls back to `fullmap_s1440x900`.
+- **Not** in the key: location hash, viewport center, radial-extension params, stub length. Rationale: one layout family per window size; A/B layouts are variants; clustering changes which singles are visible without invalidating the group.
+
+**Per-marker save set:** On Save, persist one `ManualLayoutMarker` per **currently visible** single-location individual (location name + stub endpoint screen position + angle/length + assignment fields). Markers in dense clusters are omitted (not editable at this zoom).
+
+**Load matching:** On replay, apply saved entries **by location name** to visible singles only. Extra saved rows for locations not currently visible → ignore. Visible singles missing from variant → keep auto stub placement for those.
+
+**Window resize:** New `fullmap_sWxH` → different group (expected). Optional future: `AreKeysCompatible` tolerance for ±N px; out of scope for MVP. Until then, full-map key compatibility must be exact.
+
+**Implementation:** Add `LayoutKeyGenerator.GenerateFullMapGroupKey(double canvasWidth, double canvasHeight)`; do not overload cluster `GenerateKey` with sentinel hacks.
+
+#### Load/replay (plain language)
+
+Today (zoomed cluster only):
+
+1. User zooms into cluster → app builds a layout key → looks for saved JSON → if found, applies saved pin positions **instead of** auto radial math.
+
+Full map needs the same idea in one place:
+
+```text
+Show full map → place pins automatically (stubs) → IF saved layout exists for fullmap_sWxH → apply saved positions on top
+```
+
+**When replay runs (MVP):**
+
+| Trigger | Action |
+|---------|--------|
+| App startup | After `AddClustersToMap` + `UpdateMarkerPositions`, call `TryApplyFullMapManualLayout()` |
+| Return from cluster zoom (Back / zoom-out) | End of `ShowClusterView()` after `UpdateMarkerPositions` |
+| Exit edit mode (saved layout active) | Existing `ExitEditMode` → `ApplyManualLayout` path (already works once key is set) |
+
+**Not replay:** While user is actively in edit mode before Save (they are dragging live positions).
+
+**Helper:** `TryApplyFullMapManualLayout()` — compute `fullmap_sWxH`, `SetLayoutKey`, `TryLoad` selected variant, `ApplyManualLayout` if Manual layout exists; else no-op.
+
+**Full-map session lifecycle:** Set full-map edit session state when entering edit mode from full-map zoom; keep the captured `fullmap_sWxH` key through save, Save As, delete, and exit; clear the state when returning to normal full-map display or entering a zoomed-cluster layout session. Startup/replay may compute the same full-map key without entering edit mode.
+
+**Delete/recalculate:** Full-map delete must not call `ShowZoomedView(_currentZoomedCluster)`. After deleting the active full-map variant/layout, exit edit mode, rebuild auto stub placements with `UpdateMarkerPositions()` / `ShowClusterView()`, and let `TryApplyFullMapManualLayout()` no-op if no Manual variant remains.
 
 ### Files (expected)
 
 | Action | Path |
 |--------|------|
-| Modify | `MainWindow.Navigation.partial.cs` — show Edit Layout at full-map zoom; do not force exit on zoom-out when editing unzoomed layout (or separate unzoomed edit session) |
-| Modify | `MainWindow.LayoutEditor.partial.cs` — enter/exit edit mode, save/load at unzoomed zoom |
-| Modify | `Services/LayoutKeyGenerator.cs` or equivalent — layout key for full-map visible individual marker set |
-| Modify | `docs/guides/MANUAL_LAYOUT_EDITOR.md` — document unzoomed edit flow |
+| Modify | `MainWindow.Navigation.partial.cs` — show Edit Layout at full map; `TryApplyFullMapManualLayout` from `ShowClusterView`; block zoom/navigation when `IsEditMode` |
+| Modify | `MainWindow.LayoutEditor.partial.cs` — enter/exit/save/delete full-map session; remove cluster-only null guards when full-map |
+| Modify | `MainWindow.xaml.cs` — block single-pin click zoom + cluster click when `IsEditMode`; startup replay hook after initial placement |
+| Add / modify | `Services/LayoutKeyGenerator.cs` — `GenerateFullMapGroupKey` |
+| Modify | `Services/ManualLayoutManager.cs` — prevent compatible-layout fallback across different `fullmap_sWxH` keys |
+| Add / modify | `Tests/LayoutKeyGeneratorTests.cs` — full-map key format, stability, and exact compatibility |
+| Add / modify | `Tests/ManualLayoutManagerTests.cs` — no compatible fallback across different full-map sizes |
+| Modify | `docs/guides/MANUAL_LAYOUT_EDITOR.md` — full-map edit flow, key rules, no-zoom-while-editing |
 
 ### Tasks
 
-1. [ ] Show **Edit Layout** when `ManualLayoutEditor.Enabled` and viewport is at full-map / root zoom (all visible individual markers, not inside a zoomed cluster).
-2. [ ] Enter edit mode: composite stub pins draggable (reuse Phase 4 path); extension lines as drag guides.
-3. [ ] Define layout key for unzoomed full map (location set + zoom band + canvas size + stub policy — not cluster group key).
-4. [ ] Save / load / delete manual layout for unzoomed key; replay on return to full-map view.
-5. [ ] Persist head/shaft assignment fields when saving (coordinate with TO_DO head-choice item).
-6. [ ] Manual smoke: fully zoomed out → Edit Layout → drag stub pins → Save → exit → reload app or zoom cycle → confirm positions and composite rendering.
+1. [x] **UI:** Show **Edit Layout** when `ManualLayoutEditor.Enabled`, `_currentZoomedCluster == null`, and viewport at full-map zoom (~1.0).
+2. [x] **Session:** On enter full-map edit — set explicit full-map session state, capture `GenerateFullMapGroupKey(...)`, call `SetLayoutKey(...)`, populate variant picker; composite stub pins draggable (Phase 4 path + extension lines as guides).
+3. [x] **Save/delete:** `OnSaveLayoutButtonClick`, `OnSaveAsVariantButtonClick`, `OnDeleteVariantButtonClick`, and `OnDeleteLayoutButtonClick` work when `_currentZoomedCluster == null` and full-map edit session is active; save only visible single-location markers.
+4. [x] **Collect:** Update `CollectCurrentExtensions()` and any shared save helpers so full-map edit is allowed by explicit full-map session state; keep cluster-only guards for zoomed-cluster sessions only.
+5. [x] **Delete/rebuild:** Full-map delete exits edit mode and rebuilds auto full-map stub placements without calling `ShowZoomedView(_currentZoomedCluster)`.
+6. [x] **Replay:** Implement `TryApplyFullMapManualLayout()`; call from startup (post–`UpdateMarkerPositions`) and `ShowClusterView` completion.
+7. [x] **Key compatibility:** Add `GenerateFullMapGroupKey` and make full-map compatibility exact; `fullmap_s1920x1080` must not load or list compatible variants from `fullmap_s1440x900`.
+8. [x] **Assignments:** Include shaft/head fields on full-map save via `_assignmentEnricher` (no new picker UI in this phase).
+9. [x] **No zoom while editing:** Guard `AnimateZoomToCluster`, zoom-out/Back, single-marker click-zoom, and any map zoom gestures when `_layoutEditor.IsEditMode`; optional status text (“Exit edit mode to zoom”).
+10. [x] **Tests:** `GenerateFullMapGroupKey` unit tests; `AreKeysCompatible_FullMapDifferentSizes_ReturnsFalse`; manual-layout load/list tests that prove different full-map sizes do not fall back to each other; extend layout editor tests if save path is testable without UI.
+11. [ ] **Manual smoke:** Fully zoomed out → Edit Layout → drag stubs → Save As variant → exit → Back from cluster if needed → confirm positions; resize window → confirm different group key; confirm zoom blocked while editing.
 
 **Acceptance:**
 
-- Edit Layout available and usable at fully zoomed-out map view
-- Saved unzoomed layouts restore stub composite pin endpoints without entering a cluster zoom
+- Edit Layout available at fully zoomed-out map for visible single-location stub pins
+- Save/load/delete and **multiple variants** per `fullmap_sWxH` group
+- `fullmap_sWxH` groups are exact-match only; no accidental compatible fallback between different canvas sizes
+- Saved layouts restore on startup and when returning to full map without entering a cluster zoom
+- Zoom/navigation blocked during edit mode (full-map and cluster)
 - Zoomed-cluster manual layout behavior unchanged
 - `scripts/verify.ps1` passes
 
-## Risks
+### Risks
 
 | Risk | Mitigation |
 |------|------------|
-| Performance — composite per marker at full map | Cache render plans; lazy-build on first show |
-| Visual clutter from stubs at unzoomed scale | Tune `DefaultStubLengthPixels`; allow 0 = head-only mode |
-| Pair selection changes on zoom transition | Persist `selected_pair_id` on marker state across rebuilds |
-| Edit mode drag on rotated head | Drag handle on shaft endpoint only for MVP |
+| Clustering config change shifts which singles are visible | Load matches by name; missing names keep auto stubs; document in MANUAL_LAYOUT_EDITOR |
+| Window resize mid-edit | Use key captured at enter-edit; warn on resize or exit edit if canvas size changes |
+| Performance — many singles at full map | Reuse render-plan cache; same as current composite path |
+| User expects to edit cluster members at full map | Out of scope — must zoom into cluster; UI copy / docs |
 
 ## Definition of Done
 

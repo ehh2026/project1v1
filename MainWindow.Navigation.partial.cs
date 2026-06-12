@@ -26,6 +26,12 @@ namespace InteractiveWorldMap
         /// </summary>
         private void AnimateZoomToCluster(LocationCluster cluster)
         {
+            if (_layoutEditor.IsEditMode)
+            {
+                ShowEditModeNavigationBlockedStatus();
+                return;
+            }
+
             try
             {
                 _logger.LogInfo("=== AnimateZoomToCluster START (Viewport) ===");
@@ -82,6 +88,8 @@ namespace InteractiveWorldMap
 
                 // Show cluster markers, hide individual markers
                 ShowOnlyClusterMarkers();
+                TryApplyFullMapManualLayout();
+                UpdateEditLayoutButtonVisibility();
 
                 _logger.LogInfo($"=== ShowClusterView COMPLETE ===");
             }
@@ -102,6 +110,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  Cluster has {cluster.Count} locations");
                 
                 // Track current cluster for edit mode
+                ClearFullMapLayoutSession();
                 _currentZoomedCluster = cluster;
                 
                 var viewport = MapDisplay.CurrentViewport;
@@ -174,16 +183,7 @@ namespace InteractiveWorldMap
                     _logger.LogInfo("Manual layout applied after high-res region loaded");
                 }
                 
-                // Show Edit button if enabled and no manual layout is active
-                if (_visualConfig.ManualLayoutEditor.Enabled && !_layoutEditor.IsManualLayoutActive)
-                {
-                    EditLayoutButton.Visibility = Visibility.Visible;
-                }
-                else if (_visualConfig.ManualLayoutEditor.Enabled && _layoutEditor.IsManualLayoutActive)
-                {
-                    // Show edit button even when manual layout is active
-                    EditLayoutButton.Visibility = Visibility.Visible;
-                }
+                UpdateEditLayoutButtonVisibility();
                 
                 _logger.LogInfo($"=== ShowZoomedView COMPLETE ===");
             }
@@ -194,6 +194,12 @@ namespace InteractiveWorldMap
         }
         private void AnimateZoomOut()
         {
+            if (_layoutEditor.IsEditMode)
+            {
+                ShowEditModeNavigationBlockedStatus();
+                return;
+            }
+
             if (!_navigationService.CanGoBack)
             {
                 _logger.LogWarning("Cannot go back - navigation stack is empty");
@@ -237,6 +243,8 @@ namespace InteractiveWorldMap
 
                 AnimateViewportTransition(startViewport, targetViewport, "Zoom-out animation", () =>
                 {
+                    _currentZoomedCluster = null;
+                    ClearFullMapLayoutSession();
                     ShowClusterView();
 
                     if (!_navigationService.CanGoBack)
@@ -245,15 +253,10 @@ namespace InteractiveWorldMap
                         BackButton.Visibility = Visibility.Collapsed;
                     }
 
-                    _layoutEditor.ExitEditMode();
-                    _layoutEditor.SetManualLayoutActive(false);
-                    _layoutEditor.SetLayoutKey(null);
-                    _currentZoomedCluster = null;
                     _overrideStore.ClearAll();
-                    EditLayoutButton.Visibility = Visibility.Collapsed;
                     EditModePanel.Visibility = Visibility.Collapsed;
-                    ManualLayoutIndicator.Visibility = Visibility.Collapsed;
                     OverridePendingIndicator.Visibility = Visibility.Collapsed;
+                    UpdateEditLayoutButtonVisibility();
                 });
             }
             catch (Exception ex)

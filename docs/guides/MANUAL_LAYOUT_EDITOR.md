@@ -42,6 +42,14 @@ When the automatic radial extension algorithm produces intersecting lines, overl
 - If matching layout exists, load saved marker positions instead
 - Visual indicator that manual layout is being used (e.g., small icon or status text)
 
+### 6. Full-Map Composite Stub Layouts
+- The editor is also available at the fully zoomed-out map when `ManualLayoutEditor.Enabled` is true.
+- Full-map edit targets are only visible single-location individual markers. Multi-location cluster markers and hidden dense-cluster members are not editable until the user zooms into that cluster.
+- Full-map layouts use `fullmap_s{W}x{H}` group keys based on rounded `MapDisplay.ActualWidth` and `MapDisplay.ActualHeight`, for example `fullmap_s1920x1080`.
+- Full-map keys are exact-match only. A saved `fullmap_s1920x1080` layout must not be reused for `fullmap_s1440x900`; resizing creates a separate layout group.
+- Saved full-map layouts replay after startup placement and after returning from a zoomed cluster. Visible locations missing from the saved variant keep their automatic stub placement.
+- Zoom/navigation is blocked while any edit mode is active. Exit edit mode before zooming into a marker/cluster or using Back.
+
 ## Configuration Key Design
 
 The layout must be uniquely identified by all factors that affect the radial extension calculation:

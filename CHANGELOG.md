@@ -14,6 +14,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Composite pins unzoomed Phase 6 started:** Full-map manual layout editing now uses exact `fullmap_sWxH` layout keys, replays saved full-map stub layouts on startup/return-to-map, blocks zoom/navigation while editing, and supports save/delete/variant flows without requiring `_currentZoomedCluster`. Added full-map key and fallback regression tests.
+
 - **Composite shaft visibility:** Added config-gated baked shaft asset variants (`outline_dark`, `outline_dark_bold`, and `outline_dark_<N>px` width variants). Default enabled: `outline_dark_7px` in `visual-config.json`. Generate variants with `scripts/create_shaft_asset_variants.py`. Plan completed — [composite-pin-shaft-visibility-plan.md](docs/exec-plans/completed/composite-pin-shaft-visibility-plan.md).
 
 - **Shaft inner-edge variants:** Full review matrix for outer **6–10px** with inner **2–8px** (`_bright` and plain combo). Added `outline_dark_{6,7,8}px_in7px_bright` / `in8px_bright` and complete **9px** / **10px** sets under `Images&Content/Pins_v2/parts/shaft_variants/`.

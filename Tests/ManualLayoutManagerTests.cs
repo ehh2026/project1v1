@@ -301,4 +301,38 @@ public class ManualLayoutManagerTests
             if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void LoadLayout_FullMapDifferentSize_DoesNotLoadCompatibleLayout()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var layoutPath = Path.Combine(tempDir, "manual-layouts.json");
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            var extensions = new List<RadialExtension>
+            {
+                new RadialExtension
+                {
+                    Location         = new Location { Id = "a", Name = "Alpha" },
+                    OriginalPosition = new Point(0, 0),
+                    ExtendedPosition = new Point(30, 30),
+                    Angle            = 45.0,
+                    GroupId          = 0
+                }
+            };
+
+            Assert.True(manager.SaveLayout("fullmap_s1920x1080", extensions));
+
+            var loaded = manager.LoadLayout("fullmap_s1440x900");
+
+            Assert.Null(loaded);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
+    }
 }
