@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Full-map edit drag regression:** Individual marker mouse-downs in edit mode now allow the drag handler to start instead of showing the blocked-zoom status; cluster/navigation clicks still remain blocked while editing.
 - **Composite pin anti-aliasing (Part 1A):** Composite pin image layers now use `Fant` bitmap scaling with anti-aliased edge mode, and the marker root no longer forces pixel snapping/layout rounding that fought rotated shaft transforms.
 - **Composite pin pre-rasterization (Part 1B):** Added default-off `PinParts.UsePrerasterizedRendering` to flatten composite shaft/head layers inside `CompositePinMarker` while preserving debug overlays, hover/click behavior, shaft overrides, and depth sorting.
 - **Composite pin depth sorting (Part 2):** Visible composite pins now sort by tip/head shaft direction so interior pins render above exterior pins during viewport updates, manual layout replay, pin reassignment, shaft overrides, and drag-end restore.

@@ -358,11 +358,9 @@ namespace InteractiveWorldMap
             // Add click handler
             marker.MouseLeftButtonDown += (s, e) =>
             {
-                // Don't handle clicks in edit mode (dragging takes precedence)
-                if (_layoutEditor.IsEditMode)
+                var action = MarkerMouseDownPolicy.GetIndividualMarkerAction(_layoutEditor.IsEditMode);
+                if (action == MarkerMouseDownAction.AllowEditDrag)
                 {
-                    ShowEditModeNavigationBlockedStatus();
-                    e.Handled = true;
                     return;
                 }
                 
@@ -415,7 +413,8 @@ namespace InteractiveWorldMap
             // Add click handler
             marker.MouseLeftButtonDown += (s, e) =>
             {
-                if (_layoutEditor.IsEditMode)
+                var action = MarkerMouseDownPolicy.GetClusterMarkerAction(_layoutEditor.IsEditMode);
+                if (action == MarkerMouseDownAction.BlockNavigation)
                 {
                     ShowEditModeNavigationBlockedStatus();
                     e.Handled = true;
