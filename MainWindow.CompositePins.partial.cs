@@ -259,13 +259,10 @@ namespace InteractiveWorldMap
                 return false;
             }
 
-            var locationMarkerRadius = _visualConfig.LocationMarkerSize / 2.0;
-            var tipScreen = new Point(
-                placement.Left + locationMarkerRadius,
-                placement.Top + locationMarkerRadius);
-            topLeft = new Point(
-                tipScreen.X - compositeMarker.RenderPlan.TipAnchorLocal.X,
-                tipScreen.Y - compositeMarker.RenderPlan.TipAnchorLocal.Y);
+            topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(
+                placement,
+                _visualConfig.LocationMarkerSize,
+                compositeMarker.RenderPlan);
             return true;
         }
 

@@ -427,8 +427,9 @@ Show full map → place pins automatically (stubs) → IF saved layout exists fo
 | `CompositePinZoomPersistenceTests.UpdateMarkerPositions_DoesNotUnconditionallyRestoreBaseVisuals_WhenCompositeEnabled` | Source-contract guard: `UpdateMarkerPositions()` must not call `RestoreBaseMarkerVisuals()` unconditionally. |
 | `CompositePinZoomPersistenceTests.CompositeMode_HasExplicitFallbackRestorePath` | Source-contract guard: drawn fallback restore remains available only for composite failure paths. |
 | `CompositePinTargetBuilderTests.StubTarget_IsViewportProjectedButScreenLengthInvariant` | Behavior guard: different viewports move the start point but preserve `DefaultStubLengthPixels` and screen-up direction. |
+| `CompositePinPlacementPolicyTests` | Behavior guard: composite top-left is derived from normal marker center plus `TipAnchorLocal`, and viewport reprojection moves the pin without changing its local tip anchor. |
 
-If `MainWindow` marker update logic is extracted later, replace source-contract tests with behavior-level service tests that instantiate markers and assert `marker.Content` remains `CompositePinMarker` across consecutive placement updates.
+The tip-anchor placement math is now extracted into `CompositePinPlacementPolicy` with behavior-level coverage. Source-contract tests remain only for private `MainWindow` WPF orchestration seams that cannot be exercised directly without a UI harness.
 
 ### Acceptance
 
@@ -438,8 +439,8 @@ If `MainWindow` marker update logic is extracted later, replace source-contract 
 - [ ] Zoom-in/zoom-out final states use composite pins wherever composite mode is enabled and the marker is visible as an individual.
 - [x] `MainWindow.xaml.cs` remains orchestration-only for this change; no inline composite-persistence block is added.
 - [x] No touched `.cs` file exceeds 800 lines.
-- [x] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` passes.
-- [x] `.\scripts\verify.ps1` passes.
+- [x] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` passes (298 tests).
+- [x] `.\scripts\verify.ps1` passes (298 tests).
 
 ## Definition of Done
 
