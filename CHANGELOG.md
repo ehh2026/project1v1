@@ -16,6 +16,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Changed
 
 - **Legacy `pins.jpg` path removed:** Deleted `PinImages` config/model, `ImagePinMarker`, obsolete sprite extraction scripts, and `Images&Content/pins.jpg`; pin-style markers now use drawn `PinMarker` fallback or part-based `CompositePinMarker` rendering only.
+- **Composite fallback regression:** Added coverage that missing composite assets keep the drawn-pin fallback policy and do not reference the removed legacy image path.
 
 - **Composite pins unzoomed Phase 5/6 accepted:** Full-map manual layout editing now uses exact `fullmap_sWxH` layout keys, replays saved full-map stub layouts on startup/return-to-map, blocks zoom/navigation while editing, and supports save/delete/variant flows without requiring `_currentZoomedCluster`. Added full-map key/fallback regression tests; core manual smoke and visual geometry/gap checks accepted on 2026-06-12.
 

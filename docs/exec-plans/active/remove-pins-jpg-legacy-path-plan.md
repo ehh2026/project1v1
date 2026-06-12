@@ -327,7 +327,7 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 Expected: build, all tests, doc links, taste checks, startup validation pass.
 
-Result 2026-06-12: `.\scripts\verify.ps1` passed (Release build, 291 tests, doc links, taste checks, startup validation).
+Result 2026-06-12: `.\scripts\verify.ps1` passed (Release build, 292 tests, doc links, taste checks, startup validation).
 
 ### Manual smoke matrix
 
@@ -355,6 +355,7 @@ Result 2026-06-12: `.\scripts\verify.ps1` passed (Release build, 291 tests, doc 
 | `Tests/CompositePinTargetBuilderTests.cs` | Stub segment geometry; extended segment passthrough |
 | `Tests/VisualConfigDeserializationTests.cs` (create if missing) | Load config without `PinImages`; defaults for pin modes |
 | `Tests/StartupValidationHarnessTests.cs` | Ensure harness config path still valid |
+| `Tests/CompositePinFallbackTests.cs` | Missing composite assets leave drawn fallback policy and do not reference the legacy image path |
 
 No tests should reference `PinImageConfig` after Phase 1.
 

@@ -175,7 +175,7 @@ namespace InteractiveWorldMap
                 var headImage = LoadPinPartBitmap(planning.RenderPlan.HeadSourcePath);
                 if (shaftImage == null || headImage == null)
                 {
-                    _logger.LogWarning($"Composite pin assets missing for '{marker.Location.Name}', falling back to legacy extension rendering.");
+                    _logger.LogWarning($"Composite pin assets missing for '{marker.Location.Name}', leaving drawn pin fallback.");
                     return false;
                 }
 
