@@ -446,7 +446,7 @@ namespace InteractiveWorldMap
             if (!IsAnimating)
                 _extensionLineRenderer.Clear();
 
-            RestoreBaseMarkerVisuals();
+            PrepareMarkerVisualsForPlacementUpdate();
 
             var visibleIndividuals = _individualMarkers
                 .Where(m => m.Visibility == Visibility.Visible)
@@ -496,6 +496,13 @@ namespace InteractiveWorldMap
                     m => string.Equals(m.Location.Name, placement.LocationName, StringComparison.Ordinal));
                 if (marker == null)
                     continue;
+
+                if (TryGetCompositeAnchoredPlacement(marker, placement, out var compositeTopLeft))
+                {
+                    Canvas.SetLeft(marker, compositeTopLeft.X);
+                    Canvas.SetTop(marker, compositeTopLeft.Y);
+                    continue;
+                }
 
                 Canvas.SetLeft(marker, placement.Left);
                 Canvas.SetTop(marker, placement.Top);

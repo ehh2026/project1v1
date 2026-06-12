@@ -432,14 +432,14 @@ If `MainWindow` marker update logic is extracted later, replace source-contract 
 
 ### Acceptance
 
-- [ ] No unconditional `RestoreBaseMarkerVisuals()` call in the normal composite placement update path.
+- [x] No unconditional `RestoreBaseMarkerVisuals()` call in the normal composite placement update path.
 - [ ] Full-map stub pins retain `CompositePinMarker` content across consecutive `UpdateMarkerPositions()` calls when composite mode is enabled.
-- [ ] Stub length and screen-up direction are invariant across viewports.
+- [x] Stub length and screen-up direction are invariant across viewports.
 - [ ] Zoom-in/zoom-out final states use composite pins wherever composite mode is enabled and the marker is visible as an individual.
-- [ ] `MainWindow.xaml.cs` remains orchestration-only for this change; no inline composite-persistence block is added.
-- [ ] No touched `.cs` file exceeds 800 lines.
-- [ ] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` passes.
-- [ ] `.\scripts\verify.ps1` passes.
+- [x] `MainWindow.xaml.cs` remains orchestration-only for this change; no inline composite-persistence block is added.
+- [x] No touched `.cs` file exceeds 800 lines.
+- [x] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` passes.
+- [x] `.\scripts\verify.ps1` passes.
 
 ## Definition of Done
 

@@ -57,6 +57,20 @@ namespace InteractiveWorldMap
             }
         }
 
+        private void PrepareMarkerVisualsForPlacementUpdate()
+        {
+            if (CanUseCompositePins())
+                return;
+
+            RestoreBaseMarkerVisuals();
+        }
+
+        private bool RestoreDrawnFallbackForCompositeFailure(LocationMarker marker)
+        {
+            RestoreBaseMarkerVisual(marker);
+            return false;
+        }
+
         private void AnimateMarkerClick(LocationMarker marker)
         {
             switch (marker.Content)
@@ -161,7 +175,7 @@ namespace InteractiveWorldMap
             string? preferredPairId = null, string? preferredHeadSourcePath = null)
         {
             if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
-                return false;
+                return RestoreDrawnFallbackForCompositeFailure(marker);
 
             if (!_baseMarkerVisuals.TryGetValue(marker, out var baseState) || !IsPinStyleMarkerBase(baseState.Content))
                 return false;
@@ -176,7 +190,7 @@ namespace InteractiveWorldMap
                 if (shaftImage == null || headImage == null)
                 {
                     _logger.LogWarning($"Composite pin assets missing for '{marker.Location.Name}', leaving drawn pin fallback.");
-                    return false;
+                    return RestoreDrawnFallbackForCompositeFailure(marker);
                 }
 
                 ApplyRenderPlanToMarker(marker, target.StartScreen, target.EndScreen, planning.RenderPlan, shaftImage, headImage);
@@ -188,7 +202,7 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 _logger.LogWarning($"Failed to apply composite pin for '{marker.Location.Name}': {ex.Message}");
-                return false;
+                return RestoreDrawnFallbackForCompositeFailure(marker);
             }
         }
 
@@ -224,6 +238,27 @@ namespace InteractiveWorldMap
         private static bool IsPinStyleMarkerBase(object? content)
         {
             return content is PinMarker or CompositePinMarker;
+        }
+
+        private bool TryGetCompositeAnchoredPlacement(LocationMarker marker, MarkerScreenPlacement placement, out Point topLeft)
+        {
+            topLeft = default;
+
+            if (!CanUseCompositePins() ||
+                marker.Content is not CompositePinMarker compositeMarker ||
+                compositeMarker.RenderPlan == null)
+            {
+                return false;
+            }
+
+            var locationMarkerRadius = _visualConfig.LocationMarkerSize / 2.0;
+            var tipScreen = new Point(
+                placement.Left + locationMarkerRadius,
+                placement.Top + locationMarkerRadius);
+            topLeft = new Point(
+                tipScreen.X - compositeMarker.RenderPlan.TipAnchorLocal.X,
+                tipScreen.Y - compositeMarker.RenderPlan.TipAnchorLocal.Y);
+            return true;
         }
 
         private void ApplyCompositePinDepthSort()

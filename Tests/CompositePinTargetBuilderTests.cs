@@ -51,6 +51,43 @@ public class CompositePinTargetBuilderTests
         Assert.Equal(0, target.GroupId);
     }
 
+    [Fact]
+    public void Build_StubTarget_IsViewportProjectedButScreenLengthInvariant()
+    {
+        var location = Location("gamma", 1250, 950);
+        var config = new PinPartConfig { DefaultStubLengthPixels = 24 };
+        var builder = new CompositePinTargetBuilder();
+
+        var fullMapTarget = builder.Build(
+            location,
+            TestViewport(),
+            containerWidth: 1000,
+            containerHeight: 800,
+            config);
+
+        var zoomedTarget = builder.Build(
+            location,
+            new ViewportState
+            {
+                SourceImageWidth = 8198,
+                SourceImageHeight = 5542,
+                ViewportX = 1150,
+                ViewportY = 900,
+                ViewportWidth = 250,
+                ViewportHeight = 200,
+                ZoomLevel = 8
+            },
+            containerWidth: 1000,
+            containerHeight: 800,
+            config);
+
+        Assert.NotEqual(fullMapTarget.StartScreen, zoomedTarget.StartScreen);
+        Assert.Equal(0, fullMapTarget.EndScreen.X - fullMapTarget.StartScreen.X, 6);
+        Assert.Equal(-24, fullMapTarget.EndScreen.Y - fullMapTarget.StartScreen.Y, 6);
+        Assert.Equal(0, zoomedTarget.EndScreen.X - zoomedTarget.StartScreen.X, 6);
+        Assert.Equal(-24, zoomedTarget.EndScreen.Y - zoomedTarget.StartScreen.Y, 6);
+    }
+
     private static Location Location(string name, double pixelX, double pixelY) =>
         new() { Id = name, Name = name, PixelX = pixelX, PixelY = pixelY };
 
