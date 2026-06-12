@@ -19,8 +19,9 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [x] Manual layout edit on fully zoomed-out map — visible single-location stub pins only; group key `fullmap_sWxH` + variants; no zoom while editing — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 6 (core smoke accepted 2026-06-12)
 - [ ] Composite pins persist during zoom — visible single-location stubs should look the same zoomed/unzoomed (same composite renderer, screen-space stub length/direction, and tip anchoring; only viewport-projected position changes), with no drawn-pin flash when composite is enabled — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 7
 - [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
-- [ ] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/`)
+- [x] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/outline_dark_7px/`)
 - [ ] Allow setting/changing pin heads as well as shafts; persist head choice in manual layout save
+- [ ] Add pinhead variants with black outlines — generate versions with 2, 4, 6, 8, 10, 12, and 14 black pixels; for each width, split the stroke so half follows the detected pinhead edge outward and half draws inward
 - [ ] Do not use bright yellow pin heads unless manually assigned
 
 ## Inactive (optional polish)
