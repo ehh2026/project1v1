@@ -45,6 +45,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 - Phases 1–3 complete for non-edit rendering: visible individual image markers now use composite targets for extended and non-extended placements; cluster aggregate markers remain unchanged.
 - Phase 4 complete (2026-06-11): edit mode now works on composite pins — removed `IsEditMode` gate, added extension lines as drag guides, rebuilt composite pins during drag, added composite-pin endpoint fallback, skipped `RestoreBaseMarkerVisuals` in edit mode.
 - Phase 5 remains open: manual visual capture/tuning is still pending.
+- Phase 6 remains open: **fully zoomed-out** manual layout edit — Edit Layout UI, layout keying, and save/load at full-map zoom (Phase 4 wired composite stub drag in code, but Edit Layout is still zoomed-cluster-only today).
 
 ## Phase 0 — Policy decision ✅ (2026-06-09)
 
@@ -253,6 +254,39 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 - No visible shaft/head gap at representative angles
 - Hit targets feel correct at unzoomed and zoomed scales
 - Full verify green
+
+## Phase 6 — Manual layout edit on fully zoomed-out map
+
+**Scope:** User is at **full-map zoom** (fully zoomed out, `ZoomLevel ≈ 1.0`). Visible **individual** stub composite pins only — not zoomed-cluster radial extensions, not unzoomed `ClusterMarker` aggregates.
+
+**Problem:** Phase 4 enabled composite pin dragging when edit mode is active, but **Edit Layout** is only offered after zooming into a cluster (`ShowZoomedView`). Zoom-out exits edit mode and hides the button. Users cannot adjust stub pin head/endpoint placement on the world map at default zoom.
+
+**Deliverables:** full-map manual layout edit parity with zoomed-cluster edit for stub-only composite markers.
+
+### Files (expected)
+
+| Action | Path |
+|--------|------|
+| Modify | `MainWindow.Navigation.partial.cs` — show Edit Layout at full-map zoom; do not force exit on zoom-out when editing unzoomed layout (or separate unzoomed edit session) |
+| Modify | `MainWindow.LayoutEditor.partial.cs` — enter/exit edit mode, save/load at unzoomed zoom |
+| Modify | `Services/LayoutKeyGenerator.cs` or equivalent — layout key for full-map visible individual marker set |
+| Modify | `docs/guides/MANUAL_LAYOUT_EDITOR.md` — document unzoomed edit flow |
+
+### Tasks
+
+1. [ ] Show **Edit Layout** when `ManualLayoutEditor.Enabled` and viewport is at full-map / root zoom (all visible individual markers, not inside a zoomed cluster).
+2. [ ] Enter edit mode: composite stub pins draggable (reuse Phase 4 path); extension lines as drag guides.
+3. [ ] Define layout key for unzoomed full map (location set + zoom band + canvas size + stub policy — not cluster group key).
+4. [ ] Save / load / delete manual layout for unzoomed key; replay on return to full-map view.
+5. [ ] Persist head/shaft assignment fields when saving (coordinate with TO_DO head-choice item).
+6. [ ] Manual smoke: fully zoomed out → Edit Layout → drag stub pins → Save → exit → reload app or zoom cycle → confirm positions and composite rendering.
+
+**Acceptance:**
+
+- Edit Layout available and usable at fully zoomed-out map view
+- Saved unzoomed layouts restore stub composite pin endpoints without entering a cluster zoom
+- Zoomed-cluster manual layout behavior unchanged
+- `scripts/verify.ps1` passes
 
 ## Risks
 
