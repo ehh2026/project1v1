@@ -28,6 +28,15 @@ public class CompositePinZoomPersistenceTests
         Assert.Contains("RestoreDrawnFallbackForCompositeFailure(marker)", body);
     }
 
+    [Fact]
+    public void NormalCompositeReapply_ReCentersDrawnFallback_WhenCompositeFails()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.CompositePins.partial.cs"));
+        var body = ExtractMethodBody(source, "private void ApplyCompositePinsToNormalPlacements");
+
+        Assert.Contains("RestoreDrawnFallbackForCompositeFailure(marker, placement)", body);
+    }
+
     private static string ExtractMethodBody(string source, string signature)
     {
         var methodStart = source.IndexOf(signature, StringComparison.Ordinal);

@@ -71,6 +71,14 @@ namespace InteractiveWorldMap
             return false;
         }
 
+        private bool RestoreDrawnFallbackForCompositeFailure(LocationMarker marker, MarkerScreenPlacement placement)
+        {
+            RestoreBaseMarkerVisual(marker);
+            Canvas.SetLeft(marker, placement.Left);
+            Canvas.SetTop(marker, placement.Top);
+            return false;
+        }
+
         private void AnimateMarkerClick(LocationMarker marker)
         {
             switch (marker.Content)
@@ -327,7 +335,10 @@ namespace InteractiveWorldMap
                     // Phase 4: stub line as drag guide + endpoint source in edit mode
                     if (_layoutEditor.IsEditMode)
                         _extensionLineRenderer.AddLine(marker, target.StartScreen, target.EndScreen);
+                    continue;
                 }
+
+                RestoreDrawnFallbackForCompositeFailure(marker, placement);
             }
         }
 

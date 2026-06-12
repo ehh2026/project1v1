@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
-- **Composite pin zoom persistence (automated guard):** Marker placement updates no longer unconditionally restore visible pins to drawn fallback before composite reapply, and composite stubs keep screen-space length/direction across viewport projections.
+- **Composite pin zoom persistence (automated guard):** Marker placement updates no longer unconditionally restore visible pins to drawn fallback before composite reapply, composite stubs keep screen-space length/direction across viewport projections, and failed normal composite reapply recenters the drawn fallback.
 - **Full-map edit drag regression:** Individual marker mouse-downs in edit mode now allow the drag handler to start instead of showing the blocked-zoom status; cluster/navigation clicks still remain blocked while editing.
 - **Composite pin anti-aliasing (Part 1A):** Composite pin image layers now use `Fant` bitmap scaling with anti-aliased edge mode, and the marker root no longer forces pixel snapping/layout rounding that fought rotated shaft transforms.
 - **Composite pin pre-rasterization (Part 1B):** Added default-off `PinParts.UsePrerasterizedRendering` to flatten composite shaft/head layers inside `CompositePinMarker` while preserving debug overlays, hover/click behavior, shaft overrides, and depth sorting.

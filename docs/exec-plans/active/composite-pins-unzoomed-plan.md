@@ -433,7 +433,7 @@ If `MainWindow` marker update logic is extracted later, replace source-contract 
 ### Acceptance
 
 - [x] No unconditional `RestoreBaseMarkerVisuals()` call in the normal composite placement update path.
-- [ ] Full-map stub pins retain `CompositePinMarker` content across consecutive `UpdateMarkerPositions()` calls when composite mode is enabled.
+- [x] Full-map stub pins retain `CompositePinMarker` content across consecutive `UpdateMarkerPositions()` calls when composite mode is enabled.
 - [x] Stub length and screen-up direction are invariant across viewports.
 - [ ] Zoom-in/zoom-out final states use composite pins wherever composite mode is enabled and the marker is visible as an individual.
 - [x] `MainWindow.xaml.cs` remains orchestration-only for this change; no inline composite-persistence block is added.
