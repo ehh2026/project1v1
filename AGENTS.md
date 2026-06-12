@@ -93,6 +93,7 @@ Full loop: [docs/agent-workflows.md](docs/agent-workflows.md)
 - Coordinate math lives in `Utilities/CoordinateMapper`
 - Use `ILogger` / `FileLogger` in Services; avoid `Console.WriteLine` in Services/Views
 - Keep `.cs` files under 800 lines; split when larger
+- Exec plans that touch large files, composition roots, or shared workflows must include modularity/file-size impact: expected file growth, ownership boundaries, extraction points, and tests
 - Scripts for test runners go in `scripts/`; test projects in `Tests/`
 
 ## When You Finish

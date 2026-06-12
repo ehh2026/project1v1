@@ -46,6 +46,19 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 - Phase 4 complete (2026-06-11): edit mode now works on composite pins — removed `IsEditMode` gate, added extension lines as drag guides, rebuilt composite pins during drag, added composite-pin endpoint fallback, skipped `RestoreBaseMarkerVisuals` in edit mode.
 - Phase 5 complete: user confirmed debug-overlay geometry and shaft/head gap checks on 2026-06-12; screenshot capture skipped by request because no screenshot artifact path was available in this session.
 - Phase 6 complete for core/manual smoke: implementation, automated coverage, and basic full-map edit smoke accepted 2026-06-12.
+- Phase 7 pending: composite pins should persist visually through zoom/pan/update cycles with no drawn-pin flash.
+
+### Phase 7 policy: zoom persistence means visual invariance
+
+For visible single-location stub pins, zoom persistence means the pin should **look the same zoomed and unzoomed**:
+
+- Same renderer: `CompositePinMarker` remains the visible content whenever `UsePinMarkers=true`, `PinParts.Enabled=true`, and `PinParts.UseCompositeRendering=true`.
+- Same stub geometry in screen space: `DefaultStubLengthPixels` and screen-up direction do not scale with zoom.
+- Same assignment policy: shaft/head selection should be stable for a location and target, not regenerated in a way that visibly changes the pin while zooming.
+- Same anchor semantics: the tip stays on the location's current viewport-projected screen coordinate; only `Canvas.Left/Top` changes as the viewport changes.
+- Cluster aggregates remain unchanged: this applies to visible individual markers only, not multi-location `ClusterMarker` blobs.
+
+Extended markers still use their real radial-extension segment once the zoomed-cluster layout path applies extensions. The persistence target is to avoid any intermediate or final restore to drawn `PinMarker` while composite mode is active.
 
 ## Phase 0 — Policy decision ✅ (2026-06-09)
 
@@ -373,6 +386,60 @@ Show full map → place pins automatically (stubs) → IF saved layout exists fo
 | Window resize mid-edit | Use key captured at enter-edit; warn on resize or exit edit if canvas size changes |
 | Performance — many singles at full map | Reuse render-plan cache; same as current composite path |
 | User expects to edit cluster members at full map | Out of scope — must zoom into cluster; UI copy / docs |
+
+## Phase 7 — Persist composite pins through zoom/pan/update cycles
+
+**Scope:** Visible individual markers only. Full-map single-location stubs and zoomed-cluster non-extended stubs must remain visually composite across viewport updates. Extended cluster markers must remain composite after extension layout applies. Cluster aggregate markers remain `ClusterMarker` blobs.
+
+**Problem:** `UpdateMarkerPositions()` currently calls `RestoreBaseMarkerVisuals()` on every update. That restores each individual marker to the captured drawn `PinMarker` fallback before composite rendering is reapplied. Even when the final frame is composite, this can produce a drawn-pin flash during zoom/pan/update cycles and makes composite success depend on a destructive restore/reapply pattern.
+
+**Target behavior:**
+
+| Context | Expected |
+|---------|----------|
+| Full-map visible single | Composite stub remains visible before, during, and after viewport updates |
+| Zoom into cluster | Visible singles that stay individual keep composite appearance; zoomed members render composite extension or composite stub |
+| Zoom out / Back | Returning full-map singles render the same composite stub appearance as before zoom |
+| Pan/resize/update | Composite content is repositioned/replanned without restoring to drawn content first |
+| Composite asset/planning failure | Marker leaves or restores drawn `PinMarker` fallback intentionally, with warning; no obsolete image path |
+
+### Implementation approach
+
+1. Treat `_baseMarkerVisuals` as a **fallback cache**, not a normal-update reset mechanism.
+2. Replace unconditional `RestoreBaseMarkerVisuals()` in `UpdateMarkerPositions()` with a mode-aware helper, for example `PrepareMarkerVisualsForPlacementUpdate()`.
+3. In composite mode, keep current `CompositePinMarker` content in place while calculating new targets; reposition/reapply composites directly.
+4. On composite failure, call `RestoreBaseMarkerVisual(marker)` only for that marker and center it by `LocationMarkerSize`.
+5. Keep non-composite modes unchanged: when composite is disabled, drawn `PinMarker` or circular `LocationMarker` behavior remains as today.
+
+### Modularity and line-count guardrails
+
+- Keep `MainWindow.xaml.cs` as orchestration only. Expected edit: replace the direct `RestoreBaseMarkerVisuals()` call with one helper call; do not add composite-persistence logic inline there.
+- Put WPF marker-content logic in `MainWindow.CompositePins.partial.cs` or, if the helper grows beyond a few small methods, create `MainWindow.CompositePinPersistence.partial.cs`.
+- Keep any new helper method focused and under roughly 40 lines; split fallback restore, composite-mode detection, and placement-preparation decisions if they start to combine concerns.
+- Do not put `PinMarker`, `CompositePinMarker`, or other `Views/*` types into `Services/*`; that would violate the current architecture boundary. A new service is acceptable only if it is pure policy over `VisualConfig` / `PinPartConfig` / model data.
+- Keep all `.cs` files below the repo rule of 800 lines. Current reference counts before Phase 7: `MainWindow.xaml.cs` ~693, `MainWindow.LayoutEditor.partial.cs` ~668, `MainWindow.CompositePins.partial.cs` ~385. If a touched file approaches the limit, create a focused partial instead of adding more logic.
+- Prefer behavior tests for pure code (`CompositePinTargetBuilder`, policy services). Use source-contract tests only for private WPF composition seams that cannot be exercised directly without a UI harness.
+
+### Tests to add first
+
+| Test | Purpose |
+|------|---------|
+| `CompositePinZoomPersistenceTests.UpdateMarkerPositions_DoesNotUnconditionallyRestoreBaseVisuals_WhenCompositeEnabled` | Source-contract guard: `UpdateMarkerPositions()` must not call `RestoreBaseMarkerVisuals()` unconditionally. |
+| `CompositePinZoomPersistenceTests.CompositeMode_HasExplicitFallbackRestorePath` | Source-contract guard: drawn fallback restore remains available only for composite failure paths. |
+| `CompositePinTargetBuilderTests.StubTarget_IsViewportProjectedButScreenLengthInvariant` | Behavior guard: different viewports move the start point but preserve `DefaultStubLengthPixels` and screen-up direction. |
+
+If `MainWindow` marker update logic is extracted later, replace source-contract tests with behavior-level service tests that instantiate markers and assert `marker.Content` remains `CompositePinMarker` across consecutive placement updates.
+
+### Acceptance
+
+- [ ] No unconditional `RestoreBaseMarkerVisuals()` call in the normal composite placement update path.
+- [ ] Full-map stub pins retain `CompositePinMarker` content across consecutive `UpdateMarkerPositions()` calls when composite mode is enabled.
+- [ ] Stub length and screen-up direction are invariant across viewports.
+- [ ] Zoom-in/zoom-out final states use composite pins wherever composite mode is enabled and the marker is visible as an individual.
+- [ ] `MainWindow.xaml.cs` remains orchestration-only for this change; no inline composite-persistence block is added.
+- [ ] No touched `.cs` file exceeds 800 lines.
+- [ ] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` passes.
+- [ ] `.\scripts\verify.ps1` passes.
 
 ## Definition of Done
 

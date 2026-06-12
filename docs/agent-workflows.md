@@ -67,6 +67,17 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 
 Enforced by `scripts/doc_gardening.py` (TO_DO size cap, active-plan registry, front-matter, no active/completed duplicates).
 
+### Exec plan quality
+
+Plans must preserve modularity. Any plan that touches large files, composition roots, or shared workflows must include a **Modularity / File Size Impact** section covering:
+
+- expected file growth and whether touched files are near the 800-line limit
+- ownership boundaries and architecture layers that must not be crossed
+- extraction points for focused partials, helpers, services, or pure model logic
+- tests that protect the new boundary or prevent future inline growth
+
+Do not add substantial logic inline to large orchestration files when a focused partial, helper, or service would keep responsibilities clearer. Keep `.cs` files under 800 lines.
+
 ## Doc Gardening (monthly)
 
 - [ ] `python scripts/doc_gardening.py` passes (links, AGENTS/TO_DO size, active plan registry, front-matter)
