@@ -26,7 +26,6 @@ FILE_SIZE_GRANDFATHER: set[str] = {
 CONSOLE_GRANDFATHER = {
     "Services/FileLogger.cs",  # intentional console mirror for dev
     "Views/LocationMarker.xaml.cs",
-    "Views/ImagePinMarker.xaml.cs",
 }
 
 

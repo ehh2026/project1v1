@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 11, 2026
+**Last updated:** June 12, 2026
 
 ---
 
@@ -13,11 +13,11 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Fix or remove composite pins that overstretch shadow
 - [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
 - [ ] Reliable seed loading in app — same plan, Phase 3
-- [ ] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
+- [x] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
 - [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–4 (non-edit and edit mode; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [x] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4 (zoomed cluster; composite drag path also wired for stubs)
-- [ ] Manual layout edit on fully zoomed-out map — visible single-location stub pins only; group key `fullmap_sWxH` + variants; no zoom while editing — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 6 (design locked 2026-06-11)
-- [ ] Composite pins persist during zoom — wherever composite shows at unzoomed, keep `CompositePinMarker` through zoom in/out (no `pins.jpg` / `ImagePinMarker` flash or fallback drawn pins when composite is enabled) — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 2 follow-up
+- [x] Manual layout edit on fully zoomed-out map — visible single-location stub pins only; group key `fullmap_sWxH` + variants; no zoom while editing — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 6 (core smoke accepted 2026-06-12)
+- [ ] Composite pins persist during zoom — wherever composite shows at unzoomed, keep `CompositePinMarker` through zoom in/out (no drawn-pin flash or fallback drawn pins when composite is enabled) — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 2 follow-up
 - [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
 - [ ] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/`)
 - [ ] Allow setting/changing pin heads as well as shafts; persist head choice in manual layout save

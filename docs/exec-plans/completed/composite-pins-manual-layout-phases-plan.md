@@ -8,6 +8,8 @@ requirements_ref: composite-pins-manual-layout
 
 # Composite Pins — Manual Layout Phases Plan
 
+> Historical note: this completed plan predates [remove-pins-jpg-legacy-path-plan.md](../active/remove-pins-jpg-legacy-path-plan.md). Any instructions below that mention keeping an `ImagePinMarker` wrapper are superseded; current edit/drag handling stays attached to the `LocationMarker` canvas item, with drawn `PinMarker` fallback or `CompositePinMarker` content only.
+
 Extends the composite-pin rendering pipeline to fully support manually-edited layouts:
 edit mode drag → save → exit/reload preserves composite rendering; per-pin shaft/head overrides;
 cached render plans; coordination with multi-variant layout management.

@@ -1,17 +1,17 @@
 # Scripts Index
 
-Python and PowerShell tooling for verification, CI harness checks, and optional pin image processing.
+Python and PowerShell tooling for verification, CI harness checks, and optional composite-pin asset processing.
 
 ## Python environment
 
 | Path | Purpose |
 |------|---------|
-| `scripts/requirements.txt` | Pin-extraction deps: Pillow, numpy, scipy |
+| `scripts/requirements.txt` | Composite-pin asset tooling deps: Pillow, numpy, scipy |
 | `scripts/venv/` | Local venv (gitignored — create per machine) |
 
 **Harness scripts** (`verify_*.py`, `doc_gardening.py`) use the **stdlib only**. `verify.ps1` and `verify.sh` invoke system `python` / `python3` / `py -3` — no venv required.
 
-**Pin tooling** (`extract_pins.py`, `extract_pins_v2.py`, `split_pin_parts.py`) requires the venv:
+**Composite-pin asset tooling** (`split_pin_parts.py`, `create_shaft_asset_variants.py`) requires the venv:
 
 ```powershell
 py -3 -m venv scripts\venv
@@ -32,8 +32,6 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `verify_doc_links.py` | `verify.ps1`, `verify.sh`, doc-gardening CI | stdlib | Markdown link integrity |
 | `verify_taste.py` | `verify.ps1`, `verify.sh` | stdlib | Architecture taste invariants (Views, JObject, etc.) |
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter |
-| `extract_pins.py` | Manual | venv | Extract pin blobs from source image at configurable thresholds |
-| `extract_pins_v2.py` | Manual | venv | Alternate pin extraction pipeline |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 

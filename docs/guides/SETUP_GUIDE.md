@@ -22,12 +22,12 @@ Future: consider upgrading to **.NET 8 LTS** — tracked in [TO_DO.md](../TO_DO.
 
 ## Python (harness and optional tooling)
 
-The app is .NET/WPF; Python is used only for CI harness checks and optional image tooling under `scripts/`.
+The app is .NET/WPF; Python is used only for CI harness checks and optional composite-pin asset tooling under `scripts/`.
 
 | Task | Python to use | Dependencies |
 |------|---------------|--------------|
 | `verify.ps1` / `verify.sh` harness | System `python` or `py -3` | None (stdlib only) |
-| Pin extraction (`extract_pins*.py`, `split_pin_parts.py`) | `scripts/venv/` | `scripts/requirements.txt` |
+| Composite-pin asset tooling (`split_pin_parts.py`, `create_shaft_asset_variants.py`) | `scripts/venv/` | `scripts/requirements.txt` |
 
 **Create or refresh the venv** (not in git — recreate on each machine):
 
@@ -41,12 +41,6 @@ pip install -r scripts\requirements.txt
 python3 -m venv scripts/venv
 source scripts/venv/bin/activate
 pip install -r scripts/requirements.txt
-```
-
-**Run pin tooling** (with venv activated or explicit interpreter):
-
-```powershell
-.\scripts\venv\Scripts\python.exe scripts\extract_pins.py
 ```
 
 Script catalog: [scripts/README.md](../../scripts/README.md).

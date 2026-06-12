@@ -126,8 +126,8 @@ Also update conflicting active-plan language in `composite-pins-unzoomed-plan.md
 **Deliverable:** Confirm decisions before implementation.
 
 - [x] **Non-extended composite policy:** Adopt **stub segment** (Option A) from [composite-pins-unzoomed-plan.md Phase 0](composite-pins-unzoomed-plan.md#phase-0--policy-decision--2026-06-09) — `DefaultStubLengthPixels = 24`, screen-up stub for unzoomed individual markers only; unzoomed `ClusterMarker` aggregates excluded. Recorded 2026-06-09.
-- [ ] **Edit-mode drag target:** When `ImagePinMarker` is removed, dragging must attach to `LocationMarker` canvas item (preferred) or `PinMarker` / `CompositePinMarker` with preserved handlers. Document choice before Phase 4.
-- [ ] **Composite failure fallback:** Always `PinMarker`, never reintroduce a third image path.
+- [x] **Edit-mode drag target:** Dragging stays attached to the `LocationMarker` canvas item. The edit-mode mouse-down policy already lets marker-level drag handlers start, so no replacement wrapper is introduced.
+- [x] **Composite failure fallback:** Always `PinMarker`, never reintroduce a third image path. Composite apply now accepts drawn/composite pin-style bases only.
 
 ---
 
@@ -144,8 +144,8 @@ Also update conflicting active-plan language in `composite-pins-unzoomed-plan.md
 
 **Acceptance:**
 
-- [ ] `VisualConfig.LoadFromFile("visual-config.json")` succeeds with no `PinImages` key.
-- [ ] `dotnet build` succeeds (fix any compile errors from removed types).
+- [x] `VisualConfig.LoadFromFile("visual-config.json")` succeeds with no `PinImages` key.
+- [x] `dotnet build` succeeds (fix any compile errors from removed types).
 
 ---
 
@@ -175,12 +175,12 @@ private LocationMarker CreatePinMarker(Location location)
 
 **File:** `MainWindow.xaml.cs`
 
-- [ ] Delete `CreateImagePinMarker()`, `LoadMasterPinImage()`, field `_masterPinImage`.
-- [ ] Remove `case ImagePinMarker` from click-animation switch (replace with `CompositePinMarker` / `PinMarker` only).
+- [x] Delete `CreateImagePinMarker()`, `LoadMasterPinImage()`, field `_masterPinImage`.
+- [x] Remove `case ImagePinMarker` from click-animation switch (replace with `CompositePinMarker` / `PinMarker` only).
 
 **Acceptance:**
 
-- [ ] Grep for `ImagePinMarker`, `PinImages`, `_masterPinImage`, `pins.jpg` in `*.cs` → zero hits outside deleted files.
+- [x] Grep for `ImagePinMarker`, `PinImages`, `_masterPinImage`, `pins.jpg` in `*.cs` → zero hits outside deleted files.
 
 ---
 
@@ -263,7 +263,7 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 - [ ] Panning/zooming does not cause composite markers to flicker back to drawn pins.
 - [ ] Non-extended composite tips remain anchored on the original map coordinate, not visually centered around it.
 - [ ] `CompositePinTargetBuilderTests` green.
-- [ ] No reference to `ImagePinMarker` in composite apply path.
+- [x] No reference to `ImagePinMarker` in composite apply path.
 
 ---
 
@@ -277,7 +277,7 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 ### Task 4a — Drag geometry on `LocationMarker`
 
-- [ ] Keep drag handlers attached to `LocationMarker`; this is already the current event target, so do not invent a new `ImagePinMarker` replacement wrapper just for input.
+- [x] Keep drag handlers attached to `LocationMarker`; this is already the current event target, so do not invent a new `ImagePinMarker` replacement wrapper just for input.
 - [ ] Normalize drag math so saved manual-layout endpoints use the active visual's intended anchor:
   - drawn fallback → center by `LocationMarkerSize`
   - composite → use the render plan tip/head anchor as appropriate for endpoint semantics
@@ -286,7 +286,7 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 ### Task 4b — Reassign Pins
 
-- [ ] `OnReassignPinsButtonClick` continues to bypass edit-mode composite gate; must not require `ImagePinMarker` wrapper.
+- [x] `OnReassignPinsButtonClick` continues to bypass edit-mode composite gate; must not require `ImagePinMarker` wrapper.
 
 **Acceptance:**
 
@@ -300,18 +300,18 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 **Deliverables:** Repo contains no `pins.jpg` code path.
 
-- [ ] Delete `Views/ImagePinMarker.xaml` and `.xaml.cs`
-- [ ] Remove from `.csproj` if explicit Compile entries exist (SDK-style projects usually auto-glob)
-- [ ] Update `docs/guides/VISUAL_CONFIG.md` — two pin modes + `UsePinMarkers = false` dots
-- [ ] Update `ARCHITECTURE.md`, `CHANGELOG.md`, `docs/TO_DO.md`
-- [ ] Update `composite-pins-unzoomed-plan.md` and `composite-pins-manual-layout-phases-plan.md` to remove or redirect stale `ImagePinMarker` wrapper instructions.
-- [ ] Update `scripts/verify_taste.py` if it whitelists `ImagePinMarker.xaml.cs`
-- [ ] Optional: remove `pins.jpg` from `Images&Content/` and note in changelog
+- [x] Delete `Views/ImagePinMarker.xaml` and `.xaml.cs`
+- [x] Remove from `.csproj` if explicit Compile entries exist (SDK-style projects usually auto-glob)
+- [x] Update `docs/guides/VISUAL_CONFIG.md` — two pin modes + `UsePinMarkers = false` dots
+- [x] Update `ARCHITECTURE.md`, `CHANGELOG.md`, `docs/TO_DO.md`
+- [x] Update `composite-pins-unzoomed-plan.md` and `composite-pins-manual-layout-phases-plan.md` to remove or redirect stale `ImagePinMarker` wrapper instructions.
+- [x] Update `scripts/verify_taste.py` if it whitelists `ImagePinMarker.xaml.cs`
+- [x] Optional: remove `pins.jpg` from `Images&Content/` and note in changelog
 
 **Acceptance:**
 
-- [ ] Code/config grep: `rg -i "pins\.jpg|PinImages|ImagePinMarker|PinImageConfig" --glob '!docs/**' --glob '!*.md'` → zero runtime/config hits, except deleted-file history outside the working tree.
-- [ ] Docs grep: `rg -i "pins\.jpg|PinImages|ImagePinMarker|PinImageConfig" docs ARCHITECTURE.md CHANGELOG.md` → only this plan and explicitly historical/deprecated docs.
+- [x] Code/config grep: `rg -i "pins\.jpg|PinImages|ImagePinMarker|PinImageConfig" --glob '!docs/**' --glob '!*.md'` → zero runtime/config hits, except deleted-file history outside the working tree.
+- [x] Docs grep: `rg -i "pins\.jpg|PinImages|ImagePinMarker|PinImageConfig" docs ARCHITECTURE.md CHANGELOG.md` → only this plan, changelog/TO_DO redirects, active-plan redirect notes, and explicitly historical/deprecated docs.
 
 ---
 
@@ -326,6 +326,8 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 ```
 
 Expected: build, all tests, doc links, taste checks, startup validation pass.
+
+Result 2026-06-12: `.\scripts\verify.ps1` passed (Release build, 291 tests, doc links, taste checks, startup validation).
 
 ### Manual smoke matrix
 
@@ -380,13 +382,13 @@ No tests should reference `PinImageConfig` after Phase 1.
 
 ## Execution checklist (summary)
 
-- [ ] Phase 0 — Policy decisions recorded
-- [ ] Phase 1 — Config model cleanup
-- [ ] Phase 2 — Marker factory (drawn vs composite stub)
+- [x] Phase 0 — Policy decisions recorded
+- [x] Phase 1 — Config model cleanup
+- [x] Phase 2 — Marker factory (drawn vs composite stub)
 - [ ] Phase 3 — Composite for all individual markers
 - [ ] Phase 4 — Edit mode without `ImagePinMarker`
-- [ ] Phase 5 — Delete legacy view + docs
-- [ ] Phase 6 — `verify.ps1` + manual smoke
+- [x] Phase 5 — Delete legacy view + docs
+- [ ] Phase 6 — `verify.ps1` + manual smoke (automated verification passed; manual smoke remains)
 
 ---
 
@@ -394,4 +396,4 @@ No tests should reference `PinImageConfig` after Phase 1.
 
 1. **Stub direction for non-extended pins** — default upward vs map-north vs per-location hash (recommend: upward stub, configurable length).
 2. **Whether to add explicit `PinRenderingMode` enum** — convenience vs minimal config churn (recommend: defer; document `PinParts.UseCompositeRendering` as the switch).
-3. **Delete `scripts/extract_pins.py` vs archive** — recommend archive with README note unless still used for asset authoring.
+3. **Delete `scripts/extract_pins.py` vs archive** — decided 2026-06-12: deleted with obsolete `Pins.jpg` source asset; current part/variant tooling remains.

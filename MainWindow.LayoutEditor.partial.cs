@@ -553,7 +553,7 @@ namespace InteractiveWorldMap
 
                 if (instruction.CachedPlan != null
                     && _baseMarkerVisuals.TryGetValue(marker, out var baseState)
-                    && baseState.Content is ImagePinMarker)
+                    && IsPinStyleMarkerBase(baseState.Content))
                 {
                     var shaftImage = LoadPinPartBitmap(instruction.CachedPlan.ShaftSourcePath);
                     var headImage  = LoadPinPartBitmap(instruction.CachedPlan.HeadSourcePath);

@@ -23,7 +23,6 @@ The configuration is stored in `visual-config.json` in the application root dire
 
 This top-level sample is intentionally abbreviated. The actual file also includes nested sections such as:
 
-- `PinImages`
 - `PinParts`
 - `PinMarkers`
 - `RadialExtension`
@@ -71,52 +70,36 @@ This top-level sample is intentionally abbreviated. The actual file also include
 
 ## Pin Rendering Modes
 
-The app currently has three relevant pin-rendering paths:
+The app has three marker visual modes:
 
 1. `UsePinMarkers = false`
    - Individual locations use the simple circular `LocationMarker`
-   - No `pins.jpg` image pins are used
 
-2. `UsePinMarkers = true` and `PinImages.Enabled = true`
-   - Individual locations use cropped image pins from `pins.jpg`
-   - This is the current default path
+2. `UsePinMarkers = true` and `PinParts.UseCompositeRendering = false`
+   - Individual locations use the lightweight drawn `PinMarker`
 
-3. `UsePinMarkers = true`, `PinImages.Enabled = true`, `PinParts.Enabled = true`, and `PinParts.UseCompositeRendering = true`
-   - Non-extended markers still use the legacy `pins.jpg` path
-   - Extended markers in the radial-extension view switch to composite shaft/head rendering from `Pins_v2/parts`
-   - If composite planning or asset loading fails, the app falls back to the legacy `pins.jpg` extended-marker path
-
-If `UsePinMarkers = true` but `PinImages.Enabled = false`, the app falls back to the older drawn `PinMarker` control rather than `pins.jpg`.
+3. `UsePinMarkers = true`, `PinParts.Enabled = true`, and `PinParts.UseCompositeRendering = true`
+   - Visible individual markers use composite shaft/head rendering from `Pins_v2/parts` at all zoom levels
+   - Extended markers use the actual radial-extension start/end segment
+   - Non-extended individual markers use the configured screen-up stub segment
+   - Unzoomed cluster aggregate markers remain `ClusterMarker` blobs
+   - If composite planning or asset loading fails, the app leaves or restores the drawn `PinMarker` fallback for that marker
 
 ## Current Default Behavior
 
 With the repository's current `visual-config.json` defaults:
 
 - `UsePinMarkers = true`
-- `PinImages.Enabled = true`
-- `PinParts.Enabled = false`
-- `PinParts.UseCompositeRendering = false`
+- `PinParts.Enabled = true`
+- `PinParts.UseCompositeRendering = true`
 
 that means:
 
-- normal individual markers use cropped pins from `pins.jpg`
-- extended markers also use that same legacy image-pin path
-- radial extensions draw a separate shaft-like line and then place the image pin at the extended endpoint
-- the composite pin-part renderer is present in code but gated off
-
-## PinImages
-
-`PinImages` config controls the legacy image-pin system based on the master `pins.jpg` sprite sheet.
-
-Key fields:
-
-- `Enabled`
-- `MasterImagePath`
-- `UseRandomSelection`
-- `ScaleFactor`
-- `Pins`
-
-When this section is enabled, the app crops the configured rectangles from `pins.jpg` and uses those bitmaps as marker visuals.
+- visible individual markers use composite shaft/head markers
+- extended markers use composite pins anchored from the source location to the radial-extension endpoint
+- non-extended individual markers use screen-up composite stubs
+- unzoomed multi-location cluster aggregates remain stamp-style `ClusterMarker` blobs
+- manual layout edit works on composite pins in zoomed clusters and on visible full-map single-location stubs
 
 ## PinParts
 
@@ -152,9 +135,10 @@ Important behavior:
 - `PinParts.Enabled = true` alone does not turn on composite marker rendering
 - the live renderer is only used when `PinParts.UseCompositeRendering = true`
 - pre-rasterized rendering is opt-in via `PinParts.UsePrerasterizedRendering`; leave it `false` unless visual review shows the live layered renderer is still too aliased
-- current rollout scope covers **visible individual image markers** at all zoom levels when `UseCompositeRendering` is true, including radial-extension composites, screen-up stub composites for non-extended markers, and composite edit mode
+- current rollout scope covers **visible individual markers** at all zoom levels when `UseCompositeRendering` is true, including radial-extension composites, screen-up stub composites for non-extended markers, and composite edit mode
 - stub policy (Option A): unzoomed **individual** markers get a screen-up stub; unzoomed **cluster aggregate** markers do not
 - baked shaft contrast uses `ShaftAssetVariant` (`outline_dark_7px` by default) for improved legibility over busy map backgrounds
+- Phase 5 visual acceptance on 2026-06-12 confirmed tip/start, shaft direction, head center, endpoint behavior, and shaft/head gaps for full-map stubs and representative zoomed-cluster angles
 
 ## Radial Extension Interaction
 

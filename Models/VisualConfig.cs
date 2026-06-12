@@ -41,11 +41,6 @@ namespace InteractiveWorldMap.Models
         public PinMarkerConfig PinMarkers { get; set; } = new PinMarkerConfig();
 
         /// <summary>
-        /// Configuration for image-based pin markers.
-        /// </summary>
-        public PinImageConfig PinImages { get; set; } = new PinImageConfig();
-
-        /// <summary>
         /// Configuration for part-based composite pins.
         /// </summary>
         public PinPartConfig PinParts { get; set; } = new PinPartConfig();

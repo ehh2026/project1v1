@@ -64,8 +64,6 @@ namespace InteractiveWorldMap
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
         
-        // Master pin image for image-based pins
-        private BitmapSource? _masterPinImage;
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
         private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<LocationMarker, MarkerVisualState> _baseMarkerVisuals = new Dictionary<LocationMarker, MarkerVisualState>();

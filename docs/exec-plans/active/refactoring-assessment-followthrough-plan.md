@@ -188,7 +188,7 @@ Reduce remaining assessment debt in priority order without breaking demo-ready b
 |---------|----------|
 | Subwindow open/position lifecycle | `Services/SubwindowManager.cs` |
 | Zoom animation orchestration callbacks | extend existing animation helper or `Services/ZoomAnimationController.cs` |
-| Marker factory (`CreateImagePinMarker`, cluster markers) | `Services/MarkerFactory.cs` |
+| Marker factory (`CreatePinMarker`, cluster markers) | `Services/MarkerFactory.cs` |
 
 Update [refactoring-plan.md](../completed/refactoring-plan.md) with Phases 11+ checkboxes as each lands.
 

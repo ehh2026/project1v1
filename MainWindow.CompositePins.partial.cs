@@ -65,10 +65,6 @@ namespace InteractiveWorldMap
                     pinMarker.AnimateClick();
                     _logger.LogInfo($"Animated PIN marker click for '{marker.Location.Name}'");
                     break;
-                case ImagePinMarker imagePinMarker:
-                    imagePinMarker.AnimateClick();
-                    _logger.LogInfo($"Animated IMAGE PIN marker click for '{marker.Location.Name}'");
-                    break;
                 case CompositePinMarker compositePinMarker:
                     compositePinMarker.AnimateClick();
                     _logger.LogInfo($"Animated COMPOSITE PIN marker click for '{marker.Location.Name}'");
@@ -83,7 +79,6 @@ namespace InteractiveWorldMap
         private bool CanUseCompositePins()
         {
             return _visualConfig.UsePinMarkers &&
-                   _visualConfig.PinImages.Enabled &&
                    _visualConfig.PinParts.Enabled &&
                    _visualConfig.PinParts.UseCompositeRendering;
         }
@@ -168,7 +163,7 @@ namespace InteractiveWorldMap
             if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
                 return false;
 
-            if (!_baseMarkerVisuals.TryGetValue(marker, out var baseState) || baseState.Content is not ImagePinMarker)
+            if (!_baseMarkerVisuals.TryGetValue(marker, out var baseState) || !IsPinStyleMarkerBase(baseState.Content))
                 return false;
 
             try
@@ -224,6 +219,11 @@ namespace InteractiveWorldMap
             Panel.SetZIndex(marker, 2000);
             Canvas.SetLeft(marker, originalScreenPos.X - plan.TipAnchorLocal.X);
             Canvas.SetTop(marker, originalScreenPos.Y - plan.TipAnchorLocal.Y);
+        }
+
+        private static bool IsPinStyleMarkerBase(object? content)
+        {
+            return content is PinMarker or CompositePinMarker;
         }
 
         private void ApplyCompositePinDepthSort()
@@ -409,46 +409,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private LocationMarker CreatePinMarker(Location location)
         {
-            if (_visualConfig.PinImages.Enabled && _visualConfig.PinImages.Pins.Count > 0)
-                return CreateImagePinMarker(location);
             return CreateDrawnPinMarker(location);
-        }
-
-        /// <summary>
-        /// Creates an image-based pin marker for a location.
-        /// </summary>
-        private LocationMarker CreateImagePinMarker(Location location)
-        {
-            try
-            {
-                if (_masterPinImage == null)
-                    LoadMasterPinImage();
-
-                if (_masterPinImage == null)
-                {
-                    _logger.LogError("Failed to load master pin image, falling back to drawn pins");
-                    return CreateDrawnPinMarker(location);
-                }
-
-                var pinInfo = ImagePinMarker.SelectRandomPin(_visualConfig.PinImages);
-                var croppedPin = ImagePinMarker.CropPinFromMaster(_masterPinImage, pinInfo);
-                var imagePinMarker = new ImagePinMarker { Location = location };
-                imagePinMarker.SetPinImage(croppedPin, pinInfo, _visualConfig.PinImages.ScaleFactor);
-
-                var marker = new LocationMarker(_visualConfig) { Location = location };
-                marker.Content = imagePinMarker;
-                marker.Width = imagePinMarker.Width;
-                marker.Height = imagePinMarker.Height;
-                marker.Tag = imagePinMarker;
-
-                _logger.LogInfo($"Created image pin marker '{pinInfo.Id}' for location '{location.Name}'");
-                return marker;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Error creating image pin marker: {ex.Message}");
-                return CreateDrawnPinMarker(location);
-            }
         }
 
         /// <summary>
@@ -471,38 +432,6 @@ namespace InteractiveWorldMap
             marker.Height = pinMarker.Height;
             marker.Tag = pinMarker;
             return marker;
-        }
-
-        /// <summary>
-        /// Loads the master pin image from the configured path.
-        /// </summary>
-        private void LoadMasterPinImage()
-        {
-            try
-            {
-                if (!_visualConfig.PinImages.Enabled)
-                {
-                    _logger.LogInfo("Image-based pins are disabled in config");
-                    return;
-                }
-
-                var bitmap = _contentLoader.TryLoadContentBitmap(_visualConfig.PinImages.MasterImagePath);
-                if (bitmap == null)
-                {
-                    _logger.LogError(
-                        $"Master pin image not found at: {_contentLoader.ResolveContentFilePath(_visualConfig.PinImages.MasterImagePath)}");
-                    return;
-                }
-
-                _masterPinImage = bitmap;
-                _logger.LogInfo(
-                    $"Master pin image loaded: {_contentLoader.ResolveContentFilePath(_visualConfig.PinImages.MasterImagePath)} ({bitmap.PixelWidth}x{bitmap.PixelHeight})");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to load master pin image: {ex.Message}");
-                _masterPinImage = null;
-            }
         }
 
     }

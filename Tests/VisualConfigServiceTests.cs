@@ -71,6 +71,27 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Save_DefaultConfig_DoesNotWriteObsoletePinImagesSection()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            var service = new VisualConfigService();
+
+            service.Save(new VisualConfig(), path);
+
+            var json = File.ReadAllText(path);
+            Assert.DoesNotContain("PinImages", json);
+            Assert.DoesNotContain("pins.jpg", json);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void EnsureConfigExists_CreatesFileIfMissing()
     {
         var tempDir = CreateTempDir();

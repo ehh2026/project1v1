@@ -104,7 +104,7 @@ Enforced by `Tests/Architecture/LayerDependencyTests.cs`.
 | Content popups | `ContentSubwindow`, `DidacticTextWindow` | `Views/` |
 | Manual layout | `ManualLayoutManager`, `ManualLayout` | `Services/`, `Models/` |
 | Radial extensions | `RadialExtensionCalculator` | `Utilities/` |
-| Visual config | `VisualConfig`, `PinImageConfig` | `Models/`, `visual-config.json` |
+| Visual config | `VisualConfig` | `Models/`, `visual-config.json` |
 
 ## Known Technical Debt
 

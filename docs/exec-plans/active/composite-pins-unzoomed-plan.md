@@ -9,7 +9,7 @@ parent_plan: pin-parts-composite-placement-plan.md
 
 # Composite Pins — Unzoomed and All-Marker Rollout Plan
 
-Extend `CompositePinMarker` to every individual location marker (zoomed and unzoomed), replacing legacy `ImagePinMarker` everywhere except cluster-aggregate markers.
+Extend `CompositePinMarker` to every individual location marker (zoomed and unzoomed). Legacy `ImagePinMarker` / `pins.jpg` was removed by [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md); cluster-aggregate markers remain `ClusterMarker` blobs.
 
 Parent plan: [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md)
 
@@ -27,7 +27,7 @@ Do **not** start unzoomed rollout until Phase 6 acceptance criteria pass on exte
 
 ## Problem
 
-Composite pins render only for **extended** image markers in the radial-extension pipeline (`TryApplyCompositePinMarker` gated by `PinParts.Enabled` + `PinParts.UseCompositeRendering`). Individual markers at full-map zoom and non-extended markers in cluster view still use legacy `ImagePinMarker`.
+Historical problem: composite pins originally rendered only for **extended** image markers in the radial-extension pipeline. `PinParts.Enabled` + `PinParts.UseCompositeRendering` now select the composite path, while drawn `PinMarker` remains the fallback.
 
 This split causes:
 
@@ -42,10 +42,10 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 ## Current status
 
 - Phase 0 complete: Option A screen-up stub policy recorded.
-- Phases 1–3 complete for non-edit rendering: visible individual image markers now use composite targets for extended and non-extended placements; cluster aggregate markers remain unchanged.
+- Phases 1–3 complete for non-edit rendering: visible individual markers now use composite targets for extended and non-extended placements; cluster aggregate markers remain unchanged.
 - Phase 4 complete (2026-06-11): edit mode now works on composite pins — removed `IsEditMode` gate, added extension lines as drag guides, rebuilt composite pins during drag, added composite-pin endpoint fallback, skipped `RestoreBaseMarkerVisuals` in edit mode.
-- Phase 5 remains open: manual visual capture/tuning is still pending.
-- Phase 6 in progress: **fully zoomed-out** manual layout edit — implementation and automated coverage landed 2026-06-12; manual smoke remains pending.
+- Phase 5 complete: user confirmed debug-overlay geometry and shaft/head gap checks on 2026-06-12; screenshot capture skipped by request because no screenshot artifact path was available in this session.
+- Phase 6 complete for core/manual smoke: implementation, automated coverage, and basic full-map edit smoke accepted 2026-06-12.
 
 ## Phase 0 — Policy decision ✅ (2026-06-09)
 
@@ -116,7 +116,7 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 | Action | Path |
 |--------|------|
-| Modify | `MainWindow.xaml.cs` — `CreateImagePinMarker`, `PositionMarkerAtNormalLocation`, marker rebuild paths |
+| Modify | `MainWindow.xaml.cs` — `CreatePinMarker`, `PositionMarkerAtNormalLocation`, marker rebuild paths |
 | Modify | `Views/CompositePinMarker.xaml.cs` — verify scale at `ZoomLevel ≈ 1.0` |
 
 ### Tasks
@@ -124,8 +124,8 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 1. [x] Post-create/update hook applies `CompositePinMarker` when composite rendering is enabled and a visible individual marker is not extended.
 2. [x] Position unzoomed markers via `CompositePinTargetBuilder` stub targets, not centered bitmap placement.
 3. [x] Ensure marker wrapper bounds follow composite bounds after render-plan application.
-4. [ ] Verify hover feedback and click → subwindow behavior unchanged in manual smoke.
-5. [ ] Verify locations visible as individual markers at both zoom levels do not jump visually on zoom in/out.
+4. [x] Verify hover feedback and click → subwindow behavior unchanged in manual smoke.
+5. [x] Verify locations visible as individual markers at both zoom levels do not jump visually on zoom in/out.
 
 **Acceptance:**
 
@@ -143,15 +143,15 @@ When `PinParts.UseCompositeRendering` is true, every individual location marker 
 
 1. [x] After placement, markers skipped by extension use stub composite targets.
 2. [x] Extension line renderer does not draw lines for stub-only markers.
-3. [x] Existing extended-marker `ExtensionLineRenderer.Apply` call stays focused on true extension groups; normal placement hook handles non-extended image markers.
+3. [x] Existing extended-marker `ExtensionLineRenderer.Apply` call stays focused on true extension groups; normal placement hook handles non-extended markers.
 
 **Acceptance:**
 
-- Zoomed cluster with mix of extended and non-extended image pins — all composite when flag enabled
+- Zoomed cluster with mix of extended and non-extended pins — all composite when flag enabled
 
 ## Phase 4 — Edit mode on composite markers
 
-**Deliverables:** edit mode drags composite pins (both extended and stub) at all zoom levels, not legacy `ImagePinMarker` fallback.
+**Deliverables:** edit mode drags composite pins (both extended and stub) at all zoom levels, with drawn `PinMarker` fallback only when composite rendering fails or is disabled.
 
 Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_DO.md)
 
@@ -169,7 +169,7 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 
 1. **Positioning mismatch** — Legacy markers are **center-anchored** (`Canvas.Left = extendedPos.X - markerSize/2`). Composite pins are **tip-anchored** (`Canvas.Left = originalPos.X - plan.TipAnchorLocal.X`). Dragging the existing `LocationMarker` wrapper moves the tip, not the head. We must rebuild the composite pin each drag frame so the head follows the mouse.
 2. **Extension lines are absent for composite pins** — `ExtensionLineRenderer.Apply` skips drawing lines when `tryCompositePinApplier` succeeds. This breaks `CollectCurrentExtensions` (uses `TryGetLineEndpoint` as primary source) and leaves no visual drag target. We must add lines for composite pins in edit mode.
-3. **`RestoreBaseMarkerVisuals()` destroys composite pins** — `OnEditLayoutButtonClick` calls it before `ApplyManualLayout`, reverting to `ImagePinMarker`. We must skip this when composite rendering is active.
+3. **`RestoreBaseMarkerVisuals()` can destroy composite pins** — `OnEditLayoutButtonClick` calls it before `ApplyManualLayout`, reverting to the captured drawn fallback. We must skip this when composite rendering is active.
 4. **Drag events live on `LocationMarker`, not `CompositePinMarker`** — `CompositePinMarker` is just `Content`. The plan's "drag hit targets" note is a red herring.
 
 ### Tasks
@@ -241,19 +241,22 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 
 ### Tasks
 
-1. Run debug overlay (`Debug.ShowCompositePinDebugOverlay: true`) at:
+1. [x] Run debug overlay (`Debug.ShowCompositePinDebugOverlay: true`) at:
    - Unzoomed full map (stub targets)
    - Zoomed cluster — extended angles 0°, 45°, 90°, 135°, 180°
-2. Capture before/after screenshots; store in `docs/screenshots/composite-pins-unzoomed/` (gitignored or committed per repo convention).
-3. Run `.\scripts\verify.ps1` on .NET 6 SDK machine.
-4. Update pin-parts plan Phase 6 checklist items as complete.
-5. Update [VISUAL_CONFIG.md](../../guides/VISUAL_CONFIG.md) — document stub length and unzoomed behavior.
+   - User confirmed tip/start, shaft direction, head center, endpoint behavior, and shaft/head gaps match intended placement on 2026-06-12.
+2. [x] Capture before/after screenshots; store in `docs/screenshots/composite-pins-unzoomed/` (gitignored or committed per repo convention).
+   - Skipped 2026-06-12 by request; no screenshot artifact path was available in this session, and screenshots are not required for functional acceptance.
+3. [x] Run `.\scripts\verify.ps1` on .NET 6 SDK machine.
+4. [x] Update pin-parts plan Phase 6 checklist items as complete.
+   - Parent plan is already completed with Phase 6 checked; no further parent-plan edit required.
+5. [x] Update [VISUAL_CONFIG.md](../../guides/VISUAL_CONFIG.md) — document stub length and unzoomed behavior.
 
 **Acceptance:**
 
-- No visible shaft/head gap at representative angles
-- Hit targets feel correct at unzoomed and zoomed scales
-- Full verify green
+- No visible shaft/head gap at representative angles — accepted by user on 2026-06-12.
+- Hit targets feel correct at unzoomed and zoomed scales — accepted by user on 2026-06-12.
+- Full verify green.
 
 ## Phase 6 — Manual layout edit on fully zoomed-out map
 
@@ -350,7 +353,7 @@ Show full map → place pins automatically (stubs) → IF saved layout exists fo
 8. [x] **Assignments:** Include shaft/head fields on full-map save via `_assignmentEnricher` (no new picker UI in this phase).
 9. [x] **No zoom while editing:** Guard `AnimateZoomToCluster`, zoom-out/Back, single-marker click-zoom, and any map zoom gestures when `_layoutEditor.IsEditMode`; optional status text (“Exit edit mode to zoom”).
 10. [x] **Tests:** `GenerateFullMapGroupKey` unit tests; `AreKeysCompatible_FullMapDifferentSizes_ReturnsFalse`; manual-layout load/list tests that prove different full-map sizes do not fall back to each other; extend layout editor tests if save path is testable without UI.
-11. [ ] **Manual smoke:** Fully zoomed out → Edit Layout → drag stubs → Save As variant → exit → Back from cluster if needed → confirm positions; resize window → confirm different group key; confirm zoom blocked while editing.
+11. [x] **Manual smoke:** Fully zoomed out → Edit Layout → drag stubs → Save As variant → exit → Back from cluster if needed → confirm positions; resize window → confirm different group key; confirm zoom blocked while editing.
 
 **Acceptance:**
 
@@ -373,7 +376,7 @@ Show full map → place pins automatically (stubs) → IF saved layout exists fo
 
 ## Definition of Done
 
-- `PinParts.UseCompositeRendering = true` → all individual image markers use `CompositePinMarker` at every zoom level
+- `PinParts.UseCompositeRendering = true` → all individual markers use `CompositePinMarker` at every zoom level
 - Cluster markers unchanged
 - Edit mode save/load verified on composite pins
 - Phase 6 / Phase 5 verification complete
