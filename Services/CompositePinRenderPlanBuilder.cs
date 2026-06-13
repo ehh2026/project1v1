@@ -275,7 +275,7 @@ namespace InteractiveWorldMap.Services
             var geometry  = v.Geometry;
             var seg       = v.Segmentation;
             var shaftPath = ResolveShaftPath(config, geometry);
-            var headPath  = Path.Combine(config.PartsFolderPath, v.HeadEntry.HeadFile);
+            var headPath  = ResolveHeadPath(config, v.HeadEntry);
 
             // Each adjacent clip band shares an exact boundary in source pixel space.
             // Different RenderTransforms on the three shaft layers can map that same boundary
@@ -369,6 +369,20 @@ namespace InteractiveWorldMap.Services
                 : geometry.ShaftFile;
 
             return Path.Combine(config.PartsFolderPath, shaftFile);
+        }
+
+        private static string ResolveHeadPath(PinPartConfig config, PinPartGeometryEntry geometry)
+        {
+            if (!string.IsNullOrWhiteSpace(config.HeadAssetVariant))
+            {
+                return Path.Combine(
+                    config.PartsFolderPath,
+                    "head_variants",
+                    config.HeadAssetVariant.Trim(),
+                    geometry.HeadFile);
+            }
+
+            return Path.Combine(config.PartsFolderPath, geometry.HeadFile);
         }
 
         private static double GetDistance(Point start, Point end)

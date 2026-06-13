@@ -20,6 +20,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
 | Shaft visibility | [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) | Complete | Default `outline_dark_7px` in `visual-config.json` |
+| Head visibility | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Planned | Generate 2-14px black-outline head variants and config selector |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
 
 ## Dependency order

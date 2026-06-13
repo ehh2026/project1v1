@@ -16,6 +16,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Pinhead outline variants plan:** Added [pinhead-black-outline-variants-plan.md](docs/exec-plans/active/pinhead-black-outline-variants-plan.md) to generate 2-14px black-outline head variants and wire `PinParts.HeadAssetVariant` through render-plan selection.
+
 - **Legacy `pins.jpg` path removed:** Deleted `PinImages` config/model, `ImagePinMarker`, obsolete sprite extraction scripts, and `Images&Content/pins.jpg`; pin-style markers now use drawn `PinMarker` fallback or part-based `CompositePinMarker` rendering only.
 - **Composite fallback regression:** Added coverage that missing composite assets keep the drawn-pin fallback policy and do not reference the removed legacy image path.
 

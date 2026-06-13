@@ -24,6 +24,7 @@ started: YYYY-MM-DD
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
+| [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Generate black-outline head variants + config-gated head asset selection |
 
 ## Recently completed (moved to ../completed/)
 

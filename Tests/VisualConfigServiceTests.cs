@@ -230,6 +230,46 @@ public class VisualConfigServiceTests
         }
     }
 
+    [Fact]
+    public void Load_PinPartsHeadAssetVariant_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""HeadAssetVariant"": ""outline_black_6px"" } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal("outline_black_6px", config.PinParts.HeadAssetVariant);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_PinPartsHeadAssetVariant_UsesDefaultWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinParts"": { ""Enabled"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal(string.Empty, config.PinParts.HeadAssetVariant);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDir()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-visual-config-" + Guid.NewGuid().ToString("N"));

@@ -21,7 +21,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
 - [x] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/outline_dark_7px/`)
 - [ ] Allow setting/changing pin heads as well as shafts; persist head choice in manual layout save
-- [ ] Add pinhead variants with black outlines — generate versions with 2, 4, 6, 8, 10, 12, and 14 black pixels; for each width, split the stroke so half follows the detected pinhead edge outward and half draws inward
+- [ ] Add pinhead variants with black outlines — [pinhead-black-outline-variants-plan.md](exec-plans/active/pinhead-black-outline-variants-plan.md) generates versions with 2, 4, 6, 8, 10, 12, and 14 black pixels; for each width, split the stroke so half follows the detected pinhead edge outward and half draws inward
 - [ ] Do not use bright yellow pin heads unless manually assigned
 
 ## Inactive (optional polish)

@@ -42,6 +42,14 @@ namespace InteractiveWorldMap.Models
         public string ShaftAssetVariant { get; set; } = string.Empty;
 
         /// <summary>
+        /// Optional head-only asset variant folder under PartsFolderPath/head_variants.
+        /// When empty, the renderer uses the base head filename from the part geometry.
+        /// Example: "outline_black_6px" resolves pin_01_head.png to
+        /// Pins_v2/parts/head_variants/outline_black_6px/pin_01_head.png.
+        /// </summary>
+        public string HeadAssetVariant { get; set; } = string.Empty;
+
+        /// <summary>
         /// Target head radius in screen pixels. Each head image is scaled so its
         /// local_radius maps to exactly this many screen pixels, giving all heads a
         /// consistent size regardless of their native image dimensions.
