@@ -258,11 +258,11 @@ Do not center composite pins using `_visualConfig.LocationMarkerSize`. For compo
 
 **Acceptance:**
 
-- [ ] Full-map view: all individual locations show composite pins (stub shaft).
-- [ ] Zoomed cluster: extended markers use real extension segment; non-extended use stub or no extension per layout.
-- [ ] Panning/zooming does not cause composite markers to flicker back to drawn pins.
-- [ ] Non-extended composite tips remain anchored on the original map coordinate, not visually centered around it.
-- [ ] `CompositePinTargetBuilderTests` green.
+- [x] Full-map view: all individual locations show composite pins (stub shaft). → Closed by unzoomed Phases 2–5 (2026-06-12)
+- [x] Zoomed cluster: extended markers use real extension segment; non-extended use stub or no extension per layout. → Closed by unzoomed Phases 3–4
+- [ ] Panning/zooming does not cause composite markers to flicker back to drawn pins. → **Owned by** [composite-pins-unzoomed-plan.md Phase 7](composite-pins-unzoomed-plan.md#phase-7-manual-smoke-checklist) — flip when manual smoke #2/#6 pass
+- [x] Non-extended composite tips remain anchored on the original map coordinate, not visually centered around it. → Closed by `CompositePinPlacementPolicyTests`
+- [x] `CompositePinTargetBuilderTests` green.
 - [x] No reference to `ImagePinMarker` in composite apply path.
 
 ---
@@ -339,7 +339,7 @@ Result 2026-06-12: `.\scripts\verify.ps1` passed (Release build, 292 tests, doc 
 | Composite on | Zoomed cluster | Composite on extensions |
 | Composite on, assets missing | Any | Drawn fallback + log warning |
 | Manual layout + composite | Edit/save/exit | Saved positions preserved |
-| Composite on + pan/zoom | Full map and zoomed cluster | Markers remain composite; no restore-to-drawn flicker |
+| Composite on + pan/zoom | Full map and zoomed cluster | Markers remain composite; no restore-to-drawn flicker — **open until** [composite-pins-unzoomed-plan.md Phase 7](composite-pins-unzoomed-plan.md#phase-7-manual-smoke-checklist) manual smoke passes |
 
 ### Debug overlay spot-check
 
