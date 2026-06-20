@@ -2,7 +2,7 @@
 status: active
 owner: agent
 started: 2026-06-07
-last_updated: 2026-06-19
+last_updated: 2026-06-20
 requirements_ref: composite-pins-unzoomed
 parent_program: composite-pins-program.md
 parent_plan: pin-parts-composite-placement-plan.md
@@ -199,7 +199,7 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 ### Technical constraints discovered during code review
 
 1. **Positioning mismatch** — Legacy markers are **center-anchored** (`Canvas.Left = extendedPos.X - markerSize/2`). Composite pins are **tip-anchored** (`Canvas.Left = originalPos.X - plan.TipAnchorLocal.X`). Dragging the existing `LocationMarker` wrapper moves the tip, not the head. We must rebuild the composite pin each drag frame so the head follows the mouse.
-2. **Extension lines are absent for composite pins** — `ExtensionLineRenderer.Apply` skips drawing lines when `tryCompositePinApplier` succeeds. This breaks `CollectCurrentExtensions` (uses `TryGetLineEndpoint` as primary source) and leaves no visual drag target. We must add lines for composite pins in edit mode.
+2. **Extension lines are absent for composite pins** — `ExtensionLineRenderer.Apply` skips drawing its own lines when the composite-pin callback (`TryApplyCompositePinMarker` at `MainWindow.xaml.cs`) succeeds. Edit mode adds lines manually in `ApplyCompositePinsToNormalPlacements` / `TryApplyCompositePinMarker` when `_layoutEditor.IsEditMode` (see `MainWindow.CompositePins.partial.cs`). Without those edit-mode lines, `CollectCurrentExtensions` (which uses `TryGetLineEndpoint` as primary source) has no endpoint and the user has no drag target.
 3. **`RestoreBaseMarkerVisuals()` can destroy composite pins** — `OnEditLayoutButtonClick` calls it before `ApplyManualLayout`, reverting to the captured drawn fallback. We must skip this when composite rendering is active.
 4. **Drag events live on `LocationMarker`, not `CompositePinMarker`** — `CompositePinMarker` is just `Content`. The plan's "drag hit targets" note is a red herring.
 
@@ -263,6 +263,7 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 **Acceptance:**
 
 - Edit mode works on composite pins in zoomed cluster view and unzoomed full-map view
+- Drag opacity: `OnMarkerDragStart` → `0.7`; `OnMarkerDragEnd` → `1.0` (regression — Phase 7 task 16)
 - Saved layouts replay correctly with composite rendering enabled
 - `scripts\verify.ps1` passes
 - No regression in legacy marker edit mode when `UseCompositeRendering = false`
@@ -304,7 +305,7 @@ Related TO_DO: [Make manual edit mode available for composite layouts](../../TO_
 |---|----------|
 | 1 | **Edit scope:** Only markers visible as **single-location individuals** at full map (`ShowOnlyClusterMarkers` visibility rules). Do not surface hidden cluster members. |
 | 2 | **Layout group key:** `fullmap_s{W}x{H}` — **canvas/window size only** (rounded `MapDisplay.ActualWidth` × `ActualHeight`). See [Layout key](#layout-key-recommendation) below. |
-| 3 | **Save/delete/load:** Save, delete, load, and variant flows must **not** require `_currentZoomedCluster != null` when a full-map edit session is active (`IsFullMapLayoutSessionActive()` + `fullmap_sWxH` key). Enter-edit still branches on `_currentZoomedCluster == null` to choose full-map vs cluster session — do not remove that gate. |
+| 3 | **Save/delete/load:** These flows must use `IsFullMapLayoutSessionActive()` (not `_currentZoomedCluster != null`) to decide whether a full-map edit session is active. The **enter-edit** branch on `_currentZoomedCluster == null` (to choose full-map vs cluster session) stays — remove the cluster-null requirement only from save/delete/load paths, not from enter-edit. |
 | 4 | **Load/replay:** After auto-placement on full map, overlay saved variant if one exists — see [Load/replay](#loadreplay-plain-language) below. |
 | 5 | **Head/shaft on save:** Reuse existing `_assignmentEnricher` path (same as zoomed save); head-picker UI remains separate TO_DO. |
 | 6 | **Variants:** Reuse `manual-layouts.json` variant model — **multiple Manual variants per** `fullmap_sWxH` group (picker, Save As, delete variant). No AutoSeed for full-map MVP. |
@@ -408,6 +409,8 @@ Show full map → place pins automatically (stubs) → IF saved layout exists fo
 
 ## Phase 7 — Persist composite pins through zoom/pan/update cycles
 
+_Phase 7 expanded 2026-06-19 (policy + checklist); refined 2026-06-20 per `temp/review-composite-pins-unzoomed-plan-2026-06-20.md`._
+
 **Scope:** Non-dense-cluster visible individuals (single-location markers) must stay visually composite and editable at all zoom levels. Dense-cluster members use extension or stub composite per radial layout. `ClusterMarker` blobs unchanged.
 
 **Related plans:** Overlapping acceptance in [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) Phase 3/6 is **partially delegated** — see [Cross-plan closure](#cross-plan-closure) below. **Source of truth for pan/zoom flicker:** this plan's Phase 7 acceptance; flip legacy checkboxes only when Phase 7 manual smoke passes.
@@ -461,20 +464,20 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
    - Stub: unchanged when the new target vector remains screen-up and length matches the existing plan / `DefaultStubLengthPixels` within `tolerancePx`; absolute `StartScreen` / `EndScreen` may move during pan/resize.
    - Extension: unchanged when angle and length match within tolerance, or when explicitly recorded extension endpoints match within tolerance for saved/manual layouts.
    - Never reposition-only when `preferredPairId` or `preferredHeadSourcePath` requests an assignment that differs from the existing render plan.
-2. Add an overload or helper in `CompositePinPlacementPolicy` for explicit tip points, e.g.:
+2. Add `GetCompositeTopLeft(Point tipScreen, CompositePinRenderPlan plan)` as the **primary** tip-anchor helper:
    ```csharp
    Point GetCompositeTopLeft(Point tipScreen, CompositePinRenderPlan plan)
    ```
-   - Existing `GetCompositeTopLeft(MarkerScreenPlacement, ...)` should delegate to this helper after computing the marker-center tip.
+   - Refactor the existing `GetCompositeTopLeft(MarkerScreenPlacement, double locationMarkerSize, CompositePinRenderPlan)` to **delegate** to it after computing `tipScreen = placement.Left + locationMarkerSize/2, placement.Top + locationMarkerSize/2`.
    - Normal, extension, and drag paths should use the same tip-anchor math.
 3. In `ApplyCompositePinsToNormalPlacements` (when **not** `IsAnimating`):
    - Build target via `CompositePinTargetBuilder`.
    - Extract `existingPlan` from `marker.Content as CompositePinMarker`.
    - If `ShouldRepositionOnly` → set top-left via `GetCompositeTopLeft(target.StartScreen, existingPlan)` only; skip `ApplyCompositePinTargetToMarker`.
    - Else → full reapply.
-4. In extension apply callback (`ExtensionLineRenderer.Apply` → `TryApplyCompositePinMarker`): **same** reposition-only branch when the extension vector/assignment is unchanged (not "always full-reapply").
+4. In extension apply callback (`ExtensionLineRenderer.Apply` → `TryApplyCompositePinMarker`, **cluster extension layout — not drag**): same reposition-only branch when the extension vector/assignment is unchanged (not "always full-reapply").
 5. **During `InteractionMode.Animating`:** keep current early return in `ApplyCompositePinsToNormalPlacements`; rely on `ApplyIndividualPlacements` + `TryGetCompositeAnchoredPlacement` for tip reposition. After animation settles, one full pass may rebuild markers whose segment changed (e.g. entering dense cluster with extensions).
-6. **Drag path refactor (8b):** `OnMarkerDragMove` should call `ApplyCompositePinTargetToMarker` with an explicit `PinPlacementTarget` instead of `ApplyCompositePinToMarker` (avoids fake empty `ViewportState` / zero container size).
+6. **Drag path refactor (task 11):** `OnMarkerDragMove` should call `ApplyCompositePinTargetToMarker` with an explicit `PinPlacementTarget` instead of `ApplyCompositePinToMarker` (avoids fake empty `ViewportState` / zero container size). **Structural only** — drag ticks change angle/length every frame, so `ShouldRepositionOnly` will always return false during drag; this refactor does not enable reposition-only in drag.
 
 **C. Call-site audit**
 
@@ -493,7 +496,7 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
 | Modify | `Services/CompositePinPlacementPolicy.cs` — add `ShouldRepositionOnly` (vector/assignment equality) |
 | Modify | `MainWindow.LayoutEditor.partial.cs` — drag path calls `ApplyCompositePinTargetToMarker` directly (task 11) |
 | Modify | `Tests/CompositePinPlacementPolicyTests.cs` — vector/assignment equality + reposition decision |
-| Modify | `Tests/CompositePinZoomPersistenceTests.cs` — contract guard for reposition-only path |
+| Modify | `Tests/CompositePinZoomPersistenceTests.cs` — normal-path reposition-only contract + `TryApplyCompositePinMarker` extension-callback contract |
 | Modify | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) — [cross-plan closure](#cross-plan-closure) |
 
 ### Tasks
@@ -508,21 +511,21 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
 
 **Reposition-only optimization (required — implement in this order)**
 
-6. [ ] Add `CompositePinPlacementPolicy.GetCompositeTopLeft(Point tipScreen, CompositePinRenderPlan plan)` and update the existing `MarkerScreenPlacement` overload to delegate to it.
-7. [ ] Add `ShouldRepositionOnly(CompositePinRenderPlan? existingPlan, PinPlacementTarget newTarget, string? preferredPairId = null, string? preferredHeadSourcePath = null, double tolerancePx = 0.5)` with behavior tests (**before** wiring WPF paths).
-8. [ ] Behavior tests must cover: null existing plan → full reapply; unchanged stub vector/length with moved absolute screen coordinates → reposition-only; changed stub length/angle → full reapply; unchanged extension angle/length → reposition-only; changed extension angle/length → full reapply; preferred pair/head mismatch → full reapply.
-9. [ ] Wire reposition-only in `ApplyCompositePinsToNormalPlacements` when `!IsAnimating`: extract `CompositePinMarker.RenderPlan`, call policy helper, set `Canvas.Left/Top` via `GetCompositeTopLeft(target.StartScreen, plan)`, and skip `BuildPlan` + new `CompositePinMarker` when unchanged.
-10. [ ] Wire reposition-only in extension apply callback (`TryApplyCompositePinMarker`) when segment vector and assignment are unchanged; use `target.StartScreen` for tip positioning.
-11. [ ] Refactor `OnMarkerDragMove` to call `ApplyCompositePinTargetToMarker` with explicit `PinPlacementTarget` (remove fake `ViewportState` dependency).
+6. [ ] Add `CompositePinPlacementPolicy.GetCompositeTopLeft(Point tipScreen, CompositePinRenderPlan plan)`; refactor the `MarkerScreenPlacement` overload to delegate to it.
+7. [ ] Add `ShouldRepositionOnly(CompositePinRenderPlan? existingPlan, PinPlacementTarget newTarget, string? preferredPairId = null, string? preferredHeadSourcePath = null, double tolerancePx = 0.5)` skeleton (no WPF wiring yet).
+8. [ ] Add `ShouldRepositionOnly` behavior tests (**before** wiring WPF paths). Cases: null existing plan → full reapply; unchanged stub vector/length with moved absolute screen coordinates → reposition-only; changed stub length/angle → full reapply; unchanged extension angle/length → reposition-only; changed extension angle/length → full reapply; preferred pair/head mismatch → full reapply.
+9. [ ] Wire reposition-only in `ApplyCompositePinsToNormalPlacements` when `!IsAnimating`: extract `CompositePinMarker.RenderPlan`, call policy helper, set `Canvas.Left/Top` via `GetCompositeTopLeft(target.StartScreen, plan)`, skip `BuildPlan` + new `CompositePinMarker` when unchanged.
+10. [ ] Wire reposition-only in extension apply callback (`TryApplyCompositePinMarker`, cluster layout only) when segment vector and assignment are unchanged.
+11. [ ] Refactor `OnMarkerDragMove` to call `ApplyCompositePinTargetToMarker` with explicit `PinPlacementTarget` (structural cleanup; drag always full-reapplies each tick).
 12. [ ] Document animation behavior: early return during `InteractionMode.Animating` is intentional; settled-state full pass handles segment changes.
-13. [ ] Source-contract test: normal apply path references `ShouldRepositionOnly`, passes a render plan rather than a `CompositePinMarker`, and does not introduce `InteractiveWorldMap.Views` references in `Services/`.
+13. [ ] Source-contract tests: normal apply path references `ShouldRepositionOnly` with render plan (not view type); extension callback (`TryApplyCompositePinMarker`) skips `BuildPlan` when unchanged.
 
 **Verification and closure**
 
 14. [ ] Manual smoke — [checklist below](#phase-7-manual-smoke-checklist); record date + result in this section.
 15. [ ] Audit `RestoreBaseMarkerVisuals()` call sites; confirm composite guards (call-site table above).
 16. [ ] Verify drag opacity: `OnMarkerDragStart` sets `Opacity = 0.7`; `OnMarkerDragEnd` restores `1.0` (regression check).
-17. [ ] Confirm `visual-config.json` `DefaultStubLengthPixels` matches test default (`24.0`).
+17. [ ] Confirm `DefaultStubLengthPixels` consistency: `visual-config.json` has `24.0`; `VisualConfigServiceTests.Load_PinPartsDefaultStubLengthPixels_UsesDefaultWhenOmitted` asserts model default `24.0`.
 18. [ ] [Cross-plan closure](#cross-plan-closure) — flip remaining legacy-plan checkboxes when smoke passes.
 19. [ ] Update [composite-pins-program.md](composite-pins-program.md) dashboard; move this plan to `docs/exec-plans/completed/` per program rules.
 20. [ ] `.\scripts\verify.ps1` green after reposition-only lands.
@@ -535,8 +538,8 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
 | Zoomed cluster extension/stub mix | [x] | Unzoomed Phases 3–4 |
 | Non-extended tips anchored on map coordinate | [x] | `CompositePinPlacementPolicyTests` |
 | `CompositePinTargetBuilderTests` green | [x] | Harness |
-| Pan/zoom no drawn-pin flicker | [ ] | **Phase 7 manual smoke #2, #6** — flip when passed |
-| Manual smoke matrix pan/zoom row | [ ] | **Phase 7 manual smoke** — flip when passed |
+| Pan/zoom no drawn-pin flicker | [ ] | Manual smoke **#2** (pan/resize settled) and **#6** (rapid zoom settled) — flip when passed |
+| Manual smoke matrix pan/zoom row | [ ] | Same as above — closes [remove-pins-jpg Phase 6](remove-pins-jpg-legacy-path-plan.md) matrix row |
 
 ### Phase 7 risks
 
@@ -549,9 +552,9 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
 
 ### Phase 7 manual smoke checklist
 
-Run with `PinParts.UseCompositeRendering=true`. `DefaultStubLengthPixels` should be `24.0` in `visual-config.json`.
+Run with `PinParts.UseCompositeRendering=true`. `DefaultStubLengthPixels` should be `24.0` in `visual-config.json` (see verification task 17; covered by `VisualConfigServiceTests`).
 
-**Settled state:** `_mode != InteractionMode.Animating` and the most recent `UpdateMarkerPositions()` has returned. Start pass/fail checks only after zoom/pan/resize animations finish.
+**Settled state:** see [Animation bar](#phase-7-policy-zoom-persistence-and-visual-invariance-decisions-2026-06-19) above (`_mode != InteractionMode.Animating` and last `UpdateMarkerPositions()` returned). Start pass/fail checks only after zoom/pan/resize animations finish.
 
 | # | Step | Pass criteria |
 |---|------|---------------|
@@ -570,7 +573,7 @@ Optional log check during steps 2–6 (settled only):
 Select-String -Path "$env:APPDATA\InteractiveWorldMap\logs\app.log" -Pattern "leaving drawn pin fallback"
 ```
 
-Healthy markers should not spam this warning (exact string from `MainWindow.CompositePins.partial.cs`).
+Healthy markers should not spam this warning. Exact source: `MainWindow.CompositePins.partial.cs` (~line 200) — `"Composite pin assets missing for '{name}', leaving drawn pin fallback."`
 
 **Manual smoke result:** _pending_
 
@@ -592,7 +595,8 @@ Healthy markers should not spam this warning (exact string from `MainWindow.Comp
 | `CompositePinPlacementPolicyTests` | [x] | Tip-anchor reposition math |
 | `CompositePinPlacementPolicyTests.GetCompositeTopLeft_FromTipScreen_*` | [ ] | Explicit tip point uses same anchor math as marker placement |
 | `CompositePinPlacementPolicyTests.ShouldRepositionOnly_*` | [ ] | Unchanged vector/assignment → reposition; angle/length/assignment change → full reapply |
-| `CompositePinZoomPersistenceTests` reposition-only contract | [ ] | Apply path calls reposition helper with render plan, not view type |
+| `CompositePinZoomPersistenceTests` normal-path reposition-only contract | [ ] | `ApplyCompositePinsToNormalPlacements` calls `ShouldRepositionOnly` with render plan |
+| `CompositePinZoomPersistenceTests.TryApplyCompositePinMarker_RepositionOnlyWhenUnchanged` | [ ] | Extension callback skips `BuildPlan` when segment/assignment unchanged |
 
 Source-contract tests remain for private `MainWindow` seams only; prefer behavior tests in `Services/`.
 
@@ -616,8 +620,9 @@ Source-contract tests remain for private `MainWindow` seams only; prefer behavio
 - Reposition-only optimization active when target segment is visually unchanged (non-animation updates)
 - No drawn-pin flash during normal pan/zoom/update in composite mode (**settled state**)
 - Cluster aggregate markers unchanged
-- Edit mode save/load verified on composite pins (full map + cluster); [MANUAL_LAYOUT_EDITOR.md](../../guides/MANUAL_LAYOUT_EDITOR.md) reflects full-map edit flow
+- Edit mode save/load verified on composite pins (full map + cluster)
 - Phases 5–6 verification complete; Phase 7 manual smoke recorded
-- [Cross-plan closure](#cross-plan-closure) complete (legacy pan/zoom items flipped)
-- Move this plan to `docs/exec-plans/completed/`; update [composite-pins-program.md](composite-pins-program.md) dashboard with one-line stub
+- [Cross-plan closure](#cross-plan-closure) complete (legacy pan/zoom items flipped after manual smoke #2 and #6)
+- Plan moved to `docs/exec-plans/completed/`; [composite-pins-program.md](composite-pins-program.md) updated with one-line stub per program rules
+- `docs/guides/MANUAL_LAYOUT_EDITOR.md` reflects full-map edit flow, `fullmap_sWxH` keys, and no-zoom-while-editing
 - `scripts/verify.ps1` passes
