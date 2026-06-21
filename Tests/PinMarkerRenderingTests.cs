@@ -48,4 +48,25 @@ public class PinMarkerRenderingTests
         Assert.Contains("CreatePinLinePair", source);
         Assert.Contains("ShaftOutlineColor", source);
     }
+
+    [Fact]
+    public void DrawnPinsExposeShaftTipAnchorForMapPlacement()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "PinMarker.xaml.cs"));
+
+        Assert.Contains("GetShaftTipPoint()", source);
+        Assert.Contains("return new Point(Width / 2, Height);", source);
+    }
+
+    [Fact]
+    public void MainWindowPlacesDrawnPinsByShaftTipOutsideManualLayout()
+    {
+        var source =
+            File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs")) +
+            File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.CompositePins.partial.cs"));
+
+        Assert.Contains("drawnPin.GetShaftTipPoint()", source);
+        Assert.Contains("Canvas.SetLeft(marker, mapPoint.X - shaftTip.X);", source);
+        Assert.Contains("Canvas.SetTop(marker, mapPoint.Y - shaftTip.Y);", source);
+    }
 }

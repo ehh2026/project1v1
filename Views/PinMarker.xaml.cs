@@ -178,6 +178,11 @@ namespace InteractiveWorldMap.Views
             return new Point(Width / 2, PinBall.Height / 2);
         }
 
+        public Point GetShaftTipPoint()
+        {
+            return new Point(Width / 2, Height);
+        }
+
         public bool ContainsPoint(Point point)
         {
             var ballCenter = new Point(Width / 2, PinBall.Height / 2);

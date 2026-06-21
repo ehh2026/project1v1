@@ -33,4 +33,59 @@ public class TuningPanelWiringTests
             thresholdAssignment < loadClusters,
             "ContentLoader.ClusterDistanceThreshold must be updated before LoadClustersAsync().");
     }
+
+    [Fact]
+    public void DeveloperTuningPanel_UsesSingleCompositePinsToggle()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml.cs"));
+
+        Assert.DoesNotContain("ChkPinPartsEnabled", xaml);
+        Assert.DoesNotContain("Pin parts", xaml);
+        Assert.Contains("Content=\"Composite pins\"", xaml);
+        Assert.Contains("PinPartsEnabled = ChkComposite.IsChecked == true", source);
+        Assert.Contains("UseComposite = ChkComposite.IsChecked == true", source);
+        Assert.Contains("config.PinParts.Enabled && config.PinParts.UseCompositeRendering", source);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_ProvidesTooltipsForTuningOptions()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        foreach (var controlName in new[]
+        {
+            "ChkComposite",
+            "ChkPrerasterize",
+            "ChkDebugOverlay",
+            "ChkUseLitShafts",
+            "TxtShaftVariant",
+            "TxtHeadVariant",
+            "TxtClusterThreshold",
+            "TxtStubLength",
+            "TxtTargetHeadRadius",
+            "TxtTargetShaftHalfWidth",
+            "TxtLocationMarkerSize",
+            "TxtClusterMarkerSize"
+        })
+        {
+            var nameIndex = xaml.IndexOf($"x:Name=\"{controlName}\"", StringComparison.Ordinal);
+            Assert.True(nameIndex >= 0, $"{controlName} not found.");
+            var nextNameIndex = xaml.IndexOf("x:Name=\"", nameIndex + 1, StringComparison.Ordinal);
+            var controlBlock = nextNameIndex >= 0
+                ? xaml.Substring(nameIndex, nextNameIndex - nameIndex)
+                : xaml.Substring(nameIndex);
+
+            Assert.Contains("ToolTip=", controlBlock);
+        }
+    }
+
+    [Fact]
+    public void ApplyTuning_MapsSingleCompositeToggleToBothConfigGates()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("_visualConfig.PinParts.Enabled = e.UseComposite;", source);
+        Assert.Contains("_visualConfig.PinParts.UseCompositeRendering = e.UseComposite;", source);
+    }
 }

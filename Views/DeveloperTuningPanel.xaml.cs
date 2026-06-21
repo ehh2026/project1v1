@@ -27,8 +27,7 @@ public partial class DeveloperTuningPanel : UserControl
         _isLoading = true;
         try
         {
-            ChkPinPartsEnabled.IsChecked = config.PinParts.Enabled;
-            ChkComposite.IsChecked = config.PinParts.UseCompositeRendering;
+            ChkComposite.IsChecked = config.PinParts.Enabled && config.PinParts.UseCompositeRendering;
             ChkPrerasterize.IsChecked = config.PinParts.UsePrerasterizedRendering;
             ChkDebugOverlay.IsChecked = config.Debug.ShowCompositePinDebugOverlay;
             ChkUseLitShafts.IsChecked = config.PinParts.UseLitShafts;
@@ -107,7 +106,7 @@ public partial class DeveloperTuningPanel : UserControl
 
         args = new TuningPanelEventArgs
         {
-            PinPartsEnabled = ChkPinPartsEnabled.IsChecked == true,
+            PinPartsEnabled = ChkComposite.IsChecked == true,
             UseComposite = ChkComposite.IsChecked == true,
             UsePrerasterize = ChkPrerasterize.IsChecked == true,
             ShowDebugOverlay = ChkDebugOverlay.IsChecked == true,

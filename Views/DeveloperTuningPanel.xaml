@@ -19,26 +19,26 @@
 
                 <UniformGrid Columns="2"
                              Margin="0,0,0,8">
-                    <CheckBox x:Name="ChkPinPartsEnabled"
-                              Content="Pin parts"
-                              Foreground="White"
-                              Margin="0,2"/>
                     <CheckBox x:Name="ChkComposite"
-                              Content="Composite"
+                              Content="Composite pins"
                               Foreground="White"
-                              Margin="0,2"/>
+                              Margin="0,2"
+                              ToolTip="Use assembled shaft/head image parts. Off shows drawn fallback pins."/>
                     <CheckBox x:Name="ChkPrerasterize"
                               Content="Prerasterize"
                               Foreground="White"
-                              Margin="0,2"/>
+                              Margin="0,2"
+                              ToolTip="Flatten each composite pin into one bitmap after choosing shaft/head parts."/>
                     <CheckBox x:Name="ChkDebugOverlay"
                               Content="Debug overlay"
                               Foreground="White"
-                              Margin="0,2"/>
+                              Margin="0,2"
+                              ToolTip="Show composite pin anchor and stretch guides for visual debugging."/>
                     <CheckBox x:Name="ChkUseLitShafts"
                               Content="Lit shafts"
                               Foreground="White"
-                              Margin="0,2"/>
+                              Margin="0,2"
+                              ToolTip="Prefer lit shaft assets when no shaft variant is set."/>
                 </UniformGrid>
 
                 <TextBlock Text="Variants"
@@ -51,13 +51,15 @@
                            FontSize="10"/>
                 <TextBox x:Name="TxtShaftVariant"
                          Margin="0,1,0,5"
-                         TextChanged="OnInputChanged"/>
+                         TextChanged="OnInputChanged"
+                         ToolTip="Folder name under Pins_v2/parts/shaft_variants. Blank uses base/lit shaft assets."/>
                 <TextBlock Text="Head"
                            Foreground="#AAAAAA"
                            FontSize="10"/>
                 <TextBox x:Name="TxtHeadVariant"
                          Margin="0,1,0,8"
-                         TextChanged="OnInputChanged"/>
+                         TextChanged="OnInputChanged"
+                         ToolTip="Folder name under Pins_v2/parts/head_variants. Blank uses base head assets."/>
 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -74,22 +76,28 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Text="Cluster threshold" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnInputChanged"/>
+                    <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnInputChanged"
+                             ToolTip="Pixel distance used to group nearby locations into cluster markers."/>
 
                     <TextBlock Grid.Row="1" Text="Stub length" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtStubLength" Grid.Row="1" Grid.Column="1" TextChanged="OnInputChanged"/>
+                    <TextBox x:Name="TxtStubLength" Grid.Row="1" Grid.Column="1" TextChanged="OnInputChanged"
+                             ToolTip="Screen-pixel length from map location to pin head for automatic standalone stubs."/>
 
                     <TextBlock Grid.Row="2" Text="Head radius" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnInputChanged"/>
+                    <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnInputChanged"
+                             ToolTip="Target composite head radius in screen pixels. Zero uses proportional fallback scaling."/>
 
                     <TextBlock Grid.Row="3" Text="Shaft half width" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="3" Grid.Column="1" TextChanged="OnInputChanged"/>
+                    <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="3" Grid.Column="1" TextChanged="OnInputChanged"
+                             ToolTip="Target composite shaft half-width in screen pixels. Zero uses proportional shaft scaling."/>
 
                     <TextBlock Grid.Row="4" Text="Location marker" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="4" Grid.Column="1" TextChanged="OnInputChanged"/>
+                    <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="4" Grid.Column="1" TextChanged="OnInputChanged"
+                             ToolTip="Nominal individual-marker size used for placement and overlap math."/>
 
                     <TextBlock Grid.Row="5" Text="Cluster marker" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="5" Grid.Column="1" TextChanged="OnInputChanged"/>
+                    <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="5" Grid.Column="1" TextChanged="OnInputChanged"
+                             ToolTip="Screen-pixel size of aggregate cluster markers."/>
                 </Grid>
 
                 <TextBlock x:Name="StatusText"
@@ -109,15 +117,18 @@
                     <Button Content="Reload"
                             Padding="10,5"
                             Margin="0,0,6,0"
-                            Click="OnReloadClick"/>
+                            Click="OnReloadClick"
+                            ToolTip="Reload visual-config.json and apply supported tuning values at runtime."/>
                     <Button Content="Save"
                             Padding="10,5"
                             Margin="0,0,6,0"
-                            Click="OnSaveClick"/>
+                            Click="OnSaveClick"
+                            ToolTip="Save the current runtime tuning values back to visual-config.json."/>
                     <Button x:Name="ApplyButton"
                             Content="Apply"
                             Padding="10,5"
-                            Click="OnApplyClick"/>
+                            Click="OnApplyClick"
+                            ToolTip="Apply the current panel values without restarting the app."/>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

@@ -95,7 +95,7 @@ namespace InteractiveWorldMap
                 var newShaftVariant = e.ShaftVariant.Trim();
                 var newHeadVariant = e.HeadVariant.Trim();
                 var oldCanUseComposite = _visualConfig.UsePinMarkers && oldPinPartsEnabled && oldUseComposite;
-                var newCanUseComposite = _visualConfig.UsePinMarkers && e.PinPartsEnabled && e.UseComposite;
+                var newCanUseComposite = _visualConfig.UsePinMarkers && e.UseComposite;
                 var turningCompositeOff = oldCanUseComposite && !newCanUseComposite;
 
                 var needsRecreate =
@@ -110,7 +110,7 @@ namespace InteractiveWorldMap
                     oldUseLitShafts != e.UseLitShafts;
 
                 var compositePlanChanged =
-                    oldPinPartsEnabled != e.PinPartsEnabled ||
+                    oldPinPartsEnabled != e.UseComposite ||
                     oldUseComposite != e.UseComposite ||
                     oldUsePrerasterize != e.UsePrerasterize ||
                     oldShowDebugOverlay != e.ShowDebugOverlay ||
@@ -119,7 +119,7 @@ namespace InteractiveWorldMap
                     !NearlyEqual(oldTargetHeadRadius, e.TargetHeadRadiusPx) ||
                     !NearlyEqual(oldTargetShaftHalfWidth, e.TargetShaftHalfWidthPx);
 
-                _visualConfig.PinParts.Enabled = e.PinPartsEnabled;
+                _visualConfig.PinParts.Enabled = e.UseComposite;
                 _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
                 _visualConfig.PinParts.UsePrerasterizedRendering = e.UsePrerasterize;
                 _visualConfig.Debug.ShowCompositePinDebugOverlay = e.ShowDebugOverlay;
@@ -204,8 +204,8 @@ namespace InteractiveWorldMap
         {
             return new TuningPanelEventArgs
             {
-                PinPartsEnabled = config.PinParts.Enabled,
-                UseComposite = config.PinParts.UseCompositeRendering,
+                PinPartsEnabled = config.PinParts.Enabled && config.PinParts.UseCompositeRendering,
+                UseComposite = config.PinParts.Enabled && config.PinParts.UseCompositeRendering,
                 UsePrerasterize = config.PinParts.UsePrerasterizedRendering,
                 ShowDebugOverlay = config.Debug.ShowCompositePinDebugOverlay,
                 UseLitShafts = config.PinParts.UseLitShafts,

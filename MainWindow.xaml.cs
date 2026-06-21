@@ -508,8 +508,8 @@ namespace InteractiveWorldMap
 
                 // Non-extended drawn pins keep their own shaft; the extended path
                 // (ExtensionLineRenderer) hides it, so restore it here.
-                if (marker.Content is PinMarker drawnPin)
-                    drawnPin.SetShaftVisible(true);
+                if (TryPlaceDrawnPinAtMapPoint(marker, placement))
+                    continue;
 
                 if (TryGetCompositeAnchoredPlacement(marker, placement, out var compositeTopLeft))
                 {

@@ -74,9 +74,33 @@ namespace InteractiveWorldMap
         private bool RestoreDrawnFallbackForCompositeFailure(LocationMarker marker, MarkerScreenPlacement placement)
         {
             RestoreBaseMarkerVisual(marker);
-            Canvas.SetLeft(marker, placement.Left);
-            Canvas.SetTop(marker, placement.Top);
+            if (!TryPlaceDrawnPinAtMapPoint(marker, placement))
+            {
+                Canvas.SetLeft(marker, placement.Left);
+                Canvas.SetTop(marker, placement.Top);
+            }
             return false;
+        }
+
+        private bool TryPlaceDrawnPinAtMapPoint(LocationMarker marker, MarkerScreenPlacement placement)
+        {
+            if (marker.Content is not PinMarker drawnPin)
+                return false;
+
+            drawnPin.SetShaftVisible(true);
+            var mapPoint = GetMarkerMapPoint(placement);
+            var shaftTip = drawnPin.GetShaftTipPoint();
+            Canvas.SetLeft(marker, mapPoint.X - shaftTip.X);
+            Canvas.SetTop(marker, mapPoint.Y - shaftTip.Y);
+            return true;
+        }
+
+        private Point GetMarkerMapPoint(MarkerScreenPlacement placement)
+        {
+            var locationMarkerRadius = _visualConfig.LocationMarkerSize / 2.0;
+            return new Point(
+                placement.Left + locationMarkerRadius,
+                placement.Top + locationMarkerRadius);
         }
 
         private void AnimateMarkerClick(LocationMarker marker)
