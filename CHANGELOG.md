@@ -24,6 +24,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Drawn pin model separation plan:** Added [drawn-pin-model-separation-plan.md](docs/exec-plans/active/drawn-pin-model-separation-plan.md) to split drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.
+
+- **Manual-layout pin appearance plan:** Registered [manual-layout-pin-appearance-plan.md](docs/exec-plans/active/manual-layout-pin-appearance-plan.md) for composite head reassignment and drawn pin color override UI.
+
 - **TO_DO:** Added a high-priority item to split the drawn pin model into head-only, auto-stub, and manual-layout components instead of relying on shaft hiding.
 
 - **Pin terminology:** Added agent-facing definitions for dense-cluster locations, standalone locations, auto stub pins, and manual-layout pins in `AGENTS.md`.

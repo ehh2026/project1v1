@@ -12,13 +12,13 @@ function Invoke-HarnessPython {
     $hasPython = $null -ne (Get-Command python -ErrorAction SilentlyContinue)
     $hasPyLauncher = $null -ne (Get-Command py -ErrorAction SilentlyContinue)
 
-    if ($hasPython) {
-        & python $script
+    if ($hasPyLauncher) {
+        & py -3 $script
         if ($LASTEXITCODE -eq 0) { return }
     }
 
-    if ($hasPyLauncher) {
-        & py -3 $script
+    if ($hasPython) {
+        & python $script
         if ($LASTEXITCODE -eq 0) { return }
     }
 

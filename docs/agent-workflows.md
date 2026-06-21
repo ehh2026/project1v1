@@ -80,7 +80,7 @@ Do not add substantial logic inline to large orchestration files when a focused 
 
 ## Doc Gardening (monthly)
 
-- [ ] `python scripts/doc_gardening.py` passes (links, AGENTS/TO_DO size, active plan registry, front-matter)
+- [ ] `py -3 scripts/doc_gardening.py` on Windows or `python3 scripts/doc_gardening.py` on macOS/Linux passes (links, AGENTS/TO_DO size, active plan registry, front-matter)
 - [ ] `AGENTS.md` under 150 lines
 - [ ] Completed exec plans moved to `exec-plans/completed/`
 - [ ] [QUALITY_SCORE.md](reference/QUALITY_SCORE.md) updated

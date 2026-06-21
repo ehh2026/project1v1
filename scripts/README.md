@@ -9,7 +9,7 @@ Python and PowerShell tooling for verification, CI harness checks, and optional 
 | `scripts/requirements.txt` | Composite-pin asset tooling deps: Pillow, numpy, scipy |
 | `scripts/venv/` | Local venv (gitignored — create per machine) |
 
-**Harness scripts** (`verify_*.py`, `doc_gardening.py`) use the **stdlib only**. `verify.ps1` and `verify.sh` invoke system `python` / `python3` / `py -3` — no venv required.
+**Harness scripts** (`verify_*.py`, `doc_gardening.py`) use the **stdlib only**. On Windows, run them with `py -3`; `verify.ps1` also prefers `py -3` before bare `python` so pyenv shims without a selected version do not break the harness. On macOS/Linux, use `python3`. No venv is required for harness scripts.
 
 **Composite-pin asset tooling** (`split_pin_parts.py`, `create_shaft_asset_variants.py`) requires the venv:
 

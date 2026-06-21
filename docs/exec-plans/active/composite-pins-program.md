@@ -17,11 +17,13 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 |-------|------|--------|-------------|
 | Core placement | [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) | Complete | Baseline for unzoomed rollout and legacy removal |
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Phase 7 smoke #1–7 passed; cross-plan pan/zoom closed | #8 regression + move to `completed/` |
-| Legacy removal | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Not started | After unzoomed path stable |
+| Legacy removal | [remove-pins-jpg-legacy-path-plan.md](../completed/remove-pins-jpg-legacy-path-plan.md) | Complete | Superseded by drawn/composite-only pin paths |
+| Drawn pin model | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Planned | Split drawn auto-stub vs manual-layout head-only roles |
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
 | Shaft visibility | [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) | Complete | Default `outline_dark_7px` in `visual-config.json` |
 | Head visibility | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Planned | Generate 2-14px black-outline head variants and config selector |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
+| Pin appearance overrides | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Planned | Composite head picker + drawn color picker |
 
 ## Dependency order
 
@@ -29,7 +31,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 pin-parts completed baseline
   → composite-pins-unzoomed Phase 0 policy ✅
   → composite-pins-unzoomed Phases 1–4
-  → remove-pins-jpg-legacy-path
+  → remove-pins-jpg-legacy-path ✅
 
 manual-layout-seed-alignment Phases 1–3
   → reliable auto-seed loading at runtime
@@ -49,6 +51,7 @@ pin-rendering-improvements ✅
 - [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) — extended-marker composite placement Phases 1–6; `verify.ps1` passed 2026-06-09
 - [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) — anti-aliasing, gated pre-rasterization, and depth sorting; `verify.ps1` passed 2026-06-10
 - [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) — baked shaft variants; default `outline_dark_7px`; `verify.ps1` passed 2026-06-11
+- [remove-pins-jpg-legacy-path-plan.md](../completed/remove-pins-jpg-legacy-path-plan.md) — removed `pins.jpg` / `ImagePinMarker`; moved 2026-06-21
 
 ## Rules
 

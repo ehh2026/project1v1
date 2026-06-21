@@ -88,15 +88,22 @@ This intentionally blacks both the outward halo and inward edge band. The untouc
 
 ### Task 1: Add config and render-plan path coverage
 
+> **Status: COMPLETE** — Steps 1–6 were implemented by a prior agent. Verified in the codebase:
+> - `Models/PinPartConfig.cs` L50: `HeadAssetVariant` property exists.
+> - `Services/CompositePinRenderPlanBuilder.cs` L278, L374: `ResolveHeadPath()` call-site and helper exist.
+> - `Tests/CompositePinRenderPlanBuilderTests.cs` L121: render-plan test exists.
+> - `Tests/VisualConfigServiceTests.cs` L234, L254: both visual-config tests exist.
+> Skip to Task 2.
+
 **Files:**
 - Modify: `Tests/CompositePinRenderPlanBuilderTests.cs`
 - Modify: `Tests/VisualConfigServiceTests.cs`
 - Modify: `Models/PinPartConfig.cs`
 - Modify: `Services/CompositePinRenderPlanBuilder.cs`
 
-- [ ] **Step 1: Add failing render-plan test**
+- [x] **Step 1: Add failing render-plan test** *(done)*
 
-Add this test after `BuildPlan_WhenShaftAssetVariantConfigured_UsesVariantShaftPath`:
+Added after `BuildPlan_WhenShaftAssetVariantConfigured_UsesVariantShaftPath`:
 
 ```csharp
 [Fact]
@@ -131,9 +138,9 @@ public void BuildPlan_WhenHeadAssetVariantConfigured_UsesVariantHeadPath()
 }
 ```
 
-- [ ] **Step 2: Add failing visual-config tests**
+- [x] **Step 2: Add failing visual-config tests** *(done)*
 
-Add these tests next to the existing `ShaftAssetVariant` tests:
+Added next to the existing `ShaftAssetVariant` tests:
 
 ```csharp
 [Fact]
@@ -173,71 +180,13 @@ public void Load_PinPartsHeadAssetVariant_UsesDefaultWhenOmitted()
 }
 ```
 
-- [ ] **Step 3: Run focused tests and confirm failure**
+- [x] **Step 3: Run focused tests and confirm failure** *(done — tests confirmed passing after Steps 4–6)*
 
-Run:
+- [x] **Step 4: Add config property** *(done — `Models/PinPartConfig.cs` L50)*
 
-```powershell
-dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~CompositePinRenderPlanBuilderTests|FullyQualifiedName~VisualConfigServiceTests" --no-restore
-```
+- [x] **Step 5: Add render-plan resolver** *(done — `ResolveHeadPath` helper at L374, call-site at L278)*
 
-Expected: build fails because `PinPartConfig.HeadAssetVariant` does not exist.
-
-- [ ] **Step 4: Add config property**
-
-In `Models/PinPartConfig.cs`, add this property immediately after `ShaftAssetVariant`:
-
-```csharp
-/// <summary>
-/// Optional head-only asset variant folder under PartsFolderPath/head_variants.
-/// When empty, the renderer uses the base head filename from the part geometry.
-/// Example: "outline_black_6px" resolves pin_01_head.png to
-/// Pins_v2/parts/head_variants/outline_black_6px/pin_01_head.png.
-/// </summary>
-public string HeadAssetVariant { get; set; } = string.Empty;
-```
-
-- [ ] **Step 5: Add render-plan resolver**
-
-In `Services/CompositePinRenderPlanBuilder.cs`, replace:
-
-```csharp
-var headPath  = Path.Combine(config.PartsFolderPath, v.HeadEntry.HeadFile);
-```
-
-with:
-
-```csharp
-var headPath  = ResolveHeadPath(config, v.HeadEntry);
-```
-
-Add this helper beside `ResolveShaftPath`:
-
-```csharp
-private static string ResolveHeadPath(PinPartConfig config, PinPartGeometryEntry geometry)
-{
-    if (!string.IsNullOrWhiteSpace(config.HeadAssetVariant))
-    {
-        return Path.Combine(
-            config.PartsFolderPath,
-            "head_variants",
-            config.HeadAssetVariant.Trim(),
-            geometry.HeadFile);
-    }
-
-    return Path.Combine(config.PartsFolderPath, geometry.HeadFile);
-}
-```
-
-- [ ] **Step 6: Run focused tests and confirm pass**
-
-Run:
-
-```powershell
-dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~CompositePinRenderPlanBuilderTests|FullyQualifiedName~VisualConfigServiceTests" --no-restore
-```
-
-Expected: PASS.
+- [x] **Step 6: Run focused tests and confirm pass** *(done)*
 
 ### Task 2: Keep manual layout head identity and cache hashing correct
 
@@ -249,7 +198,9 @@ Expected: PASS.
 
 - [ ] **Step 1: Add failing planning-service test**
 
-Add this test to `Tests/CompositePinPlanningServiceTests.cs`:
+Add **two** tests to `Tests/CompositePinPlanningServiceTests.cs`:
+
+Test 1 — variant-folder path resolves to matching geometry:
 
 ```csharp
 [Fact]
@@ -270,6 +221,32 @@ public void BuildPlan_WhenPreferredHeadPathUsesVariantFolder_SelectsMatchingHead
     Assert.Equal(@"Pins_v2/parts\head_variants\outline_black_6px\pin_b_head.png", result.RenderPlan.HeadSourcePath);
 }
 ```
+
+Test 2 — base-folder path (no variant) resolves to the same geometry:
+
+```csharp
+[Fact]
+public void BuildPlan_WhenPreferredHeadPathUsesBaseFolder_SelectsMatchingHeadGeometry()
+{
+    var service = MakeService();
+    var (target, candidates, config) = MakeFixture("loc-preferred-base-head");
+    candidates["pin_b"] = CloneGeometry(candidates["pin_a"], "pin_b", "pin_b_head.png");
+    // No HeadAssetVariant — base folder path only.
+
+    var result = service.BuildPlan(
+        target,
+        candidates,
+        config,
+        preferredPairId: "pin_a",
+        preferredHeadSourcePath: @"Pins_v2/parts\pin_b_head.png");
+
+    // File-name-only match: base path resolves to pin_b geometry, then
+    // ResolveHeadPath with empty variant produces the base-folder path.
+    Assert.Equal(@"Pins_v2/parts\pin_b_head.png", result.RenderPlan.HeadSourcePath);
+}
+```
+
+> **Note:** `ResolveHeadPath` uses only file I/O from `Path.Combine` — it does not open any PNG file. Both tests are pure path-string assertions; no assets need to exist on disk.
 
 Add this helper near `MakeFixture`:
 
@@ -321,30 +298,59 @@ Expected: at least one test fails because variant head paths do not resolve back
 
 - [ ] **Step 4: Match preferred head paths by file name**
 
-In `Services/CompositePinPlanningService.cs`, replace the preferred path match inside `ResolveHeadGeometry` with:
+In `Services/CompositePinPlanningService.cs`, inside `ResolveHeadGeometry`, replace the existing block:
 
 ```csharp
-var preferredHeadFile = System.IO.Path.GetFileName(preferredHeadSourcePath);
-var match = candidates.Values.FirstOrDefault(e =>
-    string.Equals(e.HeadFile, preferredHeadFile, StringComparison.OrdinalIgnoreCase));
-if (match != null)
-    return match;
+if (preferredHeadSourcePath != null)
+{
+    var match = candidates.Values.FirstOrDefault(e =>
+        string.Equals(
+            System.IO.Path.Combine(config.PartsFolderPath, e.HeadFile),
+            preferredHeadSourcePath,
+            StringComparison.OrdinalIgnoreCase));
+    if (match != null)
+        return match;
+}
 ```
 
-Keep the existing `if (preferredHeadSourcePath != null)` guard.
+with:
+
+```csharp
+if (preferredHeadSourcePath != null)
+{
+    var preferredHeadFile = System.IO.Path.GetFileName(preferredHeadSourcePath);
+    var match = candidates.Values.FirstOrDefault(e =>
+        string.Equals(e.HeadFile, preferredHeadFile, StringComparison.OrdinalIgnoreCase));
+    if (match != null)
+        return match;
+}
+```
+
+This makes the match file-name-only, so a `preferredHeadSourcePath` pointing to any variant folder (`head_variants/outline_black_6px/pin_b_head.png`) or the base folder (`Pins_v2/parts/pin_b_head.png`) both resolve to the correct `PinPartGeometryEntry`.
 
 - [ ] **Step 5: Include head variant in config hash**
 
-In `Services/CompositePinLayoutContentHasher.cs`, append `config.HeadAssetVariant` immediately after `config.ShaftAssetVariant` in the config hash payload:
+In `Services/CompositePinLayoutContentHasher.cs`, replace the entire `key` assignment inside `ComputeConfigHash`. The current code (L57–64) ends with `$"{config.ShaftAssetVariant}"` and a `;` on the same line that terminates the `var key = …` statement. Replace the whole block with:
 
 ```csharp
-$"{config.ShaftAssetVariant}:" +
-$"{config.HeadAssetVariant}";
+var key = $"{config.SelectionMode}:" +
+          $"{config.MaxResidualRotationDeg:F2}:" +
+          $"{config.MinStretchFactor:F3}:" +
+          $"{config.MaxStretchFactor:F3}:" +
+          $"{config.TargetHeadRadiusPx:F2}:" +
+          $"{config.TargetShaftHalfWidthPx:F2}:" +
+          $"{config.UseLitShafts}:" +
+          $"{config.ShaftAssetVariant}:" +
+          $"{config.HeadAssetVariant}";
 ```
 
-Keep the file's existing interpolated-string style; the final hash input must contain both variant names in a stable order.
+This adds one line (`HeadAssetVariant`) and moves the statement-terminating `;` to the new last line.
 
-- [ ] **Step 6: Run focused tests and confirm pass**
+- [ ] **Step 6: Update `composite-pins-program.md` status to `In Progress`**
+
+In `docs/exec-plans/active/composite-pins-program.md`, change the Head visibility row status from `Planned` to `In Progress` now that Task 2 is underway.
+
+- [ ] **Step 7: Run focused tests and confirm pass**
 
 Run:
 
@@ -359,6 +365,8 @@ Expected: PASS.
 **Files:**
 - Create: `scripts/create_head_asset_variants.py`
 - Modify: `scripts/README.md`
+
+> **Dependency note:** This script uses `scipy.ndimage` for binary dilation/erosion, unlike `create_shaft_asset_variants.py` which uses PIL-only `MaxFilter`/`MinFilter`. Both scripts share the same venv (`scripts/venv`) and `requirements.txt` (which already includes scipy). Do **not** add scipy to requirements.txt again.
 
 - [ ] **Step 1: Create the generator script**
 
@@ -407,11 +415,76 @@ def make_variant(source: Image.Image, total_width_px: int) -> Image.Image:
     return Image.fromarray(result, "RGBA")
 ```
 
-Use the existing `create_shaft_asset_variants.py` preview layout style, but write previews to `preview_heads.png`.
+Required imports at the top of the file:
+
+```python
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+import numpy as np
+from PIL import Image
+from scipy import ndimage
+```
+
+Use the same `make_preview` / grid layout as `create_shaft_asset_variants.py` but write previews to `preview_heads.png`. The `generate` loop should iterate over `pin_XX_head.png` source files (not `_shaft_lit.png`) and end with:
+
+```python
+def generate(parts_dir: Path, variants: list[str]) -> None:
+    for variant in variants:
+        output_dir = parts_dir / "head_variants" / variant
+        output_dir.mkdir(parents=True, exist_ok=True)
+        preview_images: list[Image.Image] = []
+
+        for index in range(1, PIN_COUNT + 1):
+            source_path = parts_dir / f"pin_{index:02d}_head.png"
+            source = Image.open(source_path).convert("RGBA")
+            total_width_px = int(VARIANT_PATTERN.match(variant).group(1))
+            result = make_variant(source, total_width_px)
+            result.save(output_dir / f"pin_{index:02d}_head.png", "PNG")
+            preview_images.append(result)
+
+        make_preview(preview_images, output_dir / "preview_heads.png")
+        print(f"Wrote {PIN_COUNT} heads + preview to {output_dir}")
+```
+
+This exact print format is what Task 4 Step 2 validates against.
 
 - [ ] **Step 2: Add a self-test mode**
 
-Add `--self-test` that builds a synthetic 9x9 alpha square and checks centered stroke behavior:
+Add `--self-test` to the argument parser and short-circuit before any file I/O:
+
+```python
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Generate composite pin head black-outline asset variants.")
+    parser.add_argument("--parts-dir", default="Images&Content/Pins_v2/parts")
+    parser.add_argument(
+        "--variant",
+        action="append",
+        help="Variant folder name, e.g. outline_black_6px. Repeatable. Default: all widths.",
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run built-in correctness check and exit without touching the filesystem.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    if args.self_test:
+        run_self_test()
+        print("Head asset variant self-test passed")
+        sys.exit(0)
+    variants = args.variant or [f"outline_black_{w}px" for w in DEFAULT_WIDTHS]
+    generate(Path(args.parts_dir), variants)
+```
+
+Implement `run_self_test` as:
 
 ```python
 def run_self_test() -> None:
@@ -434,19 +507,40 @@ def run_self_test() -> None:
     assert not black[4, 4], "2px stroke must preserve the interior center"
 ```
 
-- [ ] **Step 3: Run self-test**
+- [ ] **Step 3: Confirm venv has required deps**
+
+Run **before** the self-test to avoid missing-module errors:
+
+```powershell
+scripts\venv\Scripts\python.exe -c "import PIL, numpy, scipy; print('image deps ok')"
+```
+
+If the venv is missing, run:
+
+```powershell
+py -3 -m venv scripts\venv
+scripts\venv\Scripts\python.exe -m pip install -r scripts\requirements.txt
+```
+
+- [ ] **Step 4: Run self-test**
 
 Run:
 
 ```powershell
-py -3 scripts\create_head_asset_variants.py --self-test
+scripts\venv\Scripts\python.exe scripts\create_head_asset_variants.py --self-test
 ```
 
 Expected: exits 0 and prints `Head asset variant self-test passed`.
 
-- [ ] **Step 4: Document the script**
+- [ ] **Step 5: Document the script**
 
-Add a row to `scripts/README.md`:
+In `scripts/README.md`, update the prose line that lists composite-pin asset tooling scripts:
+
+```markdown
+**Composite-pin asset tooling** (`split_pin_parts.py`, `create_shaft_asset_variants.py`, `create_head_asset_variants.py`) requires the venv:
+```
+
+Add a row to the script catalog table:
 
 ```markdown
 | `create_head_asset_variants.py` | Manual | venv | Generate black outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |
@@ -463,7 +557,9 @@ Add a row to `scripts/README.md`:
 - Create: `Images&Content/Pins_v2/parts/head_variants/outline_black_12px/`
 - Create: `Images&Content/Pins_v2/parts/head_variants/outline_black_14px/`
 
-- [ ] **Step 1: Ensure Python image dependencies are available**
+> **Note:** The venv check was already completed in Task 3 Step 3. Skip Step 1 below if Task 3 is already done in the same session.
+
+- [ ] **Step 1: Confirm Python image dependencies are available**
 
 Run:
 
@@ -545,13 +641,7 @@ In `docs/guides/VISUAL_CONFIG.md`, add:
 - `HeadAssetVariant` - optional folder under `Images&Content/Pins_v2/parts/head_variants/`; when empty, heads load from the base parts folder. Use `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, or `outline_black_14px` to load generated black-outline head assets. Generate variants with `scripts/create_head_asset_variants.py`.
 ```
 
-- [ ] **Step 3: Update backlog status after assets are generated**
-
-Change the `docs/TO_DO.md` pinhead item to:
-
-```markdown
-- [x] Add pinhead variants with black outlines - generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/`
-```
+- [ ] **Step 3: Update backlog status** — **DEFERRED to Task 6 Step 1a** (must run after `verify.ps1` passes)
 
 - [ ] **Step 4: Add changelog entry**
 
@@ -560,6 +650,8 @@ Under `CHANGELOG.md` -> `[Unreleased]` -> `Changed`, add:
 ```markdown
 - **Pinhead outline variants:** Added generated black-outline head asset variants (`outline_black_2px` through `outline_black_14px`) plus config-gated `PinParts.HeadAssetVariant` support. Default remains base head art until a reviewed variant is selected.
 ```
+
+> **Note:** Do not flip `docs/TO_DO.md` to `[x]` until `verify.ps1` passes in Task 6. That update has moved to Task 6 Step 1a below.
 
 ### Task 6: Verification and completion
 
@@ -577,6 +669,16 @@ Run:
 ```
 
 Expected: build, unit tests, doc links, taste checks, and startup validation pass.
+
+> **verify.ps1 scope note:** The script runs `dotnet build/test`, NuGet vuln scan, doc link check, `verify_taste.py` (checks `.cs` file sizes, `Console.WriteLine`, `JObject` in Views, active plan staleness), and headless startup validation. None of these steps check for or whitelist specific subdirectories under `Images&Content/`. The new `head_variants/` PNG assets will not cause any `verify.ps1` step to fail.
+
+- [ ] **Step 1a: Update backlog status (after verify passes)**
+
+Change the `docs/TO_DO.md` pinhead item to:
+
+```markdown
+- [x] Add pinhead variants with black outlines - generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/`
+```
 
 - [ ] **Step 2: Review changed files**
 

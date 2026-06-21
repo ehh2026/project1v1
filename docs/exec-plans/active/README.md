@@ -22,9 +22,10 @@ started: YYYY-MM-DD
 |------|--------|
 | [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
-| [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) | Remove `pins.jpg` / `ImagePinMarker`; drawn vs composite only |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Generate black-outline head variants + config-gated head asset selection |
+| [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
+| [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 
 ## Recently completed (moved to ../completed/)
 
@@ -34,6 +35,7 @@ started: YYYY-MM-DD
 - `pin-parts-composite-placement-plan.md` — Extended-marker composite placement Phases 1–6 — moved 2026-06-09
 - `pin-rendering-improvements-plan.md` — Anti-aliasing, gated pre-rasterization, and depth sorting — moved 2026-06-10
 - `composite-pin-shaft-visibility-plan.md` — Baked shaft contrast variants; default `outline_dark_7px` — moved 2026-06-11
+- `remove-pins-jpg-legacy-path-plan.md` — Removed `pins.jpg` / `ImagePinMarker`; drawn vs composite only — moved 2026-06-21
 
 Completed plans move to [../completed/](../completed/). Parked plans (core done, optional follow-ups) move to [../inactive/](../inactive/).
 

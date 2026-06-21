@@ -1,7 +1,8 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-08
+completed: 2026-06-21
 requirements_ref: remove-pins-jpg
 supersedes_partial: composite-pins-unzoomed-plan.md
 parent_program: composite-pins-program.md
@@ -19,6 +20,10 @@ parent_plan: pin-parts-composite-placement-plan.md
 **Tech stack:** WPF / .NET 6 / C#, `visual-config.json`, `Pins_v2/parts` composite assets, existing `CompositePinPlanningService` pipeline.
 
 ---
+
+## Completion note
+
+Moved to completed on 2026-06-21 per user confirmation. Remaining drawn-pin model cleanup is tracked separately in [drawn-pin-model-separation-plan.md](../active/drawn-pin-model-separation-plan.md).
 
 ## Problem
 
@@ -68,9 +73,9 @@ Optional future polish (out of scope unless trivial): add a string enum `PinRend
 | Plan | Relationship |
 |------|--------------|
 | [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) | Parent — composite pipeline already built |
-| [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | **Partially superseded** — Phases 2–3 (all-marker composite rollout) become prerequisites of this plan, not a separate legacy fallback |
+| [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md) | **Partially superseded** — Phases 2–3 (all-marker composite rollout) become prerequisites of this plan, not a separate legacy fallback |
 | [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md) | **Must revise** — edit-mode drag wrapper must stop depending on `ImagePinMarker` |
-| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Marker factory extraction should target the new two-path factory |
+| [refactoring-assessment-followthrough-plan.md](../active/refactoring-assessment-followthrough-plan.md) | Marker factory extraction should target the new two-path factory |
 
 When this plan completes, mark the “replace `ImagePinMarker` everywhere” items in `docs/TO_DO.md` and `composite-pins-unzoomed-plan.md` as done or redirect here.
 
@@ -125,7 +130,7 @@ Also update conflicting active-plan language in `composite-pins-unzoomed-plan.md
 
 **Deliverable:** Confirm decisions before implementation.
 
-- [x] **Non-extended composite policy:** Adopt **stub segment** (Option A) from [composite-pins-unzoomed-plan.md Phase 0](composite-pins-unzoomed-plan.md#phase-0--policy-decision--2026-06-09) — `DefaultStubLengthPixels = 24`, screen-up stub for unzoomed individual markers only; unzoomed `ClusterMarker` aggregates excluded. Recorded 2026-06-09.
+- [x] **Non-extended composite policy:** Adopt **stub segment** (Option A) from [composite-pins-unzoomed-plan.md Phase 0](../active/composite-pins-unzoomed-plan.md#phase-0--policy-decision--2026-06-09) — `DefaultStubLengthPixels = 24`, screen-up stub for unzoomed individual markers only; unzoomed `ClusterMarker` aggregates excluded. Recorded 2026-06-09.
 - [x] **Edit-mode drag target:** Dragging stays attached to the `LocationMarker` canvas item. The edit-mode mouse-down policy already lets marker-level drag handlers start, so no replacement wrapper is introduced.
 - [x] **Composite failure fallback:** Always `PinMarker`, never reintroduce a third image path. Composite apply now accepts drawn/composite pin-style bases only.
 
@@ -186,7 +191,7 @@ private LocationMarker CreatePinMarker(Location location)
 
 ## Phase 3 — Composite for all individual markers
 
-**Deliverables:** Composite renders at full-map zoom and for non-extended cluster members — absorbs [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) Phases 1–3.
+**Deliverables:** Composite renders at full-map zoom and for non-extended cluster members — absorbs [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md) Phases 1–3.
 
 | Create | `Services/CompositePinTargetBuilder.cs` |
 | Create | `Tests/CompositePinTargetBuilderTests.cs` |

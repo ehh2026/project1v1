@@ -13,7 +13,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Fix or remove composite pins that overstretch shadow
 - [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
 - [ ] Reliable seed loading in app — same plan, Phase 3
-- [x] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/active/remove-pins-jpg-legacy-path-plan.md)
+- [x] Remove `pins.jpg` / `ImagePinMarker` — [remove-pins-jpg-legacy-path-plan.md](exec-plans/completed/remove-pins-jpg-legacy-path-plan.md)
 - [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–4 (non-edit and edit mode; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [x] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4 (zoomed cluster; composite drag path also wired for stubs)
 - [x] Manual layout edit on fully zoomed-out map — visible single-location stub pins only; group key `fullmap_sWxH` + variants; no zoom while editing — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 6 (core smoke accepted 2026-06-12)
@@ -21,7 +21,8 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Explore post-render smooth black outline on composite pins (runtime, after shaft+head compose) — assess vs baked `outline_dark_*` asset variants; see feasibility notes in [composite-pins-program.md](exec-plans/active/composite-pins-program.md) or new exec plan if pursued
 - [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
 - [x] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/outline_dark_7px/`)
-- [ ] Allow setting/changing pin heads as well as shafts; persist head choice in manual layout save
+- [ ] Composite mode: user UI to reassign pin head asset (`HeadSourcePath` / `pin_XX_head.png` — effectively head color) — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today heads are auto-picked by location hash; only **shaft** has right-click override; verify reassigned head persists on manual layout save/reload; infrastructure exists: `ManualLayoutMarker.HeadSourcePath`, enricher on save, replay via `preferredHeadSourcePath`; missing: head picker UI like shaft menu)
+- [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
 - [ ] Add pinhead variants with black outlines — [pinhead-black-outline-variants-plan.md](exec-plans/active/pinhead-black-outline-variants-plan.md) generates versions with 2, 4, 6, 8, 10, 12, and 14 black pixels; for each width, split the stroke so half follows the detected pinhead edge outward and half draws inward
 - [ ] Do not use bright yellow pin heads unless manually assigned
 
@@ -39,6 +40,10 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Resolve nullable reference warnings (CS8602/CS8604) — Phase 13 in follow-through plan
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
+## Developer tooling
+
+- [ ] Runtime tuning panel (gated by `Debug` or developer flag in `visual-config.json`) — [runtime-tuning-panel-plan.md](exec-plans/active/runtime-tuning-panel-plan.md) — add a button (e.g. top-left or bottom-right) that opens an in-app panel to switch composite vs drawn pins, tweak numeric settings (marker/shaft/stub sizes, cluster threshold, etc.), and pick composite asset variants (`ShaftAssetVariant`, head variant, prerasterize toggle, debug overlay) without hand-editing JSON and restarting
+
 ## User ideas (product)
 
 - [ ] Subwindow opens near pin, not screen center
@@ -55,7 +60,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## High priority
 
-- [ ] Separate drawn pin model into head-only, auto-stub, and manual-layout pin components so edited pins do not rely on hiding a built-in vertical shaft
+- [ ] Separate drawn pin model into head-only, auto-stub, and manual-layout pin components so edited pins do not rely on hiding a built-in vertical shaft — [drawn-pin-model-separation-plan.md](exec-plans/active/drawn-pin-model-separation-plan.md)
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 

@@ -27,7 +27,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **Merge gate:** GitHub Actions on `windows-latest` runs build, test, NuGet vulnerability scan, doc links, taste checks, and headless startup validation; **Gitleaks** runs separately on Ubuntu. Local Windows gate: `.\scripts\verify.ps1`. macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
 
-**Python (optional tooling):** Harness scripts use stdlib only — `verify.ps1` / `verify.sh` call system `python` or `py -3`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
+**Python (optional tooling):** Harness scripts use stdlib only. On Windows use `py -3 scripts\...`; `verify.ps1` prefers `py -3` before bare `python` because local pyenv shims may exist without a selected version. On macOS/Linux use `python3 scripts/...`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
 
 ## Repository Layout
 

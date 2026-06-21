@@ -6,12 +6,12 @@ last_updated: 2026-06-20
 requirements_ref: composite-pins-unzoomed
 parent_program: composite-pins-program.md
 parent_plan: pin-parts-composite-placement-plan.md
-related: remove-pins-jpg-legacy-path-plan.md
+related: ../completed/remove-pins-jpg-legacy-path-plan.md
 ---
 
 # Composite Pins — Unzoomed and All-Marker Rollout Plan
 
-Extend `CompositePinMarker` to every individual location marker (zoomed and unzoomed). Legacy `ImagePinMarker` / `pins.jpg` was removed by [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md); cluster-aggregate markers remain `ClusterMarker` blobs.
+Extend `CompositePinMarker` to every individual location marker (zoomed and unzoomed). Legacy `ImagePinMarker` / `pins.jpg` was removed by [remove-pins-jpg-legacy-path-plan.md](../completed/remove-pins-jpg-legacy-path-plan.md); cluster-aggregate markers remain `ClusterMarker` blobs.
 
 Parent plan: [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md)
 
@@ -413,7 +413,7 @@ _Phase 7 expanded 2026-06-19 (policy + checklist); refined 2026-06-20 per `temp/
 
 **Scope:** Non-dense-cluster visible individuals (single-location markers) must stay visually composite and editable at all zoom levels. Dense-cluster members use extension or stub composite per radial layout. `ClusterMarker` blobs unchanged.
 
-**Related plans:** Overlapping acceptance in [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) Phase 3/6 is **partially delegated** — see [Cross-plan closure](#cross-plan-closure) below. **Source of truth for pan/zoom flicker:** this plan's Phase 7 acceptance; flip legacy checkboxes only when Phase 7 manual smoke passes.
+**Related plans:** Overlapping acceptance in [remove-pins-jpg-legacy-path-plan.md](../completed/remove-pins-jpg-legacy-path-plan.md) Phase 3/6 is **partially delegated** — see [Cross-plan closure](#cross-plan-closure) below. **Source of truth for pan/zoom flicker:** this plan's Phase 7 acceptance; flip legacy checkboxes only when Phase 7 manual smoke passes.
 
 ### Problem (original)
 
@@ -497,7 +497,7 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
 | Modify | `MainWindow.LayoutEditor.partial.cs` — drag path calls `ApplyCompositePinTargetToMarker` directly (task 11) |
 | Modify | `Tests/CompositePinPlacementPolicyTests.cs` — vector/assignment equality + reposition decision |
 | Modify | `Tests/CompositePinZoomPersistenceTests.cs` — normal-path reposition-only contract + `TryApplyCompositePinMarker` extension-callback contract |
-| Modify | [remove-pins-jpg-legacy-path-plan.md](remove-pins-jpg-legacy-path-plan.md) — [cross-plan closure](#cross-plan-closure) |
+| Modify | [remove-pins-jpg-legacy-path-plan.md](../completed/remove-pins-jpg-legacy-path-plan.md) — [cross-plan closure](#cross-plan-closure) |
 
 ### Tasks
 
@@ -532,14 +532,14 @@ Extend **`Services/CompositePinPlacementPolicy.cs`** (do **not** create a separa
 
 ### Cross-plan closure
 
-| Legacy plan item ([remove-pins-jpg Phase 3](remove-pins-jpg-legacy-path-plan.md)) | Status | Closed by |
+| Legacy plan item ([remove-pins-jpg Phase 3](../completed/remove-pins-jpg-legacy-path-plan.md)) | Status | Closed by |
 |-----------------------------------------------------------------------------------|--------|-----------|
 | Full-map composite stub pins | [x] | Unzoomed Phases 2–5 + placement policy |
 | Zoomed cluster extension/stub mix | [x] | Unzoomed Phases 3–4 |
 | Non-extended tips anchored on map coordinate | [x] | `CompositePinPlacementPolicyTests` |
 | `CompositePinTargetBuilderTests` green | [x] | Harness |
 | Pan/zoom no drawn-pin flicker | [x] | Manual smoke **#2**, **#6** (2026-06-20) |
-| Manual smoke matrix pan/zoom row | [x] | Same — [remove-pins-jpg Phase 6](remove-pins-jpg-legacy-path-plan.md) matrix row closed |
+| Manual smoke matrix pan/zoom row | [x] | Same — [remove-pins-jpg Phase 6](../completed/remove-pins-jpg-legacy-path-plan.md) matrix row closed |
 
 ### Phase 7 risks
 
