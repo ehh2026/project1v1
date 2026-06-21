@@ -104,7 +104,12 @@ namespace InteractiveWorldMap.Models
 
 Do not include `NeedsFullRecreation` in the event args. `MainWindow` has the previous config values and must compute recreation/caching decisions itself.
 
-### 2. UserControl (`Views/DeveloperTuningPanel.xaml`)
+### 2. Composite Plan Hashing
+Update `Services/CompositePinLayoutContentHasher.cs` so `ComputeConfigHash(PinPartConfig config)` includes `config.HeadAssetVariant` alongside `config.ShaftAssetVariant`. Add a regression test in `Tests/CompositePinLayoutContentHasherTests.cs` proving the hash changes when only `HeadAssetVariant` changes.
+
+This is required even though the runtime tuning apply path also clears `_compositePinPlanCache`: the cache key should be correct for normal startup and non-tuning code paths too.
+
+### 3. UserControl (`Views/DeveloperTuningPanel.xaml`)
 Create a developer panel with checkboxes, text boxes, and `Apply`, `Save`, and `Reload` buttons. It communicates only through:
 
 ```csharp
@@ -141,7 +146,7 @@ public void LoadValues(VisualConfig config)
 }
 ```
 
-### 3. MainWindow XAML
+### 4. MainWindow XAML
 Add the namespace:
 
 ```xml
@@ -172,7 +177,7 @@ Add the panel and toggle button to the existing overlay/root grid:
         Click="OnTuningPanelToggleClick" />
 ```
 
-### 4. `MainWindow.xaml.cs` Wiring
+### 5. `MainWindow.xaml.cs` Wiring
 Promote the config service/path so save and reload reuse the same path:
 
 ```csharp
@@ -186,6 +191,15 @@ In the constructor:
 _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
 _visualConfig = _configService.Load(_configPath);
 ```
+
+Remove the existing local constructor variables:
+
+```csharp
+var configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
+var visualConfigService = new VisualConfigService();
+```
+
+Then update existing log statements and config-path consumers to use `_configPath`. This avoids shadowing the promoted fields and ensures save/reload use the same loaded file path.
 
 After event wiring and config-dependent UI setup:
 
@@ -203,7 +217,7 @@ else if (e.Key == Key.F12 && _visualConfig.Debug.EnableTuningPanel)
 }
 ```
 
-### 5. `MainWindow.DeveloperTuning.partial.cs`
+### 6. `MainWindow.DeveloperTuning.partial.cs`
 Create a focused partial for tuning behavior. The apply path should follow this order:
 
 1. Return with status if `_isTuningBusy`, `IsAnimating`, or `_layoutEditor.IsEditMode`.
@@ -212,11 +226,39 @@ Create a focused partial for tuning behavior. The apply path should follow this 
    - `needsRecreate`: cluster threshold or marker sizes changed, or composite-off fallback has no captured base visuals.
    - `assetVariantChanged`: shaft/head variant or lit-shaft path behavior changed.
    - `compositePlanChanged`: `PinParts.Enabled`, asset variants, target head radius, target shaft half width, stub length, prerasterize, composite toggle, or debug overlay changed.
-4. Mutate the existing `_visualConfig` instance.
+4. Mutate the existing `_visualConfig` instance with an explicit mapping:
+   - `e.PinPartsEnabled` -> `_visualConfig.PinParts.Enabled`
+   - `e.UseComposite` -> `_visualConfig.PinParts.UseCompositeRendering`
+   - `e.UsePrerasterize` -> `_visualConfig.PinParts.UsePrerasterizedRendering`
+   - `e.ShowDebugOverlay` -> `_visualConfig.Debug.ShowCompositePinDebugOverlay`
+   - `e.UseLitShafts` -> `_visualConfig.PinParts.UseLitShafts`
+   - `e.ShaftVariant.Trim()` -> `_visualConfig.PinParts.ShaftAssetVariant`
+   - `e.HeadVariant.Trim()` -> `_visualConfig.PinParts.HeadAssetVariant`
+   - `e.ClusterThreshold` -> `_visualConfig.ClusterDistanceThreshold`
+   - `e.StubLength` -> `_visualConfig.PinParts.DefaultStubLengthPixels`
+   - `e.TargetHeadRadiusPx` -> `_visualConfig.PinParts.TargetHeadRadiusPx`
+   - `e.TargetShaftHalfWidthPx` -> `_visualConfig.PinParts.TargetShaftHalfWidthPx`
+   - `e.LocationMarkerSize` -> `_visualConfig.LocationMarkerSize`
+   - `e.ClusterMarkerSize` -> `_visualConfig.ClusterMarkerSize`
 5. If `assetVariantChanged`, clear `_pinPartBitmapCache`.
-6. If `compositePlanChanged`, set `_pinPartGeometryHash = null` only when geometry metadata needs to be re-read, and call `_compositePinPlanCache.ClearAll()`.
-7. If `needsRecreate`, call `RecreateAllMarkersAsync()`. Otherwise restore base visuals when turning composite off, then call `UpdateMarkerPositions()`.
-8. Reload the panel values from `_visualConfig`.
+6. If `compositePlanChanged`, call `_compositePinPlanCache.ClearAll()`.
+7. Do not clear `_pinPartGeometryHash` for shaft/head asset variant changes alone. Variants currently change resolved image paths under the same `GeometryMetadataPath`; rereading the same metadata file does not provide variant-specific anchors. Only clear `_pinPartGeometryHash` if this plan later adds `PinParts.GeometryMetadataPath` to the tuning surface or changes the metadata file path at runtime.
+8. If `needsRecreate`, call `RecreateAllMarkersAsync()`. Otherwise restore base visuals when turning composite off, then call `UpdateMarkerPositions()`.
+9. Reload the panel values from `_visualConfig`.
+
+Define `SetupTuningPanel()` in this partial:
+
+```csharp
+private void SetupTuningPanel()
+{
+    TuningPanelToggleBtn.Visibility = _visualConfig.Debug.EnableTuningPanel
+        ? Visibility.Visible
+        : Visibility.Collapsed;
+
+    DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+    DeveloperTuningPanel.LoadValues(_visualConfig);
+}
+```
 
 Full recreation must update the content loader before reclustering:
 
