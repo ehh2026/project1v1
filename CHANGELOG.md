@@ -24,6 +24,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Runtime tuning panel plan:** Registered and tightened [runtime-tuning-panel-plan.md](docs/exec-plans/active/runtime-tuning-panel-plan.md) with current-code constraints, completed preparation research, file-size baselines, cache-hash findings, and safer apply/recreate rules before implementation.
+
 - **Drawn pin model separation plan:** Added [drawn-pin-model-separation-plan.md](docs/exec-plans/active/drawn-pin-model-separation-plan.md) to split drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.
 
 - **Manual-layout pin appearance plan:** Registered [manual-layout-pin-appearance-plan.md](docs/exec-plans/active/manual-layout-pin-appearance-plan.md) for composite head reassignment and drawn pin color override UI.

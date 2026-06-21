@@ -26,6 +26,7 @@ started: YYYY-MM-DD
 | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Generate black-outline head variants + config-gated head asset selection |
 | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
+| [runtime-tuning-panel-plan.md](runtime-tuning-panel-plan.md) | Developer-only runtime panel for visual-config tuning without restart |
 
 ## Recently completed (moved to ../completed/)
 

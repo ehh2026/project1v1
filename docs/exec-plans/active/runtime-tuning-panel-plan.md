@@ -1,227 +1,260 @@
+---
+status: active
+owner: agent
+started: 2026-06-21
+---
+
 # Runtime Tuning Panel Plan
 
 ## Objective
-Add an in-app developer tuning panel (`Views/DeveloperTuningPanel.xaml`) to adjust visual and layout configuration parameters on the fly. This prevents the need to hand-edit `visual-config.json` and restart the application when tweaking aesthetics or debugging composite pin logic.
+Add an in-app developer tuning panel (`Views/DeveloperTuningPanel.xaml`) to adjust visual and layout configuration parameters on the fly. This prevents hand-editing `visual-config.json` and restarting the application while tuning marker aesthetics or debugging composite pin logic.
 
 ## Scope
-1. A toggle button in `MainWindow.xaml` (e.g., bottom-right) gated by a new `DebugConfig.EnableTuningPanel` flag.
-2. An encapsulated UserControl (`Views/DeveloperTuningPanel.xaml`) exposing tuning options via data binding or events.
-3. A new EventArgs model `Models/TuningPanelEventArgs.cs` containing primitives only, to ensure the View layer does not reference the Services layer.
-4. Logic in `MainWindow.DeveloperTuning.partial.cs` to apply changes robustly without restarting, preserving reference stability of the `_visualConfig` object.
+1. Add a toggle button in `MainWindow.xaml`, gated by `DebugConfig.EnableTuningPanel`.
+2. Add an encapsulated UserControl (`Views/DeveloperTuningPanel.xaml`) that exposes tuning options through primitive event args.
+3. Add `Models/TuningPanelEventArgs.cs` with model-layer primitives only, so `Views/` does not reference `Services/`.
+4. Add `MainWindow.DeveloperTuning.partial.cs` for runtime apply/save/reload logic while preserving `_visualConfig` reference stability.
+5. Keep `MainWindow.xaml.cs` changes limited to config-service fields, constructor wiring, a `SetupTuningPanel()` call, and the F12 hotkey branch.
+
+## Current-Code Findings To Respect
+- `MainWindow.xaml.cs` is currently 776 lines. The file is under the 800-line limit but close enough that new behavior must live in a partial. `MainWindow.LayoutEditor.partial.cs` is also near the limit at 780 lines; do not add tuning code there.
+- Current partial line-count baseline: `MainWindow.xaml.cs` 776, `MainWindow.CompositePins.partial.cs` 518, `MainWindow.Content.partial.cs` 229, `MainWindow.LayoutEditor.partial.cs` 780, `MainWindow.Navigation.partial.cs` 502. `MainWindow.DeveloperTuning.partial.cs` and `Views/DeveloperTuningPanel.xaml.cs` do not exist yet.
+- `_visualConfig` is passed by reference to services such as `MarkerPlacementOrchestrator` and `RadialExtensionAdjuster`. Reload must mutate the existing `_visualConfig` instance, not reassign it.
+- `ContentLoader.ClusterDistanceThreshold` is copied from `_visualConfig.ClusterDistanceThreshold` only during construction today. Any runtime threshold change must also update `_contentLoader.ClusterDistanceThreshold` before `LoadClustersAsync()`.
+- `ClearAllMarkers()` clears marker lists and `_baseMarkerVisuals`, but not extension lines or tuning-specific state. Full marker recreation should explicitly clear `_extensionLineRenderer` and `_overrideStore` before rebuilding markers.
+- `CompositePinLayoutContentHasher.ComputeConfigHash` currently includes `ShaftAssetVariant` but does not include `HeadAssetVariant`. Fix this before or during implementation by adding `HeadAssetVariant` to the hash and adding a regression test; keep explicit `_compositePinPlanCache.ClearAll()` in the tuning apply path as a runtime safety fallback for asset/path changes.
+- The plan should block apply/reload while `_layoutEditor.IsEditMode` or `IsAnimating`; full recreation during an edit session can discard unsaved layout state.
+
+## Initial Tuning Surface
+Keep the first slice focused on values already present in `VisualConfig`:
+
+- `Debug.ShowCompositePinDebugOverlay`
+- `PinParts.Enabled`
+- `PinParts.UseCompositeRendering`
+- `PinParts.UsePrerasterizedRendering`
+- `PinParts.UseLitShafts`
+- `PinParts.ShaftAssetVariant`
+- `PinParts.HeadAssetVariant`
+- `PinParts.DefaultStubLengthPixels`
+- `PinParts.TargetHeadRadiusPx`
+- `PinParts.TargetShaftHalfWidthPx`
+- `ClusterDistanceThreshold`
+- `LocationMarkerSize`
+- `ClusterMarkerSize`
+
+Research note: all listed fields exist in `VisualConfig`, `DebugConfig`, or `PinPartConfig`. `PinParts.Enabled` is included because `CanUseCompositePins()` gates composite rendering on both `PinParts.Enabled` and `PinParts.UseCompositeRendering`; leaving it out would make `UseCompositeRendering` appear ineffective when `Enabled` is false. `PinParts.HeadAssetVariant` exists in the model and render builder tests but is currently omitted from `visual-config.json`, so the panel should load the model default empty string unless the user sets a variant.
+
+Defer broader drawn-pin styling controls (`PinMarkers.BallSize`, `ShaftWidth`, colors, and outline thicknesses) unless a second pass is explicitly requested. They are useful but widen the recreation and validation surface.
 
 ## Modularity & File-Size Impact
-- The core logic for UI interaction is placed in `Views/DeveloperTuningPanel.xaml` and `.cs`.
-- The wiring logic goes into `MainWindow.DeveloperTuning.partial.cs`.
-- This ensures `MainWindow.xaml.cs` (currently at 776 lines) doesn't exceed the 800-line project limit for a single `.cs` file.
+- Create `Views/DeveloperTuningPanel.xaml` and `.cs` for UI-only input collection and validation.
+- Create `MainWindow.DeveloperTuning.partial.cs` for apply/reload/save orchestration. Target under 250 lines.
+- Keep `MainWindow.xaml.cs` under 800 lines. If the hotkey or field wiring pushes it over the limit, move key handling into a new focused partial rather than adding more logic to the primary file.
+- Keep `Views/DeveloperTuningPanel.xaml.cs` independent of `InteractiveWorldMap.Services` and `InteractiveWorldMap.Utilities`; the existing architecture test will catch this.
 
 ## Runtime Constraints & Reference Stability
-1. **Reference Stability**: `_visualConfig` is passed by reference to `MarkerPlacementOrchestrator` and other services upon construction. When loading configuration from disk (`OnReloadTuningFromDisk`), we **must not** reassign the `_visualConfig` field. We must copy the properties over to the existing instance so dependent services stay synchronized.
-2. **Cluster Threshold & Size Parameters (`ClusterDistanceThreshold`, `LocationMarkerSize`)**: 
-   - Modifying `ClusterDistanceThreshold` requires re-fetching data.
-   - `LocationMarkerSize` and `ClusterMarkerSize` are baked into the `LocationMarker` and `ClusterMarker` UserControls at creation time.
-   - **Solution**: Modifying these requires calling a full recreation flow (`RecreateAllMarkersAsync()`) which clears all markers, reclusters, and reinstantiates the WPF marker objects.
-3. **Asset Variants**: Changing variants updates the strings and clears caches (`_pinPartBitmapCache.Clear()` and `_compositePinPlanCache.ClearAll()`). The composite cache actually keys on variant ID, so the clear is belt-and-suspenders.
-4. **Composite Toggles**: Turning off composite rendering (`UseCompositeRendering = false`) leaves previously composited markers blank. We must explicitly call `RestoreBaseMarkerVisuals()` and note the caveat: this only works if drawn pins were enabled during startup, as `_baseMarkerVisuals` is only captured if `UsePinMarkers` is true.
+1. **Reference stability:** Do not reassign `_visualConfig` during reload. Copy supported tuning values onto the existing instance.
+2. **Full recreation values:** Changes to `ClusterDistanceThreshold`, `LocationMarkerSize`, or `ClusterMarkerSize` require marker recreation because clustering and marker UserControl sizing are baked during creation.
+3. **Composite plan values:** Changes to `PinParts.Enabled`, asset variants, lit shafts, target head radius, target shaft width, default stub length, prerasterization, or composite/debug toggles require `UpdateMarkerPositions()` at minimum. Asset/path changes also require cache clearing.
+4. **Composite off fallback:** Turning composite rendering off should call `RestoreBaseMarkerVisuals()`. If `_baseMarkerVisuals` is empty or a full recreation was needed, use the recreation path instead.
+5. **Busy and edit-state guard:** Apply, reload, and save should no-op with a visible status message while tuning is busy, the app is animating, or edit mode is active.
+
+## Preparation Before Implementation
+- [x] Run `py -3 scripts/doc_gardening.py` after plan edits; this plan must have active front matter and an active README row.
+- [x] Confirm `CompositePinLayoutContentHasher.ComputeConfigHash` behavior: it includes `ShaftAssetVariant` but not `HeadAssetVariant`. Implementation should add `HeadAssetVariant` to the hash and test it, while still clearing runtime caches when asset variants change.
+- [x] Confirm the first tuning surface against `Models/VisualConfig.cs`, `Models/DebugConfig.cs`, and `Models/PinPartConfig.cs`. Add `PinParts.Enabled` to avoid an invisible gate around `UseCompositeRendering`.
+- [x] Capture line counts before implementation: `MainWindow.xaml.cs` 776, `MainWindow.DeveloperTuning.partial.cs` absent, `Views/DeveloperTuningPanel.xaml.cs` absent. Keep new tuning code out of existing near-limit files.
+- [x] Decide whether `visual-config.json` should enable the panel by default for local development. Decision: add `"EnableTuningPanel": true` under `Debug` in the repo's local `visual-config.json` when implementing this feature, while keeping `DebugConfig.EnableTuningPanel` default `false` so missing/new configs remain production-safe.
 
 ## Proposed Implementation
 
 ### 1. Configuration & Models
 Update `Models/DebugConfig.cs`:
+
 ```csharp
+/// <summary>
+/// Shows the developer-only runtime tuning panel and F12 toggle.
+/// </summary>
 public bool EnableTuningPanel { get; set; } = false;
 ```
 
 Create `Models/TuningPanelEventArgs.cs`:
+
 ```csharp
 namespace InteractiveWorldMap.Models
 {
     public class TuningPanelEventArgs : System.EventArgs
     {
+        public bool PinPartsEnabled { get; set; }
         public bool UseComposite { get; set; }
         public bool UsePrerasterize { get; set; }
         public bool ShowDebugOverlay { get; set; }
+        public bool UseLitShafts { get; set; }
         public string ShaftVariant { get; set; } = string.Empty;
         public string HeadVariant { get; set; } = string.Empty;
         public double ClusterThreshold { get; set; }
         public double StubLength { get; set; }
-        public bool NeedsFullRecreation { get; set; } // Set if threshold or marker sizes change
+        public double TargetHeadRadiusPx { get; set; }
+        public double TargetShaftHalfWidthPx { get; set; }
+        public double LocationMarkerSize { get; set; }
+        public double ClusterMarkerSize { get; set; }
     }
 }
 ```
+
+Do not include `NeedsFullRecreation` in the event args. `MainWindow` has the previous config values and must compute recreation/caching decisions itself.
 
 ### 2. UserControl (`Views/DeveloperTuningPanel.xaml`)
-Create the UserControl to handle the UI inputs. It will enforce numeric validations (e.g., `Math.Max(0, value)` and red-border error states). It communicates purely via an event `public event EventHandler<TuningPanelEventArgs>? ApplyRequested;` without referencing `InteractiveWorldMap.Services`.
+Create a developer panel with checkboxes, text boxes, and `Apply`, `Save`, and `Reload` buttons. It communicates only through:
 
-### 3. Logic Wire-up (`MainWindow.DeveloperTuning.partial.cs`)
 ```csharp
-using System;
-using System.Threading.Tasks;
-using System.Windows;
-using InteractiveWorldMap.Models;
+public event EventHandler<TuningPanelEventArgs>? ApplyRequested;
+public event EventHandler? SaveRequested;
+public event EventHandler? ReloadRequested;
+```
 
-namespace InteractiveWorldMap
+Validation requirements:
+- Parse and format numeric values with `CultureInfo.InvariantCulture`.
+- Reject invalid numeric input; do not silently clamp user input in the UI.
+- Require positive values for `ClusterThreshold`, `LocationMarkerSize`, and `ClusterMarkerSize`.
+- Allow zero or positive values for `StubLength`, `TargetHeadRadiusPx`, and `TargetShaftHalfWidthPx`; zero preserves existing fallback behavior for target head/shaft scaling.
+- Show a compact inline error and keep `Apply` disabled while invalid.
+
+Load current values from `VisualConfig`:
+
+```csharp
+public void LoadValues(VisualConfig config)
 {
-    public partial class MainWindow
-    {
-        // _configService and _configPath should be initialized directly in the MainWindow constructor.
-        private Services.VisualConfigService _configService = new Services.VisualConfigService(); 
-        private string _configPath = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
-        private bool _isTuningBusy = false;
-
-        private void SetupTuningPanel()
-        {
-            if (_visualConfig.Debug.EnableTuningPanel)
-            {
-                TuningPanelToggleBtn.Visibility = Visibility.Visible;
-                DeveloperTuningPanel.LoadValues(_visualConfig);
-            }
-        }
-
-        // Hooked from OnKeyDown in MainWindow.xaml.cs for F12
-        private void HandleTuningPanelHotkey()
-        {
-            if (!_visualConfig.Debug.EnableTuningPanel) return;
-            
-            DeveloperTuningPanel.Visibility = DeveloperTuningPanel.Visibility == Visibility.Visible 
-                ? Visibility.Collapsed 
-                : Visibility.Visible;
-                
-            if (DeveloperTuningPanel.Visibility == Visibility.Visible)
-                DeveloperTuningPanel.LoadValues(_visualConfig);
-        }
-
-        private async void OnApplyTuning(object sender, TuningPanelEventArgs e)
-        {
-            if (_isTuningBusy) return;
-            _isTuningBusy = true;
-            try
-            {
-                bool wasComposite = _visualConfig.PinParts.UseCompositeRendering;
-                bool variantChanged = _visualConfig.PinParts.ShaftAssetVariant != e.ShaftVariant ||
-                                      _visualConfig.PinParts.HeadAssetVariant != e.HeadVariant;
-
-                // Mutate the reference-stable instance
-                _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
-                _visualConfig.PinParts.UsePrerasterizedRendering = e.UsePrerasterize;
-                _visualConfig.Debug.ShowCompositePinDebugOverlay = e.ShowDebugOverlay;
-                _visualConfig.PinParts.ShaftAssetVariant = e.ShaftVariant;
-                _visualConfig.PinParts.HeadAssetVariant = e.HeadVariant;
-                _visualConfig.PinParts.DefaultStubLengthPixels = e.StubLength;
-                _visualConfig.ClusterDistanceThreshold = e.ClusterThreshold;
-
-                if (e.NeedsFullRecreation)
-                {
-                    await RecreateAllMarkersAsync();
-                }
-                else
-                {
-                    if (variantChanged)
-                    {
-                        _pinPartBitmapCache.Clear();
-                        _pinPartGeometryHash = null;
-                        _compositePinPlanCache.ClearAll();
-                    }
-                    
-                    if (wasComposite && !_visualConfig.PinParts.UseCompositeRendering)
-                    {
-                        RestoreBaseMarkerVisuals(); 
-                    }
-                    
-                    UpdateMarkerPositions();
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Tuning apply failed: {ex.Message}");
-            }
-            finally
-            {
-                _isTuningBusy = false;
-            }
-        }
-
-        private async Task RecreateAllMarkersAsync()
-        {
-            ClearAllMarkers();
-            _clusters = await _contentLoader.LoadClustersAsync();
-            AddClustersToMap(_clusters); // Implicitly calls TryApplyFullMapManualLayout and UpdateMarkerPositions
-        }
-        
-        private void OnSaveTuningToDisk(object sender, EventArgs e)
-        {
-            if (_isTuningBusy) return;
-            try
-            {
-                _configService.Save(_visualConfig, _configPath);
-                _logger.LogInfo("VisualConfig saved to disk via Tuning Panel.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to save tuning config: {ex.Message}");
-            }
-        }
-        
-        private async void OnReloadTuningFromDisk(object sender, EventArgs e)
-        {
-            if (_isTuningBusy) return;
-            _isTuningBusy = true;
-            try
-            {
-                var diskConfig = _configService.Load(_configPath);
-                
-                // Copy properties over to preserve the reference!
-                _visualConfig.PinParts.UseCompositeRendering = diskConfig.PinParts.UseCompositeRendering;
-                _visualConfig.PinParts.UsePrerasterizedRendering = diskConfig.PinParts.UsePrerasterizedRendering;
-                _visualConfig.Debug.ShowCompositePinDebugOverlay = diskConfig.Debug.ShowCompositePinDebugOverlay;
-                _visualConfig.PinParts.ShaftAssetVariant = diskConfig.PinParts.ShaftAssetVariant;
-                _visualConfig.PinParts.HeadAssetVariant = diskConfig.PinParts.HeadAssetVariant;
-                _visualConfig.PinParts.DefaultStubLengthPixels = diskConfig.PinParts.DefaultStubLengthPixels;
-                
-                bool needsRecreate = _visualConfig.ClusterDistanceThreshold != diskConfig.ClusterDistanceThreshold || 
-                                     _visualConfig.LocationMarkerSize != diskConfig.LocationMarkerSize;
-                
-                _visualConfig.ClusterDistanceThreshold = diskConfig.ClusterDistanceThreshold;
-                _visualConfig.LocationMarkerSize = diskConfig.LocationMarkerSize;
-                
-                _pinPartBitmapCache.Clear();
-                _compositePinPlanCache.ClearAll();
-
-                if (needsRecreate)
-                {
-                    await RecreateAllMarkersAsync();
-                }
-                else
-                {
-                    RestoreBaseMarkerVisuals();
-                    UpdateMarkerPositions();
-                }
-                
-                DeveloperTuningPanel.LoadValues(_visualConfig);
-                _logger.LogInfo("VisualConfig reloaded from disk.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to reload tuning config: {ex.Message}");
-            }
-            finally
-            {
-                _isTuningBusy = false;
-            }
-        }
-    }
+    ChkPinPartsEnabled.IsChecked = config.PinParts.Enabled;
+    ChkComposite.IsChecked = config.PinParts.UseCompositeRendering;
+    ChkPrerasterize.IsChecked = config.PinParts.UsePrerasterizedRendering;
+    ChkDebugOverlay.IsChecked = config.Debug.ShowCompositePinDebugOverlay;
+    ChkUseLitShafts.IsChecked = config.PinParts.UseLitShafts;
+    TxtShaftVariant.Text = config.PinParts.ShaftAssetVariant;
+    TxtHeadVariant.Text = config.PinParts.HeadAssetVariant;
+    TxtClusterThreshold.Text = config.ClusterDistanceThreshold.ToString(CultureInfo.InvariantCulture);
+    TxtStubLength.Text = config.PinParts.DefaultStubLengthPixels.ToString(CultureInfo.InvariantCulture);
+    TxtTargetHeadRadius.Text = config.PinParts.TargetHeadRadiusPx.ToString(CultureInfo.InvariantCulture);
+    TxtTargetShaftHalfWidth.Text = config.PinParts.TargetShaftHalfWidthPx.ToString(CultureInfo.InvariantCulture);
+    TxtLocationMarkerSize.Text = config.LocationMarkerSize.ToString(CultureInfo.InvariantCulture);
+    TxtClusterMarkerSize.Text = config.ClusterMarkerSize.ToString(CultureInfo.InvariantCulture);
 }
 ```
 
+### 3. MainWindow XAML
+Add the namespace:
+
+```xml
+xmlns:views="clr-namespace:InteractiveWorldMap.Views"
+```
+
+Add the panel and toggle button to the existing overlay/root grid:
+
+```xml
+<views:DeveloperTuningPanel x:Name="DeveloperTuningPanel"
+        Visibility="Collapsed"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Bottom"
+        Margin="20,20,20,60"
+        ApplyRequested="OnApplyTuning"
+        SaveRequested="OnSaveTuningToDisk"
+        ReloadRequested="OnReloadTuningFromDisk" />
+
+<Button x:Name="TuningPanelToggleBtn"
+        Content="Tuning"
+        Visibility="Collapsed"
+        HorizontalAlignment="Right"
+        VerticalAlignment="Bottom"
+        Margin="20"
+        Padding="15,8"
+        Background="#CC555555"
+        Foreground="White"
+        Click="OnTuningPanelToggleClick" />
+```
+
+### 4. `MainWindow.xaml.cs` Wiring
+Promote the config service/path so save and reload reuse the same path:
+
+```csharp
+private readonly VisualConfigService _configService = new VisualConfigService();
+private readonly string _configPath;
+```
+
+In the constructor:
+
+```csharp
+_configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
+_visualConfig = _configService.Load(_configPath);
+```
+
+After event wiring and config-dependent UI setup:
+
+```csharp
+SetupTuningPanel();
+```
+
+Add F12 to `OnKeyDown` without changing existing Escape/Ctrl+S behavior:
+
+```csharp
+else if (e.Key == Key.F12 && _visualConfig.Debug.EnableTuningPanel)
+{
+    OnTuningPanelToggleClick(this, new RoutedEventArgs());
+    e.Handled = true;
+}
+```
+
+### 5. `MainWindow.DeveloperTuning.partial.cs`
+Create a focused partial for tuning behavior. The apply path should follow this order:
+
+1. Return with status if `_isTuningBusy`, `IsAnimating`, or `_layoutEditor.IsEditMode`.
+2. Compare old `_visualConfig` values to incoming event args.
+3. Compute:
+   - `needsRecreate`: cluster threshold or marker sizes changed, or composite-off fallback has no captured base visuals.
+   - `assetVariantChanged`: shaft/head variant or lit-shaft path behavior changed.
+   - `compositePlanChanged`: `PinParts.Enabled`, asset variants, target head radius, target shaft half width, stub length, prerasterize, composite toggle, or debug overlay changed.
+4. Mutate the existing `_visualConfig` instance.
+5. If `assetVariantChanged`, clear `_pinPartBitmapCache`.
+6. If `compositePlanChanged`, set `_pinPartGeometryHash = null` only when geometry metadata needs to be re-read, and call `_compositePinPlanCache.ClearAll()`.
+7. If `needsRecreate`, call `RecreateAllMarkersAsync()`. Otherwise restore base visuals when turning composite off, then call `UpdateMarkerPositions()`.
+8. Reload the panel values from `_visualConfig`.
+
+Full recreation must update the content loader before reclustering:
+
+```csharp
+private async Task RecreateAllMarkersAsync()
+{
+    _extensionLineRenderer.Clear();
+    _overrideStore.ClearAll();
+    ClearAllMarkers();
+
+    _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
+    _clusters = await _contentLoader.LoadClustersAsync();
+    AddClustersToMap(_clusters);
+}
+```
+
+Save should call `_configService.Save(_visualConfig, _configPath)`. Reload should load a fresh config, copy the supported tuning values onto `_visualConfig`, and then use the same apply/recreate decision path rather than duplicating logic.
+
 ## Failure Modes & Error Handling
-1. **Invalid Input:** `Views/DeveloperTuningPanel.xaml` implements strict validation. Invalid numeric entries prevent applying changes and visually alert the user.
-2. **Configuration I/O Exceptions:** Saving/loading the JSON gracefully logs errors and blocks UI corruption without crashing the application.
-3. **Composite Off Fallback Limits:** Reverting from composite to drawn pins relies on `RestoreBaseMarkerVisuals()`. If the app booted with `UsePinMarkers = false`, this cache might be empty, resulting in blank markers unless an explicit full recreation is triggered.
+1. **Invalid input:** Keep `Apply` disabled and show inline errors until all fields parse and pass range validation.
+2. **Edit mode or animation active:** Do not apply or reload. Show a status message explaining that tuning is blocked until edit/animation completes.
+3. **Configuration I/O exceptions:** Log the error through `_logger` and show panel status without crashing.
+4. **Composite-off fallback limits:** If base visuals are unavailable, use full recreation instead of leaving blank markers.
+5. **Missing composite assets:** Existing `ApplyCompositePinTargetToMarker` fallback should keep drawn markers visible. The tuning path should not suppress those warnings.
 
 ## Tests
-- **Unit Tests:** 
-  - Add JSON roundtrip test in `Tests/VisualConfigServiceTests.cs` for `EnableTuningPanel`.
-  - Add test in `Tests/ContentLoaderClusterTests.cs` explicitly comparing cluster counts across thresholds to ensure caching handles thresholds correctly.
-- **Architecture Test:** Verifies that `Views/DeveloperTuningPanel.xaml.cs` does not depend on `InteractiveWorldMap.Services`.
+- Add JSON roundtrip/default tests in `Tests/VisualConfigServiceTests.cs` for `Debug.EnableTuningPanel`.
+- Add a focused cluster-threshold test in `Tests/ContentLoaderTests.cs` or a new `Tests/ClusterCacheTests.cs` proving different thresholds produce independent cache keys or different cluster results.
+- Add a source-level architecture test, if needed, that `Views/DeveloperTuningPanel.xaml.cs` does not reference `InteractiveWorldMap.Services`.
+- Add a source-level MainWindow wiring test that the tuning apply path updates `_contentLoader.ClusterDistanceThreshold` before `LoadClustersAsync()`.
+- Add a config-hash test for `CompositePinLayoutContentHasher.ComputeConfigHash` proving `HeadAssetVariant` changes the hash.
 
 ## Documentation Updates
-Add an entry in `CHANGELOG.md` under `[Unreleased]` for the Tuning Panel feature and F12 hotkey.
+- Ensure this plan is listed in `docs/exec-plans/active/README.md`.
+- Keep the existing `docs/TO_DO.md` developer-tooling bullet short and linked to this plan.
+- Add a `CHANGELOG.md` entry under `[Unreleased]` when implementation lands, not for this planning-only review unless the registry/docs change is the deliverable.
+
+## Completion Gate
+- `py -3 scripts/doc_gardening.py`
+- `dotnet test Tests/InteractiveWorldMap.Tests.csproj`
+- `.\scripts\verify.ps1` before claiming implementation complete
