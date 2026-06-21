@@ -77,6 +77,37 @@ namespace InteractiveWorldMap
 
 
         /// <summary>
+        /// Phase 7: single-location zoom must replay the full-map manual layout (angle/length/assignment)
+        /// so the composite stub matches the unzoomed appearance. Cluster layout keys are not used
+        /// when a full-map entry exists for that location.
+        /// </summary>
+        private bool TryApplyFullMapLayoutForZoomedSingle(LocationCluster cluster)
+        {
+            if (!cluster.IsSingleLocation)
+                return false;
+
+            var locationName = cluster.Locations[0].Name;
+            var key = GenerateCurrentFullMapGroupKey();
+            var layout = _layoutEditor.TryLoad(key);
+            if (layout == null)
+                return false;
+
+            if (!FullMapLayoutContainsLocation(layout, locationName))
+                return false;
+
+            _layoutEditor.SetLayoutKey(key);
+            _logger.LogInfo(
+                $"[TryApplyFullMapLayoutForZoomedSingle] Replaying full-map layout for '{locationName}' at key={key}");
+            ApplyManualLayout(layout);
+            _layoutEditor.SetManualLayoutActive(true);
+            return true;
+        }
+
+        private static bool FullMapLayoutContainsLocation(ManualLayout layout, string locationName) =>
+            layout.Markers.Any(m =>
+                string.Equals(m.LocationName, locationName, StringComparison.Ordinal));
+
+        /// <summary>
         /// Shows the cluster view (full map with cluster markers).
         /// </summary>
         private void ShowClusterView()
@@ -121,23 +152,40 @@ namespace InteractiveWorldMap
                     // Generate layout key and try to load saved layout
                     if (_layoutManager != null && _visualConfig.RadialExtension.Enabled)
                     {
-                        _layoutEditor.SetLayoutKey(LayoutKeyGenerator.GenerateKey(
-                            cluster.Locations,
-                            viewport,
-                            _visualConfig.RadialExtension));
-
-                        _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
-
-                        // Try to load saved layout
-                        var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
-                        if (savedLayout != null)
+                        var preferFullMapLayout = false;
+                        if (cluster.IsSingleLocation)
                         {
-                            _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
-                            _savedLayoutToApply = savedLayout; // Store for later application
+                            var fullMapKey = GenerateCurrentFullMapGroupKey();
+                            var fullMapLayout = _layoutEditor.TryLoad(fullMapKey);
+                            preferFullMapLayout = fullMapLayout != null &&
+                                FullMapLayoutContainsLocation(fullMapLayout, cluster.Locations[0].Name);
+                            if (preferFullMapLayout)
+                            {
+                                _logger.LogInfo(
+                                    "  Single-location zoom: full-map manual layout takes precedence over cluster layout");
+                            }
                         }
-                        else
+
+                        if (!preferFullMapLayout)
                         {
-                            _logger.LogInfo($"  No saved layout found for key: {_layoutEditor.CurrentLayoutKey}");
+                            _layoutEditor.SetLayoutKey(LayoutKeyGenerator.GenerateKey(
+                                cluster.Locations,
+                                viewport,
+                                _visualConfig.RadialExtension));
+
+                            _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
+
+                            // Try to load saved layout
+                            var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
+                            if (savedLayout != null)
+                            {
+                                _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
+                                _savedLayoutToApply = savedLayout; // Store for later application
+                            }
+                            else
+                            {
+                                _logger.LogInfo($"  No saved layout found for key: {_layoutEditor.CurrentLayoutKey}");
+                            }
                         }
                     }
                     
@@ -170,17 +218,26 @@ namespace InteractiveWorldMap
                     }
                 }
 
-                // Show only individual markers for this cluster (calculated positions)
+                // Show only individual markers for this cluster (visibility only — placement below)
                 ShowOnlyIndividualMarkers(cluster);
-                
-                // Apply saved manual layout if one was found
-                if (_savedLayoutToApply != null)
+
+                if (cluster.IsSingleLocation && TryApplyFullMapLayoutForZoomedSingle(cluster))
                 {
-                    ApplyManualLayout(_savedLayoutToApply);
-                    _layoutEditor.SetManualLayoutActive(true);
-                    _savedLayoutToApply = null; // Clear after applying
-                    
-                    _logger.LogInfo("Manual layout applied after high-res region loaded");
+                    _logger.LogInfo("Full-map manual layout applied for single-location zoom");
+                }
+                else
+                {
+                    UpdateMarkerPositions();
+
+                    // Apply saved cluster manual layout if one was found
+                    if (_savedLayoutToApply != null)
+                    {
+                        ApplyManualLayout(_savedLayoutToApply);
+                        _layoutEditor.SetManualLayoutActive(true);
+                        _savedLayoutToApply = null; // Clear after applying
+
+                        _logger.LogInfo("Manual layout applied after high-res region loaded");
+                    }
                 }
                 
                 UpdateEditLayoutButtonVisibility();

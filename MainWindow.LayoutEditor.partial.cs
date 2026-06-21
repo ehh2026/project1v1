@@ -586,12 +586,23 @@ namespace InteractiveWorldMap
                     continue;
                 }
 
-                var markerSize = _visualConfig.LocationMarkerSize;
-                Canvas.SetLeft(marker, instruction.ExtendedScreen.X - (markerSize / 2));
-                Canvas.SetTop(marker, instruction.ExtendedScreen.Y - (markerSize / 2));
-
                 if (instruction.RequiresExtensionLine)
+                {
+                    // Drawn pin lifted off the map: the extension line is the shaft, the head
+                    // sits on the endpoint, and the pin's own shaft is hidden (no duplicate line).
                     _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+                    _extensionLineRenderer.AnchorExtendedMarker(marker, instruction.ExtendedScreen);
+                }
+                else
+                {
+                    // No extension: a normal pin (head + own shaft) centered on its map location.
+                    if (marker.Content is PinMarker drawnPin)
+                        drawnPin.SetShaftVisible(true);
+
+                    var markerSize = _visualConfig.LocationMarkerSize;
+                    Canvas.SetLeft(marker, instruction.ExtendedScreen.X - (markerSize / 2));
+                    Canvas.SetTop(marker, instruction.ExtendedScreen.Y - (markerSize / 2));
+                }
             }
 
             if (applyPlan.ShouldSaveToCache && !string.IsNullOrEmpty(groupKey))
@@ -670,7 +681,7 @@ namespace InteractiveWorldMap
                         Math.Max(0, Math.Min(currentPosition.X, boundsWidth)),
                         Math.Max(0, Math.Min(currentPosition.Y, boundsHeight)));
 
-                    // Rebuild composite pin with new target
+                    // Rebuild composite pin with new target (always full reapply — angle/length change each tick)
                     ApplyCompositePinToMarker(_draggedMarker, originalPos, mousePos);
 
                     // Update extension line endpoint

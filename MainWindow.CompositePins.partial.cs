@@ -147,7 +147,16 @@ namespace InteractiveWorldMap
         {
             if (!CanUseCompositePins())
                 return false;
-            var ok = ApplyCompositePinToMarker(marker, originalScreenPos, extendedScreenPos, preferredPairId, preferredHeadSourcePath);
+
+            var target = new PinPlacementTarget
+            {
+                StartScreen = originalScreenPos,
+                EndScreen = extendedScreenPos,
+                LocationId = marker.Location.Name,
+                GroupId = 0
+            };
+
+            var ok = TryApplyCompositePinAtTarget(marker, target, preferredPairId, preferredHeadSourcePath);
             // Phase 4: extension line as drag guide + endpoint source in edit mode
             if (ok && _layoutEditor.IsEditMode)
                 _extensionLineRenderer.AddLine(marker, originalScreenPos, extendedScreenPos);
@@ -155,26 +164,48 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Core composite-pin apply logic. Used both by the normal (non-edit) path via
-        /// <see cref="TryApplyCompositePinMarker"/> and by Reassign Pins which bypasses the
-        /// edit-mode gate in <see cref="CanUseCompositePins"/>.
+        /// Applies or repositions a composite pin for a built target. Reposition-only when the
+        /// segment vector and assignment are unchanged (Phase 7).
+        /// </summary>
+        private bool TryApplyCompositePinAtTarget(LocationMarker marker, PinPlacementTarget target,
+            string? preferredPairId = null, string? preferredHeadSourcePath = null)
+        {
+            if (marker.Content is CompositePinMarker compositeMarker &&
+                compositeMarker.RenderPlan != null &&
+                CompositePinPlacementPolicy.ShouldRepositionOnly(
+                    compositeMarker.RenderPlan, target, preferredPairId, preferredHeadSourcePath))
+            {
+                RepositionCompositePinMarker(marker, target, compositeMarker.RenderPlan);
+                return true;
+            }
+
+            return ApplyCompositePinTargetToMarker(marker, target, preferredPairId, preferredHeadSourcePath);
+        }
+
+        private void RepositionCompositePinMarker(
+            LocationMarker marker,
+            PinPlacementTarget target,
+            CompositePinRenderPlan plan)
+        {
+            var topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(target.StartScreen, plan);
+            Canvas.SetLeft(marker, topLeft.X);
+            Canvas.SetTop(marker, topLeft.Y);
+            _overrideStore.RecordEndpoints(marker.Location.Name, target.StartScreen, target.EndScreen);
+        }
+
+        /// <summary>
+        /// Core composite-pin apply logic. Used by drag, reassign, and override paths.
         /// </summary>
         private bool ApplyCompositePinToMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos,
             string? preferredPairId = null, string? preferredHeadSourcePath = null)
         {
-            var target = _compositePinTargetBuilder.Build(
-                marker.Location,
-                new ViewportState(),
-                containerWidth: 0,
-                containerHeight: 0,
-                _visualConfig.PinParts,
-                new RadialExtension
-                {
-                    Location = marker.Location,
-                    OriginalPosition = originalScreenPos,
-                    ExtendedPosition = extendedScreenPos,
-                    GroupId = 0
-                });
+            var target = new PinPlacementTarget
+            {
+                StartScreen = originalScreenPos,
+                EndScreen = extendedScreenPos,
+                LocationId = marker.Location.Name,
+                GroupId = 0
+            };
 
             return ApplyCompositePinTargetToMarker(marker, target, preferredPairId, preferredHeadSourcePath);
         }
@@ -239,8 +270,9 @@ namespace InteractiveWorldMap
             marker.Width   = compositeMarker.Width;
             marker.Height  = compositeMarker.Height;
             Panel.SetZIndex(marker, 2000);
-            Canvas.SetLeft(marker, originalScreenPos.X - plan.TipAnchorLocal.X);
-            Canvas.SetTop(marker, originalScreenPos.Y - plan.TipAnchorLocal.Y);
+            var topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(originalScreenPos, plan);
+            Canvas.SetLeft(marker, topLeft.X);
+            Canvas.SetTop(marker, topLeft.Y);
         }
 
         private static bool IsPinStyleMarkerBase(object? content)
@@ -304,6 +336,11 @@ namespace InteractiveWorldMap
             }
         }
 
+        /// <summary>
+        /// Applies composite pins to normal (non-extension) placements when composite mode is on.
+        /// During <see cref="InteractionMode.Animating"/>, this method returns early; tip reposition
+        /// for existing composites is handled by <c>ApplyIndividualPlacements</c> until settled state.
+        /// </summary>
         private void ApplyCompositePinsToNormalPlacements(
             IReadOnlyList<MarkerScreenPlacement> placements,
             ViewportState viewport,
@@ -327,7 +364,7 @@ namespace InteractiveWorldMap
                     containerWidth,
                     containerHeight,
                     _visualConfig.PinParts);
-                if (ApplyCompositePinTargetToMarker(marker, target))
+                if (TryApplyCompositePinAtTarget(marker, target))
                 {
                     // Phase 4: stub line as drag guide + endpoint source in edit mode
                     if (_layoutEditor.IsEditMode)

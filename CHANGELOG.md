@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Drawn pin fallback visibility:** `PinMarker` now sizes ball and shaft from `PinMarkers` config (was scaling down via `LocationMarkerSize` and ignoring config). Extension lines use a thicker resting stroke and hover restores the configured style instead of only becoming visible on hover.
+
+- **Drawn pin high-contrast styling:** Stub shafts use a dark outline halo behind a light silver core; pin heads get a configurable black rim; random ball colors exclude low-contrast white/gray/black; extension lines render as outline+core pairs. Tunable via `PinMarkers.ShaftOutlineColor`, `BallOutlineColor`, and related fields in `visual-config.json`.
+
+- **Single-location zoom layout precedence:** Zooming into a single-location cluster now replays the `fullmap_sWxH` manual layout when present, instead of auto stub placement or a stale cluster layout key. Fixes composite stub changing after zoom settles. Added `CompositePinPlacementPolicy.ShouldRepositionOnly` and `GetCompositeTopLeft(Point, …)`; normal and extension apply paths use `TryApplyCompositePinAtTarget` to reposition existing composites without `BuildPlan` when segment vector/assignment are unchanged; `ApplyCompositePinToMarker` no longer uses a fake empty `ViewportState`. 11 behavior/contract tests added; `verify.ps1` passes (314 tests).
+
 - **Composite pin zoom persistence (automated guard):** Marker placement updates no longer unconditionally restore visible pins to drawn fallback before composite reapply, composite stubs keep screen-space length/direction across viewport projections, failed normal composite reapply recenters the drawn fallback, and composite top-left persistence math now has behavior-level policy coverage.
 - **Full-map edit drag regression:** Individual marker mouse-downs in edit mode now allow the drag handler to start instead of showing the blocked-zoom status; cluster/navigation clicks still remain blocked while editing.
 - **Composite pin anti-aliasing (Part 1A):** Composite pin image layers now use `Fant` bitmap scaling with anti-aliased edge mode, and the marker root no longer forces pixel snapping/layout rounding that fought rotated shaft transforms.
@@ -16,7 +22,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
-- **Composite pins unzoomed plan (round 2 review):** Incorporated `temp/review-composite-pins-unzoomed-plan-2026-06-20.md` — task 7/8 split, drag vs extension callback qualifiers, settled-state forward reference, extension-callback test row, DoD bullets, `tryCompositePinApplier` rename. Added [pinhead-black-outline-variants-plan.md](docs/exec-plans/active/pinhead-black-outline-variants-plan.md) to generate 2-14px black-outline head variants and wire `PinParts.HeadAssetVariant` through render-plan selection.
+- **TO_DO:** Phase 7 manual smoke #1–7 passed (2026-06-20); #8 composite-off regression still open. Added backlog item to explore post-render smooth black outline on composite pins.
+
+- **Composite pins unzoomed plan (round 2 review):** Incorporated `temp/review-composite-pins-unzoomed-plan-2026-06-20.md` — task 7/8 split, drag vs extension callback qualifiers, settled-state forward reference, extension-callback test row, DoD bullets, `tryCompositePinApplier` rename.
+
+- **Pinhead outline variants plan:** Added [pinhead-black-outline-variants-plan.md](docs/exec-plans/active/pinhead-black-outline-variants-plan.md) to generate 2-14px black-outline head variants and wire `PinParts.HeadAssetVariant` through render-plan selection.
 
 - **Legacy `pins.jpg` path removed:** Deleted `PinImages` config/model, `ImagePinMarker`, obsolete sprite extraction scripts, and `Images&Content/pins.jpg`; pin-style markers now use drawn `PinMarker` fallback or part-based `CompositePinMarker` rendering only.
 - **Composite fallback regression:** Added coverage that missing composite assets keep the drawn-pin fallback policy and do not reference the removed legacy image path.

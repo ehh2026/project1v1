@@ -497,6 +497,11 @@ namespace InteractiveWorldMap
                 if (marker == null)
                     continue;
 
+                // Non-extended drawn pins keep their own shaft; the extended path
+                // (ExtensionLineRenderer) hides it, so restore it here.
+                if (marker.Content is PinMarker drawnPin)
+                    drawnPin.SetShaftVisible(true);
+
                 if (TryGetCompositeAnchoredPlacement(marker, placement, out var compositeTopLeft))
                 {
                     Canvas.SetLeft(marker, compositeTopLeft.X);
@@ -613,8 +618,7 @@ namespace InteractiveWorldMap
                 }
             }
 
-            // Update positions for visible markers
-            UpdateMarkerPositions();
+            // Placement runs from ShowZoomedView after visibility is set.
         }
 
         /// <summary>

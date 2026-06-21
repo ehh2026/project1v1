@@ -101,6 +101,25 @@ that means:
 - unzoomed multi-location cluster aggregates remain stamp-style `ClusterMarker` blobs
 - manual layout edit works on composite pins in zoomed clusters and on visible full-map single-location stubs
 
+## PinMarkers (drawn fallback)
+
+When `UseCompositeRendering = false`, individual markers use the vector `PinMarker` control. Key fields:
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `BallSize` | `14` | Pin head diameter (px) |
+| `ShaftWidth` | `3` | Core shaft width (px) |
+| `ShaftLength` | `24` | Stub shaft length on non-extended pins (px) |
+| `ShaftColor` | `#FFD8D8D8` | Light silver shaft core |
+| `ShaftOutlineColor` | `#FF1A1A1A` | Dark halo behind shaft (stub + extension lines) |
+| `ShaftOutlineThickness` | `1.25` | Extra px on each side of shaft core |
+| `BallOutlineColor` | `#FF000000` | Pin head rim |
+| `BallOutlineThickness` | `1.5` | Pin head rim width (px) |
+| `UseRandomColors` | `true` | Random saturated ball hues (no white/gray/black) |
+| `DefaultBallColor` | `#FFE53935` | Used when `UseRandomColors = false` |
+
+**Tuning tips:** Increase `ShaftOutlineThickness` or `BallOutlineThickness` for busy map backgrounds; set `UseRandomColors` to `false` and pick one strong `DefaultBallColor` for a uniform look.
+
 ## PinParts
 
 `PinParts` config controls the newer part-based composite renderer.

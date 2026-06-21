@@ -8,50 +8,42 @@ using InteractiveWorldMap.Models;
 namespace InteractiveWorldMap.Views
 {
     /// <summary>
-    /// Visual representation of a location as a sewing pin with colored ball.
+    /// Visual representation of a location as a sewing pin with colored ball and metal shaft.
+    /// Dimensions and outline colors come from <see cref="PinMarkerConfig"/>.
     /// </summary>
     public partial class PinMarker : UserControl
     {
         private bool _isHovered;
         private static readonly Random _colorRandom = new Random();
-        
-        // Predefined pin colors similar to sewing pins
+
+        // Saturated hues only — avoids white/gray/black that disappear on the map.
         private static readonly Color[] PinColors = {
-            Colors.Red, Colors.Blue, Colors.Green, Colors.Yellow, Colors.Orange,
-            Colors.Purple, Colors.Pink, Colors.Cyan, Colors.Magenta, Colors.Lime,
-            Colors.Brown, Colors.Gray, Colors.Black, Colors.White, Colors.Maroon,
-            Colors.Navy, Colors.Olive, Colors.Teal, Colors.Silver, Colors.Gold
+            Color.FromRgb(229, 57, 53),   // red
+            Color.FromRgb(25, 118, 210),  // blue
+            Color.FromRgb(46, 125, 50),   // green
+            Color.FromRgb(245, 124, 0),   // orange
+            Color.FromRgb(123, 31, 162),  // purple
+            Color.FromRgb(194, 24, 91),   // pink
+            Color.FromRgb(0, 151, 167),   // cyan
+            Color.FromRgb(251, 192, 45),  // amber
+            Color.FromRgb(109, 76, 65),   // brown
+            Color.FromRgb(0, 105, 92),    // teal
         };
 
-        /// <summary>
-        /// Dependency property for pin color
-        /// </summary>
         public static readonly DependencyProperty PinColorProperty =
-            DependencyProperty.Register("PinColor", typeof(Color), typeof(PinMarker), 
-                new PropertyMetadata(Colors.Red));
+            DependencyProperty.Register("PinColor", typeof(Color), typeof(PinMarker),
+                new PropertyMetadata(Colors.Red, OnPinColorChanged));
 
-        /// <summary>
-        /// Gets or sets the color of the pin ball.
-        /// </summary>
         public Color PinColor
         {
             get => (Color)GetValue(PinColorProperty);
             set => SetValue(PinColorProperty, value);
         }
 
-        /// <summary>
-        /// Gets or sets the location associated with this pin marker.
-        /// </summary>
         public Location Location { get; set; } = null!;
 
-        /// <summary>
-        /// Gets or sets the screen position of this pin marker.
-        /// </summary>
         public Point ScreenPosition { get; set; }
 
-        /// <summary>
-        /// Gets or sets whether the pin marker is currently hovered.
-        /// </summary>
         public bool IsHovered
         {
             get => _isHovered;
@@ -70,56 +62,80 @@ namespace InteractiveWorldMap.Views
         {
         }
 
-        public PinMarker(IMarkerConfiguration markerConfiguration)
+        public PinMarker(VisualConfig visualConfig)
         {
-            if (markerConfiguration == null) throw new ArgumentNullException(nameof(markerConfiguration));
+            if (visualConfig == null) throw new ArgumentNullException(nameof(visualConfig));
 
             InitializeComponent();
-            
-            // Set random pin color
-            PinColor = PinColors[_colorRandom.Next(PinColors.Length)];
-            
-            // Pin markers are taller than they are wide due to the shaft
-            Width = markerConfiguration.LocationMarkerSize;
-            Height = markerConfiguration.LocationMarkerSize * 2;
 
-            // Scale the pin ball and shaft based on marker size
-            double scale = markerConfiguration.LocationMarkerSize / 16.0;
-            PinBall.Width = 8 * scale;
-            PinBall.Height = 8 * scale;
-            PinShaft.Width = 1.5 * scale;
-            PinShaft.Height = 20 * scale;
-            PinShaft.Margin = new Thickness(0, 8 * scale, 0, 0);
-            
-            // Wire up mouse events
+            PinColor = PinColors[_colorRandom.Next(PinColors.Length)];
+            ApplyPinDimensions(visualConfig.PinMarkers);
+
             MouseEnter += (s, e) => IsHovered = true;
             MouseLeave += (s, e) => IsHovered = false;
         }
 
-        /// <summary>
-        /// Sets a specific color for this pin (useful for manual assignment).
-        /// </summary>
+        internal void ApplyPinDimensions(PinMarkerConfig pinConfig)
+        {
+            double ballSize = Math.Max(pinConfig.BallSize, 6.0);
+            double shaftWidth = Math.Max(pinConfig.ShaftWidth, 2.0);
+            double shaftLength = Math.Max(pinConfig.ShaftLength, 12.0);
+            double shaftOutline = Math.Max(pinConfig.ShaftOutlineThickness, 0.0);
+            double ballOutline = Math.Max(pinConfig.BallOutlineThickness, 0.0);
+
+            PinBall.Width = ballSize;
+            PinBall.Height = ballSize;
+            PinShaft.Width = shaftWidth;
+            PinShaft.Height = shaftLength;
+            PinShaftOutline.Width = shaftWidth + (2 * shaftOutline);
+            PinShaftOutline.Height = shaftLength;
+
+            var shaftTop = ballSize / 2.0;
+            ShaftHost.Margin = new Thickness(0, shaftTop, 0, 0);
+
+            if (TryParseColor(pinConfig.ShaftColor, out var shaftColor))
+                PinShaft.Fill = new SolidColorBrush(shaftColor);
+
+            if (TryParseColor(pinConfig.ShaftOutlineColor, out var shaftOutlineColor))
+                PinShaftOutline.Fill = new SolidColorBrush(shaftOutlineColor);
+
+            if (TryParseColor(pinConfig.BallOutlineColor, out var ballOutlineColor))
+                PinBall.Stroke = new SolidColorBrush(ballOutlineColor);
+
+            PinBall.StrokeThickness = ballOutline;
+
+            ApplyBallFill(PinColor);
+
+            Width = Math.Max(ballSize + (2 * ballOutline), PinShaftOutline.Width);
+            Height = shaftTop + shaftLength;
+        }
+
         public void SetPinColor(Color color)
         {
             PinColor = color;
         }
 
         /// <summary>
-        /// Gets a random pin color from the predefined palette.
+        /// Shows or hides the pin's own shaft. Extended markers hide it because the
+        /// radial extension line acts as the shaft connecting the head to the map
+        /// location — keeping the pin's vertical shaft would draw a second, off-axis
+        /// shaft on top of the head.
         /// </summary>
+        public void SetShaftVisible(bool visible)
+        {
+            ShaftHost.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        }
+
         public static Color GetRandomPinColor()
         {
             return PinColors[_colorRandom.Next(PinColors.Length)];
         }
 
-        /// <summary>
-        /// Animates the pin marker on hover state change.
-        /// </summary>
         public void AnimateHover(bool isHovered)
         {
             var scaleAnimation = new DoubleAnimation
             {
-                To = isHovered ? 1.2 : 1.0,
+                To = isHovered ? 1.15 : 1.0,
                 Duration = TimeSpan.FromMilliseconds(150),
                 EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseOut }
             };
@@ -128,14 +144,8 @@ namespace InteractiveWorldMap.Views
             PinTransform.BeginAnimation(ScaleTransform.ScaleYProperty, scaleAnimation);
         }
 
-        /// <summary>
-        /// Animates the pin marker on click.
-        /// </summary>
         public void AnimateClick()
         {
-            var duration = TimeSpan.FromMilliseconds(100);
-
-            // Pulse effect: scale up briefly then back to normal
             var storyboard = new Storyboard();
 
             var scaleUpX = new DoubleAnimation
@@ -154,7 +164,7 @@ namespace InteractiveWorldMap.Views
 
             Storyboard.SetTarget(scaleUpX, PinTransform);
             Storyboard.SetTargetProperty(scaleUpX, new PropertyPath(ScaleTransform.ScaleXProperty));
-            
+
             Storyboard.SetTarget(scaleUpY, PinTransform);
             Storyboard.SetTargetProperty(scaleUpY, new PropertyPath(ScaleTransform.ScaleYProperty));
 
@@ -163,24 +173,57 @@ namespace InteractiveWorldMap.Views
             storyboard.Begin();
         }
 
-        /// <summary>
-        /// Gets the connection point for extension lines (center of pin ball).
-        /// </summary>
         public Point GetConnectionPoint()
         {
             return new Point(Width / 2, PinBall.Height / 2);
         }
 
-        /// <summary>
-        /// Checks if a point is within the pin marker bounds.
-        /// </summary>
         public bool ContainsPoint(Point point)
         {
-            // Check if point is within the pin ball (circular hit test)
             var ballCenter = new Point(Width / 2, PinBall.Height / 2);
             var ballRadius = PinBall.Width / 2;
             var distance = Math.Sqrt(Math.Pow(point.X - ballCenter.X, 2) + Math.Pow(point.Y - ballCenter.Y, 2));
             return distance <= ballRadius;
+        }
+
+        private static void OnPinColorChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is PinMarker pin && e.NewValue is Color color)
+                pin.ApplyBallFill(color);
+        }
+
+        private void ApplyBallFill(Color color)
+        {
+            PinBall.Fill = new RadialGradientBrush
+            {
+                GradientOrigin = new Point(0.35, 0.35),
+                Center = new Point(0.35, 0.35),
+                RadiusX = 0.85,
+                RadiusY = 0.85,
+                GradientStops = new GradientStopCollection
+                {
+                    new GradientStop(Colors.White, 0.0),
+                    new GradientStop(Lighten(color, 1.15), 0.35),
+                    new GradientStop(color, 1.0)
+                }
+            };
+        }
+
+        private static bool TryParseColor(string? value, out Color color)
+        {
+            color = default;
+            return !string.IsNullOrWhiteSpace(value) &&
+                   ColorConverter.ConvertFromString(value) is Color parsed &&
+                   (color = parsed).A > 0;
+        }
+
+        private static Color Lighten(Color color, double factor)
+        {
+            factor = Math.Max(factor, 1.0);
+            return Color.FromRgb(
+                (byte)Math.Min(255, color.R * factor),
+                (byte)Math.Min(255, color.G * factor),
+                (byte)Math.Min(255, color.B * factor));
         }
     }
 }

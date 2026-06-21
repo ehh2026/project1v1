@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 12, 2026
+**Last updated:** June 20, 2026
 
 ---
 
@@ -17,7 +17,8 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [x] Composite pins on all individual markers — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phases 1–4 (non-edit and edit mode; unzoomed individuals yes, unzoomed cluster aggregates no)
 - [x] Composite edit mode verification — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 4 (zoomed cluster; composite drag path also wired for stubs)
 - [x] Manual layout edit on fully zoomed-out map — visible single-location stub pins only; group key `fullmap_sWxH` + variants; no zoom while editing — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 6 (core smoke accepted 2026-06-12)
-- [ ] Composite pins persist during zoom — visible single-location stubs should look the same zoomed/unzoomed (same composite renderer, screen-space stub length/direction, and tip anchoring; only viewport-projected position changes), with no drawn-pin flash when composite is enabled — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) Phase 7
+- [x] Composite pins persist during zoom — Phase 7 manual smoke #1–7 passed 2026-06-20 (#8 composite-off regression still open) — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md)
+- [ ] Explore post-render smooth black outline on composite pins (runtime, after shaft+head compose) — assess vs baked `outline_dark_*` asset variants; see feasibility notes in [composite-pins-program.md](exec-plans/active/composite-pins-program.md) or new exec plan if pursued
 - [x] Composite shaft visibility / contrast — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md) (`outline_dark_7px` default)
 - [x] Generate 7px outline variants from lit pin shaft parts images (`Images&Content/Pins_v2/parts/shaft_variants/outline_dark_7px/`)
 - [ ] Allow setting/changing pin heads as well as shafts; persist head choice in manual layout save
@@ -68,7 +69,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Recently done
 
-- Composite shaft visibility — baked `outline_dark_7px` variant generated, enabled as default in `visual-config.json`; plan complete 2026-06-11 — [composite-pin-shaft-visibility-plan.md](exec-plans/completed/composite-pin-shaft-visibility-plan.md)
+- Composite pins Phase 7 manual smoke #1–7 passed (full-map composites, pan/resize, single zoom invariance, multi-location cluster, edit save round-trip) — 2026-06-20 — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md)
 - Composite edit mode (Phase 4) — composite pins draggable in edit mode at all zoom levels; `CompositePinEditModeTests` added 2026-06-11 — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md)
 - Pin rendering polish — anti-aliasing, gated pre-rasterization, and depth sorting; plan moved 2026-06-10 — [pin-rendering-improvements-plan.md](exec-plans/completed/pin-rendering-improvements-plan.md)
 - Composite pin unzoomed Phase 0 — Option A stub segment (`DefaultStubLengthPixels = 24`, screen-up); unzoomed individual markers in scope; unzoomed cluster aggregates excluded — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md) (2026-06-09)

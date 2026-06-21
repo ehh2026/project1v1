@@ -33,6 +33,13 @@ namespace InteractiveWorldMap.Views
         /// <summary>Creates and tracks a line for the given marker.</summary>
         void AddLine(LocationMarker marker, Point start, Point end);
 
+        /// <summary>
+        /// Positions an extended marker so its head sits on the extension endpoint.
+        /// For drawn pins this also hides the pin's own shaft, so the extension line is the
+        /// only shaft (no duplicate, off-axis shaft on top of the head).
+        /// </summary>
+        void AnchorExtendedMarker(LocationMarker marker, Point extendedScreenPos);
+
         /// <summary>Replaces the tracked line for a marker with a new one ending at <paramref name="newEndpoint"/>.</summary>
         void MoveLineEndpoint(LocationMarker marker, Point newEndpoint);
 

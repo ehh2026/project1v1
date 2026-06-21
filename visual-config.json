@@ -15,7 +15,7 @@
     "MaxResidualRotationDeg": 20.0,
     "MinStretchFactor": 0.75,
     "MaxStretchFactor": 1.35,
-    "UseCompositeRendering": true,
+    "UseCompositeRendering": false,
     "UsePrerasterizedRendering": true,
     "UseLitShafts": true,
     "ShaftAssetVariant": "outline_dark_10px_in8px_bright",
@@ -25,14 +25,18 @@
   },
 
   "PinMarkers": {
-    "BallSize": 8.0,
-    "ShaftWidth": 1.5,
-    "ShaftLength": 20.0,
-    "ShaftColor": "#FFB0B0B0",
+    "BallSize": 14.0,
+    "ShaftWidth": 3.0,
+    "ShaftLength": 24.0,
+    "ShaftColor": "#FFD8D8D8",
+    "ShaftOutlineColor": "#FF1A1A1A",
+    "ShaftOutlineThickness": 1.25,
+    "BallOutlineColor": "#FF000000",
+    "BallOutlineThickness": 1.5,
     "UseRandomColors": true,
     "DefaultBallColor": "#FFE53935",
     "ShowShadow": true,
-    "ShadowOpacity": 0.4,
+    "ShadowOpacity": 0.55,
     "EnableManualEditing": true
   },
   
