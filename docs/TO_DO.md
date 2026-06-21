@@ -49,10 +49,13 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Welcome / instructions screen
 - [ ] Content ordering; bio popup per marker
 - [ ] Don't animate extension lines until fully zoomed in
+- [ ] Pins track map continuously during zoom in/out — update marker positions every animation frame so pins stay anchored to their map coordinates instead of holding screen-space positions until zoom settles
+- [ ] Consider intermediate zoom levels and free panning — explore discrete zoom steps between full map and cluster zoom, plus drag-to-pan on the map canvas (today: cluster click zoom + back only)
 - [ ] Better logging filters; smoother zoom
 
 ## High priority
 
+- [ ] Separate drawn pin model into head-only, auto-stub, and manual-layout pin components so edited pins do not rely on hiding a built-in vertical shaft
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 

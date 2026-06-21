@@ -497,6 +497,12 @@ namespace InteractiveWorldMap
                 if (marker == null)
                     continue;
 
+                // During zoom/pan animation, leave extended (edited) markers on their last
+                // applied geometry. Resetting them here would flash a vertical stub at the
+                // base location until the manual layout replays at settle.
+                if (IsAnimating && _extensionLineRenderer.HasLine(marker))
+                    continue;
+
                 // Non-extended drawn pins keep their own shaft; the extended path
                 // (ExtensionLineRenderer) hides it, so restore it here.
                 if (marker.Content is PinMarker drawnPin)

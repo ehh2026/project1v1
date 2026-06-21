@@ -267,6 +267,8 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
 
+                var animationLayout = TryLoadFullMapManualLayoutForAnimation();
+
                 _extensionLineRenderer.Clear();
                 _logger.LogInfo("  Cleared radial extension lines");
 
@@ -298,28 +300,60 @@ namespace InteractiveWorldMap
 
                 _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
-                AnimateViewportTransition(startViewport, targetViewport, "Zoom-out animation", () =>
-                {
-                    _currentZoomedCluster = null;
-                    ClearFullMapLayoutSession();
-                    ShowClusterView();
-
-                    if (!_navigationService.CanGoBack)
+                AnimateViewportTransition(
+                    startViewport,
+                    targetViewport,
+                    "Zoom-out animation",
+                    () =>
                     {
-                        _logger.LogInfo("  Hiding Back button (at root level)");
-                        BackButton.Visibility = Visibility.Collapsed;
-                    }
+                        _currentZoomedCluster = null;
+                        ClearFullMapLayoutSession();
+                        ShowClusterView();
 
-                    _overrideStore.ClearAll();
-                    EditModePanel.Visibility = Visibility.Collapsed;
-                    OverridePendingIndicator.Visibility = Visibility.Collapsed;
-                    UpdateEditLayoutButtonVisibility();
-                });
+                        if (!_navigationService.CanGoBack)
+                        {
+                            _logger.LogInfo("  Hiding Back button (at root level)");
+                            BackButton.Visibility = Visibility.Collapsed;
+                        }
+
+                        _overrideStore.ClearAll();
+                        EditModePanel.Visibility = Visibility.Collapsed;
+                        OverridePendingIndicator.Visibility = Visibility.Collapsed;
+                        UpdateEditLayoutButtonVisibility();
+                    },
+                    () => ApplyManualLayoutDuringAnimation(animationLayout));
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error zooming out: {ex.Message}\n{ex.StackTrace}");
             }
+        }
+
+        private ManualLayout? TryLoadFullMapManualLayoutForAnimation()
+        {
+            if (CanUseCompositePins())
+                return null;
+
+            var key = GenerateCurrentFullMapGroupKey();
+            _layoutEditor.SetLayoutKey(key);
+
+            var layout = _layoutEditor.TryLoad(key);
+            if (layout != null)
+                _logger.LogInfo($"  Loaded full-map manual layout for zoom-out animation: {key}");
+
+            return layout;
+        }
+
+        private void ApplyManualLayoutDuringAnimation(ManualLayout? layout)
+        {
+            if (layout == null)
+                return;
+
+            _layoutEditor.SetLayoutKey(string.IsNullOrWhiteSpace(layout.GroupKey)
+                ? GenerateCurrentFullMapGroupKey()
+                : layout.GroupKey);
+            ApplyManualLayout(layout);
+            _layoutEditor.SetManualLayoutActive(true);
         }
 
         /// <summary>
@@ -332,7 +366,8 @@ namespace InteractiveWorldMap
             ViewportState startViewport,
             ViewportState targetViewport,
             string animationLabel,
-            Action onAnimationComplete)
+            Action onAnimationComplete,
+            Action? onFrameUpdated = null)
         {
             const int keyframeCount = 30;
             var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
@@ -341,6 +376,7 @@ namespace InteractiveWorldMap
             MapDisplay.DisplayImage.Source = prerenderedFrames[0];
             MapDisplay.SetCurrentViewport(startViewport);
             UpdateMarkerPositions();
+            onFrameUpdated?.Invoke();
 
             var animStart = DateTime.Now;
             var frameCount = 0;
@@ -371,6 +407,7 @@ namespace InteractiveWorldMap
                 var currentViewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[frameIndex]);
                 MapDisplay.SetCurrentViewport(currentViewport);
                 UpdateMarkerPositions();
+                onFrameUpdated?.Invoke();
 
                 if (frameCount <= 3 || frameCount % 3 == 0)
                 {
@@ -388,6 +425,7 @@ namespace InteractiveWorldMap
 
                     MapDisplay.UpdateViewport(targetViewport);
                     UpdateMarkerPositions();
+                    onFrameUpdated?.Invoke();
 
                     onAnimationComplete();
                 }

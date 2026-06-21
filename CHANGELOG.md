@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Drawn manual-layout pin zoom-out persistence:** Zoom-out animation now replays the loaded full-map manual layout after each animated marker-position update, preventing edited standalone drawn pins from temporarily reverting to auto stub pins before the full-map settle replay.
+
 - **Drawn pin fallback visibility:** `PinMarker` now sizes ball and shaft from `PinMarkers` config (was scaling down via `LocationMarkerSize` and ignoring config). Extension lines use a thicker resting stroke and hover restores the configured style instead of only becoming visible on hover.
 
 - **Drawn pin high-contrast styling:** Stub shafts use a dark outline halo behind a light silver core; pin heads get a configurable black rim; random ball colors exclude low-contrast white/gray/black; extension lines render as outline+core pairs. Tunable via `PinMarkers.ShaftOutlineColor`, `BallOutlineColor`, and related fields in `visual-config.json`.
@@ -21,6 +23,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Nullable warnings (CS8602):** Guard nullable XML nodes in `ExcelCoordinateReader` and nullable `Cluster` on visible cluster markers in `MainWindow.xaml.cs`.
 
 ### Changed
+
+- **TO_DO:** Added a high-priority item to split the drawn pin model into head-only, auto-stub, and manual-layout components instead of relying on shaft hiding.
+
+- **Pin terminology:** Added agent-facing definitions for dense-cluster locations, standalone locations, auto stub pins, and manual-layout pins in `AGENTS.md`.
 
 - **TO_DO:** Phase 7 manual smoke #1–7 passed (2026-06-20); #8 composite-off regression still open. Added backlog item to explore post-render smooth black outline on composite pins.
 

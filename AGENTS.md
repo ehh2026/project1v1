@@ -96,6 +96,15 @@ Full loop: [docs/agent-workflows.md](docs/agent-workflows.md)
 - Exec plans that touch large files, composition roots, or shared workflows must include modularity/file-size impact: expected file growth, ownership boundaries, extraction points, and tests
 - Scripts for test runners go in `scripts/`; test projects in `Tests/`
 
+## Pin/Location Terminology
+
+Use these terms consistently in docs, plans, tests, and code comments:
+
+- **Dense-cluster location**: A location that belongs to a dense cluster. On the unzoomed full map it is represented by the cluster aggregate marker, so it does not render as its own pin until the user zooms into that cluster.
+- **Standalone location**: A location that does not belong to a dense cluster. It renders as an individual pin on the unzoomed full map and keeps the same individual-pin behavior when zoomed.
+- **Auto stub pin**: A standalone location pin that has not been edited in Edit Layout mode. It uses the automatic short stub shape: a pin head plus a short, vertical shaft using the configured default stub length.
+- **Manual-layout pin**: A standalone location pin whose endpoint was edited in Edit Layout mode. Its saved layout controls the pin's shaft angle and length instead of the automatic vertical stub.
+
 ## When You Finish
 
 - [ ] `scripts/verify` passes

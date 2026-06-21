@@ -335,20 +335,34 @@ namespace InteractiveWorldMap.Views
 
         private void ApplyHoverHighlight(Line line, bool hovered, bool isOutline = false)
         {
+            var resting = GetLineStyle(line);
+
             if (hovered)
             {
-                var style = GetLineStyle(line);
-                line.StrokeThickness = Math.Max(style.StrokeThickness + (isOutline ? 1.0 : 1.5), isOutline ? 5.0 : 4.0);
+                // Brighten and thicken slightly so the shaft reads as a metallic highlight
+                // (the dark outline keeps its color, just grows with the core).
+                line.StrokeThickness = resting.StrokeThickness + 1.0;
                 if (!isOutline)
-                    line.Stroke = new SolidColorBrush(Color.FromRgb(255, 100, 100));
+                    line.Stroke = new SolidColorBrush(Brighten(GetBrushColor(resting.Stroke, Colors.Gainsboro), 0.3));
                 Panel.SetZIndex(line, 1999);
                 return;
             }
 
-            var resting = GetLineStyle(line);
             line.StrokeThickness = resting.StrokeThickness;
             line.Stroke          = resting.Stroke;
             Panel.SetZIndex(line, resting.ZIndex);
+        }
+
+        private static Color GetBrushColor(Brush brush, Color fallback) =>
+            brush is SolidColorBrush solid ? solid.Color : fallback;
+
+        private static Color Brighten(Color c, double amount)
+        {
+            amount = Math.Clamp(amount, 0.0, 1.0);
+            return Color.FromRgb(
+                (byte)(c.R + (255 - c.R) * amount),
+                (byte)(c.G + (255 - c.G) * amount),
+                (byte)(c.B + (255 - c.B) * amount));
         }
 
         // -------------------------------------------------------------------------
