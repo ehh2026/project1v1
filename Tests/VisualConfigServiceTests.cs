@@ -92,6 +92,46 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Load_DebugEnableTuningPanel_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""Debug"": { ""EnableTuningPanel"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.True(config.Debug.EnableTuningPanel);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_DebugEnableTuningPanel_UsesDefaultWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""Debug"": { ""ShowCompositePinDebugOverlay"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.False(config.Debug.EnableTuningPanel);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void EnsureConfigExists_CreatesFileIfMissing()
     {
         var tempDir = CreateTempDir();

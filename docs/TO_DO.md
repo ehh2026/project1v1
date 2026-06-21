@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 20, 2026
+**Last updated:** June 21, 2026
 
 ---
 
@@ -42,7 +42,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Developer tooling
 
-- [ ] Runtime tuning panel (gated by `Debug` or developer flag in `visual-config.json`) — [runtime-tuning-panel-plan.md](exec-plans/active/runtime-tuning-panel-plan.md) — add a button (e.g. top-left or bottom-right) that opens an in-app panel to switch composite vs drawn pins, tweak numeric settings (marker/shaft/stub sizes, cluster threshold, etc.), and pick composite asset variants (`ShaftAssetVariant`, head variant, prerasterize toggle, debug overlay) without hand-editing JSON and restarting
+- [x] Runtime tuning panel — [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md) adds a debug-gated in-app panel for composite/drawn toggles, marker/stub/cluster sizing, asset variants, prerasterize, debug overlay, save, and reload.
 
 ## User ideas (product)
 
@@ -77,6 +77,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Recently done
 
+- Runtime tuning panel implemented — 2026-06-21 — [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md)
 - Composite pins Phase 7 manual smoke #1–7 passed (full-map composites, pan/resize, single zoom invariance, multi-location cluster, edit save round-trip) — 2026-06-20 — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md)
 - Composite edit mode (Phase 4) — composite pins draggable in edit mode at all zoom levels; `CompositePinEditModeTests` added 2026-06-11 — [composite-pins-unzoomed-plan.md](exec-plans/active/composite-pins-unzoomed-plan.md)
 - Pin rendering polish — anti-aliasing, gated pre-rasterization, and depth sorting; plan moved 2026-06-10 — [pin-rendering-improvements-plan.md](exec-plans/completed/pin-rendering-improvements-plan.md)

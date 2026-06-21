@@ -95,6 +95,36 @@ public class ContentLoaderTests
     }
 
     [Fact]
+    public async Task LoadClustersAsync_UsesCurrentClusterDistanceThreshold()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(tempDir, "locations.json"),
+                "[" +
+                "{\"Id\":\"a1\",\"Name\":\"Alpha\",\"PixelX\":100,\"PixelY\":100}," +
+                "{\"Id\":\"b1\",\"Name\":\"Beta\",\"PixelX\":140,\"PixelY\":100}" +
+                "]");
+
+            var closeThresholdLoader = CreateLoaderForJsonTests(tempDir);
+            closeThresholdLoader.ClusterDistanceThreshold = 50.0;
+            var closeThresholdClusters = await closeThresholdLoader.LoadClustersAsync();
+
+            var smallThresholdLoader = CreateLoaderForJsonTests(tempDir);
+            smallThresholdLoader.ClusterDistanceThreshold = 10.0;
+            var smallThresholdClusters = await smallThresholdLoader.LoadClustersAsync();
+
+            Assert.Single(closeThresholdClusters);
+            Assert.Equal(2, smallThresholdClusters.Count);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task LoadLocationsAsync_InvalidJson_ThrowsInvalidOperationException()
     {
         var tempDir = CreateContentFolderWithMap();

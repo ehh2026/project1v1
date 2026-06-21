@@ -1,0 +1,125 @@
+<UserControl x:Class="InteractiveWorldMap.Views.DeveloperTuningPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             MinWidth="300"
+             MaxWidth="360">
+    <Border Background="#EE111111"
+            BorderBrush="#AAFFFFFF"
+            BorderThickness="1"
+            CornerRadius="6"
+            Padding="12">
+        <ScrollViewer MaxHeight="620"
+                      VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <TextBlock Text="Runtime Tuning"
+                           Foreground="White"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Margin="0,0,0,8"/>
+
+                <UniformGrid Columns="2"
+                             Margin="0,0,0,8">
+                    <CheckBox x:Name="ChkPinPartsEnabled"
+                              Content="Pin parts"
+                              Foreground="White"
+                              Margin="0,2"/>
+                    <CheckBox x:Name="ChkComposite"
+                              Content="Composite"
+                              Foreground="White"
+                              Margin="0,2"/>
+                    <CheckBox x:Name="ChkPrerasterize"
+                              Content="Prerasterize"
+                              Foreground="White"
+                              Margin="0,2"/>
+                    <CheckBox x:Name="ChkDebugOverlay"
+                              Content="Debug overlay"
+                              Foreground="White"
+                              Margin="0,2"/>
+                    <CheckBox x:Name="ChkUseLitShafts"
+                              Content="Lit shafts"
+                              Foreground="White"
+                              Margin="0,2"/>
+                </UniformGrid>
+
+                <TextBlock Text="Variants"
+                           Foreground="#CCCCCC"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Margin="0,4,0,2"/>
+                <TextBlock Text="Shaft"
+                           Foreground="#AAAAAA"
+                           FontSize="10"/>
+                <TextBox x:Name="TxtShaftVariant"
+                         Margin="0,1,0,5"
+                         TextChanged="OnInputChanged"/>
+                <TextBlock Text="Head"
+                           Foreground="#AAAAAA"
+                           FontSize="10"/>
+                <TextBox x:Name="TxtHeadVariant"
+                         Margin="0,1,0,8"
+                         TextChanged="OnInputChanged"/>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="92"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Cluster threshold" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnInputChanged"/>
+
+                    <TextBlock Grid.Row="1" Text="Stub length" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtStubLength" Grid.Row="1" Grid.Column="1" TextChanged="OnInputChanged"/>
+
+                    <TextBlock Grid.Row="2" Text="Head radius" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnInputChanged"/>
+
+                    <TextBlock Grid.Row="3" Text="Shaft half width" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="3" Grid.Column="1" TextChanged="OnInputChanged"/>
+
+                    <TextBlock Grid.Row="4" Text="Location marker" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="4" Grid.Column="1" TextChanged="OnInputChanged"/>
+
+                    <TextBlock Grid.Row="5" Text="Cluster marker" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="5" Grid.Column="1" TextChanged="OnInputChanged"/>
+                </Grid>
+
+                <TextBlock x:Name="StatusText"
+                           Foreground="#FFFFCC66"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Margin="0,8,0,0"/>
+                <TextBlock x:Name="ErrorText"
+                           Foreground="#FFFF8080"
+                           TextWrapping="Wrap"
+                           FontSize="11"
+                           Margin="0,4,0,0"/>
+
+                <StackPanel Orientation="Horizontal"
+                            HorizontalAlignment="Right"
+                            Margin="0,10,0,0">
+                    <Button Content="Reload"
+                            Padding="10,5"
+                            Margin="0,0,6,0"
+                            Click="OnReloadClick"/>
+                    <Button Content="Save"
+                            Padding="10,5"
+                            Margin="0,0,6,0"
+                            Click="OnSaveClick"/>
+                    <Button x:Name="ApplyButton"
+                            Content="Apply"
+                            Padding="10,5"
+                            Click="OnApplyClick"/>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Border>
+</UserControl>

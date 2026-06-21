@@ -36,6 +36,11 @@ namespace InteractiveWorldMap.Models
         public bool ShowCompositePinDebugOverlay { get; set; } = false;
 
         /// <summary>
+        /// Shows the developer-only runtime tuning panel and F12 toggle.
+        /// </summary>
+        public bool EnableTuningPanel { get; set; } = false;
+
+        /// <summary>
         /// Launch in a normal resizable window instead of borderless maximized kiosk mode.
         /// Useful for debugging at a known viewport size.
         /// </summary>

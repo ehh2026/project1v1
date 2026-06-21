@@ -63,6 +63,8 @@ namespace InteractiveWorldMap
         
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
+        private readonly VisualConfigService _configService = new VisualConfigService();
+        private readonly string _configPath;
         
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
         private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
@@ -123,10 +125,9 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
                 // Load visual configuration
-                var configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
-                var visualConfigService = new VisualConfigService();
-                _visualConfig = visualConfigService.Load(configPath);
-                _logger.LogInfo($"Visual config loaded from: {configPath}");
+                _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
+                _visualConfig = _configService.Load(_configPath);
+                _logger.LogInfo($"Visual config loaded from: {_configPath}");
 
                 if (_visualConfig.Debug.WindowedMode)
                 {
@@ -216,6 +217,8 @@ namespace InteractiveWorldMap
                 
                 SizeChanged += OnSizeChanged;
                 _logger.LogInfo("SizeChanged event wired");
+
+                SetupTuningPanel();
                 
                 _logger.LogInfo("=== MainWindow Constructor Completed ===");
             }
@@ -711,6 +714,11 @@ namespace InteractiveWorldMap
                     OnSaveLayoutButtonClick(this, new RoutedEventArgs());
                     e.Handled = true;
                 }
+            }
+            else if (e.Key == Key.F12 && _visualConfig.Debug.EnableTuningPanel)
+            {
+                OnTuningPanelToggleClick(this, new RoutedEventArgs());
+                e.Handled = true;
             }
         }
 

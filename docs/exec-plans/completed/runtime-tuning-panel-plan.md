@@ -1,10 +1,20 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-21
+completed: 2026-06-21
 ---
 
 # Runtime Tuning Panel Plan
+
+## Completion Summary
+Implemented 2026-06-21.
+
+- Added `Views/DeveloperTuningPanel.xaml` with validation, apply/save/reload events, and invariant-culture numeric parsing.
+- Added `Debug.EnableTuningPanel`, `Models/TuningPanelEventArgs`, and local `visual-config.json` opt-in while preserving model default `false`.
+- Added `MainWindow.DeveloperTuning.partial.cs` for runtime apply/save/reload, reference-stable `_visualConfig` mutation, cache clearing, full marker recreation, and edit/animation guards.
+- Added `HeadAssetVariant` to `CompositePinLayoutContentHasher.ComputeConfigHash`.
+- Added focused tests for config defaults, hash behavior, threshold-sensitive clustering, view dependency boundaries, and recluster ordering.
 
 ## Objective
 Add an in-app developer tuning panel (`Views/DeveloperTuningPanel.xaml`) to adjust visual and layout configuration parameters on the fly. This prevents hand-editing `visual-config.json` and restarting the application while tuning marker aesthetics or debugging composite pin logic.

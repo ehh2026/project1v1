@@ -24,7 +24,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
-- **Runtime tuning panel plan:** Registered and tightened [runtime-tuning-panel-plan.md](docs/exec-plans/active/runtime-tuning-panel-plan.md) with current-code constraints, completed preparation research, file-size baselines, cache-hash findings, and safer apply/recreate rules before implementation.
+- **Runtime tuning panel:** Added a debug-gated in-app developer panel for live visual-config tuning, including composite pin toggles, shaft/head variants, marker sizes, cluster threshold, prerasterization, debug overlay, save, and reload. The local `visual-config.json` enables it while the model default remains off. Plan completed: [runtime-tuning-panel-plan.md](docs/exec-plans/completed/runtime-tuning-panel-plan.md).
 
 - **Drawn pin model separation plan:** Added [drawn-pin-model-separation-plan.md](docs/exec-plans/active/drawn-pin-model-separation-plan.md) to split drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.
 
