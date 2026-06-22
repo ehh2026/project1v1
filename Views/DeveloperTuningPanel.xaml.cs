@@ -8,6 +8,7 @@ namespace InteractiveWorldMap.Views;
 
 public partial class DeveloperTuningPanel : UserControl
 {
+    public const string BaseVariantLabel = "(base)";
     private bool _isLoading;
 
     public event EventHandler<TuningPanelEventArgs>? ApplyRequested;
@@ -18,6 +19,54 @@ public partial class DeveloperTuningPanel : UserControl
     {
         InitializeComponent();
         ValidateInputs();
+    }
+
+    public void SetVariantOptions(System.Collections.Generic.IEnumerable<string> shaftVariants, System.Collections.Generic.IEnumerable<string> headVariants)
+    {
+        _isLoading = true;
+        try
+        {
+            var shafts = new System.Collections.Generic.List<string> { BaseVariantLabel };
+            shafts.AddRange(shaftVariants);
+            CmbShaftVariant.ItemsSource = shafts;
+
+            var heads = new System.Collections.Generic.List<string> { BaseVariantLabel };
+            heads.AddRange(headVariants);
+            CmbHeadVariant.ItemsSource = heads;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void SelectVariant(ComboBox combo, string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            combo.SelectedItem = BaseVariantLabel;
+            return;
+        }
+
+        foreach (var item in combo.Items)
+        {
+            if (item is string s && string.Equals(s, value, StringComparison.OrdinalIgnoreCase))
+            {
+                combo.SelectedItem = s;
+                return;
+            }
+        }
+
+        combo.SelectedItem = BaseVariantLabel;
+    }
+
+    private string GetVariantFromCombo(ComboBox cmb)
+    {
+        if (cmb.SelectedItem is string selected && !string.Equals(selected, BaseVariantLabel, StringComparison.Ordinal))
+        {
+            return selected;
+        }
+        return string.Empty;
     }
 
     public void LoadValues(VisualConfig config)
@@ -31,8 +80,8 @@ public partial class DeveloperTuningPanel : UserControl
             ChkPrerasterize.IsChecked = config.PinParts.UsePrerasterizedRendering;
             ChkDebugOverlay.IsChecked = config.Debug.ShowCompositePinDebugOverlay;
             ChkUseLitShafts.IsChecked = config.PinParts.UseLitShafts;
-            TxtShaftVariant.Text = config.PinParts.ShaftAssetVariant;
-            TxtHeadVariant.Text = config.PinParts.HeadAssetVariant;
+            SelectVariant(CmbShaftVariant, config.PinParts.ShaftAssetVariant);
+            SelectVariant(CmbHeadVariant, config.PinParts.HeadAssetVariant);
             TxtClusterThreshold.Text = Format(config.ClusterDistanceThreshold);
             TxtStubLength.Text = Format(config.PinParts.DefaultStubLengthPixels);
             TxtTargetHeadRadius.Text = Format(config.PinParts.TargetHeadRadiusPx);
@@ -53,7 +102,13 @@ public partial class DeveloperTuningPanel : UserControl
         StatusText.Text = message;
     }
 
-    private void OnInputChanged(object sender, TextChangedEventArgs e)
+    private void OnPanelInputChanged(object sender, RoutedEventArgs e)
+    {
+        if (!_isLoading)
+            ValidateInputs();
+    }
+
+    private void OnVariantSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
         if (!_isLoading)
             ValidateInputs();
@@ -111,8 +166,8 @@ public partial class DeveloperTuningPanel : UserControl
             UsePrerasterize = ChkPrerasterize.IsChecked == true,
             ShowDebugOverlay = ChkDebugOverlay.IsChecked == true,
             UseLitShafts = ChkUseLitShafts.IsChecked == true,
-            ShaftVariant = TxtShaftVariant.Text.Trim(),
-            HeadVariant = TxtHeadVariant.Text.Trim(),
+            ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim(),
+            HeadVariant = GetVariantFromCombo(CmbHeadVariant).Trim(),
             ClusterThreshold = clusterThreshold,
             StubLength = stubLength,
             TargetHeadRadiusPx = targetHeadRadius,

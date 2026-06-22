@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Views;
 
 namespace InteractiveWorldMap
@@ -9,6 +10,7 @@ namespace InteractiveWorldMap
     public partial class MainWindow
     {
         private bool _isTuningBusy;
+        private PinPartVariantCatalog _variantCatalog = null!;
 
         private void SetupTuningPanel()
         {
@@ -17,7 +19,26 @@ namespace InteractiveWorldMap
                 : Visibility.Collapsed;
 
             DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+            _variantCatalog = new PinPartVariantCatalog(_logger);
+            RefreshTuningPanelVariantOptions(_visualConfig.PinParts.ShaftAssetVariant, _visualConfig.PinParts.HeadAssetVariant);
             DeveloperTuningPanel.LoadValues(_visualConfig);
+        }
+
+        private void RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)
+        {
+            var shafts = _variantCatalog.ListVariants(
+                _contentLoader.ContentFolderPath,
+                _visualConfig.PinParts.PartsFolderPath,
+                "shaft_variants",
+                shaftToInclude);
+
+            var heads = _variantCatalog.ListVariants(
+                _contentLoader.ContentFolderPath,
+                _visualConfig.PinParts.PartsFolderPath,
+                "head_variants",
+                headToInclude);
+
+            DeveloperTuningPanel.SetVariantOptions(shafts, heads);
         }
 
         private void OnTuningPanelToggleClick(object sender, RoutedEventArgs e)
@@ -69,6 +90,7 @@ namespace InteractiveWorldMap
             try
             {
                 var fresh = _configService.Load(_configPath);
+                RefreshTuningPanelVariantOptions(fresh.PinParts.ShaftAssetVariant, fresh.PinParts.HeadAssetVariant);
                 var args = CreateTuningArgs(fresh);
                 if (!DeveloperTuningPanel.TryValidate(args, out var error))
                 {

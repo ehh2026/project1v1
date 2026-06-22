@@ -28,6 +28,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Tuning panel dropdown pickers:** Replaced free-text variant text boxes with non-editable `ComboBox` dropdowns populated from on-disk variant folders. Added `(base)` option mapping to empty/base config. The selection is disabled when composite pins are off. Added `PinPartVariantCatalog` service for variant enumeration. Plan completed: [tuning-panel-dropdowns-plan.md](docs/exec-plans/active/tuning-panel-dropdowns-plan.md).
+
 - **Runtime tuning panel:** Added a debug-gated in-app developer panel for live visual-config tuning, including a single composite-pin toggle, shaft/head variants, marker sizes, cluster threshold, prerasterization, debug overlay, save, reload, and hover tooltips. Drawn fallback pins now use the shaft tip as the map anchor outside manual layout. The local `visual-config.json` enables the panel while the model default remains off. Plan completed: [runtime-tuning-panel-plan.md](docs/exec-plans/completed/runtime-tuning-panel-plan.md).
 
 - **Drawn pin model separation plan:** Added [drawn-pin-model-separation-plan.md](docs/exec-plans/active/drawn-pin-model-separation-plan.md) to split drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.

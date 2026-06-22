@@ -1,7 +1,8 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-22
+completed_at: 2026-06-22
 parent_plan: runtime-tuning-panel-plan.md
 review:
   - tuning-panel-dropdowns-plan-review-2026-06-22.md
@@ -245,4 +246,4 @@ Example `ItemContainerStyle` (apply to both combos):
 
 ## Completion
 
-When done: move to `docs/exec-plans/completed/`, update [README.md](README.md), check off main [TO_DO.md](../../TO_DO.md) picker bullet, ensure `CHANGELOG.md` is accurate. Leave the search/filter follow-up bullet open until that work ships.
+When done: move to `docs/exec-plans/completed/`, update [README.md](../active/README.md), check off main [TO_DO.md](../../TO_DO.md) picker bullet, ensure `CHANGELOG.md` is accurate. Leave the search/filter follow-up bullet open until that work ships.

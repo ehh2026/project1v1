@@ -3,6 +3,18 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              MinWidth="300"
              MaxWidth="360">
+    <UserControl.Resources>
+        <Style x:Key="DarkComboBoxItemStyle" TargetType="ComboBoxItem">
+            <Setter Property="Background" Value="#222222"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#444444"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
     <Border Background="#EE111111"
             BorderBrush="#AAFFFFFF"
             BorderThickness="1"
@@ -23,21 +35,25 @@
                               Content="Composite pins"
                               Foreground="White"
                               Margin="0,2"
+                              Click="OnPanelInputChanged"
                               ToolTip="Use assembled shaft/head image parts. Off shows drawn fallback pins."/>
                     <CheckBox x:Name="ChkPrerasterize"
                               Content="Prerasterize"
                               Foreground="White"
                               Margin="0,2"
+                              Click="OnPanelInputChanged"
                               ToolTip="Flatten each composite pin into one bitmap after choosing shaft/head parts."/>
                     <CheckBox x:Name="ChkDebugOverlay"
                               Content="Debug overlay"
                               Foreground="White"
                               Margin="0,2"
+                              Click="OnPanelInputChanged"
                               ToolTip="Show composite pin anchor and stretch guides for visual debugging."/>
                     <CheckBox x:Name="ChkUseLitShafts"
                               Content="Lit shafts"
                               Foreground="White"
                               Margin="0,2"
+                              Click="OnPanelInputChanged"
                               ToolTip="Prefer lit shaft assets when no shaft variant is set."/>
                 </UniformGrid>
 
@@ -49,17 +65,27 @@
                 <TextBlock Text="Shaft"
                            Foreground="#AAAAAA"
                            FontSize="10"/>
-                <TextBox x:Name="TxtShaftVariant"
-                         Margin="0,1,0,5"
-                         TextChanged="OnInputChanged"
-                         ToolTip="Folder name under Pins_v2/parts/shaft_variants. Blank uses base/lit shaft assets."/>
+                <ComboBox x:Name="CmbShaftVariant"
+                          Margin="0,1,0,5"
+                          IsEditable="False"
+                          Background="#222222"
+                          Foreground="White"
+                          IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"
+                          SelectionChanged="OnVariantSelectionChanged"
+                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                          ToolTip="Select shaft variant folder name under Pins_v2/parts/shaft_variants. (base) uses base/lit shaft assets."/>
                 <TextBlock Text="Head"
                            Foreground="#AAAAAA"
                            FontSize="10"/>
-                <TextBox x:Name="TxtHeadVariant"
-                         Margin="0,1,0,8"
-                         TextChanged="OnInputChanged"
-                         ToolTip="Folder name under Pins_v2/parts/head_variants. Blank uses base head assets."/>
+                <ComboBox x:Name="CmbHeadVariant"
+                          Margin="0,1,0,8"
+                          IsEditable="False"
+                          Background="#222222"
+                          Foreground="White"
+                          IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"
+                          SelectionChanged="OnVariantSelectionChanged"
+                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                          ToolTip="Select head variant folder name under Pins_v2/parts/head_variants. (base) uses base head assets."/>
 
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -76,27 +102,27 @@
                     </Grid.RowDefinitions>
 
                     <TextBlock Grid.Row="0" Text="Cluster threshold" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnInputChanged"
+                    <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
                              ToolTip="Pixel distance used to group nearby locations into cluster markers."/>
 
                     <TextBlock Grid.Row="1" Text="Stub length" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtStubLength" Grid.Row="1" Grid.Column="1" TextChanged="OnInputChanged"
+                    <TextBox x:Name="TxtStubLength" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
                              ToolTip="Screen-pixel length from map location to pin head for automatic standalone stubs."/>
 
                     <TextBlock Grid.Row="2" Text="Head radius" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnInputChanged"
+                    <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
                              ToolTip="Target composite head radius in screen pixels. Zero uses proportional fallback scaling."/>
 
                     <TextBlock Grid.Row="3" Text="Shaft half width" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="3" Grid.Column="1" TextChanged="OnInputChanged"
+                    <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="3" Grid.Column="1" TextChanged="OnPanelInputChanged"
                              ToolTip="Target composite shaft half-width in screen pixels. Zero uses proportional shaft scaling."/>
 
                     <TextBlock Grid.Row="4" Text="Location marker" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="4" Grid.Column="1" TextChanged="OnInputChanged"
+                    <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="4" Grid.Column="1" TextChanged="OnPanelInputChanged"
                              ToolTip="Nominal individual-marker size used for placement and overlap math."/>
 
                     <TextBlock Grid.Row="5" Text="Cluster marker" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="5" Grid.Column="1" TextChanged="OnInputChanged"
+                    <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="5" Grid.Column="1" TextChanged="OnPanelInputChanged"
                              ToolTip="Screen-pixel size of aggregate cluster markers."/>
                 </Grid>
 

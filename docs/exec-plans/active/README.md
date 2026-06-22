@@ -25,10 +25,10 @@ started: YYYY-MM-DD
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
-| [tuning-panel-dropdowns-plan.md](tuning-panel-dropdowns-plan.md) | Tuning panel shaft/head variant ComboBox pickers (follow-up to runtime tuning panel) |
 
 ## Recently completed (moved to ../completed/)
 
+- `tuning-panel-dropdowns-plan.md` — Tuning panel shaft/head variant ComboBox pickers (follow-up to runtime tuning panel) — moved 2026-06-22
 - `refactoring-plan.md` — MainWindow decomposition tracker (Phases 1–10) — moved 2026-06-08
 - `composite-pins-manual-layout-phases-plan.md` — Composite-pin manual-layout integration (Phases 1–4 done; Phase 5 delegated to `manual-layout-variants-plan.md`) — moved 2026-06-08
 - `manual-layout-variants-plan.md` — Multiple saved layout variants per cluster + edit-mode UI — moved 2026-06-08

@@ -59,8 +59,8 @@ public class TuningPanelWiringTests
             "ChkPrerasterize",
             "ChkDebugOverlay",
             "ChkUseLitShafts",
-            "TxtShaftVariant",
-            "TxtHeadVariant",
+            "CmbShaftVariant",
+            "CmbHeadVariant",
             "TxtClusterThreshold",
             "TxtStubLength",
             "TxtTargetHeadRadius",
@@ -87,5 +87,89 @@ public class TuningPanelWiringTests
 
         Assert.Contains("_visualConfig.PinParts.Enabled = e.UseComposite;", source);
         Assert.Contains("_visualConfig.PinParts.UseCompositeRendering = e.UseComposite;", source);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_CombosHaveCorrectProperties()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        Assert.Contains("x:Name=\"CmbShaftVariant\"", xaml);
+        Assert.Contains("x:Name=\"CmbHeadVariant\"", xaml);
+
+        // Shaft variant combo: IsEnabled binding and IsEditable="False"
+        var shaftIndex = xaml.IndexOf("x:Name=\"CmbShaftVariant\"", StringComparison.Ordinal);
+        var shaftEnd = xaml.IndexOf("/>", shaftIndex, StringComparison.Ordinal);
+        var shaftBlock = xaml.Substring(shaftIndex, shaftEnd - shaftIndex);
+        Assert.Contains("IsEnabled=\"{Binding IsChecked, ElementName=ChkComposite}\"", shaftBlock);
+        Assert.Contains("IsEditable=\"False\"", shaftBlock);
+
+        // Head variant combo: IsEnabled binding and IsEditable="False"
+        var headIndex = xaml.IndexOf("x:Name=\"CmbHeadVariant\"", StringComparison.Ordinal);
+        var headEnd = xaml.IndexOf("/>", headIndex, StringComparison.Ordinal);
+        var headBlock = xaml.Substring(headIndex, headEnd - headIndex);
+        Assert.Contains("IsEnabled=\"{Binding IsChecked, ElementName=ChkComposite}\"", headBlock);
+        Assert.Contains("IsEditable=\"False\"", headBlock);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_CombosHaveItemContainerStyle()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        var shaftIndex = xaml.IndexOf("x:Name=\"CmbShaftVariant\"", StringComparison.Ordinal);
+        var shaftEnd = xaml.IndexOf("</ComboBox>", shaftIndex, StringComparison.Ordinal);
+        if (shaftEnd < 0) shaftEnd = xaml.IndexOf("/>", shaftIndex, StringComparison.Ordinal);
+        var shaftBlock = xaml.Substring(shaftIndex, shaftEnd - shaftIndex);
+        Assert.Contains("ItemContainerStyle=", shaftBlock);
+
+        var headIndex = xaml.IndexOf("x:Name=\"CmbHeadVariant\"", StringComparison.Ordinal);
+        var headEnd = xaml.IndexOf("</ComboBox>", headIndex, StringComparison.Ordinal);
+        if (headEnd < 0) headEnd = xaml.IndexOf("/>", headIndex, StringComparison.Ordinal);
+        var headBlock = xaml.Substring(headIndex, headEnd - headIndex);
+        Assert.Contains("ItemContainerStyle=", headBlock);
+
+        // Also check that the resource defines the style
+        Assert.Contains("<Style x:Key=\"DarkComboBoxItemStyle\" TargetType=\"ComboBoxItem\">", xaml);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_CodeBehind_HasVariantHelpersAndNoTextBoxes()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml.cs"));
+
+        Assert.Contains("SelectVariant", source);
+        Assert.Contains("GetVariantFromCombo", source);
+        Assert.DoesNotContain("TxtShaftVariant", source);
+        Assert.DoesNotContain("TxtHeadVariant", source);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_HasLoadingGuardAndCheckboxClick()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml.cs"));
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        // SetVariantOptions has loading guard
+        Assert.Contains("SetVariantOptions", source);
+        var setVariantOptionsIndex = source.IndexOf("SetVariantOptions", StringComparison.Ordinal);
+        var block = source.Substring(setVariantOptionsIndex, Math.Min(1000, source.Length - setVariantOptionsIndex));
+        Assert.Contains("_isLoading = true;", block);
+        Assert.Contains("finally", block);
+        Assert.Contains("_isLoading = false;", block);
+
+        // ChkComposite click wiring
+        var chkIndex = xaml.IndexOf("x:Name=\"ChkComposite\"", StringComparison.Ordinal);
+        var chkEnd = xaml.IndexOf("/>", chkIndex, StringComparison.Ordinal);
+        var chkBlock = xaml.Substring(chkIndex, chkEnd - chkIndex);
+        Assert.Contains("Click=\"OnPanelInputChanged\"", chkBlock);
+    }
+
+    [Fact]
+    public void MainWindow_SetupTuningPanel_InitializesCatalog()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("_variantCatalog = new PinPartVariantCatalog(_logger);", source);
     }
 }
