@@ -21,7 +21,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Drawn pin model | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Planned | Split drawn auto-stub vs manual-layout head-only roles |
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
 | Shaft visibility | [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) | Complete | Default `outline_dark_7px` in `visual-config.json` |
-| Head visibility | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Planned | Generate 2-14px black-outline head variants and config selector |
+| Head visibility | [pinhead-black-outline-variants-plan.md](../completed/pinhead-black-outline-variants-plan.md) | Complete | Review/select default head variant |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
 | Pin appearance overrides | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Planned | Composite head picker + drawn color picker |
 | Tuning & render bug fixes | [tuning-and-pin-render-bugfixes-plan.md](../completed/tuning-and-pin-render-bugfixes-plan.md) | Complete | All H/M findings fixed 2026-06-21; plan moved to completed/ |

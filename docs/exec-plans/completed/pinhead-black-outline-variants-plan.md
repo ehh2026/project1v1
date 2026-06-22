@@ -1,17 +1,18 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-12
-last_updated: 2026-06-21
-review_note: Task 3 script skeleton completed after agent review (parse_args/main, imports, Path.Combine tests)
+completed: 2026-06-21
 parent_program: composite-pins-program.md
 parent_plan: pin-parts-composite-placement-plan.md
-parallel_plan: ../completed/runtime-tuning-panel-plan.md
+parallel_plan: runtime-tuning-panel-plan.md
 ---
 
 # Pinhead Black Outline Variants Implementation Plan
 
-> **For agentic workers:** Implement task-by-task. Steps use checkbox (`- [ ]` / `- [x]`) syntax for tracking. Start at the first incomplete task below.
+**Completed 2026-06-21.** Generated `outline_black_2px` through `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/` (91 PNGs). Added `scripts/create_head_asset_variants.py`, planning-service filename head matching, `HeadAssetVariant` in `visual-config.json` (default empty), and docs. `verify.ps1` passed (370 tests).
+
+> **Historical:** Task checklist below documents the implementation sequence.
 
 **Goal:** Generate black-outline composite pin head variants at 2, 4, 6, 8, 10, 12, and 14 px total stroke width, with each stroke split half outside and half inside the detected pinhead edge, and make the variants selectable through visual config.
 
@@ -21,18 +22,16 @@ parallel_plan: ../completed/runtime-tuning-panel-plan.md
 
 ---
 
-## Current progress (2026-06-21)
+## Current progress (2026-06-21) — COMPLETE
 
 | Task | Status | Notes |
 |------|--------|-------|
 | Task 1 — config + render-plan path | **Complete** | `HeadAssetVariant`, `ResolveHeadPath()`, render-plan + visual-config tests |
-| Task 2 — planning + cache hash | **Partial** | Config hash + test landed early via [runtime-tuning-panel-plan.md](../completed/runtime-tuning-panel-plan.md); filename-based head matching still pending |
-| Task 3 — Python generator | **Not started** | `scripts/create_head_asset_variants.py` does not exist |
-| Task 4 — generated assets | **Not started** | `Images&Content/Pins_v2/parts/head_variants/` does not exist; base `pin_XX_head.png` (12 files) and `shaft_variants/` are present |
-| Task 5 — config docs | **Not started** | `HeadAssetVariant` absent from `visual-config.json` and `docs/guides/VISUAL_CONFIG.md` |
-| Task 6 — verify + archive | **Not started** | |
-
-**Next action:** Finish Task 2 (planning-service filename matching + tests), then Task 3.
+| Task 2 — planning + cache hash | **Complete** | Filename-based head matching + planning tests; hash via runtime tuning panel |
+| Task 3 — Python generator | **Complete** | `scripts/create_head_asset_variants.py` with self-test |
+| Task 4 — generated assets | **Complete** | Seven variant folders × 13 PNGs (91 total) |
+| Task 5 — config docs | **Complete** | `visual-config.json`, `VISUAL_CONFIG.md`, `CHANGELOG.md` |
+| Task 6 — verify + archive | **Complete** | `verify.ps1` passed 2026-06-21 |
 
 ### Related work (out of scope for this plan)
 
@@ -166,7 +165,7 @@ public void BuildPlan_WhenHeadAssetVariantConfigured_UsesVariantHeadPath()
 }
 ```
 
-> **Cross-platform paths:** Build expected paths with `Path.Combine` (same as production code). Do not hardcode `\` in assertions — `Path.Combine` uses `/` on macOS/Linux and `dotnet test` runs there per [AGENTS.md](../../AGENTS.md). Existing shaft/head render-plan tests in `CompositePinRenderPlanBuilderTests.cs` still use Windows-style verbatim strings; new tests in this plan should use `Path.Combine`.
+> **Cross-platform paths:** Build expected paths with `Path.Combine` (same as production code). Do not hardcode `\` in assertions — `Path.Combine` uses `/` on macOS/Linux and `dotnet test` runs there per [AGENTS.md](../../../AGENTS.md). Existing shaft/head render-plan tests in `CompositePinRenderPlanBuilderTests.cs` still use Windows-style verbatim strings; new tests in this plan should use `Path.Combine`.
 
 ### Task 2: Keep manual layout head identity and cache hashing correct — IN PROGRESS
 
@@ -304,7 +303,7 @@ Current `ComputeConfigHash` ends with `$"{config.ShaftAssetVariant}:{config.Head
 
 - [ ] **Step 6: Update program dashboard**
 
-In [composite-pins-program.md](composite-pins-program.md), change the Head visibility row from `Planned` to `In Progress` with next action `Finish Task 2 planning tests; generate head variants (Tasks 3–4)`.
+In [composite-pins-program.md](../active/composite-pins-program.md), change the Head visibility row from `Planned` to `In Progress` with next action `Finish Task 2 planning tests; generate head variants (Tasks 3–4)`.
 
 - [ ] **Step 7: Run focused tests and confirm pass**
 
@@ -618,8 +617,8 @@ In `docs/TO_DO.md`, mark the pinhead item `[x]` with paths to generated variants
 
 1. Move this file to `docs/exec-plans/completed/pinhead-black-outline-variants-plan.md`.
 2. Add completion front-matter (`completed: YYYY-MM-DD`).
-3. Update [active/README.md](README.md) — remove active row; add completed row with verify date.
-4. Update [composite-pins-program.md](composite-pins-program.md) — Head visibility status `Complete`; next action `Review/select default head variant`.
+3. Update [active/README.md](../active/README.md) — remove active row; add completed row with verify date.
+4. Update [composite-pins-program.md](../active/composite-pins-program.md) — Head visibility status `Complete`; next action `Review/select default head variant`.
 
 - [ ] **Step 4: Commit (when requested by human)**
 

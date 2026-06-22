@@ -44,6 +44,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **Pinhead outline variants plan:** Added [pinhead-black-outline-variants-plan.md](docs/exec-plans/active/pinhead-black-outline-variants-plan.md) to generate 2-14px black-outline head variants and wire `PinParts.HeadAssetVariant` through render-plan selection.
 
+- **Pinhead outline variants:** Added generated black-outline head asset variants (`outline_black_2px` through `outline_black_14px`) under `Images&Content/Pins_v2/parts/head_variants/`, config-gated `PinParts.HeadAssetVariant` (default empty), planning-service filename matching for saved head paths, and `scripts/create_head_asset_variants.py`. Plan completed — [pinhead-black-outline-variants-plan.md](docs/exec-plans/completed/pinhead-black-outline-variants-plan.md).
+
 - **Legacy `pins.jpg` path removed:** Deleted `PinImages` config/model, `ImagePinMarker`, obsolete sprite extraction scripts, and `Images&Content/pins.jpg`; pin-style markers now use drawn `PinMarker` fallback or part-based `CompositePinMarker` rendering only.
 - **Composite fallback regression:** Added coverage that missing composite assets keep the drawn-pin fallback policy and do not reference the removed legacy image path.
 

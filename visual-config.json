@@ -19,6 +19,7 @@
     "UsePrerasterizedRendering": true,
     "UseLitShafts": true,
     "ShaftAssetVariant": "outline_dark_10px_in8px_bright",
+    "HeadAssetVariant": "",
     "TargetHeadRadiusPx": 8.0,
     "TargetShaftHalfWidthPx": 1.75,
     "DefaultStubLengthPixels": 24.0

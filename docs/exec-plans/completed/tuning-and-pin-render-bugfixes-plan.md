@@ -10,7 +10,7 @@ parent_program: composite-pins-program.md
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix the bugs and robustness gaps found in the 2026-06-21 code review of the runtime tuning panel and pin rendering (drawn + composite). Source of findings: [`../../../code-review-2026-06-21T19-48-42.md`](../../../code-review-2026-06-21T19-48-42.md).
+**Goal:** Fix the bugs and robustness gaps found in the 2026-06-21 code review of the runtime tuning panel and pin rendering (drawn + composite). Source of findings: code review session 2026-06-21 (see git history / plan task checklist below).
 
 **Architecture:** All fixes are localized to existing `MainWindow.*.partial.cs` orchestration, the `ExtensionLineRenderer`, and the `CompositePinPlacementPolicy`/`PinPartPlacementCalculator` services. No new view controls and no manual-layout JSON schema changes. The drawn-pin drag fix (H14) deliberately stops short of the larger control split tracked by [`drawn-pin-model-separation-plan.md`](../active/drawn-pin-model-separation-plan.md) — it makes the *current* drawn drag behave correctly without introducing new controls, and notes the overlap so the two plans don't collide.
 

@@ -62,6 +62,7 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 | New multi-step task | New plan in `exec-plans/active/` with YAML front-matter + row in [active/README.md](exec-plans/active/README.md) + one line in `TO_DO.md` |
 | Composite-pin / manual-layout task | Also update [composite-pins-program.md](exec-plans/active/composite-pins-program.md) dashboard |
 | Phase or plan completes | Check off child plan; update program dashboard if applicable; move finished plan to `exec-plans/completed/` |
+| TO_DO item completed | Remove the `[x]` line from `TO_DO.md` (don't leave checked-off items); record the work in `CHANGELOG.md` under `[Unreleased]` — CHANGELOG is the canonical record of done work |
 | Investigation concludes | Put conclusion at top of file in `assessments/`; stop tracking in `TO_DO.md` |
 | Behavior stabilizes | Merge durable knowledge into `guides/`; archive or complete the plan |
 

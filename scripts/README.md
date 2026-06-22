@@ -11,7 +11,7 @@ Python and PowerShell tooling for verification, CI harness checks, and optional 
 
 **Harness scripts** (`verify_*.py`, `doc_gardening.py`) use the **stdlib only**. On Windows, run them with `py -3`; `verify.ps1` also prefers `py -3` before bare `python` so pyenv shims without a selected version do not break the harness. On macOS/Linux, use `python3`. No venv is required for harness scripts.
 
-**Composite-pin asset tooling** (`split_pin_parts.py`, `create_shaft_asset_variants.py`) requires the venv:
+**Composite-pin asset tooling** (`split_pin_parts.py`, `create_shaft_asset_variants.py`, `create_head_asset_variants.py`) requires the venv:
 
 ```powershell
 py -3 -m venv scripts\venv
@@ -34,6 +34,7 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
+| `create_head_asset_variants.py` | Manual | venv | Generate black-outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |
 
 ## Related docs
 
