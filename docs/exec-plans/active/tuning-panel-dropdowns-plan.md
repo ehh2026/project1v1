@@ -3,7 +3,9 @@ status: active
 owner: agent
 started: 2026-06-22
 parent_plan: runtime-tuning-panel-plan.md
-review: tuning-panel-dropdowns-plan-review-2026-06-22.md
+review:
+  - tuning-panel-dropdowns-plan-review-2026-06-22.md
+  - assessment-2026-06-22-14-59-04.md
 ---
 
 # Developer Tuning Panel Dropdowns Plan
@@ -23,18 +25,22 @@ The runtime tuning panel already reads/writes `PinParts.ShaftAssetVariant` and `
 | Topic | Decision |
 |-------|----------|
 | Base / empty option | First list item is display label `"(base)"`; maps to `string.Empty` in `TuningPanelEventArgs` and config |
+| Folder named `(base)` on disk | **Do not create** — reserved UI label; a real folder with that name would map to empty config (document in catalog/plan comments only) |
 | Editable ComboBox | `IsEditable="False"` — strict pick-list only |
-| Config value missing on disk | Include the configured variant name in the list when loading values if it is not found by the catalog scan (preserves reload/display for stale or custom folders) |
+| Config value missing on disk | Include via `ensureIncluded` even when the variants directory is missing or unreadable |
+| Case-insensitive matching | Catalog dedupes `ensureIncluded` with `StringComparer.OrdinalIgnoreCase`; `LoadValues` selects via case-insensitive `SelectVariant` helper (WPF `SelectedItem` match is case-sensitive) |
 | Enumeration location | New `Services/PinPartVariantCatalog.cs` — no `Directory.*` or `Images&Content` literals in `Views/` |
 | Catalog API shape | Single `ListVariants(contentFolderPath, partsFolderPath, subfolderName, ensureIncluded)` — pass `"shaft_variants"` or `"head_variants"` from MainWindow |
-| Catalog logging | Inject `ILogger`; log a warning when the variants directory is missing or inaccessible (return empty list, do not throw) |
+| Catalog logging | Inject `ILogger`; log a warning when the variants directory is missing or `GetDirectories` fails; never throw |
 | Directory scan | `Directory.GetDirectories` only — immediate subdirectory names; never include stray files at the variants root |
-| When to refresh lists | At `SetupTuningPanel()` and again before `LoadValues` on reload-from-disk (folders may change between sessions) |
+| Catalog init | `PinPartVariantCatalog` constructed inside `SetupTuningPanel()` (after `_logger` exists); field `private PinPartVariantCatalog _variantCatalog = null!;` — no `MainWindow.xaml.cs` constructor edits |
+| When to refresh lists | At `SetupTuningPanel()` and again before `LoadValues` on reload-from-disk |
 | Sort order | Alphabetical, case-insensitive, with `"(base)"` always first (prepended in the View, not by the catalog) |
-| Large shaft list UX | Plain `ComboBox` for v1; search/grouping deferred unless manual review says otherwise |
-| ComboBox dark theme | Add inline XAML styles so selected item and dropdown list are readable on the `#EE111111` panel (dark background, light foreground) |
-| ItemsSource reset guard | Wrap `SetVariantOptions` body in `_isLoading = true` / `finally false` so `SelectionChanged` does not run validation mid-rebind |
-| Checkbox validation | Wire `ChkComposite` `Click` (and other checkboxes if convenient) to the shared input-changed handler so toggling composite re-validates Apply |
+| Large shaft list UX | Plain `ComboBox` for v1; search/filter deferred — [TO_DO.md](../../TO_DO.md) follow-up bullet |
+| ComboBox dark theme | Style **both** the closed control and `ComboBox.ItemContainerStyle` (dropdown popup inherits parent `Foreground` but system white background → invisible text if only the parent is styled) |
+| ItemsSource reset guard | Wrap `SetVariantOptions` body in `_isLoading = true` / `finally false` |
+| Checkbox validation | Wire `ChkComposite` `Click` (and other checkboxes) to shared `OnPanelInputChanged` |
+| Variant read helper | `GetVariantFromCombo(ComboBox)` returns `string` (no `Try*` / `out` — selection cannot fail) |
 
 ## Architecture constraints
 
@@ -47,22 +53,22 @@ Must respect existing harness rules:
 
 ```text
 ContentLoader.ContentFolderPath + PinPartConfig.PartsFolderPath
-        → PinPartVariantCatalog.ListVariants(..., "shaft_variants" | "head_variants", ...)
-        → MainWindow.SetupTuningPanel / OnReloadTuningFromDisk
+        → PinPartVariantCatalog.ListVariants(..., "shaft_variants" | "head_variants", ensureIncluded)
+        → MainWindow.SetupTuningPanel (construct catalog here) / OnReloadTuningFromDisk
         → DeveloperTuningPanel.SetVariantOptions(shaft, head)   [_isLoading guard inside]
-        → ComboBox ItemsSource (display strings)
+        → LoadValues → SelectVariant (case-insensitive)
 ```
 
 ## Modularity & file-size impact
 
 | File | Action | Target |
 |------|--------|--------|
-| `Services/PinPartVariantCatalog.cs` | Create | ~70–90 lines (single `ListVariants`, `ILogger`) |
+| `Services/PinPartVariantCatalog.cs` | Create | ~80–100 lines |
 | `Tests/PinPartVariantCatalogTests.cs` | Create | temp-dir unit tests |
-| `Views/DeveloperTuningPanel.xaml` | Modify | ComboBox + dark styles + checkbox `Click` wiring |
-| `Views/DeveloperTuningPanel.xaml.cs` | Modify | `SetVariantOptions`, selection mapping, unified input handler |
-| `MainWindow.DeveloperTuning.partial.cs` | Modify | catalog field, `using Services`, refresh on setup/reload |
-| `Tests/TuningPanelWiringTests.cs` | Modify | control names, tooltip loop, `IsEnabled` binding |
+| `Views/DeveloperTuningPanel.xaml` | Modify | ComboBox + `ItemContainerStyle` + checkbox `Click` |
+| `Views/DeveloperTuningPanel.xaml.cs` | Modify | `SetVariantOptions`, `SelectVariant`, `GetVariantFromCombo` |
+| `MainWindow.DeveloperTuning.partial.cs` | Modify | catalog lazy init in `SetupTuningPanel`, refresh on reload |
+| `Tests/TuningPanelWiringTests.cs` | Modify | control names, tooltip loop, bindings |
 
 No changes to `MainWindow.xaml.cs` beyond what is already wired for the tuning panel.
 
@@ -70,8 +76,8 @@ No changes to `MainWindow.xaml.cs` beyond what is already wired for the tuning p
 
 ### `Services/PinPartVariantCatalog.cs`
 
-- [ ] Add constructor taking `ILogger` (match existing service patterns).
-- [ ] Add one public method:
+- [ ] Add constructor taking `ILogger`.
+- [ ] Implement `ListVariants` with this behavior (directory failure must not discard `ensureIncluded`):
 
 ```csharp
 public IReadOnlyList<string> ListVariants(
@@ -79,23 +85,49 @@ public IReadOnlyList<string> ListVariants(
     string partsFolderPath,
     string subfolderName,
     string? ensureIncluded = null)
-```
+{
+    var list = new List<string>();
+    var path = Path.Combine(contentFolderPath, partsFolderPath, subfolderName);
 
-- [ ] Resolve `Path.Combine(contentFolderPath, partsFolderPath, subfolderName)`.
-- [ ] If the directory does not exist or is inaccessible: log a warning via `ILogger`, return an empty list (no throw).
-- [ ] Enumerate with `Directory.GetDirectories` only; take `Path.GetFileName` of each result (immediate child folder names, not files).
-- [ ] Sort ordinal ignore-case.
-- [ ] If `ensureIncluded` is non-empty and not already in the result, add it and re-sort (stale config values remain selectable).
+    if (Directory.Exists(path))
+    {
+        try
+        {
+            list.AddRange(
+                Directory.GetDirectories(path)
+                    .Select(Path.GetFileName)
+                    .Where(name => !string.IsNullOrEmpty(name))!);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to read variants from {path}: {ex.Message}");
+        }
+    }
+    else
+    {
+        _logger.LogWarning($"Variants directory does not exist: {path}");
+    }
+
+    if (!string.IsNullOrWhiteSpace(ensureIncluded) &&
+        !list.Contains(ensureIncluded, StringComparer.OrdinalIgnoreCase))
+    {
+        list.Add(ensureIncluded);
+    }
+
+    list.Sort(StringComparer.OrdinalIgnoreCase);
+    return list;
+}
+```
 
 `MainWindow` calls twice: `ListVariants(..., "shaft_variants", shaftToInclude)` and `ListVariants(..., "head_variants", headToInclude)`.
 
 ### `Tests/PinPartVariantCatalogTests.cs`
 
-- [ ] Create temp content tree with `Pins_v2/parts/shaft_variants/foo` and `head_variants/bar`.
-- [ ] Assert sorted folder names returned for each `subfolderName`.
-- [ ] Assert missing directory returns empty list (no throw); optional mock-logger assertion that a warning was logged.
-- [ ] Assert `ensureIncluded` adds a name not present on disk.
-- [ ] Place a stray file (e.g. `README.md`) in the variants root — assert it is **not** listed.
+- [ ] Temp tree with `Pins_v2/parts/shaft_variants/foo` and `head_variants/bar` — assert sorted names.
+- [ ] Missing variants directory + non-empty `ensureIncluded` — assert list is `[ensureIncluded]` only (not empty).
+- [ ] `ensureIncluded` with different casing than on-disk folder — assert no duplicate entries.
+- [ ] Stray file in variants root — assert not listed.
+- [ ] `GetDirectories` failure path — assert `ensureIncluded` still returned (mock or simulate as feasible).
 
 ```bash
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~PinPartVariantCatalogTests" --no-restore
@@ -105,62 +137,71 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 ### `Views/DeveloperTuningPanel.xaml`
 
-- [ ] Replace `TxtShaftVariant` / `TxtHeadVariant` `TextBox` controls with `CmbShaftVariant` / `CmbHeadVariant` `ComboBox` controls.
-- [ ] Set `IsEditable="False"` on both.
-- [ ] Bind `IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"` on both (grey out when composite pins off; values are **not** cleared on toggle).
+- [ ] Replace `TxtShaftVariant` / `TxtHeadVariant` with `CmbShaftVariant` / `CmbHeadVariant` (`IsEditable="False"`).
+- [ ] Bind `IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"` on both.
 - [ ] Wire `SelectionChanged="OnVariantSelectionChanged"` on both ComboBoxes.
-- [ ] Add dark-theme inline styles (or local `UserControl.Resources`) so ComboBox background, foreground, and dropdown items match the panel (`#EE111111` / white or `#DDDDDD` text). Verify disabled state is still readable when `ChkComposite` is unchecked.
-- [ ] Wire `Click="OnPanelInputChanged"` on `ChkComposite` (and the other tuning checkboxes if not already wired) so toggling composite re-runs validation and updates Apply button state.
-- [ ] Update tooltips to mention picking from folder names (still under `Pins_v2/parts/*_variants/`).
+- [ ] Dark-theme styling — **required pattern** (shared via `UserControl.Resources` or duplicated on both combos):
+  - Closed control: dark `Background` / light `Foreground`.
+  - **`ComboBox.ItemContainerStyle`** on each combo — dark item background, light text, hover highlight (e.g. `#222222` / `White` / `#444444` on `IsMouseOver`). Without this, dropdown items show white-on-white.
+- [ ] Wire `Click="OnPanelInputChanged"` on `ChkComposite` and other tuning checkboxes.
+- [ ] Update tooltips for folder-name picking.
+
+Example `ItemContainerStyle` (apply to both combos):
+
+```xml
+<ComboBox.ItemContainerStyle>
+    <Style TargetType="ComboBoxItem">
+        <Setter Property="Background" Value="#222222"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#444444"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ComboBox.ItemContainerStyle>
+```
 
 ## Phase 3: View code-behind
 
 ### `Views/DeveloperTuningPanel.xaml.cs`
 
-- [ ] Add `public const string BaseVariantLabel = "(base)";` (or `internal` if tests read via source guard only).
-- [ ] Rename/refactor `OnInputChanged(object, TextChangedEventArgs)` → `OnPanelInputChanged(object, RoutedEventArgs)` for text fields **and** checkbox `Click` handlers (handler body unchanged: `if (!_isLoading) ValidateInputs();`).
-- [ ] Add `public void SetVariantOptions(IReadOnlyList<string> shaftVariants, IReadOnlyList<string> headVariants)`:
-  - Set `_isLoading = true` before reassigning `ItemsSource`; clear in `finally` (prevents `SelectionChanged` from validating transient empty selection during reload/setup).
-  - Build display lists: `"(base)"` first, then catalog folder names (already sorted).
-  - Assign `ItemsSource` on both ComboBoxes; do **not** set `SelectedItem` here (caller follows with `LoadValues`).
-- [ ] Add `OnVariantSelectionChanged` — call `ValidateInputs()` when `!_isLoading`.
-- [ ] Add helper `TryGetVariantFromCombo(ComboBox cmb, out string variant)` — `"(base)"` or null selection → `string.Empty`; otherwise folder name.
-- [ ] Update `LoadValues`:
-  - After setting checkbox/text fields, select `"(base)"` when config variant is empty/whitespace.
-  - Otherwise select matching folder name; caller must have passed `ensureIncluded` via `RefreshTuningPanelVariantOptions` before `LoadValues` if the folder is missing on disk.
-- [ ] Update `TryBuildEventArgs` to use `TryGetVariantFromCombo` instead of `TxtShaftVariant.Text` / `TxtHeadVariant.Text`.
-- [ ] Do **not** add `using System.IO`, `Directory.*`, or `Images&Content` strings.
+- [ ] Add `public const string BaseVariantLabel = "(base)";`.
+- [ ] Rename `OnInputChanged` → `OnPanelInputChanged(object, RoutedEventArgs)` for text + checkbox handlers.
+- [ ] `SetVariantOptions`: `_isLoading` guard; prepend `"(base)"`; assign `ItemsSource`; do not set selection.
+- [ ] `SelectVariant(ComboBox combo, string value)` — case-insensitive match against `combo.Items`; empty/whitespace → `BaseVariantLabel`; no match → `BaseVariantLabel` (catalog should have included via `ensureIncluded`).
+- [ ] `GetVariantFromCombo(ComboBox cmb)` — `SelectedItem` is `BaseVariantLabel` or null → `string.Empty`; else return string as-is.
+- [ ] `LoadValues`: call `SelectVariant(CmbShaftVariant, config.PinParts.ShaftAssetVariant)` and same for head (not direct `SelectedItem = value`).
+- [ ] `TryBuildEventArgs`: `ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim()` (head likewise).
+- [ ] No `System.IO`, `Directory.*`, or `Images&Content` in this file.
 
 ## Phase 4: MainWindow wiring
 
 ### `MainWindow.DeveloperTuning.partial.cs`
 
-- [ ] Add `using InteractiveWorldMap.Services;` (file does not import Services today).
-- [ ] Add `PinPartVariantCatalog` field, constructed with `_logger` (same pattern as other services in `MainWindow.xaml.cs`).
-- [ ] Add `RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)`:
-  - Read `_contentLoader.ContentFolderPath` and `_visualConfig.PinParts.PartsFolderPath`.
-  - Call `_variantCatalog.ListVariants(..., "shaft_variants", shaftToInclude)` and `ListVariants(..., "head_variants", headToInclude)`.
-  - Call `DeveloperTuningPanel.SetVariantOptions(...)`.
-- [ ] In `SetupTuningPanel()`: `RefreshTuningPanelVariantOptions()` then `LoadValues(_visualConfig)` (populate before select).
-- [ ] In `OnReloadTuningFromDisk` success path: `RefreshTuningPanelVariantOptions` with reloaded shaft/head variants, then `ApplyTuningAsync` / `LoadValues` as today (catalog refresh happens before selection is restored).
+- [ ] Add `using InteractiveWorldMap.Services;`.
+- [ ] Declare `private PinPartVariantCatalog _variantCatalog = null!;` (do **not** construct at field initializer — `_logger` is not ready yet).
+- [ ] In `SetupTuningPanel()`: `_variantCatalog = new PinPartVariantCatalog(_logger);` then `RefreshTuningPanelVariantOptions()` then `LoadValues(_visualConfig)`.
+- [ ] `RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)`:
+  - Use `_contentLoader.ContentFolderPath` and `_visualConfig.PinParts.PartsFolderPath`.
+  - Call `ListVariants` for shaft and head; `SetVariantOptions` on the panel.
+- [ ] `OnReloadTuningFromDisk`: refresh with reloaded variant strings before `LoadValues`.
 
 ## Phase 5: Test & harness updates
 
 ### `Tests/TuningPanelWiringTests.cs`
 
-- [ ] Update `DeveloperTuningPanel_ProvidesTooltipsForTuningOptions` control-name loop: replace `"TxtShaftVariant"` / `"TxtHeadVariant"` with `"CmbShaftVariant"` / `"CmbHeadVariant"` (test breaks if only other assertions are updated).
-- [ ] Rename other control references: `CmbShaftVariant`, `CmbHeadVariant`.
-- [ ] Assert XAML contains `IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"` for both ComboBoxes.
-- [ ] Assert `IsEditable="False"` on both ComboBoxes.
-- [ ] Assert code-behind does not reference `TxtShaftVariant` / `TxtHeadVariant`.
-- [ ] Assert `SetVariantOptions` sets `_isLoading` during ItemsSource rebuild (source guard).
-- [ ] Assert `ChkComposite` wires `Click="OnPanelInputChanged"` (or equivalent shared handler).
-- [ ] Assert `SetVariantOptions` exists and `TryBuildEventArgs` uses variant combo helpers.
+- [ ] Update `DeveloperTuningPanel_ProvidesTooltipsForTuningOptions` loop: `CmbShaftVariant`, `CmbHeadVariant`.
+- [ ] Assert `IsEnabled` binding and `IsEditable="False"` on both combos.
+- [ ] Assert XAML includes `ItemContainerStyle` (or shared style key) for dark dropdown items.
+- [ ] Assert code-behind has `SelectVariant`, `GetVariantFromCombo`; no `TxtShaftVariant` / `TxtHeadVariant`.
+- [ ] Assert `SetVariantOptions` uses `_isLoading` guard; `ChkComposite` has `Click="OnPanelInputChanged"`.
+- [ ] Assert `SetupTuningPanel` constructs `PinPartVariantCatalog` (source guard on partial).
 
 ### Other
 
-- [ ] `CHANGELOG.md` — `[Unreleased]` entry: tuning panel shaft/head variant pickers are dropdowns.
-- [ ] No change to `docs/TO_DO.md` until complete (bullet already exists).
+- [ ] `CHANGELOG.md` — `[Unreleased]` entry for dropdown pickers.
+- [ ] Add TO_DO follow-up for variant search/filter (see Deferred below).
 
 ```bash
 .\scripts\verify.ps1
@@ -168,38 +209,40 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 ## Acceptance criteria
 
-- [ ] Shaft and head variant pickers are `ComboBox` controls populated from on-disk `shaft_variants` / `head_variants` under `PartsFolderPath`.
-- [ ] `"(base)"` selects empty `ShaftAssetVariant` / `HeadAssetVariant` (base/lit shaft behavior unchanged).
-- [ ] Pickers are disabled when `ChkComposite` is unchecked; re-enabling restores prior selection.
-- [ ] Toggling `ChkComposite` updates Apply button enabled state without editing a text field.
-- [ ] Reload-from-disk does not flash a transient `"(base)"` validation error while variant lists are rebuilt.
-- [ ] Apply, Save, and Reload-from-disk still read/write the same config fields as before.
-- [ ] A config variant not present on disk still appears in the list and can be selected after reload.
-- [ ] ComboBoxes are readable on the dark tuning panel background.
-- [ ] Missing variants directories log a warning and yield an empty list (plus `"(base)"` in the UI).
-- [ ] `Views/` contains no `Images&Content` path literals and no filesystem enumeration.
+- [ ] Shaft and head pickers are non-editable `ComboBox` controls from on-disk variant folders.
+- [ ] `"(base)"` → empty config; config with case mismatch still selects correctly (`outline_dark` config vs `Outline_Dark` folder).
+- [ ] `ensureIncluded` appears in the list even when the variants directory is missing.
+- [ ] No case-only duplicate entries when config casing differs from folder name on disk.
+- [ ] Dropdown **popup** items readable (not white-on-white).
+- [ ] Pickers disabled when `ChkComposite` unchecked; toggle re-validates Apply.
+- [ ] Reload does not flash transient validation errors during list rebuild.
+- [ ] `ensureIncluded` for missing on-disk folder still selectable after reload.
+- [ ] `Views/` has no `Images&Content` literals or filesystem enumeration.
 - [ ] `.\scripts\verify.ps1` passes.
 
 ## Manual QA (optional, Windows)
 
-1. `Debug.EnableTuningPanel = true`, `PinParts.UseCompositeRendering = true`. Launch app.
-2. Open tuning panel — shaft dropdown lists `"(base)"` plus sorted shaft folders; head dropdown lists head outline variants. ComboBox text/background readable on dark panel.
-3. Pick a shaft variant, Apply — pins update. Pick `"(base)"`, Apply — reverts to base/lit shaft assets.
-4. Uncheck Composite pins — both dropdowns grey out. Re-check — prior selections restored; Apply state updates immediately.
-5. Reload from disk with a valid variant selected — no momentary error text while lists refresh.
-6. Set a variant in `visual-config.json` that does not exist on disk; Reload — value still shown and selectable.
+1. Launch with tuning panel enabled and composite on — combos readable closed **and** open (scroll shaft list).
+2. Set config variant with different casing than folder — Reload shows correct selection.
+3. Rename/remove variants directory but keep value in `visual-config.json` — Reload still lists and selects config value.
+4. Toggle composite, reload, apply — behaviors from prior QA checklist still hold.
+
+## Deferred / follow-up
+
+- [ ] **Variant search/filter** — 60+ shaft folders make a plain dropdown tedious; add type-to-filter or grouped list in a follow-up ([TO_DO.md](../../TO_DO.md) Developer tooling).
 
 ## Risks
 
 | Risk | Mitigation |
 |------|------------|
-| `SelectionChanged` during `LoadValues` triggers validation flicker | `_isLoading` guard in `OnVariantSelectionChanged` and inside `SetVariantOptions` |
-| `ItemsSource` reset clears selection during reload | `_isLoading` in `SetVariantOptions`; `LoadValues` runs immediately after refresh |
-| Toggling composite does not re-validate | `Click="OnPanelInputChanged"` on `ChkComposite` |
-| Default WPF ComboBox unreadable on dark panel | Explicit dark-theme styles in Phase 2 |
-| 60+ shaft names hard to scan | Alphabetical sort; search UI deferred |
-| Custom `PartsFolderPath` in config | Catalog uses config path, not a hardcoded default |
+| WPF case-sensitive `SelectedItem` | `SelectVariant` ordinal-ignore-case |
+| `ensureIncluded` lost when dir missing | Catalog adds `ensureIncluded` after failed/missing scan |
+| Case-only duplicates in list | `Contains(..., OrdinalIgnoreCase)` before add |
+| White dropdown text on white popup | `ItemContainerStyle` on ComboBox items |
+| Catalog init before `_logger` | Construct in `SetupTuningPanel()` only |
+| `SelectionChanged` during rebind | `_isLoading` in `SetVariantOptions` and `OnVariantSelectionChanged` |
+| Real folder named `(base)` | Policy: do not create; document only |
 
 ## Completion
 
-When done: move this file to `docs/exec-plans/completed/`, add row to completed section in [README.md](README.md), check off [TO_DO.md](../../TO_DO.md) bullet, ensure `CHANGELOG.md` entry is accurate.
+When done: move to `docs/exec-plans/completed/`, update [README.md](README.md), check off main [TO_DO.md](../../TO_DO.md) picker bullet, ensure `CHANGELOG.md` is accurate. Leave the search/filter follow-up bullet open until that work ships.
