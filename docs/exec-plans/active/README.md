@@ -38,6 +38,7 @@ started: YYYY-MM-DD
 - `remove-pins-jpg-legacy-path-plan.md` — Removed `pins.jpg` / `ImagePinMarker`; drawn vs composite only — moved 2026-06-21
 - `runtime-tuning-panel-plan.md` — Developer-only runtime panel for visual-config tuning without restart — moved 2026-06-21
 - `tuning-and-pin-render-bugfixes-plan.md` — Tuning-panel & pin-render bug fixes from 2026-06-21 review (H1/H12/H13/H14, M2–M4, cleanup) — moved 2026-06-21
+- `continuous-pin-tracking-during-zoom-plan.md` — Continuous pin tracking during zoom-in animation (all phases + manual verification complete) — moved 2026-06-21
 
 Completed plans move to [../completed/](../completed/). Parked plans (core done, optional follow-ups) move to [../inactive/](../inactive/).
 
