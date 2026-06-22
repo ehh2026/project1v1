@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Tuning panel reload rejection:** Reload-from-disk now validates `visual-config.json` before refreshing variant combo lists, so a rejected reload no longer leaves shaft/head pickers out of sync with the active in-memory config.
+
 - **Tuning & pin-render fixes:** Runtime tuning changes now replay the active manual layout immediately (composite on/off no longer requires entering Edit Layout); recreate-class changes while zoomed are cleanly rejected with a status message; drawn-pin drag keeps the tip fixed at its Excel location with a single connecting shaft during drag; composite drag head no longer diverges from the guide line when the shaft stretch clamp fires (Policy A: guide line follows the rendered head); reload-from-disk validates numeric values before applying them; `ShouldRepositionOnly` now uses independent angle (`toleranceDeg`) and length (`tolerancePx`) tolerances; orphaned composite guide lines in edit mode are fixed by removing stale untracking calls in `ExtensionLineRenderer.Apply`; dead `CreateLine` method removed; redundant composite-plan-changed flag and over-broad plan cache invalidation cleaned up; async void handlers wrapped in try-catch. (`MainWindow.DeveloperTuning.partial.cs`, `MainWindow.LayoutEditor.partial.cs`, `Views/ExtensionLineRenderer.cs`, `Views/DeveloperTuningPanel.xaml.cs`, `Services/CompositePinPlacementPolicy.cs`)
 
 - **Continuous pin tracking during zoom-in:** Markers with radial extension lines no longer freeze at pre-animation screen positions during zoom-in animations. Pin-to-map offsets are captured in the settled state before the animation and reapplied each frame, keeping pins attached to the moving map. Extension lines are suppressed during animation and rebuilt at settle. (`MainWindow.xaml.cs`, `MainWindow.Navigation.partial.cs`)
@@ -28,7 +30,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
-- **Tuning panel dropdown pickers:** Replaced free-text variant text boxes with non-editable `ComboBox` dropdowns populated from on-disk variant folders. Added `(base)` option mapping to empty/base config. The selection is disabled when composite pins are off. Added `PinPartVariantCatalog` service for variant enumeration. Plan completed: [tuning-panel-dropdowns-plan.md](docs/exec-plans/active/tuning-panel-dropdowns-plan.md).
+- **Tuning panel dropdown pickers:** Replaced free-text variant text boxes with non-editable `ComboBox` dropdowns populated from on-disk variant folders. Added `(base)` option mapping to empty/base config. The selection is disabled when composite pins are off. Added `PinPartVariantCatalog` service for variant enumeration. Plan completed: [tuning-panel-dropdowns-plan.md](docs/exec-plans/completed/tuning-panel-dropdowns-plan.md).
 
 - **Runtime tuning panel:** Added a debug-gated in-app developer panel for live visual-config tuning, including a single composite-pin toggle, shaft/head variants, marker sizes, cluster threshold, prerasterization, debug overlay, save, reload, and hover tooltips. Drawn fallback pins now use the shaft tip as the map anchor outside manual layout. The local `visual-config.json` enables the panel while the model default remains off. Plan completed: [runtime-tuning-panel-plan.md](docs/exec-plans/completed/runtime-tuning-panel-plan.md).
 

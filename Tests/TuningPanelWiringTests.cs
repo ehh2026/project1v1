@@ -172,4 +172,22 @@ public class TuningPanelWiringTests
 
         Assert.Contains("_variantCatalog = new PinPartVariantCatalog(_logger);", source);
     }
+
+    [Fact]
+    public void OnReloadTuningFromDisk_ValidatesBeforeRefreshingVariantOptions()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+        var reloadStart = source.IndexOf("OnReloadTuningFromDisk", StringComparison.Ordinal);
+        Assert.True(reloadStart >= 0);
+
+        var reloadBlock = source.Substring(reloadStart, Math.Min(2500, source.Length - reloadStart));
+        var validateIndex = reloadBlock.IndexOf("TryValidate(args", StringComparison.Ordinal);
+        var refreshIndex = reloadBlock.IndexOf("RefreshTuningPanelVariantOptions", StringComparison.Ordinal);
+
+        Assert.True(validateIndex >= 0, "Reload path must validate tuning args.");
+        Assert.True(refreshIndex >= 0, "Reload path must refresh variant options.");
+        Assert.True(
+            validateIndex < refreshIndex,
+            "Reload must validate disk values before refreshing variant combo lists.");
+    }
 }

@@ -90,7 +90,6 @@ namespace InteractiveWorldMap
             try
             {
                 var fresh = _configService.Load(_configPath);
-                RefreshTuningPanelVariantOptions(fresh.PinParts.ShaftAssetVariant, fresh.PinParts.HeadAssetVariant);
                 var args = CreateTuningArgs(fresh);
                 if (!DeveloperTuningPanel.TryValidate(args, out var error))
                 {
@@ -98,6 +97,8 @@ namespace InteractiveWorldMap
                     DeveloperTuningPanel.SetStatus($"Reload rejected: {error}");
                     return;
                 }
+
+                RefreshTuningPanelVariantOptions(fresh.PinParts.ShaftAssetVariant, fresh.PinParts.HeadAssetVariant);
                 await ApplyTuningAsync(args);
                 DeveloperTuningPanel.SetStatus($"Reloaded tuning values from {_configPath}.");
             }

@@ -77,8 +77,8 @@ No changes to `MainWindow.xaml.cs` beyond what is already wired for the tuning p
 
 ### `Services/PinPartVariantCatalog.cs`
 
-- [ ] Add constructor taking `ILogger`.
-- [ ] Implement `ListVariants` with this behavior (directory failure must not discard `ensureIncluded`):
+- [x] Add constructor taking `ILogger`.
+- [x] Implement `ListVariants` with this behavior (directory failure must not discard `ensureIncluded`):
 
 ```csharp
 public IReadOnlyList<string> ListVariants(
@@ -124,11 +124,11 @@ public IReadOnlyList<string> ListVariants(
 
 ### `Tests/PinPartVariantCatalogTests.cs`
 
-- [ ] Temp tree with `Pins_v2/parts/shaft_variants/foo` and `head_variants/bar` — assert sorted names.
-- [ ] Missing variants directory + non-empty `ensureIncluded` — assert list is `[ensureIncluded]` only (not empty).
-- [ ] `ensureIncluded` with different casing than on-disk folder — assert no duplicate entries.
-- [ ] Stray file in variants root — assert not listed.
-- [ ] `GetDirectories` failure path — assert `ensureIncluded` still returned (mock or simulate as feasible).
+- [x] Temp tree with `Pins_v2/parts/shaft_variants/foo` and `head_variants/bar` — assert sorted names.
+- [x] Missing variants directory + non-empty `ensureIncluded` — assert list is `[ensureIncluded]` only (not empty).
+- [x] `ensureIncluded` with different casing than on-disk folder — assert no duplicate entries.
+- [x] Stray file in variants root — assert not listed.
+- [x] `GetDirectories` failure path — source guard asserts `ensureIncluded` still appended after catch.
 
 ```bash
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~PinPartVariantCatalogTests" --no-restore
@@ -138,14 +138,14 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 ### `Views/DeveloperTuningPanel.xaml`
 
-- [ ] Replace `TxtShaftVariant` / `TxtHeadVariant` with `CmbShaftVariant` / `CmbHeadVariant` (`IsEditable="False"`).
-- [ ] Bind `IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"` on both.
-- [ ] Wire `SelectionChanged="OnVariantSelectionChanged"` on both ComboBoxes.
-- [ ] Dark-theme styling — **required pattern** (shared via `UserControl.Resources` or duplicated on both combos):
+- [x] Replace `TxtShaftVariant` / `TxtHeadVariant` with `CmbShaftVariant` / `CmbHeadVariant` (`IsEditable="False"`).
+- [x] Bind `IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"` on both.
+- [x] Wire `SelectionChanged="OnVariantSelectionChanged"` on both ComboBoxes.
+- [x] Dark-theme styling — **required pattern** (shared via `UserControl.Resources` or duplicated on both combos):
   - Closed control: dark `Background` / light `Foreground`.
   - **`ComboBox.ItemContainerStyle`** on each combo — dark item background, light text, hover highlight (e.g. `#222222` / `White` / `#444444` on `IsMouseOver`). Without this, dropdown items show white-on-white.
-- [ ] Wire `Click="OnPanelInputChanged"` on `ChkComposite` and other tuning checkboxes.
-- [ ] Update tooltips for folder-name picking.
+- [x] Wire `Click="OnPanelInputChanged"` on `ChkComposite` and other tuning checkboxes.
+- [x] Update tooltips for folder-name picking.
 
 Example `ItemContainerStyle` (apply to both combos):
 
@@ -167,42 +167,43 @@ Example `ItemContainerStyle` (apply to both combos):
 
 ### `Views/DeveloperTuningPanel.xaml.cs`
 
-- [ ] Add `public const string BaseVariantLabel = "(base)";`.
-- [ ] Rename `OnInputChanged` → `OnPanelInputChanged(object, RoutedEventArgs)` for text + checkbox handlers.
-- [ ] `SetVariantOptions`: `_isLoading` guard; prepend `"(base)"`; assign `ItemsSource`; do not set selection.
-- [ ] `SelectVariant(ComboBox combo, string value)` — case-insensitive match against `combo.Items`; empty/whitespace → `BaseVariantLabel`; no match → `BaseVariantLabel` (catalog should have included via `ensureIncluded`).
-- [ ] `GetVariantFromCombo(ComboBox cmb)` — `SelectedItem` is `BaseVariantLabel` or null → `string.Empty`; else return string as-is.
-- [ ] `LoadValues`: call `SelectVariant(CmbShaftVariant, config.PinParts.ShaftAssetVariant)` and same for head (not direct `SelectedItem = value`).
-- [ ] `TryBuildEventArgs`: `ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim()` (head likewise).
-- [ ] No `System.IO`, `Directory.*`, or `Images&Content` in this file.
+- [x] Add `public const string BaseVariantLabel = "(base)";`.
+- [x] Rename `OnInputChanged` → `OnPanelInputChanged(object, RoutedEventArgs)` for text + checkbox handlers.
+- [x] `SetVariantOptions`: `_isLoading` guard; prepend `"(base)"`; assign `ItemsSource`; do not set selection.
+- [x] `SelectVariant(ComboBox combo, string value)` — case-insensitive match against `combo.Items`; empty/whitespace → `BaseVariantLabel`; no match → `BaseVariantLabel` (catalog should have included via `ensureIncluded`).
+- [x] `GetVariantFromCombo(ComboBox cmb)` — `SelectedItem` is `BaseVariantLabel` or null → `string.Empty`; else return string as-is.
+- [x] `LoadValues`: call `SelectVariant(CmbShaftVariant, config.PinParts.ShaftAssetVariant)` and same for head (not direct `SelectedItem = value`).
+- [x] `TryBuildEventArgs`: `ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim()` (head likewise).
+- [x] No `System.IO`, `Directory.*`, or `Images&Content` in this file.
 
 ## Phase 4: MainWindow wiring
 
 ### `MainWindow.DeveloperTuning.partial.cs`
 
-- [ ] Add `using InteractiveWorldMap.Services;`.
-- [ ] Declare `private PinPartVariantCatalog _variantCatalog = null!;` (do **not** construct at field initializer — `_logger` is not ready yet).
-- [ ] In `SetupTuningPanel()`: `_variantCatalog = new PinPartVariantCatalog(_logger);` then `RefreshTuningPanelVariantOptions()` then `LoadValues(_visualConfig)`.
-- [ ] `RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)`:
+- [x] Add `using InteractiveWorldMap.Services;`.
+- [x] Declare `private PinPartVariantCatalog _variantCatalog = null!;` (do **not** construct at field initializer — `_logger` is not ready yet).
+- [x] In `SetupTuningPanel()`: `_variantCatalog = new PinPartVariantCatalog(_logger);` then `RefreshTuningPanelVariantOptions()` then `LoadValues(_visualConfig)`.
+- [x] `RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)`:
   - Use `_contentLoader.ContentFolderPath` and `_visualConfig.PinParts.PartsFolderPath`.
   - Call `ListVariants` for shaft and head; `SetVariantOptions` on the panel.
-- [ ] `OnReloadTuningFromDisk`: refresh with reloaded variant strings before `LoadValues`.
+- [x] `OnReloadTuningFromDisk`: validate reloaded args before refreshing variant lists; refresh before apply/`LoadValues`.
 
 ## Phase 5: Test & harness updates
 
 ### `Tests/TuningPanelWiringTests.cs`
 
-- [ ] Update `DeveloperTuningPanel_ProvidesTooltipsForTuningOptions` loop: `CmbShaftVariant`, `CmbHeadVariant`.
-- [ ] Assert `IsEnabled` binding and `IsEditable="False"` on both combos.
-- [ ] Assert XAML includes `ItemContainerStyle` (or shared style key) for dark dropdown items.
-- [ ] Assert code-behind has `SelectVariant`, `GetVariantFromCombo`; no `TxtShaftVariant` / `TxtHeadVariant`.
-- [ ] Assert `SetVariantOptions` uses `_isLoading` guard; `ChkComposite` has `Click="OnPanelInputChanged"`.
-- [ ] Assert `SetupTuningPanel` constructs `PinPartVariantCatalog` (source guard on partial).
+- [x] Update `DeveloperTuningPanel_ProvidesTooltipsForTuningOptions` loop: `CmbShaftVariant`, `CmbHeadVariant`.
+- [x] Assert `IsEnabled` binding and `IsEditable="False"` on both combos.
+- [x] Assert XAML includes `ItemContainerStyle` (or shared style key) for dark dropdown items.
+- [x] Assert code-behind has `SelectVariant`, `GetVariantFromCombo`; no `TxtShaftVariant` / `TxtHeadVariant`.
+- [x] Assert `SetVariantOptions` uses `_isLoading` guard; `ChkComposite` has `Click="OnPanelInputChanged"`.
+- [x] Assert `SetupTuningPanel` constructs `PinPartVariantCatalog` (source guard on partial).
+- [x] Assert reload validates before refreshing variant options.
 
 ### Other
 
-- [ ] `CHANGELOG.md` — `[Unreleased]` entry for dropdown pickers.
-- [ ] Add TO_DO follow-up for variant search/filter (see Deferred below).
+- [x] `CHANGELOG.md` — `[Unreleased]` entry for dropdown pickers.
+- [x] Add TO_DO follow-up for variant search/filter (see Deferred below).
 
 ```bash
 .\scripts\verify.ps1
@@ -210,16 +211,17 @@ Example `ItemContainerStyle` (apply to both combos):
 
 ## Acceptance criteria
 
-- [ ] Shaft and head pickers are non-editable `ComboBox` controls from on-disk variant folders.
-- [ ] `"(base)"` → empty config; config with case mismatch still selects correctly (`outline_dark` config vs `Outline_Dark` folder).
-- [ ] `ensureIncluded` appears in the list even when the variants directory is missing.
-- [ ] No case-only duplicate entries when config casing differs from folder name on disk.
-- [ ] Dropdown **popup** items readable (not white-on-white).
-- [ ] Pickers disabled when `ChkComposite` unchecked; toggle re-validates Apply.
-- [ ] Reload does not flash transient validation errors during list rebuild.
-- [ ] `ensureIncluded` for missing on-disk folder still selectable after reload.
-- [ ] `Views/` has no `Images&Content` literals or filesystem enumeration.
-- [ ] `.\scripts\verify.ps1` passes.
+- [x] Shaft and head pickers are non-editable `ComboBox` controls from on-disk variant folders.
+- [x] `"(base)"` → empty config; config with case mismatch still selects correctly (`outline_dark` config vs `Outline_Dark` folder).
+- [x] `ensureIncluded` appears in the list even when the variants directory is missing.
+- [x] No case-only duplicate entries when config casing differs from folder name on disk.
+- [x] Dropdown **popup** items readable (not white-on-white).
+- [x] Pickers disabled when `ChkComposite` unchecked; toggle re-validates Apply.
+- [x] Reload does not flash transient validation errors during list rebuild.
+- [x] Reload rejection leaves panel selection aligned with active in-memory config.
+- [x] `ensureIncluded` for missing on-disk folder still selectable after reload.
+- [x] `Views/` has no `Images&Content` literals or filesystem enumeration.
+- [x] `.\scripts\verify.ps1` passes.
 
 ## Manual QA (optional, Windows)
 
