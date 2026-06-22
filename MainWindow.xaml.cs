@@ -43,6 +43,7 @@ namespace InteractiveWorldMap
         // Radial extension support
         private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
         private IExtensionLineRenderer _extensionLineRenderer = null!;
+        private readonly Dictionary<LocationMarker, Vector> _animationOffsets = new();
         private RadialExtensionCalculator? _extensionCalculator;
         private RadialExtensionAdjuster? _adjuster;
         private MarkerPlacementOrchestrator _placementOrchestrator = null!;
@@ -500,11 +501,21 @@ namespace InteractiveWorldMap
                 if (marker == null)
                     continue;
 
-                // During zoom/pan animation, leave extended (edited) markers on their last
-                // applied geometry. Resetting them here would flash a vertical stub at the
-                // base location until the manual layout replays at settle.
-                if (IsAnimating && _extensionLineRenderer.HasLine(marker))
+                if (IsAnimating && _animationOffsets.TryGetValue(marker, out var offset))
+                {
+                    var mapPoint = GetMarkerMapPoint(placement);
+                    Point anchor;
+                    if (marker.Content is PinMarker pin)
+                        anchor = pin.GetShaftTipPoint();
+                    else if (marker.Content is CompositePinMarker composite)
+                        anchor = composite.GetTipAnchorPoint();
+                    else
+                        anchor = new Point(0, 0);
+
+                    Canvas.SetLeft(marker, mapPoint.X - anchor.X + offset.X);
+                    Canvas.SetTop(marker, mapPoint.Y - anchor.Y + offset.Y);
                     continue;
+                }
 
                 // Non-extended drawn pins keep their own shaft; the extended path
                 // (ExtensionLineRenderer) hides it, so restore it here.

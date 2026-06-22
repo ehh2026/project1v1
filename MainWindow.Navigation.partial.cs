@@ -49,6 +49,45 @@ namespace InteractiveWorldMap
                     return;
                 }
 
+                // Phase 1: capture settled-state pin-to-map offsets so markers track
+                // the map during the animation instead of freezing in place.
+                // Must run while _mode == Normal so the orchestrator produces
+                // authoritative placements (MarkerPlacementMode.WithExtensions).
+                {
+                    UpdateMarkerPositions();
+
+                    var containerWidth = MapDisplay.ActualWidth;
+                    var containerHeight = MapDisplay.ActualHeight;
+
+                    foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+                    {
+                        var pMap = startViewport.SourceToScreen(
+                            marker.Location.PixelX,
+                            marker.Location.PixelY,
+                            containerWidth,
+                            containerHeight);
+
+                        var pCanvas = new Point(Canvas.GetLeft(marker), Canvas.GetTop(marker));
+                        if (double.IsNaN(pCanvas.X) || double.IsNaN(pCanvas.Y))
+                            continue;
+
+                        Point anchor;
+                        if (marker.Content is PinMarker pin)
+                            anchor = pin.GetShaftTipPoint();
+                        else if (marker.Content is CompositePinMarker composite)
+                            anchor = composite.GetTipAnchorPoint();
+                        else
+                            anchor = new Point(0, 0);
+
+                        _animationOffsets[marker] = new Vector(
+                            pCanvas.X + anchor.X - pMap.X,
+                            pCanvas.Y + anchor.Y - pMap.Y);
+                    }
+
+                    _extensionLineRenderer.Clear();
+                    _logger.LogInfo($"  Captured animation offsets for {_animationOffsets.Count} markers");
+                }
+
                 _mode = InteractionMode.Animating;
 
                 var targetViewport = ViewportState.CreateZoomedView(
@@ -65,6 +104,7 @@ namespace InteractiveWorldMap
 
                 AnimateViewportTransition(startViewport, targetViewport, "Zoom animation", () =>
                 {
+                    _animationOffsets.Clear();
                     ShowZoomedView(cluster);
                     BackButton.Visibility = Visibility.Visible;
                 });
@@ -281,6 +321,8 @@ namespace InteractiveWorldMap
 
                 _logger.LogInfo($"  Current viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}, zoom={startViewport.ZoomLevel:F2}");
 
+                // By design, zoom-out always returns to the full-map view: the navigation stack is a
+                // depth gate (CanGoBack), not a viewport history, so previousState's payload is unused.
                 var previousState = _navigationService.PopState();
                 if (previousState == null)
                 {

@@ -6,6 +6,13 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ---
 
+## Zoom & animation
+
+- [x] Pins track map continuously during zoom in — offset capture + per-frame re-projection keeps pins attached to map during zoom-in animation; extension lines suppressed until settle — [continuous-pin-tracking-during-zoom-plan.md](exec-plans/active/continuous-pin-tracking-during-zoom-plan.md)
+- [x] Verify zoom-out behavior — confirmed 2026-06-21: zoom-out tracks correctly, no fix needed
+
+---
+
 ## Composite pins & manual layouts
 
 Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.md)
@@ -43,9 +50,11 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## Developer tooling
 
 - [x] Runtime tuning panel — [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md) adds a debug-gated in-app panel for composite/drawn toggles, marker/stub/cluster sizing, asset variants, prerasterize, debug overlay, save, and reload.
+- [ ] Fix tuning-panel & pin-rendering bugs from code review — plan: [tuning-and-pin-render-bugfixes-plan.md](exec-plans/active/tuning-and-pin-render-bugfixes-plan.md); findings: [../code-review-2026-06-21T19-48-42.md](../code-review-2026-06-21T19-48-42.md). Priority: (H1/H12) guard/unwind zoom state and replay the active manual layout after a tuning change so composite on/off applies immediately without entering Edit Layout, covering full-map **and** cluster-zoomed views; (H14) **drawn**-pin drag "stub" — dragging a non-extended drawn pin slides the whole glyph (head + built-in shaft) with no connecting shaft to the fixed tip; create/anchor the extension line on first move and hide the built-in shaft (related: drawn-pin-model-separation-plan.md); (H13) **composite** drag "stub" — rendered head clamped to `MaxStretchFactor` diverges from the drag-guide endpoint at the cursor; (M2) validate reloaded config values; (M3) split angle vs length tolerance in `ShouldRepositionOnly`; (M4) edit-mode composite guide-line lifecycle; plus LOW cleanup items.
 
 ## User ideas (product)
 
+- [ ] Single-location marker click while unzoomed: zoom in and auto-open content window
 - [ ] Subwindow opens near pin, not screen center
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish
@@ -54,7 +63,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Welcome / instructions screen
 - [ ] Content ordering; bio popup per marker
 - [ ] Don't animate extension lines until fully zoomed in
-- [ ] Pins track map continuously during zoom in/out — update marker positions every animation frame so pins stay anchored to their map coordinates instead of holding screen-space positions until zoom settles
 - [ ] Consider intermediate zoom levels and free panning — explore discrete zoom steps between full map and cluster zoom, plus drag-to-pan on the map canvas (today: cluster click zoom + back only)
 - [ ] Better logging filters; smoother zoom
 

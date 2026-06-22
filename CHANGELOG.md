@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Continuous pin tracking during zoom-in:** Markers with radial extension lines no longer freeze at pre-animation screen positions during zoom-in animations. Pin-to-map offsets are captured in the settled state before the animation and reapplied each frame, keeping pins attached to the moving map. Extension lines are suppressed during animation and rebuilt at settle. (`MainWindow.xaml.cs`, `MainWindow.Navigation.partial.cs`)
+
 - **Drawn manual-layout pin zoom-out persistence:** Zoom-out animation now replays the loaded full-map manual layout after each animated marker-position update, preventing edited standalone drawn pins from temporarily reverting to auto stub pins before the full-map settle replay.
 
 - **Drawn pin fallback visibility:** `PinMarker` now sizes ball and shaft from `PinMarkers` config (was scaling down via `LocationMarkerSize` and ignoring config). Extension lines use a thicker resting stroke and hover restores the configured style instead of only becoming visible on hover.
