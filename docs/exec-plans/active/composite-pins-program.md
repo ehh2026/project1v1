@@ -24,7 +24,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Head visibility | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Planned | Generate 2-14px black-outline head variants and config selector |
 | Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
 | Pin appearance overrides | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Planned | Composite head picker + drawn color picker |
-| Tuning & render bug fixes | [tuning-and-pin-render-bugfixes-plan.md](tuning-and-pin-render-bugfixes-plan.md) | Planned | 2026-06-21 review: tuning replay/zoom-state, drawn+composite drag, validation, cleanup |
+| Tuning & render bug fixes | [tuning-and-pin-render-bugfixes-plan.md](../completed/tuning-and-pin-render-bugfixes-plan.md) | Complete | All H/M findings fixed 2026-06-21; plan moved to completed/ |
 
 ## Dependency order
 

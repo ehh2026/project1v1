@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using System.Windows;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Views;
 
 namespace InteractiveWorldMap
 {
@@ -31,7 +32,15 @@ namespace InteractiveWorldMap
 
         private async void OnApplyTuning(object? sender, TuningPanelEventArgs e)
         {
-            await ApplyTuningAsync(e);
+            try
+            {
+                await ApplyTuningAsync(e);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[Tuning] Unhandled apply error: {ex.Message}");
+                DeveloperTuningPanel.SetStatus("Apply failed; see log for details.");
+            }
         }
 
         private void OnSaveTuningToDisk(object? sender, EventArgs e)
@@ -60,7 +69,14 @@ namespace InteractiveWorldMap
             try
             {
                 var fresh = _configService.Load(_configPath);
-                await ApplyTuningAsync(CreateTuningArgs(fresh));
+                var args = CreateTuningArgs(fresh);
+                if (!DeveloperTuningPanel.TryValidate(args, out var error))
+                {
+                    _logger.LogWarning($"[Tuning] Reloaded config rejected: {error}");
+                    DeveloperTuningPanel.SetStatus($"Reload rejected: {error}");
+                    return;
+                }
+                await ApplyTuningAsync(args);
                 DeveloperTuningPanel.SetStatus($"Reloaded tuning values from {_configPath}.");
             }
             catch (Exception ex)
@@ -104,20 +120,31 @@ namespace InteractiveWorldMap
                     !NearlyEqual(oldClusterMarkerSize, e.ClusterMarkerSize) ||
                     (turningCompositeOff && _individualMarkers.Count > 0 && _baseMarkerVisuals.Count == 0);
 
+                // Recreate-class changes require a full-map cluster rebuild which is meaningless
+                // while zoomed into a cluster. Reject and prompt the user to zoom out first.
+                if (needsRecreate && _currentZoomedCluster != null)
+                {
+                    DeveloperTuningPanel.SetStatus("Zoom out to apply cluster/marker-size changes.");
+                    return;
+                }
+
                 var assetVariantChanged =
                     !string.Equals(oldShaftVariant, newShaftVariant, StringComparison.Ordinal) ||
                     !string.Equals(oldHeadVariant, newHeadVariant, StringComparison.Ordinal) ||
                     oldUseLitShafts != e.UseLitShafts;
 
+                // Plan-affecting changes: trigger cache invalidation and composite rebuild.
                 var compositePlanChanged =
-                    oldPinPartsEnabled != e.UseComposite ||
                     oldUseComposite != e.UseComposite ||
-                    oldUsePrerasterize != e.UsePrerasterize ||
-                    oldShowDebugOverlay != e.ShowDebugOverlay ||
                     assetVariantChanged ||
                     !NearlyEqual(oldStubLength, e.StubLength) ||
                     !NearlyEqual(oldTargetHeadRadius, e.TargetHeadRadiusPx) ||
                     !NearlyEqual(oldTargetShaftHalfWidth, e.TargetShaftHalfWidthPx);
+
+                // Render-only changes: need a visual refresh but do not invalidate cached plans.
+                var renderSettingsChanged =
+                    oldUsePrerasterize != e.UsePrerasterize ||
+                    oldShowDebugOverlay != e.ShowDebugOverlay;
 
                 _visualConfig.PinParts.Enabled = e.UseComposite;
                 _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
@@ -145,10 +172,10 @@ namespace InteractiveWorldMap
                 }
                 else
                 {
-                    if (turningCompositeOff || (compositePlanChanged && newCanUseComposite))
+                    if (turningCompositeOff || ((compositePlanChanged || renderSettingsChanged) && newCanUseComposite))
                         RestoreBaseMarkerVisuals();
 
-                    UpdateMarkerPositions();
+                    ReapplyViewAfterTuningChange();
                 }
 
                 DeveloperTuningPanel.LoadValues(_visualConfig);
@@ -198,6 +225,25 @@ namespace InteractiveWorldMap
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Restores the view to its correct state after a tuning change. Recomputes base
+        /// auto-placement for ALL pins, then overlays the saved manual layout (which only
+        /// covers the edited subset). Covers full-map root view AND a currently zoomed cluster.
+        /// </summary>
+        private void ReapplyViewAfterTuningChange()
+        {
+            if (_currentZoomedCluster != null)
+            {
+                // ShowZoomedView internally replays auto-placement and the manual layout overlay
+                // for the cluster, so the zoomed layout is preserved. (precedent: OnDeleteLayoutButtonClick)
+                ShowZoomedView(_currentZoomedCluster);
+                return;
+            }
+
+            UpdateMarkerPositions();          // base auto-placement for every visible pin
+            TryApplyFullMapManualLayout();    // overlay saved full-map layout (no-op if none / not full-map root)
         }
 
         private static TuningPanelEventArgs CreateTuningArgs(VisualConfig config)

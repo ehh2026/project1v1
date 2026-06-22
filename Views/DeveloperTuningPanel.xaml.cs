@@ -171,4 +171,30 @@ public partial class DeveloperTuningPanel : UserControl
     }
 
     private static string Format(double value) => value.ToString(CultureInfo.InvariantCulture);
+
+    /// <summary>
+    /// Validates already-parsed numeric tuning values (e.g. from a reloaded config file).
+    /// Applies the same positivity/finite rules as the UI path without re-parsing text fields.
+    /// Called from MainWindow before applying a reloaded config so invalid disk values are rejected.
+    /// </summary>
+    public static bool TryValidate(TuningPanelEventArgs args, out string error)
+    {
+        if (args == null) throw new ArgumentNullException(nameof(args));
+
+        if (args.ClusterThreshold <= 0 || !double.IsFinite(args.ClusterThreshold))
+        { error = "Cluster threshold must be > 0 and finite."; return false; }
+        if (args.LocationMarkerSize <= 0 || !double.IsFinite(args.LocationMarkerSize))
+        { error = "Location marker size must be > 0 and finite."; return false; }
+        if (args.ClusterMarkerSize <= 0 || !double.IsFinite(args.ClusterMarkerSize))
+        { error = "Cluster marker size must be > 0 and finite."; return false; }
+        if (args.StubLength < 0 || !double.IsFinite(args.StubLength))
+        { error = "Stub length must be >= 0 and finite."; return false; }
+        if (args.TargetHeadRadiusPx < 0 || !double.IsFinite(args.TargetHeadRadiusPx))
+        { error = "Head radius must be >= 0 and finite."; return false; }
+        if (args.TargetShaftHalfWidthPx < 0 || !double.IsFinite(args.TargetShaftHalfWidthPx))
+        { error = "Shaft half width must be >= 0 and finite."; return false; }
+
+        error = string.Empty;
+        return true;
+    }
 }

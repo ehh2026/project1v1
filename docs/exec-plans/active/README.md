@@ -26,7 +26,6 @@ started: YYYY-MM-DD
 | [pinhead-black-outline-variants-plan.md](pinhead-black-outline-variants-plan.md) | Generate black-outline head variants + config-gated head asset selection |
 | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
-| [tuning-and-pin-render-bugfixes-plan.md](tuning-and-pin-render-bugfixes-plan.md) | Fix tuning-panel & pin-render bugs from the 2026-06-21 code review (H1/H12/H13/H14, M2–M4, cleanup) |
 
 ## Recently completed (moved to ../completed/)
 
@@ -38,6 +37,7 @@ started: YYYY-MM-DD
 - `composite-pin-shaft-visibility-plan.md` — Baked shaft contrast variants; default `outline_dark_7px` — moved 2026-06-11
 - `remove-pins-jpg-legacy-path-plan.md` — Removed `pins.jpg` / `ImagePinMarker`; drawn vs composite only — moved 2026-06-21
 - `runtime-tuning-panel-plan.md` — Developer-only runtime panel for visual-config tuning without restart — moved 2026-06-21
+- `tuning-and-pin-render-bugfixes-plan.md` — Tuning-panel & pin-render bug fixes from 2026-06-21 review (H1/H12/H13/H14, M2–M4, cleanup) — moved 2026-06-21
 
 Completed plans move to [../completed/](../completed/). Parked plans (core done, optional follow-ups) move to [../inactive/](../inactive/).
 

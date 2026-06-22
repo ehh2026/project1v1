@@ -106,6 +106,24 @@ public class CompositePinEditModeTests
         Assert.Equal(expectedStart.Y - 24, target.EndScreen.Y, 1);
     }
 
+    // ─── M4: ExtensionLineRenderer.Apply must not untrack guide lines in the composite-success branch ───
+
+    [Fact]
+    public void ExtensionLineRenderer_Apply_CompositeSuccessBranch_DoesNotUntrackMarker()
+    {
+        var rendererSource = File.ReadAllText(Path.Combine(RepoRoot, "Views", "ExtensionLineRenderer.cs"));
+
+        // Locate the Apply method's composite-success branch (after tryCompositePinApplier returns true).
+        var applierCallIdx = rendererSource.IndexOf("tryCompositePinApplier(marker, originalScreenPos, extendedScreenPos)",
+            StringComparison.Ordinal);
+        Assert.True(applierCallIdx >= 0, "tryCompositePinApplier call not found in Apply.");
+
+        // The two bare Remove calls must not appear after the applier invocation.
+        var applySuccessBranch = rendererSource.Substring(applierCallIdx, 400);
+        Assert.DoesNotContain("_markerToLine.Remove(marker)", applySuccessBranch);
+        Assert.DoesNotContain("_markerToPinLines.Remove(marker)", applySuccessBranch);
+    }
+
     // ─── CompositePinRenderPlan head center fallback for endpoint extraction ───
 
     [Fact]

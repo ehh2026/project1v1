@@ -684,64 +684,57 @@ namespace InteractiveWorldMap
                     // Rebuild composite pin with new target (always full reapply — angle/length change each tick)
                     ApplyCompositePinToMarker(_draggedMarker, originalPos, mousePos);
 
-                    // Update extension line endpoint
-                    if (_extensionLineRenderer.HasLine(_draggedMarker))
+                    // Policy A: drive guide line to the clamped rendered head, not raw cursor.
+                    // When MaxStretchFactor clamps the shaft, the rendered head stops before the cursor;
+                    // aligning the guide line endpoint to the rendered position keeps them coincident.
+                    if (_draggedMarker.Content is CompositePinMarker draggedCpm && draggedCpm.RenderPlan != null)
                     {
-                        _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, mousePos);
+                        var renderedHead = new Point(
+                            Canvas.GetLeft(_draggedMarker) + draggedCpm.RenderPlan.HeadCenterLocal.X,
+                            Canvas.GetTop(_draggedMarker)  + draggedCpm.RenderPlan.HeadCenterLocal.Y);
+
+                        if (_extensionLineRenderer.HasLine(_draggedMarker))
+                            _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, renderedHead);
+
+                        _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, renderedHead);
+                        LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head at ({renderedHead.X:F1},{renderedHead.Y:F1})");
                     }
-
-                    // Record the new endpoint for save
-                    _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, mousePos);
-
-                    LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head moved to ({mousePos.X:F1}, {mousePos.Y:F1})");
+                    else
+                    {
+                        if (_extensionLineRenderer.HasLine(_draggedMarker))
+                            _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, mousePos);
+                        _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, mousePos);
+                        LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head at ({mousePos.X:F1},{mousePos.Y:F1})");
+                    }
                     return;
                 }
 
-                // Legacy marker drag (existing behavior)
-                var markerSize = _visualConfig.LocationMarkerSize;
-                
-                LogDragDebug($"[DRAG] Mouse position: ({currentPosition.X:F1}, {currentPosition.Y:F1}), MarkerSize: {markerSize}");
-                
-                // Calculate new position (centered on cursor)
-                var newX = currentPosition.X - (markerSize / 2);
-                var newY = currentPosition.Y - (markerSize / 2);
-                
-                LogDragDebug($"[DRAG] Calculated position before bounds: ({newX:F1}, {newY:F1})");
-                
-                // Constrain to canvas bounds
-                var canvasWidth = MapDisplay.Markers.ActualWidth;
-                var canvasHeight = MapDisplay.Markers.ActualHeight;
-                newX = Math.Max(0, Math.Min(newX, canvasWidth - markerSize));
-                newY = Math.Max(0, Math.Min(newY, canvasHeight - markerSize));
-                
-                LogDragDebug($"[DRAG] Final position after bounds ({canvasWidth:F0}x{canvasHeight:F0}): ({newX:F1}, {newY:F1})");
-                
-                // Get current marker position for comparison
-                var currentMarkerX = Canvas.GetLeft(_draggedMarker);
-                var currentMarkerY = Canvas.GetTop(_draggedMarker);
-                LogDragDebug($"[DRAG] Current marker position: ({currentMarkerX:F1}, {currentMarkerY:F1})");
-                
-                // Update marker position
-                Canvas.SetLeft(_draggedMarker, newX);
-                Canvas.SetTop(_draggedMarker, newY);
-                
-                // Verify marker position was updated
-                var updatedMarkerX = Canvas.GetLeft(_draggedMarker);
-                var updatedMarkerY = Canvas.GetTop(_draggedMarker);
-                LogDragDebug($"[DRAG] Updated marker position: ({updatedMarkerX:F1}, {updatedMarkerY:F1})");
-                
-                // Update line if it exists
-                if (_extensionLineRenderer.HasLine(_draggedMarker))
+                // Drawn pin drag: keep tip fixed at Excel location and show a connecting shaft.
+                if (viewport == null) return;
+
+                var tipScreen = viewport.SourceToScreen(
+                    _draggedMarker.Location.PixelX, _draggedMarker.Location.PixelY, cw, ch);
+
+                var headScreen = new Point(
+                    Math.Max(0, Math.Min(currentPosition.X, MapDisplay.Markers.ActualWidth)),
+                    Math.Max(0, Math.Min(currentPosition.Y, MapDisplay.Markers.ActualHeight)));
+
+                if (!_extensionLineRenderer.HasLine(_draggedMarker))
                 {
-                    var markerCenterX = newX + (markerSize / 2);
-                    var markerCenterY = newY + (markerSize / 2);
-                    _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, new Point(markerCenterX, markerCenterY));
-                    LogDragDebug($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1})");
+                    _extensionLineRenderer.AddLine(_draggedMarker, tipScreen, headScreen);
+                    _extensionLineRenderer.SetLineZIndex(_draggedMarker, 1999);
                 }
                 else
                 {
-                    LogDragDebug($"[OnMarkerDragMove] No line found for marker: {_draggedMarker.Location.Name}");
+                    _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, headScreen);
                 }
+
+                // AnchorExtendedMarker hides the built-in shaft, sets z-index 2000, and
+                // anchors the head glyph by its connection point (not its bounding-box center).
+                _extensionLineRenderer.AnchorExtendedMarker(_draggedMarker, headScreen);
+                _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, tipScreen, headScreen);
+
+                LogDragDebug($"[DRAG] Drawn pin '{_draggedMarker.Location.Name}' head at ({headScreen.X:F1},{headScreen.Y:F1}), tip at ({tipScreen.X:F1},{tipScreen.Y:F1})");
             }
         }
 

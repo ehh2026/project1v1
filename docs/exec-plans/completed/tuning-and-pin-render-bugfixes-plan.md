@@ -12,7 +12,7 @@ parent_program: composite-pins-program.md
 
 **Goal:** Fix the bugs and robustness gaps found in the 2026-06-21 code review of the runtime tuning panel and pin rendering (drawn + composite). Source of findings: [`../../../code-review-2026-06-21T19-48-42.md`](../../../code-review-2026-06-21T19-48-42.md).
 
-**Architecture:** All fixes are localized to existing `MainWindow.*.partial.cs` orchestration, the `ExtensionLineRenderer`, and the `CompositePinPlacementPolicy`/`PinPartPlacementCalculator` services. No new view controls and no manual-layout JSON schema changes. The drawn-pin drag fix (H14) deliberately stops short of the larger control split tracked by [`drawn-pin-model-separation-plan.md`](drawn-pin-model-separation-plan.md) — it makes the *current* drawn drag behave correctly without introducing new controls, and notes the overlap so the two plans don't collide.
+**Architecture:** All fixes are localized to existing `MainWindow.*.partial.cs` orchestration, the `ExtensionLineRenderer`, and the `CompositePinPlacementPolicy`/`PinPartPlacementCalculator` services. No new view controls and no manual-layout JSON schema changes. The drawn-pin drag fix (H14) deliberately stops short of the larger control split tracked by [`drawn-pin-model-separation-plan.md`](../active/drawn-pin-model-separation-plan.md) — it makes the *current* drawn drag behave correctly without introducing new controls, and notes the overlap so the two plans don't collide.
 
 **Tech Stack:** WPF / .NET 6 / C#, existing `VisualConfig`/`VisualConfigService`, `MarkerPlacementOrchestrator`, `ExtensionLineRenderer`, `CompositePinPlacementPolicy`, `PinPartPlacementCalculator`, xUnit source + behavior tests.
 
@@ -191,7 +191,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
   2. Drag a standalone (non-extended) pin. **During** the drag the head should follow the cursor while a single shaft connects back to the fixed map tip — no free-floating stub.
   3. Save + exit; confirm the result matches what was shown during drag.
 
-> **Coordination:** this overlaps [`drawn-pin-model-separation-plan.md`](drawn-pin-model-separation-plan.md). This task is the minimal in-place fix; if the model-separation plan lands first, port these semantics onto `ManualLayoutPinMarker` instead of `SetShaftVisible(false)`.
+> **Coordination:** this overlaps [`drawn-pin-model-separation-plan.md`](../active/drawn-pin-model-separation-plan.md). This task is the minimal in-place fix; if the model-separation plan lands first, port these semantics onto `ManualLayoutPinMarker` instead of `SetShaftVisible(false)`.
 
 ---
 

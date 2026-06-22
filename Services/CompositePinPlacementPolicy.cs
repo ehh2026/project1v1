@@ -44,6 +44,7 @@ namespace InteractiveWorldMap.Services
             PinPlacementTarget newTarget,
             string? preferredPairId = null,
             string? preferredHeadSourcePath = null,
+            double toleranceDeg = 0.5,
             double tolerancePx = 0.5)
         {
             if (existingPlan == null || newTarget == null)
@@ -62,7 +63,7 @@ namespace InteractiveWorldMap.Services
             }
 
             var (angleDeg, lengthPx) = GetSegmentAngleAndLength(newTarget);
-            if (AngleDifferenceDeg(angleDeg, existingPlan.TargetAngleDeg) > tolerancePx)
+            if (AngleDifferenceDeg(angleDeg, existingPlan.TargetAngleDeg) > toleranceDeg)
                 return false;
 
             if (Math.Abs(lengthPx - existingPlan.TargetLengthPx) > tolerancePx)

@@ -122,9 +122,6 @@ namespace InteractiveWorldMap.Views
                 {
                     if (tryCompositePinApplier(marker, originalScreenPos, extendedScreenPos))
                     {
-                        _markerToLine.Remove(marker);
-                        _markerToPinLines.Remove(marker);
-
                         if (log)
                             _logInfo($"    Composite marker positioned with tip anchor at ({originalScreenPos.X:F1},{originalScreenPos.Y:F1})");
 
@@ -368,11 +365,6 @@ namespace InteractiveWorldMap.Views
         // -------------------------------------------------------------------------
         // Private: line factory (merged from CreateExtensionLine + CreatePinExtensionLine)
         // -------------------------------------------------------------------------
-
-        private Line CreateLine(Point start, Point end) =>
-            _visualConfig.UsePinMarkers
-                ? CreatePinLinePair(start, end).Core
-                : CreateDebugLine(start, end);
 
         private PinExtensionLines CreatePinLinePair(Point start, Point end)
         {
