@@ -25,6 +25,7 @@ started: YYYY-MM-DD
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
+| [tuning-panel-dropdowns-plan.md](tuning-panel-dropdowns-plan.md) | Tuning panel shaft/head variant ComboBox pickers (follow-up to runtime tuning panel) |
 
 ## Recently completed (moved to ../completed/)
 
