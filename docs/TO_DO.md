@@ -51,6 +51,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 - [x] Runtime tuning panel — [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md) adds a debug-gated in-app panel for composite/drawn toggles, marker/stub/cluster sizing, asset variants, prerasterize, debug overlay, save, and reload.
 - [x] Fix tuning-panel & pin-rendering bugs from code review — plan: [tuning-and-pin-render-bugfixes-plan.md](exec-plans/completed/tuning-and-pin-render-bugfixes-plan.md); findings: [../code-review-2026-06-21T19-48-42.md](../code-review-2026-06-21T19-48-42.md). All HIGH/MEDIUM findings resolved: H1/H12 guard+replay, H14 drawn drag, H13 composite drag (Policy A), M2 reload validation, M3 tolerances, M4 guide-line lifecycle, L6–L10 cleanups. (2026-06-21)
+- [ ] Tuning panel: shaft/head variant pickers — replace `TxtShaftVariant` / `TxtHeadVariant` free-text boxes with drop-downs populated from `Images&Content/Pins_v2/parts/shaft_variants/` and `head_variants/` (include blank/base option); grey out both pickers when composite pins are off (`ChkComposite` unchecked). Follow-up to [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md).
 
 ## User ideas (product)
 
