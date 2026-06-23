@@ -18,6 +18,17 @@ public class SingleLocationZoomClickTests
     }
 
     [Fact]
+    public void AnimateZoomOut_ClosesActiveContentPopup()
+    {
+        // Backing out of a zoomed view must dismiss any open content popup — including the one
+        // auto-opened from a single-location unzoomed click — so it does not linger over the map.
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.Navigation.partial.cs"));
+        var body = ExtractMethodBody(source, "private void AnimateZoomOut()");
+
+        Assert.Contains("CloseActiveSubwindow();", body);
+    }
+
+    [Fact]
     public void IndividualMarker_SetsAutoOpenLocation_And_GuardsAgainstDoubleClicks()
     {
         var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));

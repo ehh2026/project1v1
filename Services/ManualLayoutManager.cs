@@ -475,11 +475,39 @@ namespace InteractiveWorldMap.Services
                 return _cachedLayouts;
             }
 
-            var json = File.ReadAllText(_layoutFilePath);
-            var collection = JsonSerializer.Deserialize<ManualLayoutCollection>(json, LayoutJsonOptions);
+            try
+            {
+                var json = File.ReadAllText(_layoutFilePath);
+                var collection = JsonSerializer.Deserialize<ManualLayoutCollection>(json, LayoutJsonOptions);
+                _cachedLayouts = NormalizeCollection(collection ?? new ManualLayoutCollection());
+            }
+            catch (Exception ex)
+            {
+                // A corrupt or schema-incompatible layout file must never crash the app. Preserve
+                // the bad file for inspection and continue with an empty layout set; subsequent
+                // saves write a fresh, valid file.
+                _logger.LogWarning(
+                    $"[ManualLayoutManager] Could not read layouts from {_layoutFilePath}: {ex.Message}. " +
+                    "Starting with an empty layout set.");
+                TryBackupUnreadableFile();
+                _cachedLayouts = new ManualLayoutCollection();
+            }
 
-            _cachedLayouts = NormalizeCollection(collection ?? new ManualLayoutCollection());
             return _cachedLayouts;
+        }
+
+        private void TryBackupUnreadableFile()
+        {
+            try
+            {
+                var backupPath = _layoutFilePath + ".corrupt";
+                File.Copy(_layoutFilePath, backupPath, overwrite: true);
+                _logger.LogWarning($"[ManualLayoutManager] Backed up unreadable layout file to {backupPath}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"[ManualLayoutManager] Could not back up unreadable layout file: {ex.Message}");
+            }
         }
 
         private void SaveLayoutCollection(ManualLayoutCollection collection)

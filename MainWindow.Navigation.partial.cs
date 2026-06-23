@@ -355,6 +355,11 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
 
+                // Backing out of a zoomed view always dismisses any open content popup (subwindow,
+                // thumbnail browser, didactic window) — including the one auto-opened from a
+                // single-location unzoomed click. Otherwise it lingers over the full map.
+                CloseActiveSubwindow();
+
                 var animationLayout = TryLoadFullMapManualLayoutForAnimation();
 
                 _extensionLineRenderer.Clear();

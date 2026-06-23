@@ -70,6 +70,59 @@ public class ManualLayoutZoomAnimationTests
             "Animation frames should replay manual layout after marker positions update.");
     }
 
+    [Fact]
+    public void AnimateViewportTransition_UsesStopwatchNotDateTimeNow()
+    {
+        // Phase 1.3: DateTime.Now (~15.6 ms resolution) quantized progress and caused stutter.
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.Navigation.partial.cs"));
+        var body = ExtractMethodBody(source, "private void AnimateViewportTransition");
+
+        Assert.Contains("Stopwatch.StartNew()", body);
+        // No DateTime.Now used for timing (assignment pattern; the rationale comment may mention it).
+        Assert.DoesNotContain("= DateTime.Now", body);
+    }
+
+    [Fact]
+    public void ApplyManualLayout_RepositionsLinesInPlaceDuringAnimation_NotFullRebuild()
+    {
+        // Phase 2.1: during a zoom animation the layout is replayed every frame. It must reuse the
+        // existing extension-line pairs (reposition in place) instead of clearing and re-creating
+        // every Line/Brush/Effect, which churned the GC and dropped frames.
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.LayoutEditor.partial.cs"));
+        var body = ExtractMethodBody(source, "private void ApplyManualLayout");
+
+        // Clear() must be guarded so it does not run on every animation frame.
+        var guardIdx = body.IndexOf("if (!IsAnimating)", StringComparison.Ordinal);
+        var clearIdx = body.IndexOf("_extensionLineRenderer.Clear();", StringComparison.Ordinal);
+        Assert.True(guardIdx >= 0 && clearIdx > guardIdx,
+            "ApplyManualLayout must guard the extension-line Clear() behind !IsAnimating.");
+
+        Assert.Contains("TryRepositionPinLine(marker", body);
+    }
+
+    [Fact]
+    public void UpdateMarkerPositions_CachesVisibleProjectionsDuringAnimation()
+    {
+        // Phase 2.2: visibility/source coords are constant across a single animation, so the
+        // visible-marker projections are cached for its duration instead of rebuilt each frame.
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var body = ExtractMethodBody(source, "private void UpdateMarkerPositions()");
+
+        Assert.Contains("_animVisibleIndividuals", body);
+        Assert.Contains("IsAnimating && _animVisibleIndividuals != null", body);
+    }
+
+    [Fact]
+    public void UpdateMarkerPositions_UsesNameIndexNotPerPlacementScan()
+    {
+        // Phase 2.3: per-placement marker lookups use an O(1) name index instead of O(n)
+        // FirstOrDefault scans (O(n^2) per frame).
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var body = ExtractMethodBody(source, "private void UpdateMarkerPositions()");
+
+        Assert.Contains("BuildIndividualMarkerIndex()", body);
+    }
+
     private static string ExtractMethodBody(string source, string signature)
     {
         var methodStart = source.IndexOf(signature, StringComparison.Ordinal);

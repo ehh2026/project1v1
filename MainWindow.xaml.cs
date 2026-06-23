@@ -44,6 +44,10 @@ namespace InteractiveWorldMap
         private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
         private IExtensionLineRenderer _extensionLineRenderer = null!;
         private readonly Dictionary<LocationMarker, Vector> _animationOffsets = new();
+        // 2.2: visible-marker projections are constant across a single zoom animation, so they are
+        // cached here for its duration and rebuilt (and cleared) on the first non-animating pass.
+        private List<(Location Location, double PixelX, double PixelY)>? _animVisibleIndividuals;
+        private List<Point>? _animVisibleClusterCenters;
         private RadialExtensionCalculator? _extensionCalculator;
         private RadialExtensionAdjuster? _adjuster;
         private MarkerPlacementOrchestrator _placementOrchestrator = null!;
@@ -169,9 +173,7 @@ namespace InteractiveWorldMap
                 _extensionLineRenderer = new ExtensionLineRenderer(MapDisplay.Markers, _visualConfig, _logger.LogInfo, _logger.LogWarning);
 
                 var configuredLayoutPath = _visualConfig.ManualLayoutEditor.LayoutStoragePath;
-                var layoutFilePath = IOPath.IsPathRooted(configuredLayoutPath)
-                    ? configuredLayoutPath
-                    : IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+                var layoutFilePath = ResolveLayoutStoragePath(configuredLayoutPath);
 
                 // Initialize manual layout manager if enabled OR if we need to load layouts
                 if (_visualConfig.ManualLayoutEditor.Enabled)
@@ -443,6 +445,45 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
+        /// Resolves the read-write layout store path. A rooted configured path is honored as-is.
+        /// A relative path is treated as the bundled (app-folder) seed; user layouts then live in a
+        /// stable per-user location (<c>%AppData%/InteractiveWorldMap</c>) so that rebuilding or
+        /// cleaning the app output never discards saved layouts. The bundled seed is copied in once
+        /// when no user file exists yet. Falls back to the bundled path if the user location is
+        /// unavailable, so startup never fails over layout storage.
+        /// </summary>
+        private string ResolveLayoutStoragePath(string configuredLayoutPath)
+        {
+            if (IOPath.IsPathRooted(configuredLayoutPath))
+                return configuredLayoutPath;
+
+            var bundledPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+            var userDir = IOPath.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "InteractiveWorldMap");
+            var userPath = IOPath.Combine(userDir, "manual-layouts.json");
+
+            try
+            {
+                System.IO.Directory.CreateDirectory(userDir);
+                if (!System.IO.File.Exists(userPath) && System.IO.File.Exists(bundledPath))
+                {
+                    System.IO.File.Copy(bundledPath, userPath);
+                    _logger.LogInfo($"Seeded user layout store from bundled layouts: {userPath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    $"Could not prepare user layout store ({ex.Message}); using bundled path {bundledPath}. " +
+                    "Layouts may not persist across a rebuild.");
+                return bundledPath;
+            }
+
+            return userPath;
+        }
+
+        /// <summary>
         /// Updates all marker positions based on the current viewport.
         /// Applies radial extensions for dense marker groups when enabled.
         /// </summary>
@@ -460,15 +501,32 @@ namespace InteractiveWorldMap
 
             PrepareMarkerVisualsForPlacementUpdate();
 
-            var visibleIndividuals = _individualMarkers
-                .Where(m => m.Visibility == Visibility.Visible)
-                .Select(m => (m.Location, m.Location.PixelX, m.Location.PixelY))
-                .ToList();
+            // 2.2: marker visibility and source coordinates do not change during a zoom animation,
+            // so reuse the cached projections across frames instead of rebuilding them each frame.
+            // The non-animating branch always rebuilds and clears the cache, so stale data can never
+            // leak into normal placement.
+            List<(Location Location, double PixelX, double PixelY)> visibleIndividuals;
+            List<Point> visibleClusterCenters;
+            if (IsAnimating && _animVisibleIndividuals != null && _animVisibleClusterCenters != null)
+            {
+                visibleIndividuals = _animVisibleIndividuals;
+                visibleClusterCenters = _animVisibleClusterCenters;
+            }
+            else
+            {
+                visibleIndividuals = _individualMarkers
+                    .Where(m => m.Visibility == Visibility.Visible)
+                    .Select(m => (m.Location, m.Location.PixelX, m.Location.PixelY))
+                    .ToList();
 
-            var visibleClusterCenters = _clusterMarkers
-                .Where(m => m.Visibility == Visibility.Visible && m.Cluster != null)
-                .Select(m => m.Cluster!.CenterPoint)
-                .ToList();
+                visibleClusterCenters = _clusterMarkers
+                    .Where(m => m.Visibility == Visibility.Visible && m.Cluster != null)
+                    .Select(m => m.Cluster!.CenterPoint)
+                    .ToList();
+
+                _animVisibleIndividuals = IsAnimating ? visibleIndividuals : null;
+                _animVisibleClusterCenters = IsAnimating ? visibleClusterCenters : null;
+            }
 
             var plan = _placementOrchestrator.Compute(
                 viewport,
@@ -494,19 +552,38 @@ namespace InteractiveWorldMap
                 }
             }
 
-            ApplyIndividualPlacements(plan.IndividualPlacements);
+            // 2.3: build a name->marker index once per pass so the per-placement loops below are
+            // O(1) lookups instead of O(n) FirstOrDefault scans (O(n^2) per frame).
+            var markerByName = BuildIndividualMarkerIndex();
+
+            ApplyIndividualPlacements(plan.IndividualPlacements, markerByName);
             ApplyClusterPlacements(plan.ClusterPlacements);
-            ApplyCompositePinsToNormalPlacements(plan.IndividualPlacements, viewport, containerWidth, containerHeight);
+            ApplyCompositePinsToNormalPlacements(plan.IndividualPlacements, viewport, containerWidth, containerHeight, markerByName);
             ApplyCompositePinDepthSort();
         }
 
-        private void ApplyIndividualPlacements(IReadOnlyList<MarkerScreenPlacement> placements)
+        /// <summary>
+        /// Builds a name-&gt;marker lookup for the individual markers. First marker per name wins,
+        /// preserving the previous <c>FirstOrDefault</c>-by-name behavior (names are unique in practice).
+        /// </summary>
+        private Dictionary<string, LocationMarker> BuildIndividualMarkerIndex()
+        {
+            var index = new Dictionary<string, LocationMarker>(_individualMarkers.Count, StringComparer.Ordinal);
+            foreach (var marker in _individualMarkers)
+            {
+                if (!index.ContainsKey(marker.Location.Name))
+                    index[marker.Location.Name] = marker;
+            }
+            return index;
+        }
+
+        private void ApplyIndividualPlacements(
+            IReadOnlyList<MarkerScreenPlacement> placements,
+            IReadOnlyDictionary<string, LocationMarker> markerByName)
         {
             foreach (var placement in placements)
             {
-                var marker = _individualMarkers.FirstOrDefault(
-                    m => string.Equals(m.Location.Name, placement.LocationName, StringComparison.Ordinal));
-                if (marker == null)
+                if (!markerByName.TryGetValue(placement.LocationName, out var marker))
                     continue;
 
                 if (IsAnimating && _animationOffsets.TryGetValue(marker, out var offset))

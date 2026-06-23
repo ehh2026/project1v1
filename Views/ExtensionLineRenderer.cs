@@ -95,6 +95,14 @@ namespace InteractiveWorldMap.Views
                 _logInfo($"[ApplyRadialExtensions] Canvas children before: {_canvas.Children.Count}");
             }
 
+            // 2.3: index markers by Location once instead of FirstOrDefault per extension (O(n^2)).
+            var markerByLocation = new Dictionary<Location, LocationMarker>(markers.Count);
+            foreach (var m in markers)
+            {
+                if (!markerByLocation.ContainsKey(m.Location))
+                    markerByLocation[m.Location] = m;
+            }
+
             foreach (var extension in group.Extensions)
             {
                 var originalScreenPos = viewport.SourceToScreen(
@@ -117,7 +125,7 @@ namespace InteractiveWorldMap.Views
                     _logInfo($"    Length: {length:F1}px, Angle: {angleDegrees:F2}° (stored: {extension.Angle:F2}°)");
                 }
 
-                var marker = markers.FirstOrDefault(m => m.Location == extension.Location);
+                markerByLocation.TryGetValue(extension.Location, out var marker);
                 if (marker != null)
                 {
                     if (tryCompositePinApplier(marker, originalScreenPos, extendedScreenPos))
@@ -224,6 +232,28 @@ namespace InteractiveWorldMap.Views
                 marker.MouseEnter += OnMouseEnter;
                 marker.MouseLeave += OnMouseLeave;
             }
+        }
+
+        // -------------------------------------------------------------------------
+        // Animation hot-path: reposition existing pin lines in place
+        // -------------------------------------------------------------------------
+
+        public bool TryRepositionPinLine(LocationMarker marker, Point start, Point end)
+        {
+            if (!_markerToPinLines.TryGetValue(marker, out var pair))
+                return false;
+
+            pair.Outline.X1 = start.X;
+            pair.Outline.Y1 = start.Y;
+            pair.Outline.X2 = end.X;
+            pair.Outline.Y2 = end.Y;
+
+            pair.Core.X1 = start.X;
+            pair.Core.Y1 = start.Y;
+            pair.Core.X2 = end.X;
+            pair.Core.Y2 = end.Y;
+
+            return true;
         }
 
         // -------------------------------------------------------------------------

@@ -34,6 +34,13 @@ namespace InteractiveWorldMap.Views
         void AddLine(LocationMarker marker, Point start, Point end);
 
         /// <summary>
+        /// Moves an existing pin extension-line pair in place (updates endpoints only, reusing the
+        /// Line/Brush/Effect objects). Returns false if no pin-line pair is tracked for the marker.
+        /// Used on the zoom-animation hot path to avoid clearing and re-creating lines every frame.
+        /// </summary>
+        bool TryRepositionPinLine(LocationMarker marker, Point start, Point end);
+
+        /// <summary>
         /// Positions an extended marker so its head sits on the extension endpoint.
         /// For drawn pins this also hides the pin's own shaft, so the extension line is the
         /// only shaft (no duplicate, off-axis shaft on top of the head).

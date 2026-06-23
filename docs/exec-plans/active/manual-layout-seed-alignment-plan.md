@@ -124,6 +124,28 @@ Keep `scripts/generate_manual_layout_seeds.ps1` as a thin wrapper that invokes `
 3. Add CHANGELOG entry under `[Unreleased]`.
 4. Move this plan to `exec-plans/completed/` when all phases pass.
 
+## Phase 5 — Persistence robustness (storage location + brittle keys)
+
+**Why here:** seed/runtime key parity (Phases 1–3) only helps if saved layouts actually survive and resolve. Two persistence weaknesses surfaced 2026-06-23 and are folded in here.
+
+### 5a. Stable per-user storage — DONE (2026-06-23)
+- Relative `ManualLayoutEditor.LayoutStoragePath` previously resolved to `BaseDirectory` (`bin/…`), so a `dotnet clean`/rebuild or redeploy discarded user-saved layouts, and runtime edits never reached the source seed file.
+- `MainWindow.ResolveLayoutStoragePath` now treats a relative path as the bundled (app-folder) seed and points the writable store at `%AppData%/InteractiveWorldMap/manual-layouts.json`, seeded once from the bundled file. Rooted paths are honored as-is; falls back to the bundled path if AppData is unavailable.
+
+### 5b. Don't crash on broken/old/invalidated layouts — DONE (2026-06-23)
+- `ManualLayoutManager.LoadLayoutCollection` now wraps deserialize/normalize in try/catch: a corrupt or schema-incompatible file is backed up to `*.corrupt`, logged, and treated as an empty set instead of throwing. Test: `ManualLayoutManagerTests.LoadLayout_WhenFileIsCorrupt_DoesNotThrow_AndBacksUpBadFile`.
+
+### 5c. Brittle keys — TODO
+Layout keys embed canvas size, zoom, viewport center/size, and radial config (`Services/LayoutKeyGenerator.cs`), so a window-size or config change orphans saved layouts (they exist but never resolve via exact-match `TryLoad`).
+
+Tasks:
+1. On load, when an exact-key match misses, fall back to `LayoutKeyGenerator.AreKeysCompatible` matching (the helper already exists; full-map keys must still match exactly). Verify it doesn't mis-apply across genuinely different clusters.
+2. For full-map keys (`fullmap_s{W}x{H}`), make the size component tolerant (e.g. round to a bucket, or normalize to logical units) so a minor resize doesn't orphan the layout — or store size-independent normalized coordinates.
+3. Decide migration for already-orphaned layouts (re-key on load vs. leave). 
+4. Tests: load with a near-miss key (size/zoom/config delta) returns the compatible layout; genuinely incompatible keys do not collide.
+
+**Acceptance:** a saved layout reloads after a small window-resize or non-structural config change; corrupt/stale files never crash; user layouts survive a rebuild.
+
 ## Known Drift Log
 
 | Area | Script behavior | App behavior | Status |

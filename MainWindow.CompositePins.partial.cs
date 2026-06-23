@@ -369,17 +369,17 @@ namespace InteractiveWorldMap
             IReadOnlyList<MarkerScreenPlacement> placements,
             ViewportState viewport,
             double containerWidth,
-            double containerHeight)
+            double containerHeight,
+            IReadOnlyDictionary<string, LocationMarker> markerByName)
         {
             if (!CanUseCompositePins() || IsAnimating)
                 return;
 
             foreach (var placement in placements)
             {
-                var marker = _individualMarkers.FirstOrDefault(
-                    m => m.Visibility == Visibility.Visible
-                         && string.Equals(m.Location.Name, placement.LocationName, StringComparison.Ordinal));
-                if (marker == null || _extensionLineRenderer.HasLine(marker))
+                if (!markerByName.TryGetValue(placement.LocationName, out var marker)
+                    || marker.Visibility != Visibility.Visible
+                    || _extensionLineRenderer.HasLine(marker))
                     continue;
 
                 var target = _compositePinTargetBuilder.Build(

@@ -10,6 +10,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 - [ ] make all pins track map during zoom, instead of only the clicked one tracking and others not appearing during zoom-out and only appearing when zoom-out is complete
 - [ ] Smooth/fast zoom performance + appearance — remove per-frame overhead (sync logging on UI thread, verbose debug flags, `DateTime.Now` clock, per-frame line rebuilds, shadow/effect cost, blocking keyframe I/O) — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md) (findings: [performance-appearance-review.md](performance-appearance-review.md))
+- [x] Close any open content popup when backing out of a zoomed view (incl. the single-click auto-popup) — `AnimateZoomOut` now calls `CloseActiveSubwindow` (DONE 2026-06-23)
 
 ---
 
@@ -20,6 +21,8 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Fix or remove composite pins that overstretch shadow
 - [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
 - [ ] Reliable seed loading in app — same plan, Phase 3
+- [ ] Layout persistence robustness — same plan, Phase 5. **5a stable per-user storage (`%AppData%`) + 5b crash-proof load of corrupt/old layouts DONE 2026-06-23**; remaining **5c brittle keys**: window-size / zoom / radial-config changes orphan saved layouts (exist on disk but never resolve) — add compatible-key fallback + size-tolerant full-map keys on load
+- [ ] Investigate drawn-pin tilt — isolated drawn pins (no manual layout) render a slight **counter-clockwise** lean from vertical on the **unzoomed/full-map** view; appeared recently. Pin shaft is a plain vertical `Rectangle` with no transform and no recent geometry change in code, so cause unknown — needs a screenshot + confirm whether it's the shaft itself or the head/shadow offset, and whether it also shows when zoomed
 - [ ] Explore post-render smooth black outline on composite pins (runtime, after shaft+head compose) — assess vs baked `outline_dark_*` asset variants; see feasibility notes in [composite-pins-program.md](exec-plans/active/composite-pins-program.md) or new exec plan if pursued
 - [ ] Composite mode: user UI to reassign pin head asset (`HeadSourcePath` / `pin_XX_head.png` — effectively head color) — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today heads are auto-picked by location hash; only **shaft** has right-click override; verify reassigned head persists on manual layout save/reload; infrastructure exists: `ManualLayoutMarker.HeadSourcePath`, enricher on save, replay via `preferredHeadSourcePath`; missing: head picker UI like shaft menu)
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)

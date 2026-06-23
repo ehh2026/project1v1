@@ -13,6 +13,35 @@ namespace InteractiveWorldMap.Tests;
 public class ManualLayoutManagerTests
 {
     [Fact]
+    public void LoadLayout_WhenFileIsCorrupt_DoesNotThrow_AndBacksUpBadFile()
+    {
+        // A corrupt or schema-incompatible layout file must never crash the app: load returns null
+        // (no layout) instead of throwing, and the unreadable file is preserved as ".corrupt".
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var layoutPath = Path.Combine(tempDir, "manual-layouts.json");
+
+        try
+        {
+            File.WriteAllText(layoutPath, "{ this is not valid json ]]]");
+
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+
+            var loaded = manager.LoadLayout("anykey_z1.00_c0_0_s100x100_m3_p10.0_l50.0_n13.0");
+
+            Assert.Null(loaded);
+            Assert.True(File.Exists(layoutPath + ".corrupt"), "Unreadable layout file should be backed up.");
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+            {
+                Directory.Delete(tempDir, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void LoadLayout_WhenExactKeyMissingButCompatibleLayoutExists_ReturnsCompatibleLayout()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));

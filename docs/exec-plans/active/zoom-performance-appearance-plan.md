@@ -36,24 +36,19 @@ Establish objective before/after numbers so we can prove the changes helped rath
 
 The three changes most likely to fix "not smooth" on their own. Low risk, no intended visual change. Ship and merge this phase on its own.
 
-- [ ] **1.1 Move synchronous console/debug writes off the hot path** (`Services/FileLogger.cs:82-88`)
+> **Status: code complete (committed `4c30d8d`), build clean, 391→395 tests pass. On-device smoothness/baseline verification still pending (needs GUI).**
+
+- [x] **1.1 Move synchronous console/debug writes off the hot path** (`Services/FileLogger.cs`) — `WriterLoop` now does the `Console`/`Debug` writes on the background thread; `WriteLog` is enqueue-only.
   - `WriteLog` calls `Console.WriteLine` and `Debug.WriteLine` inline on the calling (UI) thread before enqueuing — only the file write is async.
   - Move both writes into the background `WriterLoop` consumer (`:48-66`), or compile them out in Release. Hot path becomes enqueue-only.
   - Keep the bounded-queue drop behavior; confirm nothing relies on synchronous console ordering.
   - **Verify:** app still writes app.log; a forced error still appears in console/log; no deadlock on exit (`Dispose` still drains). Re-run Phase 0 scenario; expect frame count up / max delta down.
 
-- [ ] **1.2 Turn off verbose debug logging in shipped config** (`visual-config.json:68-74`)
-  - Set `LogRadialExtensionCalculation`, `LogRadialExtensionAngles`, `LogRadialExtensionOverlaps`, `LogMarkerPositioning` → `false`. These gate the per-frame `LogInfo` in `MarkerPlacementOrchestrator.Compute` (`Services/MarkerPlacementOrchestrator.cs:72-78,100-143`), which runs once per animation frame.
-  - Also gate the unconditional per-marker log in the line factory behind a debug flag (`Views/ExtensionLineRenderer.cs:417`) — fires per marker per frame in drawn mode, currently ungated.
-  - **Verify:** app.log no longer floods during a zoom; toggling a flag back to `true` re-enables that category. Re-run Phase 0 scenario.
+- [x] **1.2 Turn off verbose debug logging in shipped config** (`visual-config.json`) — all four flags set `false`; the per-marker line-factory log (`Views/ExtensionLineRenderer.cs:419`) now gated behind `LogRadialExtensionCalculation`.
 
-- [ ] **1.3 Replace `DateTime.Now` with `Stopwatch` for the animation clock** (`MainWindow.Navigation.partial.cs:445,453,457-458`)
-  - `DateTime.Now` resolution is ~15.6 ms, quantizing `progress` at a 16 ms frame budget → stutter.
-  - Start one `System.Diagnostics.Stopwatch` before the `CompositionTarget.Rendering` loop; read `Elapsed.TotalMilliseconds` for `elapsed`/`progress`/delta.
-  - (Trivial) replace the per-frame linear keyframe search (`:461-467`) with `frameIndex = (int)Math.Round(progress * (keyframeCount - 1))` — `keyframeProgress` is linear/monotonic.
-  - **Verify:** animation still completes exactly once and lands on the final frame; `[FRAMES TOTAL]` time ≈ `AnimationDurationMs`; motion visibly smoother.
+- [x] **1.3 Replace `DateTime.Now` with `Stopwatch` for the animation clock** (`MainWindow.Navigation.partial.cs`) — single `Stopwatch` drives `elapsed`/`progress`/delta; per-frame keyframe search replaced with direct `Math.Round` index. Regression test: `AnimateViewportTransition_UsesStopwatchNotDateTimeNow`.
 
-**Phase 1 exit:** Build clean; existing tests pass; `verify.ps1` green; Phase 0 metrics improved (more frames, lower max delta) with no behavior/log regressions. Merge.
+**Phase 1 exit:** Build clean; tests pass (395); on-device smoothness + Phase 0 baseline still to be confirmed in the GUI. **Merge gated on that visual check.**
 
 ---
 
@@ -63,17 +58,20 @@ Structural changes to the animation loop and rendering. Higher effort / more vis
 
 ### 2a. Per-frame allocation in the animation loop (decided — ready)
 
-- [ ] **2.1 Stop rebuilding extension lines every frame in drawn mode** (`MainWindow.LayoutEditor.partial.cs:511` `ApplyManualLayout`, called per frame via `MainWindow.Navigation.partial.cs:443,474,492`)
-  - Each frame currently does `_extensionLineRenderer.Clear()` then re-creates 2 `Line` + 2 `SolidColorBrush` + 2 `DropShadowEffect` per marker (`Views/ExtensionLineRenderer.cs:369-419`).
-  - Add an animation-path "reposition existing lines" method: create lines once, per frame update only `X1/Y1/X2/Y2`, reuse brushes/effects. `MoveLineEndpoint` (`:233-274`) shows the per-marker update shape.
-  - **Verify:** drawn-mode manual-layout zoom — shaft tracks the map every frame, no flicker/disappear, lands correctly at settle; re-measure.
+> **Status: code complete, build clean, 395 tests pass (4 new regression tests). On-device visual verification of 2.1/2.2 still pending (needs GUI).**
 
-- [ ] **2.2 Reduce per-frame LINQ/dictionary allocation** (`MainWindow.xaml.cs:455-471`, `Services/MarkerPlacementOrchestrator.cs:92-203`)
-  - Visibility is constant mid-zoom; cache the visible-marker projection for the animation's duration instead of re-`Where().Select().ToList()` each frame. Invalidate on settle / marker add-remove.
-  - **Verify:** no placement drift vs. before; re-measure GC/frame deltas.
+- [x] **2.1 Stop rebuilding extension lines every frame in drawn mode** (`MainWindow.LayoutEditor.partial.cs` `ApplyManualLayout`)
+  - `Clear()` now guarded behind `!IsAnimating`; new `IExtensionLineRenderer.TryRepositionPinLine` updates the existing pair's endpoints in place (reusing Line/Brush/Effect), and the `RequiresExtensionLine` branch repositions during animation, falling back to `AddLine` on the first frame.
+  - Safety: the settle frame runs with `IsAnimating == false` (mode flips to `Normal` before the final `UpdateMarkerPositions`/`onFrameUpdated`), so it always does a clean rebuild — in-flight reuse can't leave a stale final state.
+  - Regression test: `ApplyManualLayout_RepositionsLinesInPlaceDuringAnimation_NotFullRebuild`.
+  - **Pending visual check:** drawn-mode manual-layout zoom — shaft tracks the map every frame, no flicker/disappear, lands correctly at settle.
 
-- [ ] **2.3 Replace O(n) marker lookups in per-frame loops** with a name→marker dictionary built once per pass (`MainWindow.xaml.cs:499-500`, `MainWindow.CompositePins.partial.cs:498`, `Views/ExtensionLineRenderer.cs:120`).
-  - **Verify:** identical placement output; cheap correctness check via a unit test on the lookup builder.
+- [x] **2.2 Reduce per-frame LINQ/dictionary allocation** (`MainWindow.xaml.cs` `UpdateMarkerPositions`)
+  - Visible-individual and visible-cluster-center projections cached in `_animVisibleIndividuals`/`_animVisibleClusterCenters` for the animation's duration; the non-animating branch always rebuilds and clears the cache, so stale data can't leak into normal placement.
+  - Regression test: `UpdateMarkerPositions_CachesVisibleProjectionsDuringAnimation`.
+  - **Pending visual check:** no placement drift vs. before.
+
+- [x] **2.3 Replace O(n) marker lookups in per-frame loops** — `BuildIndividualMarkerIndex()` builds a name→marker dictionary once per pass; `ApplyIndividualPlacements` and `ApplyCompositePinsToNormalPlacements` (`MainWindow.CompositePins.partial.cs`) take it; `ExtensionLineRenderer.Apply` builds a local `Location`→marker index instead of per-extension `FirstOrDefault`. Output-identical (first-per-name wins). Regression test: `UpdateMarkerPositions_UsesNameIndexNotPerPlacementScan`.
 
 ### 2b. Effects & bitmap I/O (blocked on decisions)
 

@@ -513,7 +513,13 @@ namespace InteractiveWorldMap
             _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
 
             var groupKey = _layoutEditor.CurrentLayoutKey ?? layout.GroupKey;
-            _extensionLineRenderer.Clear();
+
+            // 2.1: on the zoom-animation hot path, keep the existing extension-line pairs and
+            // reposition them in place each frame (see the RequiresExtensionLine branch below)
+            // instead of clearing and re-creating every Line/Brush/Effect. The settle frame runs
+            // with IsAnimating == false, so it still does a clean rebuild.
+            if (!IsAnimating)
+                _extensionLineRenderer.Clear();
 
             var visibleMarkers = _individualMarkers
                 .Where(m => m.Visibility == Visibility.Visible)
@@ -590,7 +596,14 @@ namespace InteractiveWorldMap
                 {
                     // Drawn pin lifted off the map: the extension line is the shaft, the head
                     // sits on the endpoint, and the pin's own shaft is hidden (no duplicate line).
-                    _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+                    // 2.1: during animation reuse the existing line pair (reposition in place);
+                    // TryRepositionPinLine returns false on the first frame (none exists yet), so
+                    // we create it then and reuse it for the rest of the animation.
+                    if (!IsAnimating ||
+                        !_extensionLineRenderer.TryRepositionPinLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen))
+                    {
+                        _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+                    }
                     _extensionLineRenderer.AnchorExtendedMarker(marker, instruction.ExtendedScreen);
                 }
                 else
