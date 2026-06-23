@@ -56,6 +56,15 @@ namespace InteractiveWorldMap
                 {
                     UpdateMarkerPositions();
 
+                    // UpdateMarkerPositions() above recomputes *default* placements: it rebuilds
+                    // single-location pins as default stubs (composite) or drops the manual
+                    // extension line (drawn), discarding the edited appearance an active full-map
+                    // manual layout applied. Re-apply that layout before capturing offsets so the
+                    // pins tracked through the zoom animation match the settled edited appearance
+                    // instead of reverting to default stubs for the duration of the zoom.
+                    if (_layoutEditor.IsManualLayoutActive)
+                        TryApplyFullMapManualLayout();
+
                     var containerWidth = MapDisplay.ActualWidth;
                     var containerHeight = MapDisplay.ActualHeight;
 
@@ -88,6 +97,14 @@ namespace InteractiveWorldMap
                     _logger.LogInfo($"  Captured animation offsets for {_animationOffsets.Count} markers");
                 }
 
+                // Drawn-pin manual layouts render their shaft as a separate extension line that
+                // the offset system above just cleared, and AnchorExtendedMarker hides the pin's
+                // own shaft — so without per-frame replay only the head would show during zoom-in.
+                // Mirror zoom-out: replay the layout each frame so the shaft tracks the map. Returns
+                // null in composite mode (CanUseCompositePins), where the offset path already keeps
+                // the whole composite pin — head and shaft — together.
+                var animationLayout = TryLoadFullMapManualLayoutForAnimation();
+
                 _mode = InteractionMode.Animating;
 
                 var targetViewport = ViewportState.CreateZoomedView(
@@ -102,12 +119,17 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  Start viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}");
                 _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
-                AnimateViewportTransition(startViewport, targetViewport, "Zoom animation", () =>
-                {
-                    _animationOffsets.Clear();
-                    ShowZoomedView(cluster);
-                    BackButton.Visibility = Visibility.Visible;
-                });
+                AnimateViewportTransition(
+                    startViewport,
+                    targetViewport,
+                    "Zoom animation",
+                    () =>
+                    {
+                        _animationOffsets.Clear();
+                        ShowZoomedView(cluster);
+                        BackButton.Visibility = Visibility.Visible;
+                    },
+                    () => ApplyManualLayoutDuringAnimation(animationLayout));
             }
             catch (Exception ex)
             {
@@ -381,7 +403,7 @@ namespace InteractiveWorldMap
 
             var layout = _layoutEditor.TryLoad(key);
             if (layout != null)
-                _logger.LogInfo($"  Loaded full-map manual layout for zoom-out animation: {key}");
+                _logger.LogInfo($"  Loaded full-map manual layout for zoom animation: {key}");
 
             return layout;
         }

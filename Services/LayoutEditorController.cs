@@ -168,7 +168,10 @@ public sealed class LayoutEditorController
         {
             if (!visibleNames.Contains(layoutMarker.LocationName))
             {
-                _logger.LogWarning($"  Marker not found for location: {layoutMarker.LocationName}");
+                // Expected: a saved full-map layout carries every location, but only a subset is
+                // visible in the current view (e.g. a single-location zoom). Skipping the rest is
+                // by design — not an error — so log at info level to avoid alarming warn spam.
+                _logger.LogInfo($"  Skipping layout marker not visible in current view: {layoutMarker.LocationName}");
                 continue;
             }
 

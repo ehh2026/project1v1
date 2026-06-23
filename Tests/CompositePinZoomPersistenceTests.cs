@@ -76,6 +76,31 @@ public class CompositePinZoomPersistenceTests
     }
 
     [Fact]
+    public void ReapplyPendingOverrides_GatedOnCompositeMode_SoDrawnModeNeverLeaksComposite()
+    {
+        // Regression: composite head/shaft overrides must not be replayed (and thus force a
+        // composite pin) when drawn-pin mode is active. Without this guard a stale override from
+        // an earlier composite session leaks a composite pin onto the marker when zooming in.
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.CompositePins.partial.cs"));
+        var body = ExtractMethodBody(source, "private void ReapplyPendingOverrides");
+
+        Assert.Contains("if (!CanUseCompositePins())", body);
+        Assert.Contains("return;", body);
+    }
+
+    [Fact]
+    public void TurningCompositeOff_ClearsOverrideStore()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+        var body = ExtractMethodBody(source, "private async Task ApplyTuningAsync");
+
+        var guardIdx = body.IndexOf("if (turningCompositeOff)", StringComparison.Ordinal);
+        Assert.True(guardIdx >= 0, "ApplyTuningAsync must branch on turningCompositeOff.");
+        var clearIdx = body.IndexOf("_overrideStore.ClearAll();", StringComparison.Ordinal);
+        Assert.True(clearIdx > guardIdx, "ApplyTuningAsync must clear overrides inside the composite-off branch.");
+    }
+
+    [Fact]
     public void ShowZoomedView_PrefersFullMapLayoutForSingleLocationZoom()
     {
         var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.Navigation.partial.cs"));

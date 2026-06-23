@@ -189,6 +189,14 @@ namespace InteractiveWorldMap
                 if (compositePlanChanged)
                     _compositePinPlanCache.ClearAll();
 
+                if (turningCompositeOff)
+                {
+                    // Composite head/shaft overrides are meaningless in drawn mode and would
+                    // otherwise be replayed onto markers (see ReapplyPendingOverrides), forcing a
+                    // composite pin to leak back into drawn rendering. Drop them when composite off.
+                    _overrideStore.ClearAll();
+                }
+
                 if (needsRecreate)
                 {
                     await RecreateAllMarkersAsync();

@@ -483,6 +483,14 @@ namespace InteractiveWorldMap
         /// </summary>
         private void ReapplyPendingOverrides()
         {
+            // Overrides record composite head/shaft choices, so replaying them applies a composite
+            // pin (ApplyCompositePinToMarker bypasses the mode check). In drawn-pin mode that would
+            // leak a composite pin onto the overridden marker — visible e.g. only when zooming into
+            // that single location, where ApplyManualLayout triggers this replay. Never apply
+            // composite overrides unless composite rendering is actually active.
+            if (!CanUseCompositePins())
+                return;
+
             foreach (var kvp in _overrideStore.GetAllOverrides())
             {
                 var locationName = kvp.Key;

@@ -483,7 +483,7 @@ public class LayoutEditorControllerTests
     }
 
     [Fact]
-    public void CreateLayoutApplications_MissingVisibleMarker_SkipsAndLogsWarning()
+    public void CreateLayoutApplications_MissingVisibleMarker_SkipsAndLogsInfo()
     {
         var (ctrl, _, logger, _) = Make();
         var layout = new ManualLayout(
@@ -496,7 +496,9 @@ public class LayoutEditorControllerTests
         var applications = ctrl.CreateLayoutApplications(layout, new[] { "other" });
 
         Assert.Empty(applications);
-        Assert.Contains(logger.WarningMessages, message => message.Contains("missing"));
+        // Not-currently-visible layout markers are skipped by design — logged at info, not warn.
+        Assert.DoesNotContain(logger.WarningMessages, message => message.Contains("missing"));
+        Assert.Contains(logger.InfoMessages, message => message.Contains("missing"));
     }
 
     [Fact]

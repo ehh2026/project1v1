@@ -8,9 +8,12 @@
         Background="Black">
     <Grid x:Name="RootGrid" RenderOptions.BitmapScalingMode="HighQuality">
         <!-- Map Display with integrated markers -->
-        <views:MapDisplayControl x:Name="MapDisplay" 
-                                RenderOptions.CachingHint="Cache"
-                                CacheMode="BitmapCache"
+        <!-- No CacheMode="BitmapCache" here: it rasterized the whole control (map + vector pin
+             markers/shafts) into a bitmap that gets resampled, softening and darkening the crisp
+             vector shafts/heads when zoomed (measured shaft core ~176 vs ~216 unzoomed). The zoom
+             animation already uses its own pre-rendered keyframe bitmaps, so the live cache is not
+             needed for smoothness. -->
+        <views:MapDisplayControl x:Name="MapDisplay"
                                 MouseLeftButtonDown="OnMapMouseLeftButtonDown"
                                 MouseMove="OnMapMouseMove" />
         
