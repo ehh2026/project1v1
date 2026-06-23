@@ -62,7 +62,13 @@ namespace InteractiveWorldMap.Models
                 extension.ExtendedPosition,
                 extension.Angle,
                 CalculateLength(extension.OriginalPosition, extension.ExtendedPosition)
-            );
+            )
+            {
+                // Carry source-space coords through so the saved layout re-projects at any
+                // window size (size-independent persistence). Null when the caller had no viewport.
+                SourceExtendedX = extension.SourceExtendedX,
+                SourceExtendedY = extension.SourceExtendedY
+            };
         }
 
         private static double CalculateLength(Point p1, Point p2)

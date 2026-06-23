@@ -332,8 +332,11 @@ public class ManualLayoutManagerTests
     }
 
     [Fact]
-    public void LoadLayout_FullMapDifferentSize_DoesNotLoadCompatibleLayout()
+    public void LoadLayout_FullMapDifferentSize_LoadsCompatibleLayout()
     {
+        // Phase 5c: full-map layouts are size-independent. A layout saved under a legacy sized
+        // key must resolve under the size-independent "fullmap" key (and any other size), so a
+        // window resize no longer orphans it.
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         var layoutPath = Path.Combine(tempDir, "manual-layouts.json");
@@ -355,9 +358,52 @@ public class ManualLayoutManagerTests
 
             Assert.True(manager.SaveLayout("fullmap_s1920x1080", extensions));
 
-            var loaded = manager.LoadLayout("fullmap_s1440x900");
+            var loaded = manager.LoadLayout("fullmap");
 
-            Assert.Null(loaded);
+            Assert.NotNull(loaded);
+            Assert.Single(loaded!.Markers);
+            Assert.Equal("Alpha", loaded.Markers[0].LocationName);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SaveLayout_PersistsSourceExtendedCoords_ForSizeIndependentReprojection()
+    {
+        // Phase 5c: user saves now carry source-image coords so the extended position
+        // re-projects at any window size. Verify they round-trip through save/load.
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var layoutPath = Path.Combine(tempDir, "manual-layouts.json");
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            var extensions = new List<RadialExtension>
+            {
+                new RadialExtension
+                {
+                    Location         = new Location { Id = "a", Name = "Alpha" },
+                    OriginalPosition = new Point(10, 10),
+                    ExtendedPosition = new Point(40, 60),
+                    SourceExtendedX  = 1234.5,
+                    SourceExtendedY  = 678.9,
+                    Angle            = 30.0,
+                    GroupId          = 0
+                }
+            };
+
+            Assert.True(manager.SaveLayout("fullmap", extensions));
+
+            var loaded = manager.LoadLayout("fullmap");
+
+            Assert.NotNull(loaded);
+            var marker = Assert.Single(loaded!.Markers);
+            Assert.Equal(1234.5, marker.SourceExtendedX);
+            Assert.Equal(678.9, marker.SourceExtendedY);
         }
         finally
         {

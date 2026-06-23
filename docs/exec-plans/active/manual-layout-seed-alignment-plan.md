@@ -135,16 +135,36 @@ Keep `scripts/generate_manual_layout_seeds.ps1` as a thin wrapper that invokes `
 ### 5b. Don't crash on broken/old/invalidated layouts — DONE (2026-06-23)
 - `ManualLayoutManager.LoadLayoutCollection` now wraps deserialize/normalize in try/catch: a corrupt or schema-incompatible file is backed up to `*.corrupt`, logged, and treated as an empty set instead of throwing. Test: `ManualLayoutManagerTests.LoadLayout_WhenFileIsCorrupt_DoesNotThrow_AndBacksUpBadFile`.
 
-### 5c. Brittle keys — TODO
+### 5c. Brittle keys — IN PROGRESS (normalized-coordinate design, 2026-06-23)
+
 Layout keys embed canvas size, zoom, viewport center/size, and radial config (`Services/LayoutKeyGenerator.cs`), so a window-size or config change orphans saved layouts (they exist but never resolve via exact-match `TryLoad`).
 
-Tasks:
-1. On load, when an exact-key match misses, fall back to `LayoutKeyGenerator.AreKeysCompatible` matching (the helper already exists; full-map keys must still match exactly). Verify it doesn't mis-apply across genuinely different clusters.
-2. For full-map keys (`fullmap_s{W}x{H}`), make the size component tolerant (e.g. round to a bucket, or normalize to logical units) so a minor resize doesn't orphan the layout — or store size-independent normalized coordinates.
-3. Decide migration for already-orphaned layouts (re-key on load vs. leave). 
-4. Tests: load with a near-miss key (size/zoom/config delta) returns the compatible layout; genuinely incompatible keys do not collide.
+**Findings (what's already built):**
+- **Cluster keys already tolerate size/center/config drift.** `LoadLayout` already falls back to `FindCompatibleGroup` → `AreKeysCompatible`, which (for cluster keys) only compares the location hash + zoom (within 0.1). So a resize/config change on a *cluster* layout already resolves. No new code needed beyond a regression test.
+- **The re-projection engine already exists.** `CompositePinApplicationService.BuildApplyInstructions` always re-projects the pin base from the location's source coords (`viewport.SourceToScreen`) and re-projects the extended position from `ManualLayoutMarker.SourceExtendedX/Y` when present. The apply path is already size-independent — **seeds populate `SourceExtendedX/Y`; user saves do not.**
 
-**Acceptance:** a saved layout reloads after a small window-resize or non-structural config change; corrupt/stale files never crash; user layouts survive a rebuild.
+**Two remaining gaps → chosen approach: normalized (source-space) coordinates.**
+
+1. **Full-map key is the real blocker.** `fullmap_s{W}x{H}` embeds canvas size and `AreKeysCompatible` forces an *exact* match for it, so after a resize the layout exists but is never looked up. Because positions re-project from source space, **size does not belong in the key** — there is only ever one "whole map" layout.
+   - `LayoutKeyGenerator.GenerateFullMapGroupKey()` → parameterless, returns the constant `"fullmap"`.
+   - `IsFullMapKey` matches the `"fullmap"` prefix (covers new `"fullmap"` and legacy `"fullmap_s…"`).
+   - `AreKeysCompatible`: if **both** keys are full-map → compatible (`true`); if exactly one is → `false`.
+2. **User saves must store source-space extended coords** so the re-projection is exact (not the angle+pixel-length fallback).
+   - Add nullable `SourceExtendedX/Y` to `Models/RadialExtension.cs` (mirrors `ManualLayoutMarker`).
+   - `MainWindow.CollectCurrentExtensions` sets them via `viewport.ScreenToSource(extendedScreen…)` (viewport + canvas are in scope there).
+   - `ManualLayoutMarker.FromRadialExtension` copies them through. No `IManualLayoutManager`/`SaveVariant` signature changes.
+
+**Migration (decided): leave orphaned, resolve via compatibility.** Old `fullmap_s{W}x{H}` groups on disk are *not* re-keyed. On load, the new `"fullmap"` key resolves them through `FindCompatibleGroup`/`AreKeysCompatible` (both full-map ⇒ compatible). The next user save writes the canonical `"fullmap"` group; the stale sized group becomes harmless dead data. Re-keying on load was rejected as unnecessary churn.
+
+**Out of scope here:** the offline seed generator (`scripts/generate_manual_layout_seeds.ps1`) still emits `fullmap_s{W}x{H}`; those keys keep resolving via compatibility. Aligning the generator to emit `"fullmap"` is folded into the Phase 2 generator rewrite.
+
+Tasks:
+1. [x] Cluster compatible-key fallback — already implemented in `LoadLayout`; lock with a regression test.
+2. [ ] Size-independent full-map key + compatibility rule (`LayoutKeyGenerator`).
+3. [ ] Populate `SourceExtendedX/Y` on user save (`RadialExtension`, `CollectCurrentExtensions`, `FromRadialExtension`).
+4. [ ] Tests: full-map key is constant; two different-size full-map keys are compatible; a full-map layout saved at one size loads at another and re-projects; genuinely incompatible (cluster vs full-map, different hash) keys do not collide.
+
+**Acceptance:** a saved full-map layout reloads after a window-resize and lands on the correct map positions; cluster layouts already survived; corrupt/stale files never crash; user layouts survive a rebuild.
 
 ## Known Drift Log
 

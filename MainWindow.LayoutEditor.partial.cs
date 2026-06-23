@@ -36,7 +36,9 @@ namespace InteractiveWorldMap
 
         private string GenerateCurrentFullMapGroupKey()
         {
-            return LayoutKeyGenerator.GenerateFullMapGroupKey(MapDisplay.ActualWidth, MapDisplay.ActualHeight);
+            // Size-independent: marker positions re-project from source space, so the full-map
+            // layout is keyed by identity alone and survives window resizes.
+            return LayoutKeyGenerator.GenerateFullMapGroupKey();
         }
 
         private bool TrySetFullMapLayoutKey(bool editSession)
@@ -223,15 +225,27 @@ namespace InteractiveWorldMap
             if (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()) return null;
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null) return null;
+            var cw = MapDisplay.ActualWidth;
+            var ch = MapDisplay.ActualHeight;
             var markerData = _individualMarkers
                 .Where(m => m.Visibility == Visibility.Visible)
                 .Select(m =>
                 {
                     var center = GetMarkerEndpoint(m);
                     return (m.Location, MarkerCenter: center,
-                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
+                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, cw, ch));
                 });
-            return LayoutEditorController.BuildExtensions(markerData);
+            var extensions = LayoutEditorController.BuildExtensions(markerData);
+
+            // Persist the extended position in source-image space so the layout re-projects to the
+            // correct map position at any window size (size-independent persistence; see Phase 5c).
+            foreach (var ext in extensions)
+            {
+                var src = viewport.ScreenToSource(ext.ExtendedPosition.X, ext.ExtendedPosition.Y, cw, ch);
+                ext.SourceExtendedX = src.X;
+                ext.SourceExtendedY = src.Y;
+            }
+            return extensions;
         }
 
         /// <summary>
