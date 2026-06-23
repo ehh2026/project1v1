@@ -48,7 +48,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## User ideas (product)
 
-- [ ] Single-location marker click while unzoomed: zoom in and auto-open content window — [single-location-zoom-click-plan.md](exec-plans/active/single-location-zoom-click-plan.md)
 - [ ] Subwindow opens near pin, not screen center
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish

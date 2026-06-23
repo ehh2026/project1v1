@@ -86,6 +86,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Single-location zoom click:** Clicking on a standalone unzoomed marker now zooms the map and auto-opens the marker's content subwindow once the zoom completes. Rapid double-clicks are ignored during animation to prevent state races.
+
 - **Manual Layout Variants (Phases 1–4):**
   - `Models/ManualLayoutSummary.cs` — lightweight `sealed record` for variant list display (GroupKey, VariantId, DisplayName, Origin, UpdatedUtc, IsDefault, IsSelected, MarkerCount).
   - `ManualLayoutCollection.SelectedVariants` — new per-group user selection dictionary (`groupKey → variantId`); persisted in `manual-layouts.json` and honoured by `LoadLayout`.

@@ -48,6 +48,7 @@ namespace InteractiveWorldMap
         private RadialExtensionAdjuster? _adjuster;
         private MarkerPlacementOrchestrator _placementOrchestrator = null!;
         private InteractionMode _mode = InteractionMode.Normal;
+        private Location? _autoOpenLocation = null;
         
         // Manual layout editor support
         private LayoutEditorController _layoutEditor = null!;
@@ -365,6 +366,11 @@ namespace InteractiveWorldMap
                 {
                     return;
                 }
+
+                if (_mode == InteractionMode.Animating)
+                {
+                    return;
+                }
                 
                 AnimateMarkerClick(marker);
                 
@@ -373,6 +379,8 @@ namespace InteractiveWorldMap
                 var viewport = MapDisplay.CurrentViewport;
                 if (viewport != null && viewport.ZoomLevel <= 1.0)
                 {
+                    _autoOpenLocation = location;
+
                     // Create a single-location cluster and zoom to it
                     var singleCluster = new LocationCluster
                     {
@@ -733,20 +741,7 @@ namespace InteractiveWorldMap
             }
         }
 
-        private void OnBackButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (_layoutEditor.IsEditMode)
-            {
-                ShowEditModeNavigationBlockedStatus();
-                return;
-            }
 
-            AnimateZoomOut();
-        }
-
-        /// <summary>
-        /// Animates zooming out to the full map view using viewport-based rendering.
-        /// </summary>
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {

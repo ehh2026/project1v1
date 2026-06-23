@@ -46,6 +46,7 @@ namespace InteractiveWorldMap
                 if (startViewport == null)
                 {
                     _logger.LogError("Current viewport is null");
+                    _autoOpenLocation = null;
                     return;
                 }
 
@@ -125,14 +126,23 @@ namespace InteractiveWorldMap
                     "Zoom animation",
                     () =>
                     {
+                        var toOpen = _autoOpenLocation;
+                        _autoOpenLocation = null;
+
                         _animationOffsets.Clear();
                         ShowZoomedView(cluster);
                         BackButton.Visibility = Visibility.Visible;
+
+                        if (toOpen != null)
+                        {
+                            ShowContentForLocation(toOpen);
+                        }
                     },
                     () => ApplyManualLayoutDuringAnimation(animationLayout));
             }
             catch (Exception ex)
             {
+                _autoOpenLocation = null;
                 _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
             }
         }
@@ -311,8 +321,24 @@ namespace InteractiveWorldMap
                 _logger.LogError($"Error showing zoomed view: {ex.Message}\n{ex.StackTrace}");
             }
         }
+        private void OnBackButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (_layoutEditor.IsEditMode)
+            {
+                ShowEditModeNavigationBlockedStatus();
+                return;
+            }
+
+            AnimateZoomOut();
+        }
+
+        /// <summary>
+        /// Animates zooming out to the full map view using viewport-based rendering.
+        /// </summary>
         private void AnimateZoomOut()
         {
+            _autoOpenLocation = null;
+
             if (_layoutEditor.IsEditMode)
             {
                 ShowEditModeNavigationBlockedStatus();

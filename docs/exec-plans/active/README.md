@@ -30,6 +30,7 @@ started: YYYY-MM-DD
 
 ## Recently completed (moved to ../completed/)
 
+- `single-location-zoom-click-plan.md` — Zoom in and auto-open content window on standalone marker click — moved 2026-06-23
 - `tuning-panel-dropdowns-plan.md` — Tuning panel shaft/head variant ComboBox pickers (follow-up to runtime tuning panel) — moved 2026-06-22
 - `refactoring-plan.md` — MainWindow decomposition tracker (Phases 1–10) — moved 2026-06-08
 - `composite-pins-manual-layout-phases-plan.md` — Composite-pin manual-layout integration (Phases 1–4 done; Phase 5 delegated to `manual-layout-variants-plan.md`) — moved 2026-06-08
