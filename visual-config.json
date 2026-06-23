@@ -66,10 +66,10 @@
   },
 
   "Debug": {
-    "LogRadialExtensionCalculation": true,
-    "LogRadialExtensionAngles": true,
-    "LogRadialExtensionOverlaps": true,
-    "LogMarkerPositioning": true,
+    "LogRadialExtensionCalculation": false,
+    "LogRadialExtensionAngles": false,
+    "LogRadialExtensionOverlaps": false,
+    "LogMarkerPositioning": false,
     "LogAnimationFrames": false,
     "ShowCompositePinDebugOverlay": false,
     "EnableTuningPanel": true,

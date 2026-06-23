@@ -442,29 +442,25 @@ namespace InteractiveWorldMap
             UpdateMarkerPositions();
             onFrameUpdated?.Invoke();
 
-            var animStart = DateTime.Now;
+            // Stopwatch (monotonic, sub-ms) instead of DateTime.Now (~15.6 ms resolution), which
+            // quantized progress at a 16 ms frame budget and caused visible stutter.
+            var animClock = System.Diagnostics.Stopwatch.StartNew();
             var frameCount = 0;
-            var lastFrameTime = animStart;
+            var lastFrameMs = 0.0;
 
             EventHandler? renderHandler = null;
             renderHandler = (s, e) =>
             {
                 frameCount++;
-                var now = DateTime.Now;
-                var frameDelta = (now - lastFrameTime).TotalMilliseconds;
-                lastFrameTime = now;
+                var elapsed = animClock.Elapsed.TotalMilliseconds;
+                var frameDelta = elapsed - lastFrameMs;
+                lastFrameMs = elapsed;
 
-                var elapsed = (now - animStart).TotalMilliseconds;
                 var progress = Math.Min(1.0, elapsed / AnimationDurationMs);
 
-                // Find the pre-rendered keyframe closest to the current progress
-                int frameIndex = 0;
-                double minDiff = double.MaxValue;
-                for (int i = 0; i < keyframeCount; i++)
-                {
-                    double diff = Math.Abs(keyframeProgress[i] - progress);
-                    if (diff < minDiff) { minDiff = diff; frameIndex = i; }
-                }
+                // keyframeProgress is linear/monotonic (i / (count-1)), so the nearest keyframe is a
+                // direct index — no per-frame search needed.
+                int frameIndex = Math.Min(keyframeCount - 1, (int)Math.Round(progress * (keyframeCount - 1)));
 
                 MapDisplay.DisplayImage.Source = prerenderedFrames[frameIndex];
 

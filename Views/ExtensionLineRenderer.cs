@@ -414,7 +414,10 @@ namespace InteractiveWorldMap.Views
 
             Panel.SetZIndex(outline, 999);
             Panel.SetZIndex(core, 1000);
-            _logInfo($"    Created pin extension line pair: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), core={coreWidth:F1}px");
+            // Per-marker, per-frame in drawn mode during zoom — gate behind the debug flag so it
+            // does not flood the log (and the logger) on the animation hot path.
+            if (_visualConfig.Debug.LogRadialExtensionCalculation)
+                _logInfo($"    Created pin extension line pair: ({start.X:F1},{start.Y:F1}) to ({end.X:F1},{end.Y:F1}), core={coreWidth:F1}px");
             return new PinExtensionLines { Outline = outline, Core = core };
         }
 
