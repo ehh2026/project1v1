@@ -8,7 +8,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ## Zoom & animation
 
-- [ ] (none currently open — section kept as placeholder for future zoom/animation work)
+- [ ] make all pins track map during zoom, instead of only the clicked one tracking and others not appearing during zoom-out and only appearing when zoom-out is complete
 
 ---
 
@@ -24,6 +24,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
 - [x] Add pinhead variants with black outlines — generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/` — [pinhead-black-outline-variants-plan.md](exec-plans/completed/pinhead-black-outline-variants-plan.md)
 - [ ] Do not use bright yellow pin heads unless manually assigned
+- [ ] Add a horizontal or concave line at the drawn pin tips
 
 ## Inactive (optional polish)
 
@@ -41,6 +42,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 - [x] Tuning panel: shaft/head variant pickers — replace `TxtShaftVariant` / `TxtHeadVariant` free-text boxes with drop-downs populated from `Images&Content/Pins_v2/parts/shaft_variants/` and `head_variants/` (include blank/base option); grey out both pickers when composite pins are off (`ChkComposite` unchecked). Follow-up to [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md). Plan: [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md).
 - [ ] Tuning panel: variant search/filter — type-to-filter or grouping for 60+ shaft variant folders in combo pickers (deferred from [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md) v1).
+- [ ] make sure that dev tools like Edit Layout and Tuning panel can be disabled during production
 
 ## User ideas (product)
 
@@ -72,3 +74,4 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 - [ ] Cross-platform / resolution manual testing
 - [ ] Search, pan, categories, export — future enhancements
+- [ ] Look into adapting the app to be able to run in a browser over the internet
