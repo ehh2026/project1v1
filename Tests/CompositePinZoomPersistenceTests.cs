@@ -12,7 +12,7 @@ public class CompositePinZoomPersistenceTests
     [Fact]
     public void UpdateMarkerPositions_DoesNotUnconditionallyRestoreBaseVisuals()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.MarkerPlacement.partial.cs"));
         var body = ExtractMethodBody(source, "private void UpdateMarkerPositions()");
 
         Assert.DoesNotContain("RestoreBaseMarkerVisuals();", body);

@@ -93,7 +93,7 @@ public class CompositeDragStretchTests
     public void CompositeDragBranch_UsesRenderedHeadForGuideLineEndpoint()
     {
         var source = File.ReadAllText(
-            Path.Combine(RepoRoot, "MainWindow.LayoutEditor.partial.cs"));
+            Path.Combine(RepoRoot, "MainWindow.LayoutEditorDrag.partial.cs"));
 
         Assert.Contains("draggedCpm.RenderPlan.HeadCenterLocal", source);
         Assert.Contains("renderedHead", source);
@@ -104,7 +104,7 @@ public class CompositeDragStretchTests
     public void CompositeDragBranch_RecordsRenderedHeadNotRawMousePos()
     {
         var source = File.ReadAllText(
-            Path.Combine(RepoRoot, "MainWindow.LayoutEditor.partial.cs"));
+            Path.Combine(RepoRoot, "MainWindow.LayoutEditorDrag.partial.cs"));
 
         Assert.Contains("_overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, renderedHead)", source);
     }

@@ -105,7 +105,7 @@ public class ManualLayoutZoomAnimationTests
     {
         // Phase 2.2: visibility/source coords are constant across a single animation, so the
         // visible-marker projections are cached for its duration instead of rebuilt each frame.
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.MarkerPlacement.partial.cs"));
         var body = ExtractMethodBody(source, "private void UpdateMarkerPositions()");
 
         Assert.Contains("_animVisibleIndividuals", body);
@@ -117,7 +117,7 @@ public class ManualLayoutZoomAnimationTests
     {
         // Phase 2.3: per-placement marker lookups use an O(1) name index instead of O(n)
         // FirstOrDefault scans (O(n^2) per frame).
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.MarkerPlacement.partial.cs"));
         var body = ExtractMethodBody(source, "private void UpdateMarkerPositions()");
 
         Assert.Contains("BuildIndividualMarkerIndex()", body);

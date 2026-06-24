@@ -13,7 +13,7 @@ public class DrawnPinDragTests
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     private static string LayoutEditorSource =>
-        File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.LayoutEditor.partial.cs"));
+        File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.LayoutEditorDrag.partial.cs"));
 
     [Fact]
     public void DrawnDragBranch_ComputesTipFromSourceToScreen()
