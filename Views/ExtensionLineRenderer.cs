@@ -334,6 +334,23 @@ namespace InteractiveWorldMap.Views
             return false;
         }
 
+        public bool TryGetLineStart(LocationMarker marker, out Point start)
+        {
+            // Prefer the core of a pin line pair (start == map anchor / tip end).
+            if (_markerToPinLines.TryGetValue(marker, out var pair))
+            {
+                start = new Point(pair.Core.X1, pair.Core.Y1);
+                return true;
+            }
+            if (_markerToLine.TryGetValue(marker, out var line))
+            {
+                start = new Point(line.X1, line.Y1);
+                return true;
+            }
+            start = default;
+            return false;
+        }
+
         // -------------------------------------------------------------------------
         // Hover highlighting (moved from MainWindow.OnMarkerMouseEnter/Leave)
         // -------------------------------------------------------------------------

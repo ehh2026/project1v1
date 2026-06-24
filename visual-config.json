@@ -38,7 +38,15 @@
     "DefaultBallColor": "#FFE53935",
     "ShowShadow": true,
     "ShadowOpacity": 0.55,
-    "EnableManualEditing": true
+    "EnableManualEditing": true,
+    "DrawnPinTipCap": {
+      "Style": "None",
+      "HeightPx": 6.0,
+      "ArcDepthPx": 3.0,
+      "ExtendPx": 0.0,
+      "Color": null,
+      "UseOutlineRing": true
+    }
   },
   
   "RadialExtension": {

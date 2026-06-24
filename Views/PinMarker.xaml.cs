@@ -183,6 +183,31 @@ namespace InteractiveWorldMap.Views
             return new Point(Width / 2, Height);
         }
 
+        /// <summary>True when the pin's own (built-in) shaft is currently shown.</summary>
+        public bool IsShaftVisible => ShaftHost.Visibility == Visibility.Visible;
+
+        /// <summary>
+        /// Shaft tip in local coordinates after the hover <see cref="PinTransform"/> (scale about
+        /// the control center) is applied, so a tip cap drawn on the marker canvas tracks the
+        /// pin as it scales on hover.
+        /// </summary>
+        public Point GetScaledShaftTipPoint() => ApplyPinTransform(GetShaftTipPoint());
+
+        /// <summary>Head connection point in local coordinates after the hover transform.</summary>
+        public Point GetScaledConnectionPoint() => ApplyPinTransform(GetConnectionPoint());
+
+        /// <summary>Outline-inclusive shaft width at the tip, scaled by the current hover transform.</summary>
+        public double GetScaledShaftOutlineWidth() => PinShaftOutline.Width * PinTransform.ScaleX;
+
+        private Point ApplyPinTransform(Point p)
+        {
+            // PinContainer.RenderTransformOrigin is 0.5,0.5 → scale about the control center.
+            var center = new Point(Width / 2.0, Height / 2.0);
+            return new Point(
+                center.X + (p.X - center.X) * PinTransform.ScaleX,
+                center.Y + (p.Y - center.Y) * PinTransform.ScaleY);
+        }
+
         public bool ContainsPoint(Point point)
         {
             var ballCenter = new Point(Width / 2, PinBall.Height / 2);

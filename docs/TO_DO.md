@@ -28,7 +28,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
 - [x] Add pinhead variants with black outlines — generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/` — [pinhead-black-outline-variants-plan.md](exec-plans/completed/pinhead-black-outline-variants-plan.md)
 - [ ] Do not use bright yellow pin heads unless manually assigned
-- [ ] Add a horizontal or concave line at the drawn pin tips — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md) (design confirmed 2026-06-23 — cap makes the pin read as stuck into the map; ready to implement)
+- [ ] Add a horizontal or concave line at the drawn pin tips — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md) (**code landed 2026-06-23**: opt-in `PinMarkers.DrawnPinTipCap` in `visual-config.json` — `Style` `None`/`Horizontal`/`Concave`, both shapes implemented, default `None`. **Pending human visual gate**: set `Style:"Concave"` and confirm it reads as the pin stuck into the map (Phase 4b), plus manual smoke on stub/extension/drag/hover/zoom (Phase 5) — needs the GUI)
 - [ ] Revisit pin shadows — allow tuning shadow strength via config + Tuning panel (today: drawn head shadow hardcoded `PinMarker.xaml`, composite head shadow hardcoded `CompositePinMarker.xaml`, drawn extended-shaft shadow floored in `ExtensionLineRenderer.cs`; `ShadowOpacity` only partly honored). Follow-up to shadow perf work in [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md) (2.4/2.9)
 
 ## Inactive (optional polish)
@@ -65,6 +65,8 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## High priority
 
 - [ ] Separate drawn pin model into head-only, auto-stub, and manual-layout pin components so edited pins do not rely on hiding a built-in vertical shaft — [drawn-pin-model-separation-plan.md](exec-plans/active/drawn-pin-model-separation-plan.md)
+- [ ] Refactor `MainWindow.xaml.cs` (872 lines) back under the 800-line taste limit — split into focused partials or extract services. Fails `scripts/verify_taste.py`; **pre-existing debt that predates the tip-cap feature** (already red at HEAD) and currently keeps `scripts/verify.ps1` from going green.
+- [ ] Refactor `MainWindow.LayoutEditor.partial.cs` (801 lines) back under the 800-line taste limit. Same pre-existing taste failure as above.
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 

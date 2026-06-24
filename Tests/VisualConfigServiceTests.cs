@@ -310,6 +310,76 @@ public class VisualConfigServiceTests
         }
     }
 
+    [Fact]
+    public void Load_DrawnPinTipCap_DeserializesStyleAndKnobs()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinMarkers"": { ""DrawnPinTipCap"": { ""Style"": ""Concave"", ""ArcDepthPx"": 4.5, ""HeightPx"": 7.0, ""ExtendPx"": 1.0, ""UseOutlineRing"": false } } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+            var cap = config.PinMarkers.DrawnPinTipCap;
+
+            Assert.Equal(DrawnPinTipCapStyle.Concave, cap.Style);
+            Assert.Equal(4.5, cap.ArcDepthPx);
+            Assert.Equal(7.0, cap.HeightPx);
+            Assert.Equal(1.0, cap.ExtendPx);
+            Assert.False(cap.UseOutlineRing);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_DrawnPinTipCap_DefaultsToNoneWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinMarkers"": { ""ShaftWidth"": 3.0 } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.Equal(DrawnPinTipCapStyle.None, config.PinMarkers.DrawnPinTipCap.Style);
+            Assert.True(config.PinMarkers.DrawnPinTipCap.UseOutlineRing);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SaveAndReload_DrawnPinTipCap_RoundTripsStyleAsString()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            var service = new VisualConfigService();
+            var config = new VisualConfig();
+            config.PinMarkers.DrawnPinTipCap.Style = DrawnPinTipCapStyle.Horizontal;
+
+            service.Save(config, path);
+            var json = File.ReadAllText(path);
+            var reloaded = service.Load(path);
+
+            Assert.Contains("\"Horizontal\"", json); // enum persisted as string, not an int
+            Assert.Equal(DrawnPinTipCapStyle.Horizontal, reloaded.PinMarkers.DrawnPinTipCap.Style);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDir()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-visual-config-" + Guid.NewGuid().ToString("N"));

@@ -560,6 +560,8 @@ namespace InteractiveWorldMap
             ApplyClusterPlacements(plan.ClusterPlacements);
             ApplyCompositePinsToNormalPlacements(plan.IndividualPlacements, viewport, containerWidth, containerHeight, markerByName);
             ApplyCompositePinDepthSort();
+
+            UpdatePinTipCaps();
         }
 
         /// <summary>
@@ -653,6 +655,8 @@ namespace InteractiveWorldMap
                 MapDisplay.Markers.Children.Remove(marker);
             }
             _clusterMarkers.Clear();
+
+            _pinTipCapRenderer?.Clear();
         }
 
         /// <summary>

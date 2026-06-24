@@ -236,9 +236,9 @@ Single config drives caps on **both** stub and extension-line tips.
 
 ### Phase 1 — config + shared geometry
 
-- [ ] `DrawnPinTipCapConfig`, `PinTipCapPlacement`, `PinTipCapGeometry` (parameterized by `shaftDir`).
-- [ ] `visual-config.json` + `VISUAL_CONFIG.md`.
-- [ ] Unit tests: config load, width math (concave direction tests deferred to Phase 4b).
+- [x] `DrawnPinTipCapConfig`, `PinTipCapPlacement`, `PinTipCapGeometry` (parameterized by `shaftDir`).
+- [x] `visual-config.json` (`PinMarkers.DrawnPinTipCap` block added).
+- [x] Unit tests: config load + string-enum round-trip, width math. (Concave direction tests landed early — see Phase 4b.)
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~PinTipCap|FullyQualifiedName~VisualConfigService"
@@ -246,30 +246,31 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 ### Phase 2 — built-in stub tips (`Horizontal` only)
 
-- [ ] `DrawnPinTipCapRenderer` + `PinTipCapOverlay`.
-- [ ] `MainWindow.TipCap.partial.cs`: stub branch — `!HasLine(marker)` && built-in shaft visible.
-- [ ] Hover `RenderTransform` in tip math.
-- [ ] Smoke with `Style: "Horizontal"` on auto-stub pins before Phase 3.
+- [x] `DrawnPinTipCapRenderer` (renders into `MapDisplay.Markers` at z 1500/1501 — see note below).
+- [x] `MainWindow.TipCap.partial.cs`: stub branch — `!HasLine(marker)` && built-in shaft visible.
+- [x] Hover `RenderTransform` in tip math (`PinMarker.GetScaledShaftTipPoint`/`GetScaledConnectionPoint`).
+- [ ] Smoke with `Style: "Horizontal"` on auto-stub pins (needs GUI — Phase 5).
+
+> **Overlay note:** the cap must interleave by z-index *between* lines (999/1000) and heads (2000), which a separate sibling canvas cannot do. So caps render directly into the marker canvas (`MapDisplay.Markers`) at z 1500/1501 as siblings of the markers — never children of a `PinMarker` — satisfying the real constraint (horizontal in screen space, ignores hover/rotation) without a dedicated `PinTipCapOverlay` canvas.
 
 ### Phase 3 — extension-line tips (`Horizontal` only)
 
-- [ ] `TryGetLineStart` on extension line renderer.
-- [ ] Extension branch — `HasLine(marker)` → cap at line start; **no** cap on hidden built-in.
-- [ ] Edit-mode drag: cap on temporary extension line at map anchor.
-- [ ] Zoom-animation fallback: projected map anchor when line visuals suppressed.
-- [ ] Minimum length guard: skip when line length or `ShaftLength` &lt; 8 px.
-- [ ] Smoke with `Style: "Horizontal"` on manual-layout + drag before Phase 4.
+- [x] `TryGetLineStart` on extension line renderer (+ interface).
+- [x] Extension branch — `HasLine(marker)` → cap at line start; **no** cap on hidden built-in.
+- [x] Edit-mode drag / zoom: caps rebuild every placement tick from live line endpoints, so they track drag and zoom. (Lines are repositioned, not cleared, while animating — `HasLine` stays true — so the projected-anchor fallback was unnecessary in practice.)
+- [x] Minimum length guard: skip when shaft/line length &lt; 8 px (`MinShaftLengthForCapPx`).
+- [ ] Smoke with `Style: "Horizontal"` on manual-layout + drag (needs GUI — Phase 5).
 
 ### Phase 4 — outline pairing + polish (`Horizontal`)
 
-- [ ] `UseOutlineRing` draw order (outline behind core).
-- [ ] Clear overlay when `Style == None` or `UsePinMarkers == false`.
+- [x] `UseOutlineRing` draw order (outline path stroked behind filled core, shared geometry).
+- [x] Clear overlay when `Style == None` or `UsePinMarkers == false`.
 
 ### Phase 4b — concave geometry + visual iteration
 
-- [ ] Implement `Style: "Concave"` in `PinTipCapGeometry` (quadratic Bezier v1).
-- [ ] Unit tests: direction invariant only (see [Concave direction test](#concave-direction-test)).
-- [ ] Tune `ArcDepthPx` / outline on the [review matrix](#concave-iteration); revise geometry helper if needed.
+- [x] Implement `Style: "Concave"` in `PinTipCapGeometry` (quadratic Bezier v1).
+- [x] Unit tests: direction invariant for stub + tilted shaftDir (see [Concave direction test](#concave-direction-test)).
+- [ ] Tune `ArcDepthPx` / outline on the [review matrix](#concave-iteration); revise geometry helper if needed (GUI iteration).
 - [ ] Human visual pass on review matrix — loop until acceptable or horizontal-only fallback decided.
 - [ ] Extend manual smoke to concave on stub + extension-line cases.
 
@@ -347,4 +348,6 @@ Manual smoke:
 
 ## Status
 
-Drafted 2026-06-23; revised after agent review; updated for extension-line tips, visible-shaft rule, and concave iteration phasing. **2026-06-23: anchored the design to the stated intent — the cap depicts the pin stuck into the map surface — and corrected the concave control-point sign (`+ArcDepthPx` toward the shaft) so the geometry, prose, and direction test agree. Design confirmed by human; `needs_review` cleared.** **Not started — ready to implement.**
+Drafted 2026-06-23; revised after agent review; updated for extension-line tips, visible-shaft rule, and concave iteration phasing. **2026-06-23: anchored the design to the stated intent — the cap depicts the pin stuck into the map surface — and corrected the concave control-point sign (`+ArcDepthPx` toward the shaft) so the geometry, prose, and direction test agree. Design confirmed by human; `needs_review` cleared.**
+
+**2026-06-23 — Phases 1–4b implemented in code.** All of config, geometry (`Utilities/PinTipCapGeometry`), renderer (`Views/DrawnPinTipCapRenderer`), stub + extension-line placement (`MainWindow.TipCap.partial.cs`), outline pairing, and concave geometry landed; 411 tests pass (geometry/direction + config round-trip added). Geometry construction lives in the orchestrator (not the renderer) so `Views` stays Models-only per `LayerDependencyTests`. Caps render into `MapDisplay.Markers` at z 1500/1501 rather than a dedicated overlay canvas (z-index interleave requirement — see Phase 2 note). **Remaining: GUI-only human gates** — Phase 4b concave visual sign-off and Phase 5 manual smoke (default `Style:"None"` ships inert; opt in via `visual-config.json`). Note: `scripts/verify.ps1` taste step is red due to **pre-existing** oversized `MainWindow.xaml.cs` / `MainWindow.LayoutEditor.partial.cs` (already over the 800-line limit at HEAD, before this feature); refactor tracked as high-priority items in `docs/TO_DO.md`.

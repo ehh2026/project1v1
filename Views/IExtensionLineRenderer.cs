@@ -56,6 +56,12 @@ namespace InteractiveWorldMap.Views
         /// <summary>Gets the current endpoint of the tracked line for a marker. Returns false if no line.</summary>
         bool TryGetLineEndpoint(LocationMarker marker, out Point endpoint);
 
+        /// <summary>
+        /// Gets the current start (map anchor) of the tracked line for a marker. This is the
+        /// pin tip end of the extension line. Returns false if no line is tracked.
+        /// </summary>
+        bool TryGetLineStart(LocationMarker marker, out Point start);
+
         // Hover event handlers — subscribe directly to marker.MouseEnter/Leave
         void OnMouseEnter(object sender, MouseEventArgs e);
         void OnMouseLeave(object sender, MouseEventArgs e);

@@ -69,5 +69,11 @@ namespace InteractiveWorldMap.Models
         /// Whether pins should be manually editable (draggable).
         /// </summary>
         public bool EnableManualEditing { get; set; } = true;
+
+        /// <summary>
+        /// Opt-in cap drawn at the visible shaft terminus so the tip reads as the pin
+        /// being stuck into the map surface. Defaults to <see cref="DrawnPinTipCapStyle.None"/>.
+        /// </summary>
+        public DrawnPinTipCapConfig DrawnPinTipCap { get; set; } = new DrawnPinTipCapConfig();
     }
 }

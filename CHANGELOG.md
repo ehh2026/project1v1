@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+### Added
+
+- **Drawn-pin tip cap (opt-in):** New `PinMarkers.DrawnPinTipCap` config draws a cap at the visible terminus of a drawn pin shaft — built-in auto-stub **or** extension line — so the tip reads as the pin being stuck *into* the map surface. `Style` is `None` (default), `Horizontal` (a firm screen-space bar), or `Concave` (a shallow arc that bows toward the shaft, puckering the surface around the entry point). Tunable via `HeightPx`, `ArcDepthPx`, `ExtendPx`, `Color`, `UseOutlineRing`. Caps render on a pooled overlay above extension lines and below marker heads, stay horizontal in screen space (ignoring hover scale), and track stub tips (hover-scaled) and extension-line anchors (including during zoom/drag). New `Models/DrawnPinTipCapConfig.cs`, `Models/PinTipCapPlacement.cs`, `Utilities/PinTipCapGeometry.cs`, `Views/DrawnPinTipCapRenderer.cs`, `MainWindow.TipCap.partial.cs`; `ExtensionLineRenderer.TryGetLineStart` added. Concave visual sign-off (Phase 4b) and manual GUI smoke (Phase 5) still pending. (`docs/exec-plans/active/drawn-pin-tip-cap-plan.md`)
+
 ### Fixed
 
 - **Full-map layouts survive window resize (persistence 5c):** Full-map manual layouts are now keyed by identity (`"fullmap"`) instead of canvas size, so a window resize no longer orphans them; legacy `fullmap_s{W}x{H}` keys still resolve via compatible-key matching. User saves now persist the extended position in source-image space (`SourceExtendedX/Y` on `RadialExtension` → `ManualLayoutMarker`, set in `MainWindow.CollectCurrentExtensions` via `viewport.ScreenToSource`), so saved positions re-project to the correct map location at any window size — matching the size-independence seeds already had. (`Services/LayoutKeyGenerator.cs`, `Models/RadialExtension.cs`, `Models/ManualLayoutMarker.cs`, `MainWindow.LayoutEditor.partial.cs`)
