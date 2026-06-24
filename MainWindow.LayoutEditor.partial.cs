@@ -85,6 +85,14 @@ namespace InteractiveWorldMap
             if (_layoutEditor.IsEditMode || !IsFullMapRootView())
                 return false;
 
+            // User unloaded the layout this session: keep markers auto-placed and do not re-apply.
+            if (_layoutEditor.IsManualLayoutSuppressed)
+            {
+                _layoutEditor.SetManualLayoutActive(false);
+                UpdateEditLayoutButtonVisibility();
+                return false;
+            }
+
             var key = GenerateCurrentFullMapGroupKey();
             _layoutEditor.SetLayoutKey(key);
 
@@ -306,8 +314,12 @@ namespace InteractiveWorldMap
             // If a manual layout is saved, restore those positions for draggable editing.
             // Phase 4: when composite rendering is active, skip RestoreBaseMarkerVisuals so
             // composite pins remain composite during editing.
+            // Load the saved layout when one is active OR was unloaded this session (so opening the
+            // editor reloads a layout the user previously unloaded). SetManualLayoutActive(true)
+            // below clears the suppression flag.
             bool loadedSaved = false;
-            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            if ((_layoutEditor.IsManualLayoutActive || _layoutEditor.IsManualLayoutSuppressed) &&
+                _layoutEditor.CurrentLayoutKey != null)
             {
                 var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
                 if (layout != null)
@@ -316,6 +328,7 @@ namespace InteractiveWorldMap
                         RestoreBaseMarkerVisuals();
                     _extensionLineRenderer.Clear();
                     ApplyManualLayout(layout);
+                    _layoutEditor.SetManualLayoutActive(true);
                     _logger.LogInfo($"[OnEditLayoutButtonClick] Restored saved layout for key={_layoutEditor.CurrentLayoutKey}");
                     loadedSaved = true;
                 }
@@ -478,6 +491,53 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 _logger.LogError($"Failed to delete layout: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Handles Unload Layout button click - reverts to auto-placement for this session while
+        /// leaving the saved layout file on disk untouched (non-destructive counterpart to
+        /// Delete &amp; Recalculate). The layout returns on the next edit or app restart.
+        /// </summary>
+        private void OnUnloadLayoutButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (_layoutEditor.CurrentLayoutKey == null ||
+                (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
+            {
+                _logger.LogWarning("Cannot unload layout - no layout key or active layout session");
+                return;
+            }
+
+            try
+            {
+                var wasFullMapSession = IsFullMapLayoutSessionActive();
+
+                // Suppress for this session; the saved JSON stays on disk.
+                _layoutEditor.UnloadManualLayout();
+
+                // Drop pending in-session edits — nothing is lost, the file is untouched.
+                _overrideStore.ClearAll();
+                UpdateOverrideIndicator();
+
+                ExitEditMode();
+
+                // Revert to auto-placement. The auto-apply paths are now no-ops (suppressed), so
+                // markers stay auto-placed instead of reloading the saved layout.
+                if (wasFullMapSession)
+                {
+                    UpdateMarkerPositions();
+                    TryApplyFullMapManualLayout();
+                }
+                else if (_currentZoomedCluster != null)
+                {
+                    ShowZoomedView(_currentZoomedCluster);
+                }
+
+                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={_layoutEditor.CurrentLayoutKey}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to unload layout: {ex.Message}");
             }
         }
 

@@ -158,6 +158,10 @@ namespace InteractiveWorldMap
             if (!cluster.IsSingleLocation)
                 return false;
 
+            // Honor a session unload: a zoomed single location stays at its auto-placed position.
+            if (_layoutEditor.IsManualLayoutSuppressed)
+                return false;
+
             var locationName = cluster.Locations[0].Name;
             var key = GenerateCurrentFullMapGroupKey();
             var layout = _layoutEditor.TryLoad(key);
@@ -427,6 +431,10 @@ namespace InteractiveWorldMap
         private ManualLayout? TryLoadFullMapManualLayoutForAnimation()
         {
             if (CanUseCompositePins())
+                return null;
+
+            // Honor a session unload: do not replay the saved layout through the zoom animation.
+            if (_layoutEditor.IsManualLayoutSuppressed)
                 return null;
 
             var key = GenerateCurrentFullMapGroupKey();

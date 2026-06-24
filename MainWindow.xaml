@@ -298,6 +298,44 @@
                 </Button.Style>
             </Button>
 
+            <!-- Unload Layout Button (non-destructive: reverts to auto-placement, keeps file on disk) -->
+            <Button x:Name="UnloadLayoutButton"
+                    Content="Unload Layout"
+                    Padding="15,8"
+                    Margin="5"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CCDAA520"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    Click="OnUnloadLayoutButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DDFFC125"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+
             <!-- Auto Assign Pins Button -->
             <Button x:Name="ReassignPinsButton"
                     Content="Auto Assign Pins"

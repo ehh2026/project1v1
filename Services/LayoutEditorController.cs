@@ -27,6 +27,14 @@ public sealed class LayoutEditorController
     public bool    IsManualLayoutActive { get; private set; }
     public string? CurrentLayoutKey     { get; private set; }
 
+    /// <summary>
+    /// True when the user has unloaded the saved layout for this session (see
+    /// <see cref="UnloadManualLayout"/>). Auto-apply paths must skip applying while this is set so
+    /// pins stay at their auto-placed positions. Session-scoped: cleared whenever a layout next
+    /// becomes active (re-edit) and not persisted, so a restart restores normal auto-apply.
+    /// </summary>
+    public bool    IsManualLayoutSuppressed { get; private set; }
+
     /// <summary>VariantId of the variant that is currently loaded into the editor.</summary>
     public string?             ActiveVariantId      { get; private set; }
     /// <summary>Origin of the currently-active variant (null when no variant is loaded).</summary>
@@ -106,7 +114,21 @@ public sealed class LayoutEditorController
     public void SetManualLayoutActive(bool active)
     {
         IsManualLayoutActive = active;
+        // A layout becoming active re-engages the workflow, so clear any prior session unload.
+        if (active)
+            IsManualLayoutSuppressed = false;
         ManualLayoutActivityChanged?.Invoke(active);
+    }
+
+    /// <summary>
+    /// Non-destructively unloads the active manual layout: flags it suppressed so the auto-apply
+    /// paths skip it (markers revert to auto-placement) while leaving the saved JSON on disk intact.
+    /// The layout returns when it next becomes active — re-entering the editor or restarting the app.
+    /// </summary>
+    public void UnloadManualLayout()
+    {
+        IsManualLayoutSuppressed = true;
+        SetManualLayoutActive(false);
     }
 
     // ─── Data operations ─────────────────────────────────────────────────────
