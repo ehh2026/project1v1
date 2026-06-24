@@ -394,4 +394,68 @@ public class CompositePinPlanCacheTests
         Assert.Equal(instruction.OriginalScreen.X + 50, instruction.ExtendedScreen.X, 3);
         Assert.False(result.ShouldSaveToCache);
     }
+
+    [Fact]
+    public void BuildApplyInstructions_SourceExtendedHead_ShaftLengthIsZoomInvariant()
+    {
+        // Regression (2026-06-23): a source-space pin head was re-projected through the current
+        // (zoomed) viewport, so the shaft grew with the zoom factor. With a full-map reference
+        // viewport the tip→head screen distance must stay constant across zoom levels.
+        var cache    = new CompositePinPlanCache(new MockLogger());
+        var planning = new CompositePinPlanningService(
+            new PinPartPlacementCalculator(),
+            new CompositePinRenderPlanBuilder());
+        var service = new CompositePinApplicationService(cache, planning);
+
+        const double imageW = 8198, imageH = 5542;
+        const double containerW = 1920, containerH = 1080;
+
+        var layout = new ManualLayout
+        {
+            GroupKey  = "g1",
+            VariantId = "manual-default",
+            Markers   = new List<ManualLayoutMarker>()
+        };
+
+        // Head sits 50 source-px right of the location; angle/length are irrelevant on this path.
+        var applications = new List<LayoutEditorController.LayoutMarkerApplication>
+        {
+            new("LocA", new Point(100, 200), new Point(150, 200), true)
+            {
+                SourceExtendedX = 1150,
+                SourceExtendedY = 900,
+                Angle           = 90,
+                LineLength      = 50
+            }
+        };
+        var sourceCoords = new Dictionary<string, (double PixelX, double PixelY)>
+        {
+            ["LocA"] = (1100, 900)
+        };
+
+        var fullMap = ViewportState.CreateFullMapView(imageW, imageH, containerW, containerH);
+
+        double ShaftLength(double zoomLevel)
+        {
+            var viewport = ViewportState.CreateZoomedView(
+                1100, 900, zoomLevel, imageW, imageH, containerW, containerH);
+            var result = service.BuildApplyInstructions(
+                layout, applications, sourceCoords, viewport,
+                containerW, containerH, new PinPartConfig(), "group-key",
+                Path.Combine(Path.GetTempPath(), "missing_geometry.json"),
+                canUseCompositePins: false, fullMapViewport: fullMap);
+            var ins = Assert.Single(result.Instructions);
+            var dx = ins.ExtendedScreen.X - ins.OriginalScreen.X;
+            var dy = ins.ExtendedScreen.Y - ins.OriginalScreen.Y;
+            return Math.Sqrt(dx * dx + dy * dy);
+        }
+
+        var lengthAt10x = ShaftLength(10);
+        var lengthAt55x = ShaftLength(55);
+
+        // Same screen-space shaft length regardless of zoom — and it equals the full-map length.
+        Assert.Equal(lengthAt10x, lengthAt55x, 3);
+        var fmScale = containerW / fullMap.GetSourceRect().Width;
+        Assert.Equal(50 * fmScale, lengthAt10x, 3);
+    }
 }

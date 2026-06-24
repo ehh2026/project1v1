@@ -554,6 +554,14 @@ namespace InteractiveWorldMap
                 AppDomain.CurrentDomain.BaseDirectory,
                 _visualConfig.PinParts.GeometryMetadataPath);
 
+            // Full-map reference viewport: source-space pin heads are projected at this fixed fit
+            // scale so the shaft keeps a constant screen length at any zoom (still resize-aware,
+            // since the fit scale tracks the window). Without it, a zoomed-in single-location pin's
+            // shaft stretched with the zoom factor.
+            var fullMapViewport = (cw > 0 && ch > 0)
+                ? ViewportState.CreateFullMapView(ImageWidth, ImageHeight, cw, ch)
+                : null;
+
             var applyPlan = _planApplicationService.BuildApplyInstructions(
                 layout,
                 applications,
@@ -564,7 +572,8 @@ namespace InteractiveWorldMap
                 _visualConfig.PinParts,
                 groupKey ?? string.Empty,
                 geometryPath,
-                CanUseCompositePins() && _pinPartGeometryHash != null);
+                CanUseCompositePins() && _pinPartGeometryHash != null,
+                fullMapViewport);
 
             foreach (var instruction in applyPlan.Instructions)
             {

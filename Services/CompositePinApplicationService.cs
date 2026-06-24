@@ -99,7 +99,8 @@ namespace InteractiveWorldMap.Services
             PinPartConfig config,
             string groupKey,
             string absoluteGeometryPath,
-            bool canUseCompositePins)
+            bool canUseCompositePins,
+            ViewportState? fullMapViewport = null)
         {
             IReadOnlyDictionary<string, CompositePinRenderPlan>? cachedPlans = null;
             string cacheKey = string.Empty;
@@ -116,26 +117,35 @@ namespace InteractiveWorldMap.Services
 
             foreach (var application in applications)
             {
-                Point originalPos;
-                if (hasViewport
-                    && markerSourceCoords.TryGetValue(application.LocationName, out var source))
-                {
-                    originalPos = viewport!.SourceToScreen(
-                        source.PixelX, source.PixelY, containerWidth, containerHeight);
-                }
-                else
-                {
-                    originalPos = application.OriginalPosition;
-                }
+                (double PixelX, double PixelY) source = default;
+                bool haveSource = hasViewport
+                    && markerSourceCoords.TryGetValue(application.LocationName, out source);
+
+                Point originalPos = haveSource
+                    ? viewport!.SourceToScreen(
+                        source.PixelX, source.PixelY, containerWidth, containerHeight)
+                    : application.OriginalPosition;
 
                 Point extendedPos;
-                if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue && hasViewport)
+                if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue && haveSource)
                 {
-                    extendedPos = viewport!.SourceToScreen(
+                    // The tip (originalPos) tracks the map at the current zoom, but the shaft must keep a
+                    // constant screen-space length. Projecting the source-space head through the current
+                    // (zoomed) viewport made the tip→head gap grow with the zoom factor. Instead, measure
+                    // the head offset at the full-map reference scale: this is zoom-invariant yet still
+                    // resize-aware (the full-map viewport's fit scale tracks the window). Falls back to the
+                    // current viewport when no full-map reference is supplied.
+                    var refViewport = fullMapViewport ?? viewport!;
+                    var refAnchor = refViewport.SourceToScreen(
+                        source.PixelX, source.PixelY, containerWidth, containerHeight);
+                    var refHead = refViewport.SourceToScreen(
                         application.SourceExtendedX.Value,
                         application.SourceExtendedY.Value,
                         containerWidth,
                         containerHeight);
+                    extendedPos = new Point(
+                        originalPos.X + (refHead.X - refAnchor.X),
+                        originalPos.Y + (refHead.Y - refAnchor.Y));
                 }
                 else
                 {
