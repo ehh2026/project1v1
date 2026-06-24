@@ -265,6 +265,19 @@ namespace InteractiveWorldMap
                     Canvas.GetTop(marker) + plan.HeadCenterLocal.Y);
             }
 
+            // Drawn pin with its own built-in vertical shaft: the head sits directly above the tip.
+            // Use the pin's actual connection point — NOT LocationMarkerSize/2. A PinMarker is wider
+            // than LocationMarkerSize (ball ~14px vs marker 12px), so the LocationMarkerSize/2 fallback
+            // put the saved head ~2px left of the tip. Over a ~24px shaft that is a ~5° counter-clockwise
+            // lean, baked into every non-moved pin on save and replayed as a slanted extension line.
+            if (marker.Content is PinMarker pin)
+            {
+                var connection = pin.GetConnectionPoint();
+                return new Point(
+                    Canvas.GetLeft(marker) + connection.X,
+                    Canvas.GetTop(marker) + connection.Y);
+            }
+
             var markerSize = _visualConfig.LocationMarkerSize;
             return new Point(Canvas.GetLeft(marker) + markerSize / 2, Canvas.GetTop(marker) + markerSize / 2);
         }
