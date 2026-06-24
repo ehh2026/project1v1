@@ -15,5 +15,14 @@ namespace InteractiveWorldMap.Models
         public double TargetShaftHalfWidthPx { get; set; }
         public double LocationMarkerSize { get; set; }
         public double ClusterMarkerSize { get; set; }
+
+        // Drawn-pin tip cap (PinMarkers.DrawnPinTipCap). Style None disables the cap.
+        public DrawnPinTipCapStyle TipCapStyle { get; set; } = DrawnPinTipCapStyle.None;
+        /// <summary>Extra half-width (px) added each side beyond the shaft outline (cap width knob).</summary>
+        public double TipCapExtendPx { get; set; }
+        /// <summary>Height (px) of the Horizontal bar.</summary>
+        public double TipCapHeightPx { get; set; }
+        /// <summary>Concave arc depth (px) — the curvature knob.</summary>
+        public double TipCapArcDepthPx { get; set; }
     }
 }

@@ -104,6 +104,46 @@ public class TuningReloadValidationTests
         Assert.Contains("Shaft half width", error);
     }
 
+    [Fact]
+    public void TryValidate_NegativeTipCapWidth_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.TipCapExtendPx = -0.1;
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Cap width", error);
+    }
+
+    [Fact]
+    public void TryValidate_NegativeTipCapHeight_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.TipCapHeightPx = -0.1;
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Cap height", error);
+    }
+
+    [Fact]
+    public void TryValidate_NegativeTipCapCurvature_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.TipCapArcDepthPx = -0.1;
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Curvature", error);
+    }
+
+    [Fact]
+    public void TryValidate_ConcaveTipCapWithValidValues_ReturnsTrue()
+    {
+        var args = ValidArgs();
+        args.TipCapStyle = DrawnPinTipCapStyle.Concave;
+        args.TipCapExtendPx = 1.0;
+        args.TipCapHeightPx = 6.0;
+        args.TipCapArcDepthPx = 3.0;
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.True(ok);
+        Assert.Equal(string.Empty, error);
+    }
+
     // ── Source guard: reload path calls TryValidate before ApplyTuningAsync ──
 
     [Fact]

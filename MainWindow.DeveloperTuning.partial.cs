@@ -183,6 +183,14 @@ namespace InteractiveWorldMap
                 _visualConfig.LocationMarkerSize = e.LocationMarkerSize;
                 _visualConfig.ClusterMarkerSize = e.ClusterMarkerSize;
 
+                // Tip cap is a render-only drawn-pin setting; the ReapplyViewAfterTuningChange call
+                // below re-runs UpdatePinTipCaps, which reads these fresh values.
+                var cap = _visualConfig.PinMarkers.DrawnPinTipCap;
+                cap.Style = e.TipCapStyle;
+                cap.ExtendPx = e.TipCapExtendPx;
+                cap.HeightPx = e.TipCapHeightPx;
+                cap.ArcDepthPx = e.TipCapArcDepthPx;
+
                 if (assetVariantChanged)
                     _pinPartBitmapCache.Clear();
 
@@ -279,6 +287,7 @@ namespace InteractiveWorldMap
 
         private static TuningPanelEventArgs CreateTuningArgs(VisualConfig config)
         {
+            var cap = config.PinMarkers?.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
             return new TuningPanelEventArgs
             {
                 PinPartsEnabled = config.PinParts.Enabled && config.PinParts.UseCompositeRendering,
@@ -293,7 +302,11 @@ namespace InteractiveWorldMap
                 TargetHeadRadiusPx = config.PinParts.TargetHeadRadiusPx,
                 TargetShaftHalfWidthPx = config.PinParts.TargetShaftHalfWidthPx,
                 LocationMarkerSize = config.LocationMarkerSize,
-                ClusterMarkerSize = config.ClusterMarkerSize
+                ClusterMarkerSize = config.ClusterMarkerSize,
+                TipCapStyle = cap.Style,
+                TipCapExtendPx = cap.ExtendPx,
+                TipCapHeightPx = cap.HeightPx,
+                TipCapArcDepthPx = cap.ArcDepthPx
             };
         }
 

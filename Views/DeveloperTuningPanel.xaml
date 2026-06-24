@@ -126,6 +126,51 @@
                              ToolTip="Screen-pixel size of aggregate cluster markers."/>
                 </Grid>
 
+                <TextBlock Text="Tip cap (drawn pins)"
+                           Foreground="#CCCCCC"
+                           FontSize="11"
+                           FontWeight="SemiBold"
+                           Margin="0,10,0,2"/>
+                <TextBlock Text="Style"
+                           Foreground="#AAAAAA"
+                           FontSize="10"/>
+                <ComboBox x:Name="CmbTipCapStyle"
+                          Margin="0,1,0,5"
+                          IsEditable="False"
+                          Background="#222222"
+                          Foreground="White"
+                          SelectionChanged="OnVariantSelectionChanged"
+                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                          ToolTip="Cap drawn at the pin tip. None disables it; Horizontal draws a flat bar; Concave draws a shallow arc so the pin reads as stuck into the map.">
+                    <ComboBoxItem Content="None"/>
+                    <ComboBoxItem Content="Horizontal"/>
+                    <ComboBoxItem Content="Concave"/>
+                </ComboBox>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="92"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="Cap width (+px)" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTipCapExtend" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                             ToolTip="Extra half-width in screen px added to each side beyond the shaft outline."/>
+
+                    <TextBlock Grid.Row="1" Text="Cap height (px)" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTipCapHeight" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                             ToolTip="Height in screen px of the Horizontal bar, extending downward from the tip."/>
+
+                    <TextBlock Grid.Row="2" Text="Curvature (px)" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTipCapArcDepth" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                             ToolTip="Concave arc depth in screen px. Larger values bow the arc more toward the head."/>
+                </Grid>
+
                 <TextBlock x:Name="StatusText"
                            Foreground="#FFFFCC66"
                            TextWrapping="Wrap"

@@ -66,7 +66,11 @@ public class TuningPanelWiringTests
             "TxtTargetHeadRadius",
             "TxtTargetShaftHalfWidth",
             "TxtLocationMarkerSize",
-            "TxtClusterMarkerSize"
+            "TxtClusterMarkerSize",
+            "CmbTipCapStyle",
+            "TxtTipCapExtend",
+            "TxtTipCapHeight",
+            "TxtTipCapArcDepth"
         })
         {
             var nameIndex = xaml.IndexOf($"x:Name=\"{controlName}\"", StringComparison.Ordinal);
@@ -87,6 +91,29 @@ public class TuningPanelWiringTests
 
         Assert.Contains("_visualConfig.PinParts.Enabled = e.UseComposite;", source);
         Assert.Contains("_visualConfig.PinParts.UseCompositeRendering = e.UseComposite;", source);
+    }
+
+    [Fact]
+    public void ApplyTuning_MapsTipCapFieldsToDrawnPinTipCapConfig()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("var cap = _visualConfig.PinMarkers.DrawnPinTipCap;", source);
+        Assert.Contains("cap.Style = e.TipCapStyle;", source);
+        Assert.Contains("cap.ExtendPx = e.TipCapExtendPx;", source);
+        Assert.Contains("cap.HeightPx = e.TipCapHeightPx;", source);
+        Assert.Contains("cap.ArcDepthPx = e.TipCapArcDepthPx;", source);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_TipCapStyleCombo_HasAllStyles()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        Assert.Contains("x:Name=\"CmbTipCapStyle\"", xaml);
+        Assert.Contains("<ComboBoxItem Content=\"None\"/>", xaml);
+        Assert.Contains("<ComboBoxItem Content=\"Horizontal\"/>", xaml);
+        Assert.Contains("<ComboBoxItem Content=\"Concave\"/>", xaml);
     }
 
     [Fact]

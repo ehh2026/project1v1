@@ -69,6 +69,32 @@ public partial class DeveloperTuningPanel : UserControl
         return string.Empty;
     }
 
+    private void SetTipCapStyle(DrawnPinTipCapStyle style)
+    {
+        var name = style.ToString();
+        foreach (var item in CmbTipCapStyle.Items)
+        {
+            if (item is ComboBoxItem ci && ci.Content is string s &&
+                string.Equals(s, name, StringComparison.Ordinal))
+            {
+                CmbTipCapStyle.SelectedItem = ci;
+                return;
+            }
+        }
+        CmbTipCapStyle.SelectedIndex = 0; // None
+    }
+
+    private DrawnPinTipCapStyle GetTipCapStyle()
+    {
+        if (CmbTipCapStyle.SelectedItem is ComboBoxItem item &&
+            item.Content is string s &&
+            Enum.TryParse<DrawnPinTipCapStyle>(s, out var style))
+        {
+            return style;
+        }
+        return DrawnPinTipCapStyle.None;
+    }
+
     public void LoadValues(VisualConfig config)
     {
         if (config == null) throw new ArgumentNullException(nameof(config));
@@ -88,6 +114,13 @@ public partial class DeveloperTuningPanel : UserControl
             TxtTargetShaftHalfWidth.Text = Format(config.PinParts.TargetShaftHalfWidthPx);
             TxtLocationMarkerSize.Text = Format(config.LocationMarkerSize);
             TxtClusterMarkerSize.Text = Format(config.ClusterMarkerSize);
+
+            var cap = config.PinMarkers?.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
+            SetTipCapStyle(cap.Style);
+            TxtTipCapExtend.Text = Format(cap.ExtendPx);
+            TxtTipCapHeight.Text = Format(cap.HeightPx);
+            TxtTipCapArcDepth.Text = Format(cap.ArcDepthPx);
+
             SetStatus("Loaded current values.");
         }
         finally
@@ -154,7 +187,10 @@ public partial class DeveloperTuningPanel : UserControl
             !TryReadNonNegative(TxtTargetHeadRadius.Text, "Head radius", out var targetHeadRadius, out error) ||
             !TryReadNonNegative(TxtTargetShaftHalfWidth.Text, "Shaft half width", out var targetShaftHalfWidth, out error) ||
             !TryReadPositive(TxtLocationMarkerSize.Text, "Location marker", out var locationMarkerSize, out error) ||
-            !TryReadPositive(TxtClusterMarkerSize.Text, "Cluster marker", out var clusterMarkerSize, out error))
+            !TryReadPositive(TxtClusterMarkerSize.Text, "Cluster marker", out var clusterMarkerSize, out error) ||
+            !TryReadNonNegative(TxtTipCapExtend.Text, "Cap width", out var tipCapExtend, out error) ||
+            !TryReadNonNegative(TxtTipCapHeight.Text, "Cap height", out var tipCapHeight, out error) ||
+            !TryReadNonNegative(TxtTipCapArcDepth.Text, "Curvature", out var tipCapArcDepth, out error))
         {
             return false;
         }
@@ -173,7 +209,11 @@ public partial class DeveloperTuningPanel : UserControl
             TargetHeadRadiusPx = targetHeadRadius,
             TargetShaftHalfWidthPx = targetShaftHalfWidth,
             LocationMarkerSize = locationMarkerSize,
-            ClusterMarkerSize = clusterMarkerSize
+            ClusterMarkerSize = clusterMarkerSize,
+            TipCapStyle = GetTipCapStyle(),
+            TipCapExtendPx = tipCapExtend,
+            TipCapHeightPx = tipCapHeight,
+            TipCapArcDepthPx = tipCapArcDepth
         };
         error = string.Empty;
         return true;
@@ -248,6 +288,12 @@ public partial class DeveloperTuningPanel : UserControl
         { error = "Head radius must be >= 0 and finite."; return false; }
         if (args.TargetShaftHalfWidthPx < 0 || !double.IsFinite(args.TargetShaftHalfWidthPx))
         { error = "Shaft half width must be >= 0 and finite."; return false; }
+        if (args.TipCapExtendPx < 0 || !double.IsFinite(args.TipCapExtendPx))
+        { error = "Cap width must be >= 0 and finite."; return false; }
+        if (args.TipCapHeightPx < 0 || !double.IsFinite(args.TipCapHeightPx))
+        { error = "Cap height must be >= 0 and finite."; return false; }
+        if (args.TipCapArcDepthPx < 0 || !double.IsFinite(args.TipCapArcDepthPx))
+        { error = "Curvature must be >= 0 and finite."; return false; }
 
         error = string.Empty;
         return true;
