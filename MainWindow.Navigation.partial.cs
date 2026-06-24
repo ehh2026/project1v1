@@ -251,9 +251,11 @@ namespace InteractiveWorldMap
 
                             _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
 
-                            // Try to load saved layout
+                            // Try to load saved layout. The layout key is still set above (so Edit
+                            // Layout works), but a session unload means we do not stage it for
+                            // auto-apply — the cluster reverts to auto-placement.
                             var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
-                            if (savedLayout != null)
+                            if (savedLayout != null && !_layoutEditor.IsManualLayoutSuppressed)
                             {
                                 _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
                                 _savedLayoutToApply = savedLayout; // Store for later application
@@ -305,14 +307,18 @@ namespace InteractiveWorldMap
                 {
                     UpdateMarkerPositions();
 
-                    // Apply saved cluster manual layout if one was found
-                    if (_savedLayoutToApply != null)
+                    // Apply saved cluster manual layout if one was found and not unloaded this session.
+                    if (_savedLayoutToApply != null && !_layoutEditor.IsManualLayoutSuppressed)
                     {
                         ApplyManualLayout(_savedLayoutToApply);
                         _layoutEditor.SetManualLayoutActive(true);
                         _savedLayoutToApply = null; // Clear after applying
 
                         _logger.LogInfo("Manual layout applied after high-res region loaded");
+                    }
+                    else
+                    {
+                        _savedLayoutToApply = null; // Drop any stale/suppressed staged layout.
                     }
                 }
                 

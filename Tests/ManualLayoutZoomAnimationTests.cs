@@ -22,6 +22,25 @@ public class ManualLayoutZoomAnimationTests
     }
 
     [Fact]
+    public void NavigationAutoApplyPaths_HonorManualLayoutSuppression()
+    {
+        // A session "Unload Layout" sets IsManualLayoutSuppressed; every navigation path that
+        // auto-applies a saved layout (zoom animation, single-location zoom, and the cluster-key
+        // ShowZoomedView staging/apply) must skip while suppressed so pins stay auto-placed.
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.Navigation.partial.cs"));
+
+        var animBody = ExtractMethodBody(source, "private ManualLayout? TryLoadFullMapManualLayoutForAnimation()");
+        Assert.Contains("IsManualLayoutSuppressed", animBody);
+
+        var singleBody = ExtractMethodBody(source, "private bool TryApplyFullMapLayoutForZoomedSingle(LocationCluster cluster)");
+        Assert.Contains("IsManualLayoutSuppressed", singleBody);
+
+        // Cluster-key path: both the staging guard and the apply guard reference the flag.
+        Assert.Contains("savedLayout != null && !_layoutEditor.IsManualLayoutSuppressed", source);
+        Assert.Contains("_savedLayoutToApply != null && !_layoutEditor.IsManualLayoutSuppressed", source);
+    }
+
+    [Fact]
     public void ZoomIn_ReappliesFullMapManualLayoutAfterOffsetCaptureBaseline()
     {
         // Regression: the offset-capture block calls UpdateMarkerPositions(), which recomputes
