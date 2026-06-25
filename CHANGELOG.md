@@ -6,6 +6,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Glossary:** Added `docs/reference/GLOSSARY.md` as the central terminology reference for pins, manual layouts, layout variants, and seeds; linked it from agent onboarding, the doc index, and the manual layout guide.
+- **Manual layout seed generator:** Added `Tools/ManualLayoutSeedGenerator`, a headless .NET tool that reuses runtime clustering, viewport, layout-key, and radial-extension code to generate `AutoSeed` manual layouts. `scripts/generate_manual_layout_seeds.ps1` now delegates to the tool instead of carrying duplicated PowerShell/C# placement math, and `scripts/verify.ps1` now includes non-destructive seed verification through `scripts/verify_manual_layout_seeds.ps1`.
 - **Drawn-pin tip cap (opt-in):**
 - **Single-location auto-open tuning:** Added default-off `AutoOpenSingleLocationContentAfterZoom` config and a Runtime Tuning panel checkbox. Full-map standalone pin clicks still zoom in; content now opens automatically after zoom only when this option is enabled.
 - **Developer tools production gate:** Added a single `EnableDeveloperTools` master config switch. When disabled, gallery/guest mode hides and blocks Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode. The model default is safe-off; the checked-in development config opts in.

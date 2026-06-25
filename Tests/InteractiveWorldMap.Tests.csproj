@@ -26,6 +26,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\InteractiveWorldMap.csproj" />
+    <ProjectReference Include="..\Tools\ManualLayoutSeedGenerator\ManualLayoutSeedGenerator.csproj" />
   </ItemGroup>
 
 </Project>

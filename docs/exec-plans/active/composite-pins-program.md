@@ -22,7 +22,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
 | Shaft visibility | [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) | Complete | Default `outline_dark_7px` in `visual-config.json` |
 | Head visibility | [pinhead-black-outline-variants-plan.md](../completed/pinhead-black-outline-variants-plan.md) | Complete | Review/select default head variant |
-| Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | In progress | Phases 1–2 shared path; Phase 3 load verify |
+| Seed alignment | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Code complete; GUI smoke pending | Manual smoke: generated AutoSeed applies for two clusters |
 | Pin appearance overrides | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Planned | Composite head picker + drawn color picker |
 | Tuning & render bug fixes | [tuning-and-pin-render-bugfixes-plan.md](../completed/tuning-and-pin-render-bugfixes-plan.md) | Complete | All H/M findings fixed 2026-06-21; plan moved to completed/ |
 
@@ -34,8 +34,8 @@ pin-parts completed baseline
   → composite-pins-unzoomed Phases 1–4
   → remove-pins-jpg-legacy-path ✅
 
-manual-layout-seed-alignment Phases 1–3
-  → reliable auto-seed loading at runtime
+manual-layout-seed-alignment automated path ✅
+  → manual GUI smoke for generated AutoSeed loading
 
 pin-rendering-improvements ✅
   → composite-pin-shaft-visibility asset-variant plan

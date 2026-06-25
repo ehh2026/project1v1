@@ -37,25 +37,29 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
     exit 2
 }
 
-Write-Host "[1/7] dotnet restore"
+Write-Host "[1/8] dotnet restore"
 dotnet restore InteractiveWorldMap.sln
 
-Write-Host "[2/7] NuGet vulnerability check"
+Write-Host "[2/8] NuGet vulnerability check"
 Invoke-HarnessPython "scripts/verify_nuget_vulnerabilities.py"
 
-Write-Host "[3/7] dotnet build"
+Write-Host "[3/8] dotnet build"
 dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
 
-Write-Host "[4/7] dotnet test"
+Write-Host "[4/8] dotnet test"
 dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal
 
-Write-Host "[5/7] doc link check"
+Write-Host "[5/8] manual layout seed verification"
+& "$PSScriptRoot\verify_manual_layout_seeds.ps1"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[6/8] doc link check"
 Invoke-HarnessPython "scripts/verify_doc_links.py"
 
-Write-Host "[6/7] taste checks"
+Write-Host "[7/8] taste checks"
 Invoke-HarnessPython "scripts/verify_taste.py"
 
-Write-Host "[7/7] headless startup validation"
+Write-Host "[8/8] headless startup validation"
 & "$PSScriptRoot\validate_startup.ps1"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 

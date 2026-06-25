@@ -27,8 +27,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.md)
 
 - [ ] Fix or remove composite pins that overstretch shadow
-- [ ] Shared runtime/seed placement path — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md)
-- [ ] Reliable seed loading in app — same plan, Phase 3
+- [ ] Manual GUI smoke for generated AutoSeed loading — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md), Phase 3 manual checklist. Automated shared-path generation and load-key coverage are done; confirm in the running app for at least two seeded clusters.
 - [ ] Layout persistence robustness — same plan, Phase 5. **5a per-user storage (`%AppData%`) + 5b crash-proof load DONE 2026-06-23. 5c brittle keys: code DONE 2026-06-23** — full-map key is now size-independent (`"fullmap"`, collapses legacy `fullmap_s{W}x{H}` via compatible-key match) and user saves persist source-space coords (`SourceExtendedX/Y`) so layouts re-project at any window size; cluster keys already tolerated drift. **Pending: GUI verification** that a full-map layout survives a resize and lands on the right positions (can't run remotely)
 - [x] Investigate drawn-pin tilt — **RESOLVED 2026-06-24** (see URGENT section above). Not a transform artifact: root cause was `MainWindow.GetMarkerEndpoint` saving the head with `LocationMarkerSize/2` instead of the pin's `GetConnectionPoint()`, offsetting the head ~2px left of the tip → ~5° CCW lean on replay. Fixed.
 - [ ] Explore post-render smooth black outline on composite pins (runtime, after shaft+head compose) — assess vs baked `outline_dark_*` asset variants; see feasibility notes in [composite-pins-program.md](exec-plans/active/composite-pins-program.md) or new exec plan if pursued

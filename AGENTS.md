@@ -22,6 +22,7 @@ Every agent must keep completion state current before handing work back:
 # Build and test (run before claiming work is done)
 ./scripts/verify.sh          # macOS / Linux (build + test + harness checks)
 .\scripts\verify.ps1         # Windows (full verification)
+.\scripts\verify_manual_layout_seeds.ps1 # Windows: seed generator/load sanity check
 
 # Manual steps
 dotnet build InteractiveWorldMap.sln
@@ -108,12 +109,7 @@ Full loop: [docs/agent-workflows.md](docs/agent-workflows.md)
 
 ## Pin/Location Terminology
 
-Use these terms consistently in docs, plans, tests, and code comments:
-
-- **Dense-cluster location**: A location that belongs to a dense cluster. On the unzoomed full map it is represented by the cluster aggregate marker, so it does not render as its own pin until the user zooms into that cluster.
-- **Standalone location**: A location that does not belong to a dense cluster. It renders as an individual pin on the unzoomed full map and keeps the same individual-pin behavior when zoomed.
-- **Auto stub pin**: A standalone location pin that has not been edited in Edit Layout mode. It uses the automatic short stub shape: a pin head plus a short, vertical shaft using the configured default stub length.
-- **Manual-layout pin**: A standalone location pin whose endpoint was edited in Edit Layout mode. Its saved layout controls the pin's shaft angle and length instead of the automatic vertical stub.
+Use [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) terms consistently in docs, plans, tests, and code comments.
 
 ## When You Finish
 

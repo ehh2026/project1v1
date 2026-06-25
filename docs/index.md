@@ -18,6 +18,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | Doc | Description |
 |-----|-------------|
 | [reference/](reference/) | Quality, reliability, security |
+| [reference/GLOSSARY.md](reference/GLOSSARY.md) | Shared project terms for pins, layouts, and seeds |
 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | Layer model, invariants, domain map |
 | [../scripts/README.md](../scripts/README.md) | Script catalog, Python venv |
 
