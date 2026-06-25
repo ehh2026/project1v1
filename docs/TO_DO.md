@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 24, 2026
+**Last updated:** June 25, 2026
 
 ---
 
@@ -17,8 +17,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ## Zoom & animation
 
-- [ ] make all pins track map during zoom, instead of only the clicked one tracking and others not appearing during zoom-out and only appearing when zoom-out is complete
-- [ ] Smooth/fast zoom performance + appearance — remove per-frame overhead (sync logging on UI thread, verbose debug flags, `DateTime.Now` clock, per-frame line rebuilds, shadow/effect cost, blocking keyframe I/O) — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md) (findings: [performance-appearance-review.md](performance-appearance-review.md))
+- [ ] Finish smooth/fast zoom performance + appearance — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md). Phase 1 hot-path logging/clock work and Phase 2a allocation/lookup reductions are code complete; remaining work is Phase 2b/2c (shadow/effect cost, keyframe bitmap I/O decision, render-options cleanup, anti-pop/crispness polish, shadow-opacity consistency, noisy warning downgrade). Findings: [performance-appearance-review.md](performance-appearance-review.md).
 - [x] Close any open content popup when backing out of a zoomed view (incl. the single-click auto-popup) — `AnimateZoomOut` now calls `CloseActiveSubwindow` (DONE 2026-06-23)
 
 ---
@@ -55,8 +54,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## Developer tooling
 
 - [x] Tuning panel: shaft/head variant pickers — replace `TxtShaftVariant` / `TxtHeadVariant` free-text boxes with drop-downs populated from `Images&Content/Pins_v2/parts/shaft_variants/` and `head_variants/` (include blank/base option); grey out both pickers when composite pins are off (`ChkComposite` unchecked). Follow-up to [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md). Plan: [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md).
-- [ ] Tuning panel: variant search/filter — type-to-filter or grouping for 60+ shaft variant folders in combo pickers (deferred from [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md) v1).
-- [ ] make sure that dev tools like Edit Layout and Tuning panel can be disabled during production
+- [ ] Dev tools production gate — disable Edit Layout, Runtime Tuning/F12, and debug-only affordances for gallery guests via one config switch — [dev-tools-production-disable-plan.md](exec-plans/active/dev-tools-production-disable-plan.md)
 
 ## User ideas (product)
 
@@ -64,7 +62,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish
 - [ ] Wire in actual locations and content; accession-number folder structure
-- [ ] Excel/table for addresses and coordinates
 - [ ] Welcome / instructions screen
 - [ ] Content ordering; bio popup per marker
 - [ ] Don't animate extension lines until fully zoomed in
@@ -90,3 +87,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Cross-platform / resolution manual testing
 - [ ] Search, pan, categories, export — future enhancements
 - [ ] Look into adapting the app to be able to run in a browser over the internet
+
+## Deferred
+
+- [ ] Tuning panel: variant search/filter — type-to-filter or grouping for 60+ shaft variant folders in combo pickers. Deferred from [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md) v1; dropdown picker basics are complete, and this is parked until the list size becomes a real workflow drag.

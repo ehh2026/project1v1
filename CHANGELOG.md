@@ -8,8 +8,11 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **Drawn-pin tip cap (opt-in):**
 - **Single-location auto-open tuning:** Added default-off `AutoOpenSingleLocationContentAfterZoom` config and a Runtime Tuning panel checkbox. Full-map standalone pin clicks still zoom in; content now opens automatically after zoom only when this option is enabled.
+- **Developer tools production gate plan:** Added [dev-tools-production-disable-plan.md](docs/exec-plans/active/dev-tools-production-disable-plan.md) to gate Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode behind one production-safe config switch.
 
 ### Changed
+
+- **Backlog maintenance:** Removed completed continuous-pin-tracking and Excel coordinate/table backlog items now that the work is archived/documented and already reflected in the app; clarified the zoom performance item as partial with remaining Phase 2b/2c scope; moved Tuning panel variant search/filter to a Deferred section. Strengthened agent workflow guidance so completed work updates `TO_DO.md`, archives completed plans, and records `CHANGELOG.md` consistently.
 
 - **800-line taste-limit refactor:** Two files that were failing `scripts/verify_taste.py` (and blocking `verify.ps1`) have been brought back under the limit by splitting into focused partials. `MainWindow.xaml.cs` (872 → 625 taste-lines): marker-placement engine (`UpdateMarkerPositions`, `BuildIndividualMarkerIndex`, `ApplyIndividualPlacements`, `ApplyClusterPlacements`, `ClearAllMarkers`, `ShowOnlyClusterMarkers`, `ShowOnlyIndividualMarkers`) extracted to `MainWindow.MarkerPlacement.partial.cs`. `MainWindow.LayoutEditor.partial.cs` (801 → 661 taste-lines): drag handlers (`OnMarkerDragStart`, `OnMarkerDragMove`, `LogDragDebug`, `OnMarkerDragEnd`) extracted to `MainWindow.LayoutEditorDrag.partial.cs`. Pure mechanical moves — no behavior change. Source-guard tests updated to read from the new files. `verify.ps1` now fully green.
 

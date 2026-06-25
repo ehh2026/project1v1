@@ -6,6 +6,16 @@
 
 Windows desktop app (WPF / .NET 6 / C#) displaying a full-screen interactive world map with clickable location markers and content popups.
 
+## Non-Negotiable Finish Bookkeeping
+
+Every agent must keep completion state current before handing work back:
+
+- Remove completed `docs/TO_DO.md` bullets instead of leaving stale checked items.
+- Narrow partially completed `docs/TO_DO.md` bullets to only the remaining scope.
+- Move parked work to Deferred/Inactive with a short reason.
+- Archive completed exec plans to `docs/exec-plans/completed/` and update active registries.
+- Add or update the `[Unreleased]` `CHANGELOG.md` entry for user-visible or workflow-visible changes.
+
 ## Quick Commands
 
 ```bash
@@ -109,4 +119,6 @@ Use these terms consistently in docs, plans, tests, and code comments:
 
 - [ ] `scripts/verify` passes
 - [ ] Exec plan updated (if applicable)
+- [ ] Finished exec plan archived to `docs/exec-plans/completed/` and active registries updated, if the plan is complete
+- [ ] `docs/TO_DO.md` updated: remove completed items, narrow partial items to remaining scope, or move parked items to Deferred/Inactive
 - [ ] `CHANGELOG.md` entry under `[Unreleased]` or new version

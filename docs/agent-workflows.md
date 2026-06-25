@@ -13,6 +13,8 @@ When given a task, repeat until verification passes:
 5. **Record** — Update exec plan checkboxes and [CHANGELOG.md](../CHANGELOG.md)
 6. **Loop** — If verification fails, diagnose, fix, return to step 3. Do not ask humans to "try harder."
 
+The Record step includes backlog hygiene: remove completed `TO_DO.md` bullets, narrow partially completed bullets to the remaining scope, move deferred bullets to Deferred/Inactive, archive finished exec plans, and update active registries.
+
 ## When Something Fails
 
 Ask: **What capability is missing, and how do we make it legible and enforceable?**
@@ -30,6 +32,7 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 - [ ] `scripts/verify` passes locally
 - [ ] No unrelated files changed
 - [ ] Exec plan updated (if task came from a plan)
+- [ ] Originating `TO_DO.md` bullet removed, shortened to the remaining scope, or moved to Deferred/Inactive
 - [ ] `CHANGELOG.md` entry added under `[Unreleased]` or version section
 - [ ] New behavior documented in appropriate `docs/` file
 
@@ -63,6 +66,8 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 | Composite-pin / manual-layout task | Also update [composite-pins-program.md](exec-plans/active/composite-pins-program.md) dashboard |
 | Phase or plan completes | Check off child plan; update program dashboard if applicable; move finished plan to `exec-plans/completed/` |
 | TO_DO item completed | Remove the `[x]` line from `TO_DO.md` (don't leave checked-off items); record the work in `CHANGELOG.md` under `[Unreleased]` — CHANGELOG is the canonical record of done work |
+| TO_DO item partially completed | Rewrite the bullet so it names only remaining scope and points at the active plan section that still owns it |
+| TO_DO item deferred | Move it to a Deferred or Inactive section with one sentence explaining why it is parked and what would make it worth reviving |
 | Investigation concludes | Put conclusion at top of file in `assessments/`; stop tracking in `TO_DO.md` |
 | Behavior stabilizes | Merge durable knowledge into `guides/`; archive or complete the plan |
 
