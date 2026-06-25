@@ -26,8 +26,10 @@ namespace InteractiveWorldMap
         {
             _pinTipCapRenderer ??= new DrawnPinTipCapRenderer(MapDisplay.Markers);
 
-            var capConfig = _visualConfig.PinMarkers?.DrawnPinTipCap;
-            if (capConfig == null ||
+            var pinConfig = _visualConfig.PinMarkers;
+            var capConfig = pinConfig?.DrawnPinTipCap;
+            if (pinConfig == null ||
+                capConfig == null ||
                 capConfig.Style == DrawnPinTipCapStyle.None ||
                 !_visualConfig.UsePinMarkers)
             {
@@ -64,7 +66,7 @@ namespace InteractiveWorldMap
                     geometries.Add(geometry);
             }
 
-            _pinTipCapRenderer.Sync(geometries, capConfig, _visualConfig.PinMarkers);
+            _pinTipCapRenderer.Sync(geometries, capConfig, pinConfig);
         }
 
         /// <summary>

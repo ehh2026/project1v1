@@ -7,6 +7,7 @@ namespace InteractiveWorldMap.Models
         public bool UsePrerasterize { get; set; }
         public bool ShowDebugOverlay { get; set; }
         public bool UseLitShafts { get; set; }
+        public bool AutoOpenSingleLocationContentAfterZoom { get; set; }
         public string ShaftVariant { get; set; } = string.Empty;
         public string HeadVariant { get; set; } = string.Empty;
         public double ClusterThreshold { get; set; }

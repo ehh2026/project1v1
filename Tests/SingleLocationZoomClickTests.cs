@@ -51,6 +51,21 @@ public class SingleLocationZoomClickTests
     }
 
     [Fact]
+    public void IndividualMarker_GatesAutoOpenLocationBehindConfig()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var methodBody = ExtractMethodBody(source, "private LocationMarker AddIndividualMarker");
+
+        var gateIdx = methodBody.IndexOf("_visualConfig.AutoOpenSingleLocationContentAfterZoom", StringComparison.Ordinal);
+        var setIdx = methodBody.IndexOf("_autoOpenLocation = location;", StringComparison.Ordinal);
+        var clusterClickIdx = methodBody.IndexOf("OnClusterClicked(singleCluster);", StringComparison.Ordinal);
+
+        Assert.True(gateIdx >= 0, "Individual full-map pin click must check AutoOpenSingleLocationContentAfterZoom.");
+        Assert.True(setIdx > gateIdx, "_autoOpenLocation should only be set after the config gate.");
+        Assert.True(clusterClickIdx > setIdx, "The auto-open decision must be made before starting the zoom.");
+    }
+
+    [Fact]
     public void ClusterMarker_DoesNotSetAutoOpenLocation()
     {
         var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));

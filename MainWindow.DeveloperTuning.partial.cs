@@ -182,6 +182,7 @@ namespace InteractiveWorldMap
                 _visualConfig.PinParts.TargetShaftHalfWidthPx = e.TargetShaftHalfWidthPx;
                 _visualConfig.LocationMarkerSize = e.LocationMarkerSize;
                 _visualConfig.ClusterMarkerSize = e.ClusterMarkerSize;
+                _visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;
 
                 // Tip cap is a render-only drawn-pin setting; the ReapplyViewAfterTuningChange call
                 // below re-runs UpdatePinTipCaps, which reads these fresh values.
@@ -303,6 +304,7 @@ namespace InteractiveWorldMap
                 TargetShaftHalfWidthPx = config.PinParts.TargetShaftHalfWidthPx,
                 LocationMarkerSize = config.LocationMarkerSize,
                 ClusterMarkerSize = config.ClusterMarkerSize,
+                AutoOpenSingleLocationContentAfterZoom = config.AutoOpenSingleLocationContentAfterZoom,
                 TipCapStyle = cap.Style,
                 TipCapExtendPx = cap.ExtendPx,
                 TipCapHeightPx = cap.HeightPx,

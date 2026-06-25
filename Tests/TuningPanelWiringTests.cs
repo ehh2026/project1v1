@@ -49,6 +49,18 @@ public class TuningPanelWiringTests
     }
 
     [Fact]
+    public void DeveloperTuningPanel_HasAutoOpenSingleLocationContentToggle()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml.cs"));
+
+        Assert.Contains("x:Name=\"ChkAutoOpenSingleLocationContent\"", xaml);
+        Assert.Contains("Content=\"Auto-open single content\"", xaml);
+        Assert.Contains("ChkAutoOpenSingleLocationContent.IsChecked = config.AutoOpenSingleLocationContentAfterZoom;", source);
+        Assert.Contains("AutoOpenSingleLocationContentAfterZoom = ChkAutoOpenSingleLocationContent.IsChecked == true", source);
+    }
+
+    [Fact]
     public void DeveloperTuningPanel_ProvidesTooltipsForTuningOptions()
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
@@ -59,6 +71,7 @@ public class TuningPanelWiringTests
             "ChkPrerasterize",
             "ChkDebugOverlay",
             "ChkUseLitShafts",
+            "ChkAutoOpenSingleLocationContent",
             "CmbShaftVariant",
             "CmbHeadVariant",
             "TxtClusterThreshold",
@@ -91,6 +104,15 @@ public class TuningPanelWiringTests
 
         Assert.Contains("_visualConfig.PinParts.Enabled = e.UseComposite;", source);
         Assert.Contains("_visualConfig.PinParts.UseCompositeRendering = e.UseComposite;", source);
+    }
+
+    [Fact]
+    public void ApplyTuning_MapsAutoOpenSingleLocationContent()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("_visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;", source);
+        Assert.Contains("AutoOpenSingleLocationContentAfterZoom = config.AutoOpenSingleLocationContentAfterZoom", source);
     }
 
     [Fact]

@@ -132,6 +132,46 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Load_AutoOpenSingleLocationContentAfterZoom_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""AutoOpenSingleLocationContentAfterZoom"": true }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.True(config.AutoOpenSingleLocationContentAfterZoom);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_AutoOpenSingleLocationContentAfterZoom_UsesDefaultFalseWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""LocationMarkerSize"": 18.5 }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.False(config.AutoOpenSingleLocationContentAfterZoom);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void EnsureConfigExists_CreatesFileIfMissing()
     {
         var tempDir = CreateTempDir();

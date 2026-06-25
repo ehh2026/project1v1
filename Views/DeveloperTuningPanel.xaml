@@ -55,6 +55,12 @@
                               Margin="0,2"
                               Click="OnPanelInputChanged"
                               ToolTip="Prefer lit shaft assets when no shaft variant is set."/>
+                    <CheckBox x:Name="ChkAutoOpenSingleLocationContent"
+                              Content="Auto-open single content"
+                              Foreground="White"
+                              Margin="0,2"
+                              Click="OnPanelInputChanged"
+                              ToolTip="After clicking a standalone full-map pin, open that location's content automatically when zoom-in completes."/>
                 </UniformGrid>
 
                 <TextBlock Text="Variants"

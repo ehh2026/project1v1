@@ -381,7 +381,10 @@ namespace InteractiveWorldMap
                 var viewport = MapDisplay.CurrentViewport;
                 if (viewport != null && viewport.ZoomLevel <= 1.0)
                 {
-                    _autoOpenLocation = location;
+                    if (_visualConfig.AutoOpenSingleLocationContentAfterZoom)
+                    {
+                        _autoOpenLocation = location;
+                    }
 
                     // Create a single-location cluster and zoom to it
                     var singleCluster = new LocationCluster

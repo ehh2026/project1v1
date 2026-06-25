@@ -169,6 +169,7 @@ public class TuningReloadValidationTests
         StubLength = 24,
         TargetHeadRadiusPx = 8,
         TargetShaftHalfWidthPx = 3,
+        AutoOpenSingleLocationContentAfterZoom = false,
         ShaftVariant = "outline_dark_7px",
         HeadVariant = string.Empty
     };

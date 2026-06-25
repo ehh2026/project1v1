@@ -36,6 +36,11 @@ namespace InteractiveWorldMap.Models
         public bool UsePinMarkers { get; set; } = true;
 
         /// <summary>
+        /// Whether clicking a standalone full-map pin should open its content automatically after zooming in.
+        /// </summary>
+        public bool AutoOpenSingleLocationContentAfterZoom { get; set; } = false;
+
+        /// <summary>
         /// Configuration for pin marker appearance.
         /// </summary>
         public PinMarkerConfig PinMarkers { get; set; } = new PinMarkerConfig();

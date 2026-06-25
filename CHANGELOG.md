@@ -7,6 +7,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Added
 
 - **Drawn-pin tip cap (opt-in):**
+- **Single-location auto-open tuning:** Added default-off `AutoOpenSingleLocationContentAfterZoom` config and a Runtime Tuning panel checkbox. Full-map standalone pin clicks still zoom in; content now opens automatically after zoom only when this option is enabled.
 
 ### Changed
 

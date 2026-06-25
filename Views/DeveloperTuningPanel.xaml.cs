@@ -106,6 +106,7 @@ public partial class DeveloperTuningPanel : UserControl
             ChkPrerasterize.IsChecked = config.PinParts.UsePrerasterizedRendering;
             ChkDebugOverlay.IsChecked = config.Debug.ShowCompositePinDebugOverlay;
             ChkUseLitShafts.IsChecked = config.PinParts.UseLitShafts;
+            ChkAutoOpenSingleLocationContent.IsChecked = config.AutoOpenSingleLocationContentAfterZoom;
             SelectVariant(CmbShaftVariant, config.PinParts.ShaftAssetVariant);
             SelectVariant(CmbHeadVariant, config.PinParts.HeadAssetVariant);
             TxtClusterThreshold.Text = Format(config.ClusterDistanceThreshold);
@@ -202,6 +203,7 @@ public partial class DeveloperTuningPanel : UserControl
             UsePrerasterize = ChkPrerasterize.IsChecked == true,
             ShowDebugOverlay = ChkDebugOverlay.IsChecked == true,
             UseLitShafts = ChkUseLitShafts.IsChecked == true,
+            AutoOpenSingleLocationContentAfterZoom = ChkAutoOpenSingleLocationContent.IsChecked == true,
             ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim(),
             HeadVariant = GetVariantFromCombo(CmbHeadVariant).Trim(),
             ClusterThreshold = clusterThreshold,

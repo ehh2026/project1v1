@@ -13,6 +13,7 @@ The configuration is stored in `visual-config.json` in the application root dire
   "ClusterDistanceThreshold": 30.0,
   "LocationMarkerSize": 12.0,
   "UsePinMarkers": true,
+  "AutoOpenSingleLocationContentAfterZoom": false,
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,
   "ClusterCountFontSize": 11.0,
@@ -67,6 +68,11 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - **UsePinMarkers** (default: `true`)
   - Master switch for pin-style markers instead of simple circular location dots
   - When `false`, locations use the basic circular `LocationMarker` visuals
+
+- **AutoOpenSingleLocationContentAfterZoom** (default: `false`)
+  - When `true`, clicking a standalone full-map pin zooms into that location and opens its content automatically after zoom settles
+  - When `false`, the click still zooms in, but users click the zoomed pin again to open content
+  - Also available in the debug-gated Runtime Tuning panel
 
 ## Pin Rendering Modes
 
