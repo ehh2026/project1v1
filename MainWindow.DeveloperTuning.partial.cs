@@ -14,7 +14,7 @@ namespace InteractiveWorldMap
 
         private void SetupTuningPanel()
         {
-            TuningPanelToggleBtn.Visibility = _visualConfig.Debug.EnableTuningPanel
+            TuningPanelToggleBtn.Visibility = AreDeveloperToolsEnabled() && _visualConfig.Debug.EnableTuningPanel
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
@@ -43,7 +43,7 @@ namespace InteractiveWorldMap
 
         private void OnTuningPanelToggleClick(object sender, RoutedEventArgs e)
         {
-            if (!_visualConfig.Debug.EnableTuningPanel)
+            if (!AreDeveloperToolsEnabled() || !_visualConfig.Debug.EnableTuningPanel)
                 return;
 
             DeveloperTuningPanel.Visibility = DeveloperTuningPanel.Visibility == Visibility.Visible
@@ -246,6 +246,12 @@ namespace InteractiveWorldMap
 
         private bool CanRunTuningAction(string action)
         {
+            if (!AreDeveloperToolsEnabled())
+            {
+                DeveloperTuningPanel.SetStatus("Developer tools are disabled.");
+                return false;
+            }
+
             if (_isTuningBusy)
             {
                 DeveloperTuningPanel.SetStatus($"Cannot {action} while tuning is busy.");

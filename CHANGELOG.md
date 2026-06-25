@@ -8,7 +8,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **Drawn-pin tip cap (opt-in):**
 - **Single-location auto-open tuning:** Added default-off `AutoOpenSingleLocationContentAfterZoom` config and a Runtime Tuning panel checkbox. Full-map standalone pin clicks still zoom in; content now opens automatically after zoom only when this option is enabled.
-- **Developer tools production gate plan:** Added [dev-tools-production-disable-plan.md](docs/exec-plans/active/dev-tools-production-disable-plan.md) to gate Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode behind one production-safe config switch.
+- **Developer tools production gate:** Added a single `EnableDeveloperTools` master config switch. When disabled, gallery/guest mode hides and blocks Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode. The model default is safe-off; the checked-in development config opts in.
 
 ### Changed
 

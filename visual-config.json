@@ -2,6 +2,7 @@
   "ClusterDistanceThreshold": 30.0,
   "LocationMarkerSize": 12.0,
   "UsePinMarkers": true,
+  "EnableDeveloperTools": true,
   "AutoOpenSingleLocationContentAfterZoom": false,
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,

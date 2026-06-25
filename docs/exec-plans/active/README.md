@@ -26,12 +26,12 @@ started: YYYY-MM-DD
 | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
-| [dev-tools-production-disable-plan.md](dev-tools-production-disable-plan.md) | Gate Edit Layout, Runtime Tuning, and debug-only affordances behind one production-safe config switch |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
 
 - `single-location-zoom-click-plan.md` — Zoom in and auto-open content window on standalone marker click — moved 2026-06-23
+- `dev-tools-production-disable-plan.md` — Gate Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode behind `EnableDeveloperTools` — moved 2026-06-25
 - `tuning-panel-dropdowns-plan.md` — Tuning panel shaft/head variant ComboBox pickers (follow-up to runtime tuning panel) — moved 2026-06-22
 - `refactoring-plan.md` — MainWindow decomposition tracker (Phases 1–10) — moved 2026-06-08
 - `composite-pins-manual-layout-phases-plan.md` — Composite-pin manual-layout integration (Phases 1–4 done; Phase 5 delegated to `manual-layout-variants-plan.md`) — moved 2026-06-08

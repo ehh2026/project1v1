@@ -13,6 +13,7 @@ The configuration is stored in `visual-config.json` in the application root dire
   "ClusterDistanceThreshold": 30.0,
   "LocationMarkerSize": 12.0,
   "UsePinMarkers": true,
+  "EnableDeveloperTools": false,
   "AutoOpenSingleLocationContentAfterZoom": false,
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,
@@ -29,6 +30,19 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - `RadialExtension`
 - `ManualLayoutEditor`
 - `Debug`
+
+## Developer Tools Master Gate
+
+`EnableDeveloperTools` is the single master switch for in-app developer controls. It defaults to `false` in the model so gallery/guest display configs are safe by default.
+
+When `EnableDeveloperTools` is `false`:
+
+- Edit Layout is hidden and cannot be entered.
+- Runtime Tuning and the F12 tuning toggle are disabled.
+- Composite debug overlays and verbose debug logging are treated as off.
+- Debug-only windowed mode is ignored.
+
+The repository's development `visual-config.json` may set this to `true`; production/gallery deployments should set it to `false`.
 
 ### Parameters
 
@@ -68,6 +82,11 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - **UsePinMarkers** (default: `true`)
   - Master switch for pin-style markers instead of simple circular location dots
   - When `false`, locations use the basic circular `LocationMarker` visuals
+
+- **EnableDeveloperTools** (default: `false`)
+  - Master switch for in-app developer controls
+  - When `false`, gallery guests cannot access Edit Layout, Runtime Tuning/F12, debug overlays/logging, or debug-only windowed mode
+  - Development configs can set this to `true`, then use the nested `ManualLayoutEditor` and `Debug` sub-settings normally
 
 - **AutoOpenSingleLocationContentAfterZoom** (default: `false`)
   - When `true`, clicking a standalone full-map pin zooms into that location and opens its content automatically after zoom settles

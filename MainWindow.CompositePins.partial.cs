@@ -286,7 +286,7 @@ namespace InteractiveWorldMap
                 shaftImage,
                 headImage,
                 plan,
-                _visualConfig.Debug.ShowCompositePinDebugOverlay,
+                AreDeveloperToolsEnabled() && _visualConfig.Debug.ShowCompositePinDebugOverlay,
                 _visualConfig.PinParts.UsePrerasterizedRendering);
             compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
             _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);

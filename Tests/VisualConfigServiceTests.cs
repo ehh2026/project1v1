@@ -132,6 +132,46 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Load_EnableDeveloperTools_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""EnableDeveloperTools"": true }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.True(config.EnableDeveloperTools);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_EnableDeveloperTools_UsesDefaultFalseWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""Debug"": { ""EnableTuningPanel"": true } }");
+            var service = new VisualConfigService();
+
+            var config = service.Load(path);
+
+            Assert.False(config.EnableDeveloperTools);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Load_AutoOpenSingleLocationContentAfterZoom_Deserializes()
     {
         var tempDir = CreateTempDir();

@@ -1,7 +1,8 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-25
+completed: 2026-06-25
 requirements_ref: docs/TO_DO.md#developer-tooling
 ---
 
@@ -16,6 +17,10 @@ requirements_ref: docs/TO_DO.md#developer-tooling
 **Tech Stack:** WPF / .NET 6 / C#, xUnit source/behavior tests, existing `VisualConfigService`, `MainWindow.*.partial.cs`, `DeveloperTuningPanel`.
 
 ---
+
+## Completion Summary
+
+Completed 2026-06-25. `EnableDeveloperTools` now defaults off in `VisualConfig`, the checked-in development config opts in, and MainWindow gates Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode behind the master switch. `docs/TO_DO.md` no longer tracks the item; `CHANGELOG.md` and `VISUAL_CONFIG.md` document the shipped behavior.
 
 ## Current State
 

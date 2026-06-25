@@ -119,6 +119,7 @@ namespace InteractiveWorldMap
         }
 
         private bool IsAnimating => _mode == InteractionMode.Animating;
+        private bool AreDeveloperToolsEnabled() => _visualConfig.EnableDeveloperTools;
 
         public MainWindow()
         {
@@ -135,7 +136,7 @@ namespace InteractiveWorldMap
                 _visualConfig = _configService.Load(_configPath);
                 _logger.LogInfo($"Visual config loaded from: {_configPath}");
 
-                if (_visualConfig.Debug.WindowedMode)
+                if (AreDeveloperToolsEnabled() && _visualConfig.Debug.WindowedMode)
                 {
                     WindowStyle = WindowStyle.SingleBorderWindow;
                     WindowState = WindowState.Normal;
@@ -176,7 +177,7 @@ namespace InteractiveWorldMap
                 var layoutFilePath = ResolveLayoutStoragePath(configuredLayoutPath);
 
                 // Initialize manual layout manager if enabled OR if we need to load layouts
-                if (_visualConfig.ManualLayoutEditor.Enabled)
+                if (AreDeveloperToolsEnabled() && _visualConfig.ManualLayoutEditor.Enabled)
                 {
                     _layoutManager = new ManualLayoutManager(layoutFilePath, _logger);
                     _logger.LogInfo($"ManualLayoutManager initialized (edit mode enabled) at: {layoutFilePath}");
@@ -547,7 +548,7 @@ namespace InteractiveWorldMap
                 {
                     // Exit edit mode on Escape
                     ExitEditMode();
-                    if (_visualConfig.ManualLayoutEditor.Enabled)
+                    if (AreDeveloperToolsEnabled() && _visualConfig.ManualLayoutEditor.Enabled)
                     {
                         EditLayoutButton.Visibility = Visibility.Visible;
                     }
@@ -571,7 +572,7 @@ namespace InteractiveWorldMap
                     e.Handled = true;
                 }
             }
-            else if (e.Key == Key.F12 && _visualConfig.Debug.EnableTuningPanel)
+            else if (e.Key == Key.F12 && AreDeveloperToolsEnabled() && _visualConfig.Debug.EnableTuningPanel)
             {
                 OnTuningPanelToggleClick(this, new RoutedEventArgs());
                 e.Handled = true;

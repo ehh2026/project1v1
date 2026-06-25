@@ -36,6 +36,13 @@ namespace InteractiveWorldMap.Models
         public bool UsePinMarkers { get; set; } = true;
 
         /// <summary>
+        /// Master gate for in-app developer tools such as Edit Layout, Runtime Tuning,
+        /// debug overlays/logging, and debug-only windowed mode.
+        /// Defaults off so gallery/guest display configs are safe unless explicitly enabled.
+        /// </summary>
+        public bool EnableDeveloperTools { get; set; } = false;
+
+        /// <summary>
         /// Whether clicking a standalone full-map pin should open its content automatically after zooming in.
         /// </summary>
         public bool AutoOpenSingleLocationContentAfterZoom { get; set; } = false;

@@ -223,6 +223,23 @@ public class TuningPanelWiringTests
     }
 
     [Fact]
+    public void MainWindow_TuningPanelVisibilityRequiresDeveloperToolsGate()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("AreDeveloperToolsEnabled() && _visualConfig.Debug.EnableTuningPanel", source);
+    }
+
+    [Fact]
+    public void MainWindow_TuningActionsRejectWhenDeveloperToolsDisabled()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("if (!AreDeveloperToolsEnabled())", source);
+        Assert.Contains("Developer tools are disabled", source);
+    }
+
+    [Fact]
     public void OnReloadTuningFromDisk_ValidatesBeforeRefreshingVariantOptions()
     {
         var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));

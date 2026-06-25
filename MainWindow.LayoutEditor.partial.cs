@@ -58,7 +58,7 @@ namespace InteractiveWorldMap
 
         private void UpdateEditLayoutButtonVisibility()
         {
-            if (!_visualConfig.ManualLayoutEditor.Enabled || _layoutEditor.IsEditMode)
+            if (!AreDeveloperToolsEnabled() || !_visualConfig.ManualLayoutEditor.Enabled || _layoutEditor.IsEditMode)
             {
                 EditLayoutButton.Visibility = Visibility.Collapsed;
                 return;
@@ -296,6 +296,13 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnEditLayoutButtonClick(object sender, RoutedEventArgs e)
         {
+            if (!AreDeveloperToolsEnabled())
+            {
+                _logger.LogInfo("[EditLayout] Developer tools are disabled; ignored.");
+                EditLayoutButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
             if (_currentZoomedCluster == null)
             {
                 if (!TrySetFullMapLayoutKey(editSession: true))
