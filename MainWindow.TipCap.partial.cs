@@ -75,16 +75,20 @@ namespace InteractiveWorldMap
         /// </summary>
         private static Geometry? BuildCapGeometry(PinTipCapPlacement placement, DrawnPinTipCapConfig config)
         {
-            double halfWidth = PinTipCapGeometry.HalfWidth(placement.OutlineWidthPx, config.ExtendPx);
-            if (halfWidth <= 0.0)
+            double widthPx = config.ResolveWidthPx(placement.OutlineWidthPx);
+            if (widthPx <= 0.0)
                 return null;
 
             return config.Style switch
             {
                 DrawnPinTipCapStyle.Horizontal =>
-                    PinTipCapGeometry.BuildHorizontal(placement.TipScreen, halfWidth, config.HeightPx),
+                    PinTipCapGeometry.BuildHorizontal(placement.TipScreen, widthPx),
                 DrawnPinTipCapStyle.Concave =>
-                    PinTipCapGeometry.BuildConcave(placement.TipScreen, placement.ShaftDir, halfWidth, config.ArcDepthPx),
+                    PinTipCapGeometry.BuildConcave(
+                        placement.TipScreen,
+                        placement.ShaftDir,
+                        widthPx,
+                        config.ArcDepthPx),
                 _ => null
             };
         }
