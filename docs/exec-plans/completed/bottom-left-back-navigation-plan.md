@@ -12,6 +12,8 @@
 
 ---
 
+**Completed:** 2026-06-28. The back button now occupies the lower-left overlay, the manual-layout indicator stacks above it and respects `EnableDeveloperTools`, the focused red-green regressions pass, and `.\scripts\verify.ps1` passes with 468 tests.
+
 ## File Structure
 
 | File | Responsibility |
@@ -209,7 +211,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "DeveloperToolsGateT
 
 Expected: all selected tests pass with 0 failures.
 
-- [ ] **Step 5: Commit the tested behavior**
+- [x] **Step 5: Commit the tested behavior**
 
 ```powershell
 git add Tests/NavigationOverlayTests.cs MainWindow.xaml MainWindow.LayoutEditor.partial.cs
@@ -224,7 +226,7 @@ git commit -m "feat: move back navigation to lower left"
 - Move: `docs/exec-plans/active/bottom-left-back-navigation-plan.md`
 - Modify: `docs/exec-plans/active/README.md` only if it explicitly lists this plan
 
-- [ ] **Step 1: Remove the completed backlog item**
+- [x] **Step 1: Remove the completed backlog item**
 
 Delete this bullet from `docs/TO_DO.md`:
 
@@ -232,7 +234,7 @@ Delete this bullet from `docs/TO_DO.md`:
 - [ ] Content view: prevent the Information panel from covering `Back to Map`; prefer moving `Back to Map` to the lower-left corner.
 ```
 
-- [ ] **Step 2: Add the changelog entry**
+- [x] **Step 2: Add the changelog entry**
 
 Under `[Unreleased]` in `CHANGELOG.md`, add:
 
@@ -240,7 +242,7 @@ Under `[Unreleased]` in `CHANGELOG.md`, add:
 - **Bottom-left full-map navigation:** Moved and renamed the zoomed-content back button to `← Back to Full Map` in the lower-left corner, placed the manual-layout status above it, and hid that developer status when developer tools are disabled.
 ```
 
-- [ ] **Step 3: Run the full Windows verification gate**
+- [x] **Step 3: Run the full Windows verification gate**
 
 Run:
 
@@ -250,7 +252,7 @@ Run:
 
 Expected: build, tests, vulnerability scan, seed checks, documentation links, taste checks, and headless startup validation all pass.
 
-- [ ] **Step 4: Review the diff against the design**
+- [x] **Step 4: Review the diff against the design**
 
 Run:
 
@@ -267,7 +269,7 @@ Confirm:
 - the indicator requires the central developer-tools gate;
 - no unrelated UI or navigation behavior changed.
 
-- [ ] **Step 5: Archive this completed exec plan**
+- [x] **Step 5: Archive this completed exec plan**
 
 Move:
 
@@ -283,7 +285,7 @@ docs/exec-plans/completed/bottom-left-back-navigation-plan.md
 
 If `docs/exec-plans/active/README.md` lists the plan, move that registry entry to its completed-plan section or remove the active entry according to the existing format.
 
-- [ ] **Step 6: Commit completion bookkeeping**
+- [x] **Step 6: Commit completion bookkeeping**
 
 ```powershell
 git add CHANGELOG.md docs/TO_DO.md docs/exec-plans/active/README.md docs/exec-plans/completed/bottom-left-back-navigation-plan.md

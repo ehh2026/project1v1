@@ -57,7 +57,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## User ideas (product)
 
 - [ ] Thumbnail side panel: support touchscreen vertical scrolling so users can swipe through all images.
-- [ ] Content view: prevent the Information panel from covering `Back to Map`; prefer moving `Back to Map` to the lower-left corner.
 - [ ] Main content: optionally show information about the selected image/content in a bottom pane or a separate left-side window.
 - [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
 - [ ] Main content images: support zooming and/or maximizing the selected image for closer inspection.
