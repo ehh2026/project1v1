@@ -416,6 +416,49 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Load_DrawnPinTipCap_DeserializesStrokeControls()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinMarkers"": { ""DrawnPinTipCap"": { ""Style"": ""Concave"", ""WidthPx"": 14.0, ""LineWeightPx"": 3.5, ""ArcDepthPx"": 4.0, ""Color"": ""#FF111111"" } } }");
+            var service = new VisualConfigService();
+
+            var cap = service.Load(path).PinMarkers.DrawnPinTipCap;
+
+            Assert.Equal(14.0, cap.WidthPx);
+            Assert.Equal(3.5, cap.LineWeightPx);
+            Assert.Equal("#FF111111", cap.Color);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Load_DrawnPinTipCap_LegacyFieldsResolveWithoutShrinking()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""PinMarkers"": { ""DrawnPinTipCap"": { ""Style"": ""Horizontal"", ""ExtendPx"": 2.0, ""HeightPx"": 6.0, ""UseOutlineRing"": true } } }");
+            var service = new VisualConfigService();
+
+            var cap = service.Load(path).PinMarkers.DrawnPinTipCap;
+
+            Assert.Equal(10.0, cap.ResolveWidthPx(outlineWidthPx: 6.0));
+            Assert.Equal(1.5, cap.ResolveLineWeightPx(shaftOutlineThicknessPx: 1.5));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void Load_DrawnPinTipCap_DefaultsToNoneWhenOmitted()
     {
         var tempDir = CreateTempDir();

@@ -43,11 +43,10 @@
     "EnableManualEditing": true,
     "DrawnPinTipCap": {
       "Style": "None",
-      "HeightPx": 6.0,
+      "WidthPx": 12.0,
+      "LineWeightPx": 3.0,
       "ArcDepthPx": 3.0,
-      "ExtendPx": 0.0,
-      "Color": null,
-      "UseOutlineRing": true
+      "Color": "#FF111111"
     }
   },
   
