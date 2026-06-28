@@ -25,6 +25,13 @@ namespace InteractiveWorldMap.Models
         Concave
     }
 
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum DrawnPinTipCapAlignment
+    {
+        ScreenHorizontal,
+        ShaftAligned
+    }
+
     /// <summary>
     /// Configuration for the opt-in drawn-pin tip cap. A single instance drives caps on
     /// both built-in auto-stub tips and extension-line tips.
@@ -33,6 +40,10 @@ namespace InteractiveWorldMap.Models
     {
         /// <summary>Cap shape. <see cref="DrawnPinTipCapStyle.None"/> draws nothing.</summary>
         public DrawnPinTipCapStyle Style { get; set; } = DrawnPinTipCapStyle.None;
+
+        /// <summary>How the cap width axis is oriented in screen space.</summary>
+        public DrawnPinTipCapAlignment Alignment { get; set; } =
+            DrawnPinTipCapAlignment.ScreenHorizontal;
 
         /// <summary>Total screen-space width of the cap stroke.</summary>
         public double? WidthPx { get; set; }

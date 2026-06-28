@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 26, 2026
+**Last updated:** June 28, 2026
 
 ---
 
@@ -17,6 +17,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 ## Zoom & animation
 
 - [ ] Finish smooth/fast zoom performance + appearance — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md). Phase 1 hot-path logging/clock work and Phase 2a allocation/lookup reductions are code complete; remaining work is Phase 2b/2c (shadow/effect cost, keyframe bitmap I/O decision, render-options cleanup, anti-pop/crispness polish, shadow-opacity consistency, noisy warning downgrade). Findings: [performance-appearance-review.md](performance-appearance-review.md).
+- [ ] Review zoom-out implementation against zoom-in: compare rendering path, animation timing, smoothness, and image quality; optimize or share behavior where appropriate.
 - [x] Close any open content popup when backing out of a zoomed view (incl. the single-click auto-popup) — `AnimateZoomOut` now calls `CloseActiveSubwindow` (DONE 2026-06-23)
 
 ---
@@ -34,7 +35,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
 - [x] Add pinhead variants with black outlines — generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/` — [pinhead-black-outline-variants-plan.md](exec-plans/completed/pinhead-black-outline-variants-plan.md)
 - [ ] Do not use bright yellow pin heads unless manually assigned
-- [ ] Manual visual acceptance only: drawn-pin divot caps — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md). Stroked cap, away-from-head curve, inverted-head flip, and Tuning controls are code complete; confirm normal/inverted appearance plus extension/drag/hover/zoom behavior.
+- [ ] Manual visual acceptance: drawn-pin divot caps. Code and automated coverage are complete; compare `ScreenHorizontal` and `ShaftAligned` on normal/inverted/angled pins, then smoke drag/hover/zoom behavior.
 - [ ] Revisit pin shadows — allow tuning shadow strength via config + Tuning panel (today: drawn head shadow hardcoded `PinMarker.xaml`, composite head shadow hardcoded `CompositePinMarker.xaml`, drawn extended-shaft shadow floored in `ExtensionLineRenderer.cs`; `ShadowOpacity` only partly honored). Follow-up to shadow perf work in [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md) (2.4/2.9)
 
 ## Inactive (optional polish)
@@ -55,6 +56,11 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## User ideas (product)
 
+- [ ] Thumbnail side panel: support touchscreen vertical scrolling so users can swipe through all images.
+- [ ] Content view: prevent the Information panel from covering `Back to Map`; prefer moving `Back to Map` to the lower-left corner.
+- [ ] Main content: optionally show information about the selected image/content in a bottom pane or a separate left-side window.
+- [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
+- [ ] Main content images: support zooming and/or maximizing the selected image for closer inspection.
 - [ ] Subwindow opens near pin, not screen center
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish
@@ -88,3 +94,4 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## Deferred
 
 - [ ] Tuning panel: variant search/filter — type-to-filter or grouping for 60+ shaft variant folders in combo pickers. Deferred from [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md) v1; dropdown picker basics are complete, and this is parked until the list size becomes a real workflow drag.
+- [ ] Intermittent divot cap inside a stub-looking pin head near Japan/China — not currently reproducible after stale-cap refresh and head-layer safeguards; revisit if observed again.

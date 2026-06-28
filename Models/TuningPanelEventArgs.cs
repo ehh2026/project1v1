@@ -19,6 +19,8 @@ namespace InteractiveWorldMap.Models
 
         // Drawn-pin tip cap (PinMarkers.DrawnPinTipCap). Style None disables the cap.
         public DrawnPinTipCapStyle TipCapStyle { get; set; } = DrawnPinTipCapStyle.None;
+        public DrawnPinTipCapAlignment TipCapAlignment { get; set; } =
+            DrawnPinTipCapAlignment.ScreenHorizontal;
         /// <summary>Total screen-space width of the divot line.</summary>
         public double TipCapWidthPx { get; set; }
         /// <summary>Screen-space thickness of the divot line.</summary>

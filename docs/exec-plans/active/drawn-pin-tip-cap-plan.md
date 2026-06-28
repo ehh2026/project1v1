@@ -42,7 +42,7 @@ Add an opt-in cap (horizontal bar **or** shallow screen-space concave arc) at th
 | Edit-mode drag (temporary extension line) | Same as extension line — map anchor | Yes — cap stays on the **visible** drag line tip |
 | Neither shaft visible | No cap | — |
 
-The cap is **always horizontal in screen space** (along screen +x). `Horizontal` is an open straight stroke through the tip. `Concave` is an open quadratic Bezier whose endpoints sit on the head side and whose true midpoint is the tip, so it bows away from the head. Width, line weight, and curvature are independently tunable.
+The cap alignment is configurable. `ScreenHorizontal` preserves the original screen-space +x width axis. `ShaftAligned` rotates the width axis perpendicular to the visible shaft and curves along the full tip-to-head direction. `Horizontal` is an open straight stroke through the tip. `Concave` is an open quadratic Bezier whose endpoints sit on the head side and whose true midpoint is the tip, so it bows away from the head. Width, line weight, curvature, and alignment are independently tunable.
 
 ## Scope
 
@@ -178,6 +178,7 @@ Rebuild on placement-apply ticks, config changes, hover transform (stub), line e
 "PinMarkers": {
   "DrawnPinTipCap": {
     "Style": "None",
+    "Alignment": "ShaftAligned",
     "WidthPx": 12.0,
     "LineWeightPx": 3.0,
     "ArcDepthPx": 3.0,
@@ -189,6 +190,7 @@ Rebuild on placement-apply ticks, config changes, hover transform (stub), line e
 | Field | Default | Notes |
 |-------|---------|-------|
 | `Style` | `"None"` | `"None"` \| `"Horizontal"` \| `"Concave"` (PascalCase) |
+| `Alignment` | `"ScreenHorizontal"` model default; checked-in config uses `"ShaftAligned"` | `"ScreenHorizontal"` \| `"ShaftAligned"` |
 | `WidthPx` | `12` | Total cap width |
 | `LineWeightPx` | `3` | Stroke thickness |
 | `ArcDepthPx` | `3` | Concave endpoint depth |
@@ -244,7 +246,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 - [x] `TryGetLineStart` on extension line renderer (+ interface).
 - [x] Extension branch — `HasLine(marker)` → cap at line start; **no** cap on hidden built-in.
-- [x] Edit-mode drag / zoom: caps rebuild every placement tick from live line endpoints, so they track drag and zoom. (Lines are repositioned, not cleared, while animating — `HasLine` stays true — so the projected-anchor fallback was unnecessary in practice.)
+- [x] Manual-layout replay, edit-mode drag, and zoom rebuild caps from live line endpoints. `ApplyManualLayout` refreshes after final placement; both drag branches refresh after line/marker mutation; drag-end refresh removes stale paths and restores head layering. (Lines are repositioned, not cleared, while animating — `HasLine` stays true — so the projected-anchor fallback was unnecessary in practice.)
 - [x] Minimum length guard: skip when shaft/line length &lt; 8 px (`MinShaftLengthForCapPx`).
 - [ ] Smoke with `Style: "Horizontal"` on manual-layout + drag (needs GUI — Phase 5).
 
@@ -284,7 +286,7 @@ Manual smoke:
 - [ ] `PinMarkers.DrawnPinTipCap.Style` = `"Horizontal"` (required); `"Concave"` (after Phase 4b human sign-off); default `"None"`.
 - [ ] **Visible-shaft rule** — exactly one cap per drawn pin at the terminus of the **visible** shaft: built-in stub **or** extension line, never both, never neither (when style ≠ None).
 - [ ] **Hidden built-in does not suppress cap** — when the built-in shaft is hidden and an extension line is visible, the cap appears on the extension-line tip (including edit-mode drag).
-- [ ] **Screen-space invariant** — cap is horizontal in screen space on `PinTipCapOverlay`; `RenderTransform` is `Identity`; not a child of pin visual tree.
+- [x] **Alignment invariant** — `ScreenHorizontal` preserves the horizontal cap; `ShaftAligned` uses a shaft-perpendicular width axis and full-vector concavity without relying on a visual transform.
 - [x] **Horizontal** — open, unfilled line centered at the tip.
 - [x] **Concave-side invariant** (automated) — true midpoint equals the tip; endpoints stay on the head side for normal and inverted placements.
 - [ ] **Concave appearance** (human) — near-black stroke reads as a divot where the pin enters the map on the Phase 4b review matrix.
@@ -301,27 +303,29 @@ Manual smoke:
 | Concave midpoint, `shaftDir = (0,-1)` | 4b | Normal orientation |
 | Concave midpoint, `shaftDir = (0,1)` | 4b | Inverted orientation |
 | Diagonal / near-horizontal direction table | 4b | Stable perspective flip |
+| Shaft-aligned line/curve direction table | 4b | Perpendicular width axis, full-vector concavity, and invalid-vector fallback |
 | Renderer path test | 4 | One unfilled rounded stroke |
 | Stub eligibility source guard | 2 | Cap when `!HasLine` + shaft visible |
 | Extension eligibility + `TryGetLineStart` | 3 | Cap when `HasLine`; not on hidden built-in |
+| `DrawnPinTipCapLifecycleTests` | 3 | Manual replay and drag refresh caps; every eligible drawn head remains above the cap layer |
 | `LayerDependencyTests` | 2 | Renderer in `Views/` |
 
 ## Open risks
 
 | Risk | Mitigation |
 |------|------------|
-| T-junction on angled extension lines | Accepted design per human sign-off; screen-space horizontal cap is intentional |
+| T-junction on angled extension lines | Compare `ScreenHorizontal` and `ShaftAligned` during the remaining visual review |
 | Model separation mid-work | Phase 0 gate; named migration hooks |
 | Zoom animation without line visual | Projected map anchor in Phase 3 |
 | Hover scale (stub only) | Include `RenderTransform` |
 | Very short shafts / lines | Length &lt; 8 px guard |
 | Concave reads wrong on angled / T-junction tips | Phase 4b iteration; geometry isolated in `PinTipCapGeometry`; horizontal-only fallback |
+| A cap intersects a neighboring head | Every eligible drawn-pin head is explicitly raised above the cap layer on each cap sync |
 | No screenshot CI | Manual smoke checklist; concave notes in `temp/` during iteration |
 
 ## Deferred (not in this plan)
 
 - Per-location cap override in `ManualLayoutMarker`.
-- Tuning-panel controls for cap style.
 - Automated screenshot harness.
 - Composite pin caps (already exist).
 
@@ -329,7 +333,7 @@ Manual smoke:
 
 | Layer | Name |
 |-------|------|
-| Config | `DrawnPinTipCap`, `DrawnPinTipCapStyle` |
+| Config | `DrawnPinTipCap`, `DrawnPinTipCapStyle`, `DrawnPinTipCapAlignment` |
 | DTO | `PinTipCapPlacement`, `PinTipCapShaftKind` |
 | Geometry | `Utilities/PinTipCapGeometry` |
 | Renderer | `Views/DrawnPinTipCapRenderer` |
@@ -343,3 +347,9 @@ Drafted 2026-06-23; revised after agent review; updated for extension-line tips,
 **2026-06-28 — Divot-cap correction implemented.** Human review rejected the filled cap and toward-head curve. Both styles now render as one open, unfilled, near-black stroke. Concave endpoints sit on the head side while the evaluated midpoint stays at the shaft tip, so the curve bows away from the head and flips for inverted manual-layout/dense-cluster placements. `WidthPx`, `LineWeightPx`, and `ArcDepthPx` are available in config and the Tuning panel; legacy fields still load through deterministic fallbacks. Automated config, geometry, renderer, Tuning, and architecture coverage is complete. **Remaining: GUI-only human gates** — normal/inverted concave visual acceptance and the Phase 5 interaction matrix. Default `Style: "None"` remains inert.
 
 **2026-06-28 verification:** `.\scripts\verify.ps1` passes with 449 tests, zero build warnings/errors, seed verification, doc links, taste checks, and headless startup. Computer Use connected, but launching the WPF executable required an app approval that timed out twice; no live screenshot was captured. The config was restored to `Style: "None"` with no residual diff.
+
+**2026-06-28 — stale-cap and layering safeguards implemented.** Investigation found that pooled cap paths refreshed only during automatic marker placement, not after manual-layout replay or drag mutations, and that ordinary/post-drag drawn heads could sit below the cap layer. `ApplyManualLayout`, both drag branches, and drag-end now refresh caps after their final mutations. Every eligible drawn-pin head is explicitly placed above the cap layer during sync. `DrawnPinTipCapLifecycleTests` guards both invariants. The reported Japan/China occurrence is no longer reproducible and is deferred unless observed again. `.\scripts\verify.ps1` passes with 453 tests, zero build warnings/errors, seed verification, doc links, taste checks, and headless startup.
+
+**2026-06-28 — selectable cap alignment implemented.** `DrawnPinTipCap.Alignment` now supports compatibility-default `ScreenHorizontal` and full-vector `ShaftAligned` geometry. Shaft-aligned straight caps run perpendicular to the visible shaft; concave caps place their endpoints toward the head while keeping the quadratic midpoint at the map tip, including diagonal, horizontal, inverted, and invalid-vector fallback cases. Config and Runtime Tuning expose both modes, while checked-in `visual-config.json` selects `ShaftAligned` for evaluation and leaves `Style: "None"`. Automated config, geometry, lifecycle, and Tuning coverage is complete. Remaining: manual visual comparison and interaction smoke.
+
+**2026-06-28 alignment verification:** `.\scripts\verify.ps1` passes with 466 tests, zero build warnings/errors, seed verification, doc links, taste checks, and headless startup.

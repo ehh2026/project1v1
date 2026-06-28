@@ -483,6 +483,54 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Load_DrawnPinTipCap_DefaultsAlignmentToScreenHorizontal()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(
+                path,
+                @"{ ""PinMarkers"": { ""DrawnPinTipCap"": { ""Style"": ""Concave"" } } }");
+
+            var cap = new VisualConfigService().Load(path).PinMarkers.DrawnPinTipCap;
+
+            Assert.Equal(DrawnPinTipCapAlignment.ScreenHorizontal, cap.Alignment);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(DrawnPinTipCapAlignment.ScreenHorizontal)]
+    [InlineData(DrawnPinTipCapAlignment.ShaftAligned)]
+    public void SaveAndReload_DrawnPinTipCap_RoundTripsAlignmentAsString(
+        DrawnPinTipCapAlignment alignment)
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            var service = new VisualConfigService();
+            var config = new VisualConfig();
+            config.PinMarkers.DrawnPinTipCap.Alignment = alignment;
+
+            service.Save(config, path);
+            var json = File.ReadAllText(path);
+            var reloaded = service.Load(path);
+
+            Assert.Contains($"\"{alignment}\"", json);
+            Assert.Equal(alignment, reloaded.PinMarkers.DrawnPinTipCap.Alignment);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void SaveAndReload_DrawnPinTipCap_RoundTripsStyleAsString()
     {
         var tempDir = CreateTempDir();

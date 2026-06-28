@@ -734,6 +734,7 @@ namespace InteractiveWorldMap
                 ReapplyPendingOverrides();
 
             ApplyCompositePinDepthSort();
+            UpdatePinTipCaps();
         }
 
         private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)

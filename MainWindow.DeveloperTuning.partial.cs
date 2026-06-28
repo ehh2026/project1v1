@@ -188,6 +188,7 @@ namespace InteractiveWorldMap
                 // below re-runs UpdatePinTipCaps, which reads these fresh values.
                 var cap = _visualConfig.PinMarkers.DrawnPinTipCap;
                 cap.Style = e.TipCapStyle;
+                cap.Alignment = e.TipCapAlignment;
                 cap.WidthPx = e.TipCapWidthPx;
                 cap.LineWeightPx = e.TipCapLineWeightPx;
                 cap.ArcDepthPx = e.TipCapArcDepthPx;
@@ -315,6 +316,7 @@ namespace InteractiveWorldMap
                 ClusterMarkerSize = config.ClusterMarkerSize,
                 AutoOpenSingleLocationContentAfterZoom = config.AutoOpenSingleLocationContentAfterZoom,
                 TipCapStyle = cap.Style,
+                TipCapAlignment = cap.Alignment,
                 TipCapWidthPx = cap.ResolveWidthPx(outlineWidth),
                 TipCapLineWeightPx = cap.ResolveLineWeightPx(
                     pinConfig.ShaftOutlineThickness),

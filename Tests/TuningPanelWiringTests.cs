@@ -81,6 +81,7 @@ public class TuningPanelWiringTests
             "TxtLocationMarkerSize",
             "TxtClusterMarkerSize",
             "CmbTipCapStyle",
+            "CmbTipCapAlignment",
             "TxtTipCapWidth",
             "TxtTipCapLineWeight",
             "TxtTipCapArcDepth"
@@ -122,6 +123,7 @@ public class TuningPanelWiringTests
 
         Assert.Contains("var cap = _visualConfig.PinMarkers.DrawnPinTipCap;", source);
         Assert.Contains("cap.Style = e.TipCapStyle;", source);
+        Assert.Contains("cap.Alignment = e.TipCapAlignment;", source);
         Assert.Contains("cap.WidthPx = e.TipCapWidthPx;", source);
         Assert.Contains("cap.LineWeightPx = e.TipCapLineWeightPx;", source);
         Assert.Contains("cap.ArcDepthPx = e.TipCapArcDepthPx;", source);
@@ -140,6 +142,25 @@ public class TuningPanelWiringTests
         Assert.Contains("x:Name=\"TxtTipCapLineWeight\"", xaml);
         Assert.DoesNotContain("TxtTipCapHeight", xaml);
         Assert.DoesNotContain("TxtTipCapExtend", xaml);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_TipCapAlignmentCombo_HasBothModes()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        Assert.Contains("x:Name=\"CmbTipCapAlignment\"", xaml);
+        Assert.Contains("<ComboBoxItem Content=\"ScreenHorizontal\"/>", xaml);
+        Assert.Contains("<ComboBoxItem Content=\"ShaftAligned\"/>", xaml);
+    }
+
+    [Fact]
+    public void ApplyTuning_MapsTipCapAlignment()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("cap.Alignment = e.TipCapAlignment;", source);
+        Assert.Contains("TipCapAlignment = cap.Alignment", source);
     }
 
     [Fact]

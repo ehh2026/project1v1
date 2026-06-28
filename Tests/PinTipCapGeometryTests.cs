@@ -87,6 +87,73 @@ public class PinTipCapGeometryTests
         Assert.Equal(new Point(100, 200), curve.Point2);
     }
 
+    [Fact]
+    public void BuildShaftAlignedLine_IsPerpendicularToShaft()
+    {
+        var shaftDir = new Vector(3, 4);
+        var geometry = Assert.IsType<LineGeometry>(
+            PinTipCapGeometry.BuildShaftAlignedLine(
+                new Point(100, 200),
+                shaftDir,
+                widthPx: 10));
+        var capDir = geometry.EndPoint - geometry.StartPoint;
+
+        Assert.Equal(0.0, Vector.Multiply(shaftDir, capDir), 6);
+        Assert.Equal(10.0, capDir.Length, 6);
+    }
+
+    [Theory]
+    [InlineData(3.0, 4.0)]
+    [InlineData(-3.0, -4.0)]
+    [InlineData(1.0, 0.0)]
+    [InlineData(0.0, -1.0)]
+    public void BuildShaftAlignedConcave_BowsAwayFromHeadAndKeepsTipAtMidpoint(
+        double shaftX,
+        double shaftY)
+    {
+        var tip = new Point(100, 200);
+        var shaftDir = new Vector(shaftX, shaftY);
+        shaftDir.Normalize();
+
+        var geometry = Assert.IsType<PathGeometry>(
+            PinTipCapGeometry.BuildShaftAlignedConcave(
+                tip,
+                new Vector(shaftX, shaftY),
+                widthPx: 12,
+                arcDepthPx: 3));
+        var figure = Assert.Single(geometry.Figures);
+        var curve = Assert.IsType<QuadraticBezierSegment>(
+            Assert.Single(figure.Segments));
+        var midpoint = QuadraticPoint(
+            figure.StartPoint,
+            curve.Point1,
+            curve.Point2,
+            0.5);
+        var endpointOffset = figure.StartPoint - tip;
+
+        Assert.True(Vector.Multiply(endpointOffset, shaftDir) > 0);
+        Assert.Equal(tip.X, midpoint.X, 6);
+        Assert.Equal(tip.Y, midpoint.Y, 6);
+    }
+
+    [Theory]
+    [InlineData(0.0, 0.0)]
+    [InlineData(double.NaN, 1.0)]
+    [InlineData(double.PositiveInfinity, 1.0)]
+    public void BuildShaftAlignedConcave_InvalidDirectionUsesUpwardFallback(
+        double shaftX,
+        double shaftY)
+    {
+        var geometry = Assert.IsType<PathGeometry>(
+            PinTipCapGeometry.BuildShaftAlignedConcave(
+                new Point(100, 200),
+                new Vector(shaftX, shaftY),
+                widthPx: 12,
+                arcDepthPx: 3));
+
+        Assert.Equal(197.0, geometry.Figures[0].StartPoint.Y, 6);
+    }
+
     private static Point QuadraticPoint(Point start, Point control, Point end, double t)
     {
         double inverse = 1.0 - t;

@@ -95,6 +95,32 @@ public partial class DeveloperTuningPanel : UserControl
         return DrawnPinTipCapStyle.None;
     }
 
+    private void SetTipCapAlignment(DrawnPinTipCapAlignment alignment)
+    {
+        var name = alignment.ToString();
+        foreach (var item in CmbTipCapAlignment.Items)
+        {
+            if (item is ComboBoxItem ci && ci.Content is string s &&
+                string.Equals(s, name, StringComparison.Ordinal))
+            {
+                CmbTipCapAlignment.SelectedItem = ci;
+                return;
+            }
+        }
+        CmbTipCapAlignment.SelectedIndex = 0;
+    }
+
+    private DrawnPinTipCapAlignment GetTipCapAlignment()
+    {
+        if (CmbTipCapAlignment.SelectedItem is ComboBoxItem item &&
+            item.Content is string s &&
+            Enum.TryParse<DrawnPinTipCapAlignment>(s, out var alignment))
+        {
+            return alignment;
+        }
+        return DrawnPinTipCapAlignment.ScreenHorizontal;
+    }
+
     public void LoadValues(VisualConfig config)
     {
         if (config == null) throw new ArgumentNullException(nameof(config));
@@ -121,6 +147,7 @@ public partial class DeveloperTuningPanel : UserControl
             double outlineWidth = Math.Max(pinConfig.ShaftWidth, 2.5) +
                                   (2.0 * Math.Max(pinConfig.ShaftOutlineThickness, 1.0));
             SetTipCapStyle(cap.Style);
+            SetTipCapAlignment(cap.Alignment);
             TxtTipCapWidth.Text = Format(cap.ResolveWidthPx(outlineWidth));
             TxtTipCapLineWeight.Text = Format(
                 cap.ResolveLineWeightPx(pinConfig.ShaftOutlineThickness));
@@ -217,6 +244,7 @@ public partial class DeveloperTuningPanel : UserControl
             LocationMarkerSize = locationMarkerSize,
             ClusterMarkerSize = clusterMarkerSize,
             TipCapStyle = GetTipCapStyle(),
+            TipCapAlignment = GetTipCapAlignment(),
             TipCapWidthPx = tipCapWidth,
             TipCapLineWeightPx = tipCapLineWeight,
             TipCapArcDepthPx = tipCapArcDepth

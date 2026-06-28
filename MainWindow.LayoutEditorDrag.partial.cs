@@ -100,6 +100,7 @@ namespace InteractiveWorldMap
                         _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, mousePos);
                         LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head at ({mousePos.X:F1},{mousePos.Y:F1})");
                     }
+                    UpdatePinTipCaps();
                     return;
                 }
 
@@ -127,6 +128,7 @@ namespace InteractiveWorldMap
                 // anchors the head glyph by its connection point (not its bounding-box center).
                 _extensionLineRenderer.AnchorExtendedMarker(_draggedMarker, headScreen);
                 _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, tipScreen, headScreen);
+                UpdatePinTipCaps();
 
                 LogDragDebug($"[DRAG] Drawn pin '{_draggedMarker.Location.Name}' head at ({headScreen.X:F1},{headScreen.Y:F1}), tip at ({tipScreen.X:F1},{tipScreen.Y:F1})");
             }
@@ -155,6 +157,7 @@ namespace InteractiveWorldMap
             Panel.SetZIndex(_draggedMarker, 0);
             _extensionLineRenderer.SetLineZIndex(_draggedMarker, 0);
             ApplyCompositePinDepthSort();
+            UpdatePinTipCaps();
 
             _draggedMarker = null;
 

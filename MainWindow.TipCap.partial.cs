@@ -14,6 +14,7 @@ namespace InteractiveWorldMap
         // Drawn pins shorter than this (stub height or extension-line length, in screen px)
         // do not get a tip cap — there is no room for one to read as anything but a smudge.
         private const double MinShaftLengthForCapPx = 8.0;
+        private const int DrawnPinHeadZIndex = 2000;
 
         private DrawnPinTipCapRenderer? _pinTipCapRenderer;
 
@@ -45,6 +46,10 @@ namespace InteractiveWorldMap
                     continue;
                 if (marker.Content is not PinMarker pin)
                     continue;
+
+                // Caps live above extension lines, so every eligible head must explicitly
+                // stay above the cap layer, including normal stubs and post-drag markers.
+                Panel.SetZIndex(marker, DrawnPinHeadZIndex);
 
                 if (_extensionLineRenderer.HasLine(marker))
                 {
@@ -78,6 +83,25 @@ namespace InteractiveWorldMap
             double widthPx = config.ResolveWidthPx(placement.OutlineWidthPx);
             if (widthPx <= 0.0)
                 return null;
+
+            if (config.Alignment == DrawnPinTipCapAlignment.ShaftAligned)
+            {
+                return config.Style switch
+                {
+                    DrawnPinTipCapStyle.Horizontal =>
+                        PinTipCapGeometry.BuildShaftAlignedLine(
+                            placement.TipScreen,
+                            placement.ShaftDir,
+                            widthPx),
+                    DrawnPinTipCapStyle.Concave =>
+                        PinTipCapGeometry.BuildShaftAlignedConcave(
+                            placement.TipScreen,
+                            placement.ShaftDir,
+                            widthPx,
+                            config.ArcDepthPx),
+                    _ => null
+                };
+            }
 
             return config.Style switch
             {

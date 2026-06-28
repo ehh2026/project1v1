@@ -43,6 +43,7 @@
     "EnableManualEditing": true,
     "DrawnPinTipCap": {
       "Style": "None",
+      "Alignment": "ShaftAligned",
       "WidthPx": 12.0,
       "LineWeightPx": 3.0,
       "ArcDepthPx": 3.0,
