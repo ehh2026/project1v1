@@ -188,8 +188,8 @@ namespace InteractiveWorldMap
                 // below re-runs UpdatePinTipCaps, which reads these fresh values.
                 var cap = _visualConfig.PinMarkers.DrawnPinTipCap;
                 cap.Style = e.TipCapStyle;
-                cap.ExtendPx = e.TipCapExtendPx;
-                cap.HeightPx = e.TipCapHeightPx;
+                cap.WidthPx = e.TipCapWidthPx;
+                cap.LineWeightPx = e.TipCapLineWeightPx;
                 cap.ArcDepthPx = e.TipCapArcDepthPx;
 
                 if (assetVariantChanged)
@@ -294,7 +294,10 @@ namespace InteractiveWorldMap
 
         private static TuningPanelEventArgs CreateTuningArgs(VisualConfig config)
         {
-            var cap = config.PinMarkers?.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
+            var pinConfig = config.PinMarkers ?? new PinMarkerConfig();
+            var cap = pinConfig.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
+            double outlineWidth = Math.Max(pinConfig.ShaftWidth, 2.5) +
+                                  (2.0 * Math.Max(pinConfig.ShaftOutlineThickness, 1.0));
             return new TuningPanelEventArgs
             {
                 PinPartsEnabled = config.PinParts.Enabled && config.PinParts.UseCompositeRendering,
@@ -312,8 +315,9 @@ namespace InteractiveWorldMap
                 ClusterMarkerSize = config.ClusterMarkerSize,
                 AutoOpenSingleLocationContentAfterZoom = config.AutoOpenSingleLocationContentAfterZoom,
                 TipCapStyle = cap.Style,
-                TipCapExtendPx = cap.ExtendPx,
-                TipCapHeightPx = cap.HeightPx,
+                TipCapWidthPx = cap.ResolveWidthPx(outlineWidth),
+                TipCapLineWeightPx = cap.ResolveLineWeightPx(
+                    pinConfig.ShaftOutlineThickness),
                 TipCapArcDepthPx = cap.ArcDepthPx
             };
         }

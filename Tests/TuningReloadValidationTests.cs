@@ -104,22 +104,26 @@ public class TuningReloadValidationTests
         Assert.Contains("Shaft half width", error);
     }
 
-    [Fact]
-    public void TryValidate_NegativeTipCapWidth_ReturnsFalse()
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-0.1)]
+    public void TryValidate_NonPositiveTipCapWidth_ReturnsFalse(double value)
     {
-        var args = ValidArgs(); args.TipCapExtendPx = -0.1;
+        var args = ValidArgs(); args.TipCapWidthPx = value;
         var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
         Assert.False(ok);
         Assert.Contains("Cap width", error);
     }
 
-    [Fact]
-    public void TryValidate_NegativeTipCapHeight_ReturnsFalse()
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-0.1)]
+    public void TryValidate_NonPositiveTipCapLineWeight_ReturnsFalse(double value)
     {
-        var args = ValidArgs(); args.TipCapHeightPx = -0.1;
+        var args = ValidArgs(); args.TipCapLineWeightPx = value;
         var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
         Assert.False(ok);
-        Assert.Contains("Cap height", error);
+        Assert.Contains("Line weight", error);
     }
 
     [Fact]
@@ -136,8 +140,8 @@ public class TuningReloadValidationTests
     {
         var args = ValidArgs();
         args.TipCapStyle = DrawnPinTipCapStyle.Concave;
-        args.TipCapExtendPx = 1.0;
-        args.TipCapHeightPx = 6.0;
+        args.TipCapWidthPx = 12.0;
+        args.TipCapLineWeightPx = 3.0;
         args.TipCapArcDepthPx = 3.0;
         var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
         Assert.True(ok);
@@ -169,6 +173,9 @@ public class TuningReloadValidationTests
         StubLength = 24,
         TargetHeadRadiusPx = 8,
         TargetShaftHalfWidthPx = 3,
+        TipCapWidthPx = 12,
+        TipCapLineWeightPx = 3,
+        TipCapArcDepthPx = 3,
         AutoOpenSingleLocationContentAfterZoom = false,
         ShaftVariant = "outline_dark_7px",
         HeadVariant = string.Empty

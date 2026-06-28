@@ -147,7 +147,7 @@
                           Foreground="White"
                           SelectionChanged="OnVariantSelectionChanged"
                           ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
-                          ToolTip="Cap drawn at the pin tip. None disables it; Horizontal draws a flat bar; Concave draws a shallow arc so the pin reads as stuck into the map.">
+                          ToolTip="Divot line drawn where the pin enters the map. None disables it; Horizontal draws a straight line; Concave bows away from the pin head.">
                     <ComboBoxItem Content="None"/>
                     <ComboBoxItem Content="Horizontal"/>
                     <ComboBoxItem Content="Concave"/>
@@ -164,17 +164,17 @@
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Grid.Row="0" Text="Cap width (+px)" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTipCapExtend" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Extra half-width in screen px added to each side beyond the shaft outline."/>
+                    <TextBlock Grid.Row="0" Text="Width (px)" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTipCapWidth" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                             ToolTip="Total screen-space width of the divot line."/>
 
-                    <TextBlock Grid.Row="1" Text="Cap height (px)" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTipCapHeight" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Height in screen px of the Horizontal bar, extending downward from the tip."/>
+                    <TextBlock Grid.Row="1" Text="Line weight (px)" Foreground="#DDDDDD" Margin="0,3"/>
+                    <TextBox x:Name="TxtTipCapLineWeight" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                             ToolTip="Thickness of the near-black divot line."/>
 
                     <TextBlock Grid.Row="2" Text="Curvature (px)" Foreground="#DDDDDD" Margin="0,3"/>
                     <TextBox x:Name="TxtTipCapArcDepth" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Concave arc depth in screen px. Larger values bow the arc more toward the head."/>
+                             ToolTip="Endpoint rise toward the head side; the curve center remains at the shaft tip."/>
                 </Grid>
 
                 <TextBlock x:Name="StatusText"

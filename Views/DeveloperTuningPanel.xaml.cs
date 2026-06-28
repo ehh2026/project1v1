@@ -116,10 +116,14 @@ public partial class DeveloperTuningPanel : UserControl
             TxtLocationMarkerSize.Text = Format(config.LocationMarkerSize);
             TxtClusterMarkerSize.Text = Format(config.ClusterMarkerSize);
 
-            var cap = config.PinMarkers?.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
+            var pinConfig = config.PinMarkers ?? new PinMarkerConfig();
+            var cap = pinConfig.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
+            double outlineWidth = Math.Max(pinConfig.ShaftWidth, 2.5) +
+                                  (2.0 * Math.Max(pinConfig.ShaftOutlineThickness, 1.0));
             SetTipCapStyle(cap.Style);
-            TxtTipCapExtend.Text = Format(cap.ExtendPx);
-            TxtTipCapHeight.Text = Format(cap.HeightPx);
+            TxtTipCapWidth.Text = Format(cap.ResolveWidthPx(outlineWidth));
+            TxtTipCapLineWeight.Text = Format(
+                cap.ResolveLineWeightPx(pinConfig.ShaftOutlineThickness));
             TxtTipCapArcDepth.Text = Format(cap.ArcDepthPx);
 
             SetStatus("Loaded current values.");
@@ -189,8 +193,8 @@ public partial class DeveloperTuningPanel : UserControl
             !TryReadNonNegative(TxtTargetShaftHalfWidth.Text, "Shaft half width", out var targetShaftHalfWidth, out error) ||
             !TryReadPositive(TxtLocationMarkerSize.Text, "Location marker", out var locationMarkerSize, out error) ||
             !TryReadPositive(TxtClusterMarkerSize.Text, "Cluster marker", out var clusterMarkerSize, out error) ||
-            !TryReadNonNegative(TxtTipCapExtend.Text, "Cap width", out var tipCapExtend, out error) ||
-            !TryReadNonNegative(TxtTipCapHeight.Text, "Cap height", out var tipCapHeight, out error) ||
+            !TryReadPositive(TxtTipCapWidth.Text, "Cap width", out var tipCapWidth, out error) ||
+            !TryReadPositive(TxtTipCapLineWeight.Text, "Line weight", out var tipCapLineWeight, out error) ||
             !TryReadNonNegative(TxtTipCapArcDepth.Text, "Curvature", out var tipCapArcDepth, out error))
         {
             return false;
@@ -213,8 +217,8 @@ public partial class DeveloperTuningPanel : UserControl
             LocationMarkerSize = locationMarkerSize,
             ClusterMarkerSize = clusterMarkerSize,
             TipCapStyle = GetTipCapStyle(),
-            TipCapExtendPx = tipCapExtend,
-            TipCapHeightPx = tipCapHeight,
+            TipCapWidthPx = tipCapWidth,
+            TipCapLineWeightPx = tipCapLineWeight,
             TipCapArcDepthPx = tipCapArcDepth
         };
         error = string.Empty;
@@ -290,10 +294,10 @@ public partial class DeveloperTuningPanel : UserControl
         { error = "Head radius must be >= 0 and finite."; return false; }
         if (args.TargetShaftHalfWidthPx < 0 || !double.IsFinite(args.TargetShaftHalfWidthPx))
         { error = "Shaft half width must be >= 0 and finite."; return false; }
-        if (args.TipCapExtendPx < 0 || !double.IsFinite(args.TipCapExtendPx))
-        { error = "Cap width must be >= 0 and finite."; return false; }
-        if (args.TipCapHeightPx < 0 || !double.IsFinite(args.TipCapHeightPx))
-        { error = "Cap height must be >= 0 and finite."; return false; }
+        if (args.TipCapWidthPx <= 0 || !double.IsFinite(args.TipCapWidthPx))
+        { error = "Cap width must be > 0 and finite."; return false; }
+        if (args.TipCapLineWeightPx <= 0 || !double.IsFinite(args.TipCapLineWeightPx))
+        { error = "Line weight must be > 0 and finite."; return false; }
         if (args.TipCapArcDepthPx < 0 || !double.IsFinite(args.TipCapArcDepthPx))
         { error = "Curvature must be >= 0 and finite."; return false; }
 

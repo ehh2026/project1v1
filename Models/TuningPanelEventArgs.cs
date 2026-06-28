@@ -19,10 +19,10 @@ namespace InteractiveWorldMap.Models
 
         // Drawn-pin tip cap (PinMarkers.DrawnPinTipCap). Style None disables the cap.
         public DrawnPinTipCapStyle TipCapStyle { get; set; } = DrawnPinTipCapStyle.None;
-        /// <summary>Extra half-width (px) added each side beyond the shaft outline (cap width knob).</summary>
-        public double TipCapExtendPx { get; set; }
-        /// <summary>Height (px) of the Horizontal bar.</summary>
-        public double TipCapHeightPx { get; set; }
+        /// <summary>Total screen-space width of the divot line.</summary>
+        public double TipCapWidthPx { get; set; }
+        /// <summary>Screen-space thickness of the divot line.</summary>
+        public double TipCapLineWeightPx { get; set; }
         /// <summary>Concave arc depth (px) — the curvature knob.</summary>
         public double TipCapArcDepthPx { get; set; }
     }

@@ -81,8 +81,8 @@ public class TuningPanelWiringTests
             "TxtLocationMarkerSize",
             "TxtClusterMarkerSize",
             "CmbTipCapStyle",
-            "TxtTipCapExtend",
-            "TxtTipCapHeight",
+            "TxtTipCapWidth",
+            "TxtTipCapLineWeight",
             "TxtTipCapArcDepth"
         })
         {
@@ -122,8 +122,8 @@ public class TuningPanelWiringTests
 
         Assert.Contains("var cap = _visualConfig.PinMarkers.DrawnPinTipCap;", source);
         Assert.Contains("cap.Style = e.TipCapStyle;", source);
-        Assert.Contains("cap.ExtendPx = e.TipCapExtendPx;", source);
-        Assert.Contains("cap.HeightPx = e.TipCapHeightPx;", source);
+        Assert.Contains("cap.WidthPx = e.TipCapWidthPx;", source);
+        Assert.Contains("cap.LineWeightPx = e.TipCapLineWeightPx;", source);
         Assert.Contains("cap.ArcDepthPx = e.TipCapArcDepthPx;", source);
     }
 
@@ -136,6 +136,10 @@ public class TuningPanelWiringTests
         Assert.Contains("<ComboBoxItem Content=\"None\"/>", xaml);
         Assert.Contains("<ComboBoxItem Content=\"Horizontal\"/>", xaml);
         Assert.Contains("<ComboBoxItem Content=\"Concave\"/>", xaml);
+        Assert.Contains("x:Name=\"TxtTipCapWidth\"", xaml);
+        Assert.Contains("x:Name=\"TxtTipCapLineWeight\"", xaml);
+        Assert.DoesNotContain("TxtTipCapHeight", xaml);
+        Assert.DoesNotContain("TxtTipCapExtend", xaml);
     }
 
     [Fact]
