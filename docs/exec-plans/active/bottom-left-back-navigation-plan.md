@@ -31,7 +31,7 @@ The production edits are small and do not justify a new runtime class or config 
 - Inspect: `MainWindow.xaml`
 - Inspect: `MainWindow.LayoutEditor.partial.cs`
 
-- [ ] **Step 1: Create the XAML placement test**
+- [x] **Step 1: Create the XAML placement test**
 
 Create `Tests/NavigationOverlayTests.cs`:
 
@@ -77,7 +77,7 @@ public class NavigationOverlayTests
 }
 ```
 
-- [ ] **Step 2: Run the placement test and verify RED**
+- [x] **Step 2: Run the placement test and verify RED**
 
 Run:
 
@@ -87,7 +87,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "NavigationOverlayTe
 
 Expected: FAIL because `BackButton` is still a direct top-aligned child of `RootGrid`, its label is still `← Back to Map`, and the indicator is not its sibling in a shared stack.
 
-- [ ] **Step 3: Add the developer-tools gate test**
+- [x] **Step 3: Add the developer-tools gate test**
 
 Append inside `NavigationOverlayTests`:
 
@@ -111,7 +111,7 @@ public void ManualLayoutIndicator_RequiresDeveloperToolsGate()
 }
 ```
 
-- [ ] **Step 4: Run both tests and verify RED**
+- [x] **Step 4: Run both tests and verify RED**
 
 Run:
 
@@ -129,7 +129,7 @@ Expected: 2 failed. The placement test reports the current root grid/top alignme
 - Modify: `MainWindow.LayoutEditor.partial.cs:136-142`
 - Test: `Tests/NavigationOverlayTests.cs`
 
-- [ ] **Step 1: Replace the independent controls with one overlay stack**
+- [x] **Step 1: Replace the independent controls with one overlay stack**
 
 In `MainWindow.xaml`, replace the current top-level `BackButton` and later independent `ManualLayoutIndicator` with:
 
@@ -173,7 +173,7 @@ In `MainWindow.xaml`, replace the current top-level `BackButton` and later indep
 
 Move the existing complete `Button.Style` block into the new `BackButton`; do not replace it with the comment shown above. Remove the old independent `ManualLayoutIndicator` block so each named control appears exactly once.
 
-- [ ] **Step 2: Gate the manual-layout indicator**
+- [x] **Step 2: Gate the manual-layout indicator**
 
 Change the existing activity handler in `MainWindow.LayoutEditor.partial.cs` to:
 
@@ -189,7 +189,7 @@ _layoutEditor.ManualLayoutActivityChanged += isActive =>
 };
 ```
 
-- [ ] **Step 3: Run focused tests and verify GREEN**
+- [x] **Step 3: Run focused tests and verify GREEN**
 
 Run:
 
@@ -199,7 +199,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter NavigationOverlayTes
 
 Expected: 2 passed, 0 failed.
 
-- [ ] **Step 4: Run nearby gate and navigation regressions**
+- [x] **Step 4: Run nearby gate and navigation regressions**
 
 Run:
 
@@ -289,4 +289,3 @@ If `docs/exec-plans/active/README.md` lists the plan, move that registry entry t
 git add CHANGELOG.md docs/TO_DO.md docs/exec-plans/active/README.md docs/exec-plans/completed/bottom-left-back-navigation-plan.md
 git commit -m "docs: complete bottom-left navigation plan"
 ```
-

@@ -17,46 +17,63 @@
                                 MouseLeftButtonDown="OnMapMouseLeftButtonDown"
                                 MouseMove="OnMapMouseMove" />
         
-        <!-- Back Button -->
-        <Button x:Name="BackButton"
-                Content="← Back to Map"
-                Visibility="Collapsed"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="20"
-                Padding="15,8"
-                FontSize="14"
-                FontWeight="SemiBold"
-                Foreground="White"
-                Background="#CC000000"
-                BorderBrush="White"
-                BorderThickness="2"
-                Cursor="Hand"
-                Click="OnBackButtonClick">
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="8"
-                                        Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#DD000000"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
+        <!-- Bottom-left navigation and developer status -->
+        <StackPanel HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="20">
+            <Border x:Name="ManualLayoutIndicator"
+                    Visibility="Collapsed"
+                    Margin="0,0,0,8"
+                    HorizontalAlignment="Left"
+                    Background="#CC4169E1"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10,5">
+                <TextBlock Text="Manual Layout Active"
+                           Foreground="White"
+                           FontSize="11"
+                           FontWeight="SemiBold"/>
+            </Border>
+
+            <Button x:Name="BackButton"
+                    Content="← Back to Full Map"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Left"
+                    Padding="15,8"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CC000000"
+                    BorderBrush="White"
+                    BorderThickness="2"
+                    Cursor="Hand"
+                    Click="OnBackButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="8"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DD000000"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
 
         <!-- Edit Layout Button (shown when zoomed and edit mode enabled in config) -->
         <Button x:Name="EditLayoutButton"
@@ -412,23 +429,6 @@
                 </Button.Style>
             </Button>
         </StackPanel>
-
-        <!-- Manual Layout Active Indicator (shown when manual layout is loaded) -->
-        <Border x:Name="ManualLayoutIndicator"
-                Visibility="Collapsed"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Bottom"
-                Margin="20"
-                Background="#CC4169E1"
-                BorderBrush="White"
-                BorderThickness="1"
-                CornerRadius="6"
-                Padding="10,5">
-            <TextBlock Text="Manual Layout Active"
-                       Foreground="White"
-                       FontSize="11"
-                       FontWeight="SemiBold"/>
-        </Border>
 
         <views:DeveloperTuningPanel x:Name="DeveloperTuningPanel"
                                     Visibility="Collapsed"

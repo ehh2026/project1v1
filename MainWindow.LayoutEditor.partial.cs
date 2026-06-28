@@ -136,7 +136,9 @@ namespace InteractiveWorldMap
             _layoutEditor.ManualLayoutActivityChanged += isActive =>
             {
                 ManualLayoutIndicator.Visibility =
-                    isActive && _visualConfig.ManualLayoutEditor.ShowLayoutIndicator
+                    isActive &&
+                    AreDeveloperToolsEnabled() &&
+                    _visualConfig.ManualLayoutEditor.ShowLayoutIndicator
                         ? Visibility.Visible
                         : Visibility.Collapsed;
             };
