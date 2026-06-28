@@ -10,7 +10,6 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 - [x] **[URGENT] Pin tilt after manual layout edit** — code fix DONE 2026-06-24; **manual GUI confirmation only.** `GetMarkerEndpoint` now uses the drawn pin's `GetConnectionPoint()` instead of `LocationMarkerSize/2`, so newly saved/replayed pins stay vertical. Caveat: layouts saved before the fix may still have the lean baked into JSON; re-save or migrate them to straighten.
 - [x] **[URGENT] Drawn-pin shaft length scales with zoom** — code fix DONE 2026-06-24; **manual GUI confirmation only.** `CompositePinApplicationService.BuildApplyInstructions` now measures source-space saved head offsets against a full-map reference viewport, keeping shaft length zoom-invariant while still resize-aware.
-- [x] **[URGENT] Tip-cap tuning controls missing** — code fix DONE 2026-06-24; **manual GUI confirmation only.** The Developer Tuning panel now has Style (`None`/`Horizontal`/`Concave`), width (`ExtendPx`), height (`HeightPx`), and curvature (`ArcDepthPx`) controls wired through save/reload validation and live reapply.
 - [x] **[URGENT] Unload saved manual layout without deleting it** — code fix DONE 2026-06-24; **manual GUI confirmation only.** Edit mode now has an "Unload Layout" action that suppresses the saved layout for the session, reverts to auto-placement, and leaves the JSON untouched.
 
 ---
@@ -35,7 +34,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
 - [x] Add pinhead variants with black outlines — generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/` — [pinhead-black-outline-variants-plan.md](exec-plans/completed/pinhead-black-outline-variants-plan.md)
 - [ ] Do not use bright yellow pin heads unless manually assigned
-- [ ] Manual visual acceptance only: drawn-pin tip caps — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md). Code landed 2026-06-23; `Style` supports `None`/`Horizontal`/`Concave` and defaults to `None`. Confirm `Concave` reads as the pin stuck into the map, then smoke stub/extension/drag/hover/zoom cases.
+- [ ] Manual visual acceptance only: drawn-pin divot caps — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md). Stroked cap, away-from-head curve, inverted-head flip, and Tuning controls are code complete; confirm normal/inverted appearance plus extension/drag/hover/zoom behavior.
 - [ ] Revisit pin shadows — allow tuning shadow strength via config + Tuning panel (today: drawn head shadow hardcoded `PinMarker.xaml`, composite head shadow hardcoded `CompositePinMarker.xaml`, drawn extended-shaft shadow floored in `ExtensionLineRenderer.cs`; `ShadowOpacity` only partly honored). Follow-up to shadow perf work in [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md) (2.4/2.9)
 
 ## Inactive (optional polish)

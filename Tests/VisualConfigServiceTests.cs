@@ -471,7 +471,10 @@ public class VisualConfigServiceTests
             var config = service.Load(path);
 
             Assert.Equal(DrawnPinTipCapStyle.None, config.PinMarkers.DrawnPinTipCap.Style);
-            Assert.True(config.PinMarkers.DrawnPinTipCap.UseOutlineRing);
+            Assert.Null(config.PinMarkers.DrawnPinTipCap.WidthPx);
+            Assert.Null(config.PinMarkers.DrawnPinTipCap.LineWeightPx);
+            Assert.Equal(3.0, config.PinMarkers.DrawnPinTipCap.ResolveWidthPx(3.0));
+            Assert.Equal(1.0, config.PinMarkers.DrawnPinTipCap.ResolveLineWeightPx(0.0));
         }
         finally
         {

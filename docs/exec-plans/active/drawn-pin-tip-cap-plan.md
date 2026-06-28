@@ -17,7 +17,7 @@ depends_on: docs/exec-plans/active/drawn-pin-model-separation-plan.md
 |---|----------|-----------|
 | 1 | **Shape phasing** | Ship **`Horizontal` first** (Phases 2–3). Add **`Concave` behind the same enum** once horizontal is verified on stub + extension-line tips. Expect **visual iteration** on concavity before calling concave done (see [Concave iteration](#concave-iteration)). |
 | 2 | **T-junction look** | Extension-line caps are horizontal in screen space at the map anchor while the shaft is angled — the resulting **T junction** is the intended screen-space invariant. |
-| 3 | **Outline pairing default** | `UseOutlineRing = true` so the cap matches the shaft outline + core. |
+| 3 | **Stroke treatment** | Both styles are open, unfilled, near-black strokes. `LineWeightPx` defaults near the shaft outline thickness. |
 | 4 | **Phasing** | Phase 2 = stub tips (`Horizontal`); Phase 3 = extension-line tips (`Horizontal`); Phase 4 = outline polish; **Phase 4b** = concave geometry + human visual pass (may loop). |
 | 5 | **Prerequisite** | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) has landed **or** is explicitly deferred (cap hooks on monolithic `PinMarker` with a named migration path). |
 
@@ -31,7 +31,7 @@ depends_on: docs/exec-plans/active/drawn-pin-model-separation-plan.md
 
 Add an opt-in cap (horizontal bar **or** shallow screen-space concave arc) at the **visible terminus of every drawn pin shaft** — built-in auto-stub **or** extension line — so the tip reads as the pin being **stuck into the map surface** rather than a flat cut end resting on top of it.
 
-**Intent (drives every visual decision below):** the cap depicts the point where the pin *enters the map*. The shape should suggest penetration into the surface — the map material parting/puckering around the shaft at the entry — not a pin floating above a flat line. This is why the **concave** variant bows **toward the shaft/head** (the surface lifts around the entry), and why the horizontal variant sits **at** the tip rather than below it. Phase 4b's human review judges concave against this "stuck-in" read, not generic prettiness.
+**Intent (drives every visual decision below):** the cap depicts the point where the pin *enters the map*. Both styles are thin, near-black strokes rather than filled platforms. The **concave** variant bows **away from the pin head**; its true midpoint coincides with the shaft tip. When a manual layout places the head below the tip, the curve flips upward to preserve the perspective.
 
 **Core rule — cap follows the visible shaft, not the hidden one:**
 
@@ -42,7 +42,7 @@ Add an opt-in cap (horizontal bar **or** shallow screen-space concave arc) at th
 | Edit-mode drag (temporary extension line) | Same as extension line — map anchor | Yes — cap stays on the **visible** drag line tip |
 | Neither shaft visible | No cap | — |
 
-The cap is **always horizontal in screen space** (along screen +x). The **horizontal** variant is the baseline shape and should be stable after Phases 2–4. The **concave** variant is a first-pass quadratic Bezier that bows **toward the shaft/head** so the map surface appears to pucker up around the pin's entry point — the "stuck-in" read from the Goal. Its direction is specified and unit-tested, but **the exact curve is expected to need visual iteration** (depth, width, outline pairing) before we treat concave as shippable. Outline + core pairing mirrors `PinShaftOutline` / `PinShaft` and extension-line outline/core when `UseOutlineRing` is enabled.
+The cap is **always horizontal in screen space** (along screen +x). `Horizontal` is an open straight stroke through the tip. `Concave` is an open quadratic Bezier whose endpoints sit on the head side and whose true midpoint is the tip, so it bows away from the head. Width, line weight, and curvature are independently tunable.
 
 ## Scope
 
@@ -123,7 +123,7 @@ tipScreen = markerTopLeft + Transform(GetShaftTipPoint())
 shaftDir  = normalize(headConnectionScreen - tipScreen)   // ≈ (0, -1) for vertical stub
 ```
 
-Apply `PinTransform` (hover scale). Width from `PinShaftOutline.Width + 2 * ExtendPx`.
+Apply `PinTransform` (hover scale). Width comes from `WidthPx`; legacy configs without it resolve to `PinShaftOutline.Width + 2 * ExtendPx`.
 
 ### Extension-line tip (Phase 3)
 
@@ -136,26 +136,15 @@ Width from extension line outline thickness: `coreWidth + 2 * outlineExtra` (sam
 
 ### Anchor rule (both shaft kinds, both cap styles)
 
-- **Baseline** — horizontal through `tipScreen`, along screen +x.
-- **Horizontal** — rect from `(tipX - halfWidth, tipY)`, width = outline width + `2 * ExtendPx`, height = `HeightPx`, extending **downward** (+Y). Drawn on top of shaft terminus (no geometric clip).
-- **Concave** — closed `PathFigure` (`IsClosed = true`, `FillRule = Nonzero`):
-  1. `Move` to `(tipX - halfWidth, tipY)`,
-  2. `Line` to `(tipX + halfWidth, tipY)`,
-  3. `QuadraticBezier` to start; **control** = `tipScreen + shaftDir * ArcDepthPx` (i.e. `ArcDepthPx` **toward** the shaft / head along `shaftDir`, so the arc bows up around the entry point — the "stuck-in" read).
-
-For a vertical stub, `shaftDir = (0, -1)` → control at `(tipX, tipY - ArcDepthPx)`, lifting the curve toward the head.
-
-> **Sign note:** `shaftDir` points *toward the head*, so the multiplier is **positive** `+ArcDepthPx`. A negative sign would bow the arc *away* from the shaft (a crater below the tip), which reads as the pin sitting on a dished surface rather than stuck into it — and would also fail the direction test below.
-
-On-curve midpoint at `t = 0.5` for symmetric horizontal baseline:
-
-```
-midPoint = tipScreen + shaftDir * (ArcDepthPx / 2)   // component along shaft only when baseline is horizontal and symmetric
-```
+- **Horizontal** — open `LineGeometry` from `tipX - WidthPx/2` to `tipX + WidthPx/2` through `tipY`.
+- **Concave** — open quadratic Bezier. Both endpoints are `ArcDepthPx` toward the head's vertical side. The control point is mirrored `ArcDepthPx` away from that side, making the evaluated point at `t = 0.5` equal `tipScreen`.
+- If `shaftDir.Y < 0`, endpoints are above the tip and the curve bows down.
+- If `shaftDir.Y > 0`, endpoints are below the tip and the curve bows up.
+- Near-horizontal or degenerate directions use the normal downward bow.
 
 ### Concave direction test
 
-Assert `dot(midPoint - baselineCenter, shaftDir) > 0` (midpoint lies toward the shaft from the baseline). Stub tests use `shaftDir = (0, -1)`; extension-line tests use a tilted `shaftDir`.
+Assert the evaluated Bezier midpoint equals `tipScreen`, and endpoint Y is on the head side for heads above, below, and diagonally offset from the tip.
 
 **Unit tests prove direction only, not aesthetics.** Whether the arc looks good on stub vs extension-line vs shallow angle is a **human visual gate** in Phase 4b.
 
@@ -166,13 +155,13 @@ The concave cap is the highest-risk visual piece. Plan for **one or more tune-an
 | Principle | Implementation |
 |-----------|----------------|
 | **Isolate curve math** | All concave path construction lives in `Utilities/PinTipCapGeometry` behind a single entry point (e.g. `BuildConcaveGeometry(...)`). Swapping quadratic → cubic Bezier, circular arc, or adjusted control-point formula must not require renderer changes. |
-| **Tune via config first** | Primary knob: `ArcDepthPx`. Secondary: `ExtendPx`, `HeightPx`, `UseOutlineRing`. Iterate in `visual-config.json` (and Tuning panel later if useful) before changing code. |
+| **Tune via config first** | Use `WidthPx`, `LineWeightPx`, and `ArcDepthPx` in `visual-config.json` or the Tuning panel. |
 | **Horizontal before concave** | Phases 2–3 ship and smoke-test `Style: "Horizontal"` only. Concave is Phase 4b — do not block stub/extension plumbing on concave look. |
-| **Review matrix** | Human eyeball on concave at: vertical stub (full map + zoomed), shallow-angle extension line, steep-angle extension line, with and without outline ring. Capture notes or screenshots in a scratch file under `temp/` (not committed unless human asks). |
+| **Review matrix** | Human eyeball on concave at: vertical stub (full map + zoomed), extension line with head above tip, and inverted manual-layout/dense-cluster case with head below tip. |
 | **Acceptable code churn** | If the first Bezier formula reads as too flat, too deep, or wrong on T-junctions, revise `PinTipCapGeometry` and re-run smoke — no need to reopen overlay/placement architecture. |
 | **Optional follow-up knobs** | If `ArcDepthPx` alone is insufficient after iteration, add config fields (e.g. `ArcControlBias`, separate stub vs extension depth) in a small follow-up — avoid preemptive over-configuration. |
 
-**Phase 4b exit:** human confirms concave reads as **the pin stuck into the map** (surface puckering around the entry, not a glitch or a dished crater) on the review matrix above. If concave cannot be made to read that way, ship **horizontal only** and leave `Concave` in the enum as experimental or remove it — human decides at review time.
+**Phase 4b exit:** human confirms the near-black stroke reads as a divot where the pin enters the map and flips correctly when the head is below the tip.
 
 ### Z-order and hit-testing
 
@@ -189,11 +178,10 @@ Rebuild on placement-apply ticks, config changes, hover transform (stub), line e
 "PinMarkers": {
   "DrawnPinTipCap": {
     "Style": "None",
-    "HeightPx": 6.0,
+    "WidthPx": 12.0,
+    "LineWeightPx": 3.0,
     "ArcDepthPx": 3.0,
-    "ExtendPx": 0.0,
-    "Color": null,
-    "UseOutlineRing": true
+    "Color": "#FF111111"
   }
 }
 ```
@@ -201,11 +189,10 @@ Rebuild on placement-apply ticks, config changes, hover transform (stub), line e
 | Field | Default | Notes |
 |-------|---------|-------|
 | `Style` | `"None"` | `"None"` \| `"Horizontal"` \| `"Concave"` (PascalCase) |
-| `HeightPx` | `6` | Horizontal bar height |
-| `ArcDepthPx` | `3` | Concave offset along `shaftDir`; primary visual tuning knob — expect iteration |
-| `ExtendPx` | `0` | Extra half-width beyond shaft outline |
-| `Color` | `null` | `null` → `ShaftColor` |
-| `UseOutlineRing` | `true` | Matches shaft / line outline |
+| `WidthPx` | `12` | Total cap width |
+| `LineWeightPx` | `3` | Stroke thickness |
+| `ArcDepthPx` | `3` | Concave endpoint depth |
+| `Color` | `"#FF111111"` | Near-black stroke |
 
 Single config drives caps on **both** stub and extension-line tips.
 
@@ -261,16 +248,18 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 - [x] Minimum length guard: skip when shaft/line length &lt; 8 px (`MinShaftLengthForCapPx`).
 - [ ] Smoke with `Style: "Horizontal"` on manual-layout + drag (needs GUI — Phase 5).
 
-### Phase 4 — outline pairing + polish (`Horizontal`)
+### Phase 4 — stroked rendering + polish
 
-- [x] `UseOutlineRing` draw order (outline path stroked behind filled core, shared geometry).
+- [x] One open, unfilled, near-black path per cap with rounded ends.
+- [x] Tunable `WidthPx` and `LineWeightPx` in config and Tuning panel.
 - [x] Clear overlay when `Style == None` or `UsePinMarkers == false`.
 
 ### Phase 4b — concave geometry + visual iteration
 
-- [x] Implement `Style: "Concave"` in `PinTipCapGeometry` (quadratic Bezier v1).
-- [x] Unit tests: direction invariant for stub + tilted shaftDir (see [Concave direction test](#concave-direction-test)).
-- [ ] Tune `ArcDepthPx` / outline on the [review matrix](#concave-iteration); revise geometry helper if needed (GUI iteration).
+- [x] Implement `Style: "Concave"` as an open quadratic whose midpoint is the shaft tip.
+- [x] Unit tests: normal, inverted, diagonal, near-horizontal, and degenerate direction cases.
+- [x] Flip the curve when the pin head is below the tip.
+- [ ] Tune `WidthPx`, `LineWeightPx`, and `ArcDepthPx` on the [review matrix](#concave-iteration) if needed.
 - [ ] Human visual pass on review matrix — loop until acceptable or horizontal-only fallback decided.
 - [ ] Extend manual smoke to concave on stub + extension-line cases.
 
@@ -284,7 +273,7 @@ Manual smoke:
 
 - [ ] `Style: "None"` — no overlay children.
 - [ ] **Stub** — horizontal on standalone auto-stub pins (full map + zoomed); concave after Phase 4b passes human review.
-- [ ] **Extension line** — horizontal at map anchor on manual-layout pin; concave bows toward angled shaft after Phase 4b; **no** duplicate cap on hidden built-in.
+- [ ] **Extension line** — cap at the map anchor; concave bows away from the head and flips when the head is below the tip; **no** duplicate cap on hidden built-in.
 - [ ] **Edit-mode drag** — cap on visible drag line tip at fixed map location.
 - [ ] **Composite** — no drawn-pin caps on composite markers.
 - [ ] **Hover** (stub) — cap tracks scaled tip.
@@ -296,22 +285,23 @@ Manual smoke:
 - [ ] **Visible-shaft rule** — exactly one cap per drawn pin at the terminus of the **visible** shaft: built-in stub **or** extension line, never both, never neither (when style ≠ None).
 - [ ] **Hidden built-in does not suppress cap** — when the built-in shaft is hidden and an extension line is visible, the cap appears on the extension-line tip (including edit-mode drag).
 - [ ] **Screen-space invariant** — cap is horizontal in screen space on `PinTipCapOverlay`; `RenderTransform` is `Identity`; not a child of pin visual tree.
-- [ ] **Horizontal** — firm bar at tip on stub and extension-line cases (Phases 2–4).
-- [ ] **Concave-side invariant** (automated) — `dot(midPoint - baselineCenter, shaftDir) > 0` for stub and extension-line cases.
-- [ ] **Concave appearance** (human) — reads as the pin **stuck into the map** (arc bows toward shaft) on the Phase 4b review matrix, or horizontal-only fallback documented in CHANGELOG.
-- [ ] **Outline pairing** — `UseOutlineRing` matches shaft / line outline thickness and color.
-- [ ] **Default regression** — `Style: "None"` → empty overlay.
-- [ ] `CHANGELOG.md` updated; `scripts/verify.ps1` green.
+- [x] **Horizontal** — open, unfilled line centered at the tip.
+- [x] **Concave-side invariant** (automated) — true midpoint equals the tip; endpoints stay on the head side for normal and inverted placements.
+- [ ] **Concave appearance** (human) — near-black stroke reads as a divot where the pin enters the map on the Phase 4b review matrix.
+- [x] **Stroke controls** — width and line weight are independently tunable through config and the Tuning panel.
+- [x] **Default regression** — `Style: "None"` → empty overlay.
+- [x] `CHANGELOG.md` updated; `scripts/verify.ps1` green.
 
 ## Tests
 
 | Test | Phase | Proves |
 |------|-------|--------|
 | `VisualConfigService.Load` + `DrawnPinTipCap` | 1 | Config round-trip |
-| Width / `ExtendPx` table | 1 | Outline width math |
-| Concave midpoint, `shaftDir = (0,-1)` | 4b | Vertical stub — direction only |
-| Concave midpoint, tilted `shaftDir` | 4b | Extension-line — direction only |
-| `dot(mid - baseline, shaftDir) > 0` | 4b | Concave faces shaft (not “looks good”) |
+| Explicit width/weight + legacy fallback | 1 | Config compatibility |
+| Concave midpoint, `shaftDir = (0,-1)` | 4b | Normal orientation |
+| Concave midpoint, `shaftDir = (0,1)` | 4b | Inverted orientation |
+| Diagonal / near-horizontal direction table | 4b | Stable perspective flip |
+| Renderer path test | 4 | One unfilled rounded stroke |
 | Stub eligibility source guard | 2 | Cap when `!HasLine` + shaft visible |
 | Extension eligibility + `TryGetLineStart` | 3 | Cap when `HasLine`; not on hidden built-in |
 | `LayerDependencyTests` | 2 | Renderer in `Views/` |
@@ -348,6 +338,8 @@ Manual smoke:
 
 ## Status
 
-Drafted 2026-06-23; revised after agent review; updated for extension-line tips, visible-shaft rule, and concave iteration phasing. **2026-06-23: anchored the design to the stated intent — the cap depicts the pin stuck into the map surface — and corrected the concave control-point sign (`+ArcDepthPx` toward the shaft) so the geometry, prose, and direction test agree. Design confirmed by human; `needs_review` cleared.**
+Drafted 2026-06-23; revised after agent review; updated for extension-line tips, visible-shaft rule, and concave iteration phasing.
 
-**2026-06-23 — Phases 1–4b implemented in code.** All of config, geometry (`Utilities/PinTipCapGeometry`), renderer (`Views/DrawnPinTipCapRenderer`), stub + extension-line placement (`MainWindow.TipCap.partial.cs`), outline pairing, and concave geometry landed; 411 tests pass (geometry/direction + config round-trip added). Geometry construction lives in the orchestrator (not the renderer) so `Views` stays Models-only per `LayerDependencyTests`. Caps render into `MapDisplay.Markers` at z 1500/1501 rather than a dedicated overlay canvas (z-index interleave requirement — see Phase 2 note). **Remaining: GUI-only human gates** — Phase 4b concave visual sign-off and Phase 5 manual smoke (default `Style:"None"` ships inert; opt in via `visual-config.json`). Note: `scripts/verify.ps1` taste step is red due to **pre-existing** oversized `MainWindow.xaml.cs` / `MainWindow.LayoutEditor.partial.cs` (already over the 800-line limit at HEAD, before this feature); refactor tracked as high-priority items in `docs/TO_DO.md`.
+**2026-06-28 — Divot-cap correction implemented.** Human review rejected the filled cap and toward-head curve. Both styles now render as one open, unfilled, near-black stroke. Concave endpoints sit on the head side while the evaluated midpoint stays at the shaft tip, so the curve bows away from the head and flips for inverted manual-layout/dense-cluster placements. `WidthPx`, `LineWeightPx`, and `ArcDepthPx` are available in config and the Tuning panel; legacy fields still load through deterministic fallbacks. Automated config, geometry, renderer, Tuning, and architecture coverage is complete. **Remaining: GUI-only human gates** — normal/inverted concave visual acceptance and the Phase 5 interaction matrix. Default `Style: "None"` remains inert.
+
+**2026-06-28 verification:** `.\scripts\verify.ps1` passes with 449 tests, zero build warnings/errors, seed verification, doc links, taste checks, and headless startup. Computer Use connected, but launching the WPF executable required an app approval that timed out twice; no live screenshot was captured. The config was restored to `Style: "None"` with no residual diff.

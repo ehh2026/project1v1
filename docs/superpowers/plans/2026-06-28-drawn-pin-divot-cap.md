@@ -26,7 +26,7 @@
 - Modify focused tests under `Tests/`: geometry, config, renderer, validation, and wiring.
 - Modify `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`, `docs/TO_DO.md`, and `CHANGELOG.md`: corrected intent and completion state.
 
-### Task 1: Add Stroke Config With Legacy Fallbacks
+### Task 1: Add Stroke Config With Legacy Fallbacks — Complete
 
 **Files:**
 - Modify: `Models/DrawnPinTipCapConfig.cs`
@@ -153,7 +153,7 @@ git add Models/DrawnPinTipCapConfig.cs Tests/VisualConfigServiceTests.cs visual-
 git commit -m "refactor: define stroked pin tip cap config"
 ```
 
-### Task 2: Replace Filled Geometry With Open Centerlines
+### Task 2: Replace Filled Geometry With Open Centerlines — Complete
 
 **Files:**
 - Modify: `Utilities/PinTipCapGeometry.cs`
@@ -281,7 +281,7 @@ git add Utilities/PinTipCapGeometry.cs Tests/PinTipCapGeometryTests.cs
 git commit -m "fix: bow pin divot caps away from heads"
 ```
 
-### Task 3: Render One Near-Black Stroke Per Cap
+### Task 3: Render One Near-Black Stroke Per Cap — Complete
 
 **Files:**
 - Modify: `Views/DrawnPinTipCapRenderer.cs`
@@ -391,7 +391,7 @@ git add Views/DrawnPinTipCapRenderer.cs MainWindow.TipCap.partial.cs Tests/Drawn
 git commit -m "refactor: render pin tip caps as dark strokes"
 ```
 
-### Task 4: Wire Width And Line Weight Through Tuning
+### Task 4: Wire Width And Line Weight Through Tuning — Complete
 
 **Files:**
 - Modify: `Models/TuningPanelEventArgs.cs`
@@ -514,21 +514,21 @@ git add Models/TuningPanelEventArgs.cs Views/DeveloperTuningPanel.xaml Views/Dev
 git commit -m "feat: tune pin divot width and line weight"
 ```
 
-### Task 5: Documentation, Visual Check, And Completion Gate
+### Task 5: Documentation, Visual Check, And Completion Gate — In Progress
 
 **Files:**
 - Modify: `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`
 - Modify: `docs/TO_DO.md`
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Update the active exec plan and changelog**
+- [x] **Step 1: Update the active exec plan and changelog**
 
 Correct all “bows toward the shaft/head” language to “bows away from the pin
 head.” Record the stroked-path implementation, perspective flip, new config
 fields, and automated test evidence under the plan’s progress log and
 `CHANGELOG.md` `[Unreleased]`.
 
-- [ ] **Step 2: Narrow the backlog item before visual acceptance**
+- [x] **Step 2: Narrow the backlog item before visual acceptance**
 
 Keep only the remaining human gate:
 
@@ -539,7 +539,7 @@ Keep only the remaining human gate:
 
 Do not archive the active exec plan until that visual gate passes.
 
-- [ ] **Step 3: Run focused tests**
+- [x] **Step 3: Run focused tests**
 
 Run:
 
@@ -549,7 +549,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: all selected tests pass with zero failures.
 
-- [ ] **Step 4: Run the repository verification gate**
+- [x] **Step 4: Run the repository verification gate**
 
 Run:
 
@@ -574,7 +574,7 @@ Verify the center meets the shaft tip, the cap is near-black and approximately
 shaft-outline weight, and the bow flips away from the head. Restore the default
 `Style: "None"` before committing.
 
-- [ ] **Step 6: Complete bookkeeping based on evidence**
+- [x] **Step 6: Complete bookkeeping based on evidence**
 
 If visual acceptance passes, remove the completed `docs/TO_DO.md` bullet, mark
 the exec-plan acceptance boxes complete, move the plan to
