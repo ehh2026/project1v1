@@ -212,6 +212,62 @@ public class VisualConfigServiceTests
     }
 
     [Fact]
+    public void Load_MaximizedContentBackgroundOpacity_UsesOpaqueDefaultWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, @"{ ""LocationMarkerSize"": 18.5 }");
+
+            var config = new VisualConfigService().Load(path);
+
+            Assert.Equal(1.0, config.MaximizedContentBackgroundOpacity);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Theory]
+    [InlineData(-0.25, 0.0)]
+    [InlineData(0.4, 0.4)]
+    [InlineData(1.25, 1.0)]
+    public void MaximizedContentBackgroundOpacity_Clamps(
+        double requested,
+        double expected)
+    {
+        var config = new VisualConfig
+        {
+            MaximizedContentBackgroundOpacity = requested
+        };
+
+        Assert.Equal(expected, config.MaximizedContentBackgroundOpacity);
+    }
+
+    [Fact]
+    public void Load_MaximizedContentBackgroundOpacity_Deserializes()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(
+                path,
+                @"{ ""MaximizedContentBackgroundOpacity"": 0.65 }");
+
+            var config = new VisualConfigService().Load(path);
+
+            Assert.Equal(0.65, config.MaximizedContentBackgroundOpacity);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
     public void EnsureConfigExists_CreatesFileIfMissing()
     {
         var tempDir = CreateTempDir();

@@ -1,3 +1,5 @@
+using System;
+
 namespace InteractiveWorldMap.Models
 {
     /// <summary>
@@ -46,6 +48,19 @@ namespace InteractiveWorldMap.Models
         /// Whether clicking a standalone full-map pin should open its content automatically after zooming in.
         /// </summary>
         public bool AutoOpenSingleLocationContentAfterZoom { get; set; } = false;
+
+        private double _maximizedContentBackgroundOpacity = 1.0;
+
+        /// <summary>
+        /// Opacity of the black unused area around content in presentation mode.
+        /// </summary>
+        public double MaximizedContentBackgroundOpacity
+        {
+            get => _maximizedContentBackgroundOpacity;
+            set => _maximizedContentBackgroundOpacity = double.IsNaN(value)
+                ? 1.0
+                : Math.Clamp(value, 0.0, 1.0);
+        }
 
         /// <summary>
         /// Configuration for pin marker appearance.

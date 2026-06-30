@@ -4,6 +4,7 @@
   "UsePinMarkers": true,
   "EnableDeveloperTools": true,
   "AutoOpenSingleLocationContentAfterZoom": false,
+  "MaximizedContentBackgroundOpacity": 1.0,
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,
   "ClusterCountFontSize": 11.0,
