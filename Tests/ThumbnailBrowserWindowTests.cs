@@ -13,7 +13,7 @@ public class ThumbnailBrowserWindowTests
         XDocument.Load(Path.Combine(RepoRoot, "Views", "ThumbnailBrowserWindow.xaml"));
 
     [Fact]
-    public void ThumbnailViewport_UsesAutomaticVerticalTouchScrolling()
+    public void ThumbnailViewport_UsesHiddenVerticalTouchScrolling()
     {
         var scrollViewer = LoadView()
             .Descendants()
@@ -23,7 +23,7 @@ public class ThumbnailBrowserWindowTests
                     XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ==
                     "ThumbnailScrollViewer");
 
-        Assert.Equal("Auto", (string?)scrollViewer.Attribute("VerticalScrollBarVisibility"));
+        Assert.Equal("Hidden", (string?)scrollViewer.Attribute("VerticalScrollBarVisibility"));
         Assert.Equal("Disabled", (string?)scrollViewer.Attribute("HorizontalScrollBarVisibility"));
         Assert.Equal("VerticalFirst", (string?)scrollViewer.Attribute("PanningMode"));
         Assert.Equal("Transparent", (string?)scrollViewer.Attribute("Background"));

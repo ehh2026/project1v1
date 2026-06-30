@@ -41,7 +41,7 @@
             <ScrollViewer x:Name="ThumbnailScrollViewer"
                           Grid.Row="1"
                           Background="Transparent"
-                          VerticalScrollBarVisibility="Auto"
+                          VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
                           PanningMode="VerticalFirst">
                 <ItemsControl x:Name="ThumbnailList">

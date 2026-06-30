@@ -9,7 +9,7 @@ requirements_ref: ../../superpowers/specs/2026-06-29-touch-scrollable-thumbnail-
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make the right-side thumbnail browser vertically scrollable by touch, mouse wheel, and an automatic scrollbar while preserving stationary tap/click selection, and verify its WPF touch arbitration as far as the development environment permits.
+**Goal:** Make the right-side thumbnail browser vertically scrollable by touch and mouse wheel with no visible scrollbar, while preserving stationary tap/click selection and verifying its WPF touch arbitration as far as the development environment permits.
 
 **Architecture:** Keep input ownership inside `ThumbnailBrowserWindow`. A WPF `ScrollViewer` owns vertical manipulation and overflow, while each thumbnail uses completed `Button.Click` semantics so a drag can be claimed as scrolling before selection fires; the existing `ThumbnailSelected` event contract remains unchanged. A separate Windows-only developer tool opens the real thumbnail window and uses a custom WPF `TouchDevice` to exercise routed touch and manipulation directly; UI Automation verifies the exact hit-tested thumbnail button's completed activation path. The tool is not exposed through production configuration or the Tuning panel.
 
@@ -20,7 +20,7 @@ requirements_ref: ../../superpowers/specs/2026-06-29-touch-scrollable-thumbnail-
 ## Acceptance Criteria
 
 - The thumbnail viewport scrolls vertically when its content exceeds the available height.
-- The vertical scrollbar is automatic; no scrollbar is shown when all thumbnails fit.
+- The vertical scrollbar remains hidden even when thumbnails overflow; touch and mouse-wheel scrolling still work.
 - Mouse-wheel scrolling works while the pointer is over the thumbnail viewport.
 - A touchscreen swipe may start on empty panel space or directly on a thumbnail.
 - A swipe scrolls without raising `ThumbnailSelected` or changing the center content.
@@ -92,7 +92,7 @@ public class ThumbnailBrowserWindowTests
                 (string?)element.Attribute(XName.Get("Name", "http://schemas.microsoft.com/winfx/2006/xaml")) ==
                     "ThumbnailScrollViewer");
 
-        Assert.Equal("Auto", (string?)scrollViewer.Attribute("VerticalScrollBarVisibility"));
+        Assert.Equal("Hidden", (string?)scrollViewer.Attribute("VerticalScrollBarVisibility"));
         Assert.Equal("Disabled", (string?)scrollViewer.Attribute("HorizontalScrollBarVisibility"));
         Assert.Equal("VerticalFirst", (string?)scrollViewer.Attribute("PanningMode"));
         Assert.Equal("Transparent", (string?)scrollViewer.Attribute("Background"));
@@ -166,7 +166,7 @@ Replace the existing `ThumbnailList` block in `Views/ThumbnailBrowserWindow.xaml
 <ScrollViewer x:Name="ThumbnailScrollViewer"
               Grid.Row="1"
               Background="Transparent"
-              VerticalScrollBarVisibility="Auto"
+              VerticalScrollBarVisibility="Hidden"
               HorizontalScrollBarVisibility="Disabled"
               PanningMode="VerticalFirst">
     <ItemsControl x:Name="ThumbnailList">
@@ -944,14 +944,14 @@ Run:
 dotnet run --project InteractiveWorldMap.csproj
 ```
 
-Open a location containing enough images to exceed the right-side thumbnail window. Confirm the panel size remains stable and the automatic scrollbar appears.
+Open a location containing enough images to exceed the right-side thumbnail window. Confirm the panel size remains stable and no scrollbar appears.
 
 - [ ] **Step 2: Verify mouse input**
 
 With the pointer over the thumbnail viewport:
 
 1. Use the mouse wheel to reach the last thumbnail.
-2. Drag or click the scrollbar to return toward the first thumbnail.
+2. Use the mouse wheel to return toward the first thumbnail.
 3. Click a thumbnail and confirm the center content window loads that image exactly once.
 
 Expected: scrolling does not select items; clicking selects one item.
@@ -985,7 +985,7 @@ After all acceptance criteria, including real touch verification, pass:
 2. Add under `[Unreleased]` in `CHANGELOG.md`:
 
 ```markdown
-- Made the thumbnail browser vertically scrollable by touch, mouse wheel, and an automatic scrollbar while preventing swipe gestures from selecting thumbnails.
+- Made the thumbnail browser vertically scrollable by touch and mouse wheel with its scrollbar hidden, while preventing swipe gestures from selecting thumbnails.
 ```
 
 3. Check every plan checkbox and change front matter to:
