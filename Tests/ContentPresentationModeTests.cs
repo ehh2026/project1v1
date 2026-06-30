@@ -115,6 +115,31 @@ public class ContentPresentationModeTests
             attribute => attribute.Name.LocalName == "MouseLeftButtonDown");
     }
 
+    [Fact]
+    public void MainWindow_CoordinatesConfiguredContentAndCompanionVisibility()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.Content.partial.cs"));
+
+        Assert.Contains(
+            "private ContentSubwindow CreateContentSubwindow(Location location)",
+            source);
+        Assert.Contains(
+            "MaximizedBackgroundOpacity =",
+            source);
+        Assert.Contains(
+            "_visualConfig.MaximizedContentBackgroundOpacity",
+            source);
+        Assert.Contains(
+            "window.PresentationModeChanged += OnContentPresentationModeChanged;",
+            source);
+        Assert.Contains("_activeThumbnailBrowser!.Hide();", source);
+        Assert.Contains("_activeDidacticWindow!.Hide();", source);
+        Assert.Contains("_activeThumbnailBrowser.Show();", source);
+        Assert.Contains("_activeDidacticWindow.Show();", source);
+        Assert.Contains("ResetCompanionPresentationState();", source);
+    }
+
     private static ContentSubwindow CreateNormalWindow() =>
         new()
         {
