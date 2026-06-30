@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Utilities;
 using IOPath = System.IO.Path;
 
 namespace InteractiveWorldMap.Services
@@ -162,11 +163,14 @@ namespace InteractiveWorldMap.Services
                     cachedPlan = plan;
                 }
 
+                var requiresExtensionLine =
+                    ManualLayoutPlacementPolicy.RequiresExtensionLine(originalPos, extendedPos);
+
                 instructions.Add(new ManualLayoutApplyInstruction(
                     application.LocationName,
                     originalPos,
                     extendedPos,
-                    application.RequiresExtensionLine,
+                    requiresExtensionLine,
                     application.PairId,
                     application.HeadSourcePath,
                     cachedPlan));

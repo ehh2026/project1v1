@@ -31,6 +31,26 @@ namespace InteractiveWorldMap
 
             _draggedMarker = marker;
             _dragStartPosition = e.GetPosition(MapDisplay.Markers);
+
+            if (marker.Content is AutoStubPinMarker)
+            {
+                var viewport = MapDisplay.CurrentViewport;
+                if (viewport != null)
+                {
+                    var tipScreen = viewport.SourceToScreen(
+                        marker.Location.PixelX,
+                        marker.Location.PixelY,
+                        MapDisplay.ActualWidth,
+                        MapDisplay.ActualHeight);
+                    var headScreen = GetMarkerEndpoint(marker);
+
+                    SetDrawnPinRole(marker, DrawnPinRole.ManualLayout);
+                    if (!_extensionLineRenderer.HasLine(marker))
+                        _extensionLineRenderer.AddLine(marker, tipScreen, headScreen);
+                    _extensionLineRenderer.AnchorExtendedMarker(marker, headScreen);
+                }
+            }
+
             marker.CaptureMouse();
 
             // Highlight the dragged marker
@@ -124,8 +144,7 @@ namespace InteractiveWorldMap
                     _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, headScreen);
                 }
 
-                // AnchorExtendedMarker hides the built-in shaft, sets z-index 2000, and
-                // anchors the head glyph by its connection point (not its bounding-box center).
+                // Anchor the head-only glyph by its connection point, not its bounding-box center.
                 _extensionLineRenderer.AnchorExtendedMarker(_draggedMarker, headScreen);
                 _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, tipScreen, headScreen);
                 UpdatePinTipCaps();

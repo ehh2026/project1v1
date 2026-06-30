@@ -14,6 +14,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Scrollable thumbnail browser:** The right-side thumbnail panel now uses vertical touch panning, mouse-wheel scrolling, and an automatic scrollbar. Thumbnail activation occurs on a completed tap/click instead of initial press so a swipe can scroll without immediately loading an image.
+- **Drawn pin model separation:** Drawn manual-layout pins now use a head-only visual while auto stubs keep their built-in short shaft anchored by its tip. Extension roles are classified from final projected endpoints, and drag no longer carries a hidden or duplicate built-in stub.
 - **Bottom-left full-map navigation:** Moved and renamed the zoomed-content back button to `← Back to Full Map` in the lower-left corner, placed the manual-layout status above it, and hid that developer status when developer tools are disabled.
 - **Backlog maintenance:** Removed completed continuous-pin-tracking and Excel coordinate/table backlog items now that the work is archived/documented and already reflected in the app; clarified the zoom performance item as partial with remaining Phase 2b/2c scope; moved Tuning panel variant search/filter to a Deferred section. Strengthened agent workflow guidance so completed work updates `TO_DO.md`, archives completed plans, and records `CHANGELOG.md` consistently.
 
@@ -55,7 +57,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 - **Runtime tuning panel:** Added a debug-gated in-app developer panel for live visual-config tuning, including a single composite-pin toggle, shaft/head variants, marker sizes, cluster threshold, prerasterization, debug overlay, save, reload, and hover tooltips. Drawn fallback pins now use the shaft tip as the map anchor outside manual layout. The local `visual-config.json` enables the panel while the model default remains off. Plan completed: [runtime-tuning-panel-plan.md](docs/exec-plans/completed/runtime-tuning-panel-plan.md).
 
-- **Drawn pin model separation plan:** Added [drawn-pin-model-separation-plan.md](docs/exec-plans/active/drawn-pin-model-separation-plan.md) to split drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.
+- **Drawn pin model separation plan:** Added and completed [drawn-pin-model-separation-plan.md](docs/exec-plans/completed/drawn-pin-model-separation-plan.md), splitting drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.
 
 - **Manual-layout pin appearance plan:** Registered [manual-layout-pin-appearance-plan.md](docs/exec-plans/active/manual-layout-pin-appearance-plan.md) for composite head reassignment and drawn pin color override UI.
 

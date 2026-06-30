@@ -86,7 +86,7 @@ namespace InteractiveWorldMap
                         containerWidth,
                         containerHeight,
                         _individualMarkers,
-                        (m, orig, ext) => TryApplyCompositePinMarker(m, orig, ext));
+                        TryApplyCompositeOrPrepareDrawnManual);
                 }
             }
 
@@ -130,8 +130,10 @@ namespace InteractiveWorldMap
                 {
                     var mapPoint = GetMarkerMapPoint(placement);
                     Point anchor;
-                    if (marker.Content is PinMarker pin)
-                        anchor = pin.GetShaftTipPoint();
+                    if (marker.Content is AutoStubPinMarker autoStub)
+                        anchor = autoStub.GetShaftTipPoint();
+                    else if (marker.Content is ManualLayoutPinMarker manual)
+                        anchor = manual.GetConnectionPoint();
                     else if (marker.Content is CompositePinMarker composite)
                         anchor = composite.GetTipAnchorPoint();
                     else
@@ -142,8 +144,9 @@ namespace InteractiveWorldMap
                     continue;
                 }
 
-                // Non-extended drawn pins keep their own shaft; the extended path
-                // (ExtensionLineRenderer) hides it, so restore it here.
+                // Normal placement uses the auto-stub role; manual replay switches extended
+                // pins back to their head-only role afterward.
+                SetDrawnPinRole(marker, DrawnPinRole.AutoStub);
                 if (TryPlaceDrawnPinAtMapPoint(marker, placement))
                     continue;
 

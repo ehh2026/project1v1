@@ -84,12 +84,11 @@ namespace InteractiveWorldMap
 
         private bool TryPlaceDrawnPinAtMapPoint(LocationMarker marker, MarkerScreenPlacement placement)
         {
-            if (marker.Content is not PinMarker drawnPin)
+            if (marker.Content is not AutoStubPinMarker autoStub)
                 return false;
 
-            drawnPin.SetShaftVisible(true);
             var mapPoint = GetMarkerMapPoint(placement);
-            var shaftTip = drawnPin.GetShaftTipPoint();
+            var shaftTip = autoStub.GetShaftTipPoint();
             Canvas.SetLeft(marker, mapPoint.X - shaftTip.X);
             Canvas.SetTop(marker, mapPoint.Y - shaftTip.Y);
             return true;
@@ -107,8 +106,12 @@ namespace InteractiveWorldMap
         {
             switch (marker.Content)
             {
-                case PinMarker pinMarker:
-                    pinMarker.AnimateClick();
+                case AutoStubPinMarker autoStub:
+                    autoStub.AnimateClick();
+                    _logger.LogInfo($"Animated PIN marker click for '{marker.Location.Name}'");
+                    break;
+                case ManualLayoutPinMarker manual:
+                    manual.AnimateClick();
                     _logger.LogInfo($"Animated PIN marker click for '{marker.Location.Name}'");
                     break;
                 case CompositePinMarker compositePinMarker:
@@ -301,7 +304,7 @@ namespace InteractiveWorldMap
 
         private static bool IsPinStyleMarkerBase(object? content)
         {
-            return content is PinMarker or CompositePinMarker;
+            return content is AutoStubPinMarker or CompositePinMarker;
         }
 
         private bool TryGetCompositeAnchoredPlacement(LocationMarker marker, MarkerScreenPlacement placement, out Point topLeft)
@@ -529,20 +532,21 @@ namespace InteractiveWorldMap
         /// </summary>
         private LocationMarker CreateDrawnPinMarker(Location location)
         {
-            var pinMarker = new PinMarker(_visualConfig) { Location = location };
+            var autoStub =
+                (AutoStubPinMarker)_drawnPinFactory.Create(DrawnPinRole.AutoStub);
 
             var pinConfig = _visualConfig.PinMarkers;
             if (!pinConfig.UseRandomColors)
             {
                 if (ColorConverter.ConvertFromString(pinConfig.DefaultBallColor) is Color defaultColor)
-                    pinMarker.SetPinColor(defaultColor);
+                    autoStub.PinColor = defaultColor;
             }
 
             var marker = new LocationMarker(_visualConfig) { Location = location };
-            marker.Content = pinMarker;
-            marker.Width = pinMarker.Width;
-            marker.Height = pinMarker.Height;
-            marker.Tag = pinMarker;
+            marker.Content = autoStub;
+            marker.Width = autoStub.Width;
+            marker.Height = autoStub.Height;
+            marker.Tag = autoStub;
             return marker;
         }
 

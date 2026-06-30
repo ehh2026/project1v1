@@ -1,7 +1,6 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
 namespace InteractiveWorldMap.Views;
@@ -114,9 +113,10 @@ public partial class ThumbnailBrowserWindow : Window
         BeginAnimation(OpacityProperty, fadeOut);
     }
 
-    private void Thumbnail_Click(object sender, MouseButtonEventArgs e)
+    private void Thumbnail_Click(object sender, RoutedEventArgs e)
     {
-        if (sender is System.Windows.Controls.Image image && image.DataContext is ThumbnailItem item)
+        if (sender is System.Windows.Controls.Button button &&
+            button.DataContext is ThumbnailItem item)
         {
             ThumbnailSelected?.Invoke(this, item.Index);
         }

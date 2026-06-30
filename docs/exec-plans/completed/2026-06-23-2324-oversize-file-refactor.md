@@ -1,12 +1,17 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-23
+completed: 2026-06-24
 ---
 
 # Oversize-File Refactor Plan (>800-line taste limit)
 
 **Generated:** 2026-06-23 23:24 · **Corrected:** 2026-06-23 23:30
+
+**Completed:** 2026-06-24 in commit `8555366`. The marker-placement engine moved to
+`MainWindow.MarkerPlacement.partial.cs`, drag handlers moved to
+`MainWindow.LayoutEditorDrag.partial.cs`, and the full verification gate passed.
 
 ## Finding
 
@@ -40,49 +45,49 @@ methods reference them directly.
 Create `MainWindow.MarkerPlacement.partial.cs` (`public partial class MainWindow`) and move
 the marker-placement engine out of the core file:
 
-- [ ] `UpdateMarkerPositions()`
-- [ ] `BuildIndividualMarkerIndex()`
-- [ ] `ApplyIndividualPlacements(...)`
-- [ ] `ApplyClusterPlacements(...)`
-- [ ] `ClearAllMarkers()`
-- [ ] `ShowOnlyClusterMarkers()`
-- [ ] `ShowOnlyIndividualMarkers(LocationCluster)`
+- [x] `UpdateMarkerPositions()`
+- [x] `BuildIndividualMarkerIndex()`
+- [x] `ApplyIndividualPlacements(...)`
+- [x] `ApplyClusterPlacements(...)`
+- [x] `ClearAllMarkers()`
+- [x] `ShowOnlyClusterMarkers()`
+- [x] `ShowOnlyIndividualMarkers(LocationCluster)`
 
 Leave in core: constructor, `InitializeAsync`, `AddClustersToMap`, `AddIndividualMarker`,
 `AddClusterMarker`, `ResolveLayoutStoragePath`, `HandleOutsideClick`, all `On*` handlers.
 
 Checklist:
-- [ ] Create partial; cut (don't copy) the 7 methods above
-- [ ] Keep all field declarations in `MainWindow.xaml.cs`
-- [ ] `dotnet build InteractiveWorldMap.sln` succeeds
-- [ ] `MainWindow.xaml.cs` ≤ ~750 taste-lines; new partial ≤ 800
-- [ ] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` green
-- [ ] CHANGELOG.md updated; commit
+- [x] Create partial; cut (don't copy) the 7 methods above
+- [x] Keep all field declarations in `MainWindow.xaml.cs`
+- [x] `dotnet build InteractiveWorldMap.sln` succeeds
+- [x] `MainWindow.xaml.cs` ≤ ~750 taste-lines; new partial ≤ 800
+- [x] `dotnet test Tests/InteractiveWorldMap.Tests.csproj` green
+- [x] CHANGELOG.md updated; commit
 
 ## Phase 2 — `MainWindow.LayoutEditor.partial.cs` (801 → ~660)
 
 Only 1 line over, but extract a cohesive cluster for real headroom. Preferred seam: the
 marker-drag handlers (lines ~660–800, ~140 lines) → `MainWindow.LayoutEditorDrag.partial.cs`:
 
-- [ ] `OnMarkerDragStart(...)`
-- [ ] `OnMarkerDragMove(...)`
-- [ ] `LogDragDebug(...)`
-- [ ] `OnMarkerDragEnd(...)`
+- [x] `OnMarkerDragStart(...)`
+- [x] `OnMarkerDragMove(...)`
+- [x] `LogDragDebug(...)`
+- [x] `OnMarkerDragEnd(...)`
 
 (Alternative seam if preferred: the variant-management cluster, `PopulateVariantPicker` …
 `OnDeleteVariantButtonClick`, lines ~142–220, → `MainWindow.LayoutVariants.partial.cs`.)
 
 Checklist:
-- [ ] Create partial; cut the chosen cluster
-- [ ] `dotnet build` succeeds; both files ≤ ~750 taste-lines
-- [ ] `dotnet test` green
-- [ ] CHANGELOG.md updated; commit
+- [x] Create partial; cut the chosen cluster
+- [x] `dotnet build` succeeds; both files ≤ ~750 taste-lines
+- [x] `dotnet test` green
+- [x] CHANGELOG.md updated; commit
 
 ## Phase 3 — Close out
 
-- [ ] `.\scripts\verify.ps1` passes end-to-end (taste now green)
-- [ ] Tick TO_DO.md lines 68–69 as done (or remove)
-- [ ] Confirm no other in-scope `.cs` is within ~50 lines of the limit
+- [x] `.\scripts\verify.ps1` passes end-to-end (taste now green)
+- [x] Remove the completed TO_DO.md bullets
+- [x] Confirm no other in-scope `.cs` is within ~50 lines of the limit
       (`ManualLayoutManager.cs` is next at 688 — fine for now)
 
 ## Verification gate

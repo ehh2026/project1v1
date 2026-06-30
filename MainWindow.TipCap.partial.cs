@@ -44,7 +44,8 @@ namespace InteractiveWorldMap
             {
                 if (marker.Visibility != Visibility.Visible)
                     continue;
-                if (marker.Content is not PinMarker pin)
+                if (marker.Content is not AutoStubPinMarker &&
+                    marker.Content is not ManualLayoutPinMarker)
                     continue;
 
                 // Caps live above extension lines, so every eligible head must explicitly
@@ -56,9 +57,9 @@ namespace InteractiveWorldMap
                     if (TryBuildExtensionPlacement(marker, out var extPlacement))
                         placements.Add(extPlacement);
                 }
-                else if (pin.IsShaftVisible)
+                else if (marker.Content is AutoStubPinMarker autoStub)
                 {
-                    if (TryBuildStubPlacement(marker, pin, out var stubPlacement))
+                    if (TryBuildStubPlacement(marker, autoStub, out var stubPlacement))
                         placements.Add(stubPlacement);
                 }
             }
@@ -118,7 +119,10 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>Cap on the built-in stub tip — the screen-projected, hover-scaled shaft tip.</summary>
-        private bool TryBuildStubPlacement(LocationMarker marker, PinMarker pin, out PinTipCapPlacement placement)
+        private bool TryBuildStubPlacement(
+            LocationMarker marker,
+            AutoStubPinMarker pin,
+            out PinTipCapPlacement placement)
         {
             placement = default;
 
@@ -147,7 +151,7 @@ namespace InteractiveWorldMap
             return true;
         }
 
-        /// <summary>Cap on the extension-line tip (map anchor / line start), shaft hidden.</summary>
+        /// <summary>Cap on the extension-line tip (map anchor / line start).</summary>
         private bool TryBuildExtensionPlacement(LocationMarker marker, out PinTipCapPlacement placement)
         {
             placement = default;

@@ -6,7 +6,7 @@ needs_review: false
 requirements_ref: drawn-pin-tip-cap
 reviewed_by: temp/review-drawn-pin-tip-cap-plan-2026-06-23.md
 parent_program: docs/exec-plans/active/composite-pins-program.md
-depends_on: docs/exec-plans/active/drawn-pin-model-separation-plan.md
+depends_on: docs/exec-plans/completed/drawn-pin-model-separation-plan.md
 ---
 
 # Drawn pin tip cap — design confirmed
@@ -19,7 +19,7 @@ depends_on: docs/exec-plans/active/drawn-pin-model-separation-plan.md
 | 2 | **T-junction look** | Extension-line caps are horizontal in screen space at the map anchor while the shaft is angled — the resulting **T junction** is the intended screen-space invariant. |
 | 3 | **Stroke treatment** | Both styles are open, unfilled, near-black strokes. `LineWeightPx` defaults near the shaft outline thickness. |
 | 4 | **Phasing** | Phase 2 = stub tips (`Horizontal`); Phase 3 = extension-line tips (`Horizontal`); Phase 4 = outline polish; **Phase 4b** = concave geometry + human visual pass (may loop). |
-| 5 | **Prerequisite** | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) has landed **or** is explicitly deferred (cap hooks on monolithic `PinMarker` with a named migration path). |
+| 5 | **Prerequisite** | [drawn-pin-model-separation-plan.md](../completed/drawn-pin-model-separation-plan.md) has landed **or** is explicitly deferred (cap hooks on monolithic `PinMarker` with a named migration path). |
 
 ---
 

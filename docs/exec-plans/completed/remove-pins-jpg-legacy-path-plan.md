@@ -23,7 +23,7 @@ parent_plan: pin-parts-composite-placement-plan.md
 
 ## Completion note
 
-Moved to completed on 2026-06-21 per user confirmation. Remaining drawn-pin model cleanup is tracked separately in [drawn-pin-model-separation-plan.md](../active/drawn-pin-model-separation-plan.md).
+Moved to completed on 2026-06-21 per user confirmation. Remaining drawn-pin model cleanup was completed in [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md).
 
 ## Problem
 

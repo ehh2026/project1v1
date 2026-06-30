@@ -1,0 +1,20 @@
+<UserControl x:Class="InteractiveWorldMap.Views.PinHead"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             SnapsToDevicePixels="False">
+    <Grid x:Name="Root">
+        <Ellipse x:Name="PinBall"
+                 Width="14"
+                 Height="14"
+                 Stroke="Black"
+                 StrokeThickness="1.5">
+            <Ellipse.Effect>
+                <DropShadowEffect Color="Black"
+                                  Direction="315"
+                                  ShadowDepth="1.5"
+                                  BlurRadius="2.5"
+                                  Opacity="0.55"/>
+            </Ellipse.Effect>
+        </Ellipse>
+    </Grid>
+</UserControl>

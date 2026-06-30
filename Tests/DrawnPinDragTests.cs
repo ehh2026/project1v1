@@ -32,8 +32,8 @@ public class DrawnPinDragTests
     [Fact]
     public void DrawnDragBranch_CallsAnchorExtendedMarker()
     {
-        // AnchorExtendedMarker hides the built-in shaft, sets z-index 2000, and anchors
-        // the head by its connection point. The drawn branch must call it.
+        // AnchorExtendedMarker sets z-index 2000 and anchors the head-only role by its
+        // connection point. The drawn branch must call it.
         Assert.Contains("AnchorExtendedMarker(_draggedMarker, headScreen)", LayoutEditorSource);
     }
 

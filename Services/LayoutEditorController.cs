@@ -15,8 +15,6 @@ namespace InteractiveWorldMap.Services;
 /// </summary>
 public sealed class LayoutEditorController
 {
-    private const double ExtensionLineThreshold = 5.0;
-
     private readonly IManualLayoutManager _layoutManager;
     private readonly VisualConfig        _visualConfig;
     private readonly ILogger             _logger;
@@ -197,15 +195,15 @@ public sealed class LayoutEditorController
                 continue;
             }
 
-            double dx = layoutMarker.ExtendedPosition.X - layoutMarker.OriginalPosition.X;
-            double dy = layoutMarker.ExtendedPosition.Y - layoutMarker.OriginalPosition.Y;
-            double distance = Math.Sqrt(dx * dx + dy * dy);
+            bool requiresExtensionLine = ManualLayoutPlacementPolicy.RequiresExtensionLine(
+                layoutMarker.OriginalPosition,
+                layoutMarker.ExtendedPosition);
 
             applications.Add(new LayoutMarkerApplication(
                 layoutMarker.LocationName,
                 layoutMarker.OriginalPosition,
                 layoutMarker.ExtendedPosition,
-                distance > ExtensionLineThreshold)
+                requiresExtensionLine)
             {
                 SourceExtendedX = layoutMarker.SourceExtendedX,
                 SourceExtendedY = layoutMarker.SourceExtendedY,

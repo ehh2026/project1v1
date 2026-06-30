@@ -65,6 +65,56 @@ public class CompositePinPlanCacheTests
                 Transform = new Matrix(1, 0, 0, 1, 5, 10) }
         };
 
+    [Fact]
+    public void BuildApplyInstructions_ReclassifiesUsingFinalProjectedEndpoints()
+    {
+        var cache = new CompositePinPlanCache(new MockLogger());
+        var planning = new CompositePinPlanningService(
+            new PinPartPlacementCalculator(),
+            new CompositePinRenderPlanBuilder());
+        var service = new CompositePinApplicationService(cache, planning);
+        var layout = new ManualLayout { GroupKey = "g1", VariantId = "seed-default" };
+
+        var applications = new List<LayoutEditorController.LayoutMarkerApplication>
+        {
+            new("LocA", new Point(100, 100), new Point(150, 100), true)
+            {
+                Angle = 0,
+                LineLength = 0
+            },
+            new("LocB", new Point(200, 200), new Point(200, 200), false)
+            {
+                Angle = 90,
+                LineLength = 24
+            }
+        };
+
+        var result = service.BuildApplyInstructions(
+            layout,
+            applications,
+            new Dictionary<string, (double PixelX, double PixelY)>(),
+            null,
+            0,
+            0,
+            new PinPartConfig(),
+            "group-key",
+            Path.Combine(Path.GetTempPath(), "missing_geometry.json"),
+            false);
+
+        Assert.Collection(
+            result.Instructions,
+            first =>
+            {
+                Assert.Equal("LocA", first.LocationName);
+                Assert.False(first.RequiresExtensionLine);
+            },
+            second =>
+            {
+                Assert.Equal("LocB", second.LocationName);
+                Assert.True(second.RequiresExtensionLine);
+            });
+    }
+
     // ─── Cache miss ──────────────────────────────────────────────────────────
 
     [Fact]

@@ -69,6 +69,7 @@ namespace InteractiveWorldMap
         
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
+        private DrawnPinMarkerFactory _drawnPinFactory = null!;
         private readonly VisualConfigService _configService = new VisualConfigService();
         private readonly string _configPath;
         
@@ -134,6 +135,7 @@ namespace InteractiveWorldMap
                 // Load visual configuration
                 _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
                 _visualConfig = _configService.Load(_configPath);
+                _drawnPinFactory = new DrawnPinMarkerFactory(_visualConfig);
                 _logger.LogInfo($"Visual config loaded from: {_configPath}");
 
                 if (AreDeveloperToolsEnabled() && _visualConfig.Debug.WindowedMode)

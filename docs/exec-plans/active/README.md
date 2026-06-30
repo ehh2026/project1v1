@@ -23,13 +23,15 @@ started: YYYY-MM-DD
 | [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
-| [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Split drawn pins into head-only, auto-stub, and manual-layout roles |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
+| [touch-scrollable-thumbnail-browser-plan.md](touch-scrollable-thumbnail-browser-plan.md) | Touch/mouse vertical thumbnail scrolling with tap-versus-swipe arbitration |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
 
+- `drawn-pin-model-separation-plan.md` — Split drawn pins into explicit auto-stub and head-only manual-layout roles — moved 2026-06-28
+- `2026-06-23-2324-oversize-file-refactor.md` — Split marker placement and layout drag handlers into focused partials, restoring the 800-line taste gate — moved 2026-06-28
 - `single-location-zoom-click-plan.md` — Zoom in and auto-open content window on standalone marker click — moved 2026-06-23
 - `dev-tools-production-disable-plan.md` — Gate Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode behind `EnableDeveloperTools` — moved 2026-06-25
 - `tuning-panel-dropdowns-plan.md` — Tuning panel shaft/head variant ComboBox pickers (follow-up to runtime tuning panel) — moved 2026-06-22

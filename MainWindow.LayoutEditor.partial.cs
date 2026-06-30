@@ -275,14 +275,19 @@ namespace InteractiveWorldMap
                     Canvas.GetTop(marker) + plan.HeadCenterLocal.Y);
             }
 
-            // Drawn pin with its own built-in vertical shaft: the head sits directly above the tip.
-            // Use the pin's actual connection point — NOT LocationMarkerSize/2. A PinMarker is wider
-            // than LocationMarkerSize (ball ~14px vs marker 12px), so the LocationMarkerSize/2 fallback
-            // put the saved head ~2px left of the tip. Over a ~24px shaft that is a ~5° counter-clockwise
-            // lean, baked into every non-moved pin on save and replayed as a slanted extension line.
-            if (marker.Content is PinMarker pin)
+            // Drawn roles expose their actual head connection point. Using the configured
+            // LocationMarkerSize center would introduce a small saved-angle drift.
+            if (marker.Content is ManualLayoutPinMarker manualPin)
             {
-                var connection = pin.GetConnectionPoint();
+                var connection = manualPin.GetConnectionPoint();
+                return new Point(
+                    Canvas.GetLeft(marker) + connection.X,
+                    Canvas.GetTop(marker) + connection.Y);
+            }
+
+            if (marker.Content is AutoStubPinMarker autoStub)
+            {
+                var connection = autoStub.GetConnectionPoint();
                 return new Point(
                     Canvas.GetLeft(marker) + connection.X,
                     Canvas.GetTop(marker) + connection.Y);
@@ -699,8 +704,9 @@ namespace InteractiveWorldMap
 
                 if (instruction.RequiresExtensionLine)
                 {
-                    // Drawn pin lifted off the map: the extension line is the shaft, the head
-                    // sits on the endpoint, and the pin's own shaft is hidden (no duplicate line).
+                    SetDrawnPinRole(marker, DrawnPinRole.ManualLayout);
+                    // Drawn pin lifted off the map: the extension line is the shaft and the
+                    // head-only role sits on the endpoint.
                     // 2.1: during animation reuse the existing line pair (reposition in place);
                     // TryRepositionPinLine returns false on the first frame (none exists yet), so
                     // we create it then and reuse it for the rest of the animation.
@@ -713,13 +719,13 @@ namespace InteractiveWorldMap
                 }
                 else
                 {
-                    // No extension: a normal pin (head + own shaft) centered on its map location.
-                    if (marker.Content is PinMarker drawnPin)
-                        drawnPin.SetShaftVisible(true);
-
-                    var markerSize = _visualConfig.LocationMarkerSize;
-                    Canvas.SetLeft(marker, instruction.ExtendedScreen.X - (markerSize / 2));
-                    Canvas.SetTop(marker, instruction.ExtendedScreen.Y - (markerSize / 2));
+                    SetDrawnPinRole(marker, DrawnPinRole.AutoStub);
+                    if (marker.Content is AutoStubPinMarker autoStub)
+                    {
+                        var tip = autoStub.GetShaftTipPoint();
+                        Canvas.SetLeft(marker, instruction.OriginalScreen.X - tip.X);
+                        Canvas.SetTop(marker, instruction.OriginalScreen.Y - tip.Y);
+                    }
                 }
             }
 

@@ -9,30 +9,33 @@ public class PinMarkerRenderingTests
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
     [Fact]
-    public void PinMarker_UsesPinMarkerConfigForDimensions()
+    public void AutoStubPinMarker_UsesPinMarkerConfigForDimensions()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "PinMarker.xaml.cs"));
+        var autoStubSource =
+            File.ReadAllText(Path.Combine(RepoRoot, "Views", "AutoStubPinMarker.xaml.cs"));
+        var headSource =
+            File.ReadAllText(Path.Combine(RepoRoot, "Views", "PinHead.xaml.cs"));
 
-        Assert.Contains("ApplyPinDimensions(PinMarkerConfig", source);
-        Assert.Contains("pinConfig.BallSize", source);
-        Assert.Contains("pinConfig.ShaftOutlineColor", source);
-        Assert.Contains("pinConfig.BallOutlineColor", source);
-        Assert.DoesNotContain("LocationMarkerSize / 16.0", source);
+        Assert.Contains("ApplyConfig(PinMarkerConfig", autoStubSource);
+        Assert.Contains("pinConfig.ShaftOutlineColor", autoStubSource);
+        Assert.Contains("config.BallSize", headSource);
+        Assert.Contains("config.BallOutlineColor", headSource);
+        Assert.DoesNotContain("LocationMarkerSize / 16.0", autoStubSource);
     }
 
     [Fact]
-    public void PinMarker_UsesLayeredShaftOutlineInXaml()
+    public void AutoStubPinMarker_UsesLayeredShaftOutlineInXaml()
     {
-        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "PinMarker.xaml"));
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "AutoStubPinMarker.xaml"));
 
         Assert.Contains("PinShaftOutline", xaml);
         Assert.Contains("PinShaft", xaml);
     }
 
     [Fact]
-    public void PinMarker_DisablesPixelSnappingForThinShaft()
+    public void AutoStubPinMarker_DisablesPixelSnappingForThinShaft()
     {
-        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "PinMarker.xaml"));
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "AutoStubPinMarker.xaml"));
 
         Assert.Contains("SnapsToDevicePixels=\"False\"", xaml);
         Assert.Contains("UseLayoutRounding=\"False\"", xaml);
@@ -52,10 +55,10 @@ public class PinMarkerRenderingTests
     [Fact]
     public void DrawnPinsExposeShaftTipAnchorForMapPlacement()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "PinMarker.xaml.cs"));
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "Views", "AutoStubPinMarker.xaml.cs"));
 
         Assert.Contains("GetShaftTipPoint()", source);
-        Assert.Contains("return new Point(Width / 2, Height);", source);
+        Assert.Contains("new(Width / 2.0, Height)", source);
     }
 
     [Fact]
@@ -65,7 +68,7 @@ public class PinMarkerRenderingTests
             File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs")) +
             File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.CompositePins.partial.cs"));
 
-        Assert.Contains("drawnPin.GetShaftTipPoint()", source);
+        Assert.Contains("autoStub.GetShaftTipPoint()", source);
         Assert.Contains("Canvas.SetLeft(marker, mapPoint.X - shaftTip.X);", source);
         Assert.Contains("Canvas.SetTop(marker, mapPoint.Y - shaftTip.Y);", source);
     }

@@ -56,11 +56,12 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## User ideas (product)
 
-- [ ] Thumbnail side panel: support touchscreen vertical scrolling so users can swipe through all images.
+- [ ] Physical touchscreen smoke check: swiping over a thumbnail scrolls without selecting it; a stationary tap selects it - [plan](exec-plans/active/touch-scrollable-thumbnail-browser-plan.md).
 - [ ] Main content: optionally show information about the selected image/content in a bottom pane or a separate left-side window.
 - [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
 - [ ] Main content images: support zooming and/or maximizing the selected image for closer inspection.
 - [ ] Subwindow opens near pin, not screen center
+- [ ] Keep popup windows contained within the main map window, with popup position and scale derived from the main window's current bounds (lower priority for the full-screen gallery deployment, but required for windowed use).
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish
 - [ ] Wire in actual locations and content; accession-number folder structure
@@ -72,9 +73,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## High priority
 
-- [ ] Separate drawn pin model into head-only, auto-stub, and manual-layout pin components so edited pins do not rely on hiding a built-in vertical shaft — [drawn-pin-model-separation-plan.md](exec-plans/active/drawn-pin-model-separation-plan.md)
-- [x] Refactor `MainWindow.xaml.cs` (872 lines) back under the 800-line taste limit — split into focused partials or extract services. Fails `scripts/verify_taste.py`; **pre-existing debt that predates the tip-cap feature** (already red at HEAD) and currently keeps `scripts/verify.ps1` from going green. **DONE 2026-06-24** — marker-placement engine extracted to `MainWindow.MarkerPlacement.partial.cs`; core file now 625 taste-lines.
-- [x] Refactor `MainWindow.LayoutEditor.partial.cs` (801 lines) back under the 800-line taste limit. Same pre-existing taste failure as above. **DONE 2026-06-24** — drag handlers extracted to `MainWindow.LayoutEditorDrag.partial.cs`; file now 661 taste-lines.
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 

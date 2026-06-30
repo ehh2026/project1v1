@@ -176,13 +176,10 @@ namespace InteractiveWorldMap.Views
             // Head must sit above the extension line (lines live at z ~999/1000).
             Panel.SetZIndex(marker, 2000);
 
-            // Drawn pins: anchor the head on the extension endpoint and hide the pin's
-            // own shaft. The extension line becomes the single shaft, so there is no
-            // off-axis duplicate shaft drawn on top of the head.
-            if (marker.Content is PinMarker pin)
+            // Manual-layout drawn pins are head-only; the extension line is their shaft.
+            if (marker.Content is ManualLayoutPinMarker manualPin)
             {
-                pin.SetShaftVisible(false);
-                var connection = pin.GetConnectionPoint();
+                var connection = manualPin.GetConnectionPoint();
                 Canvas.SetLeft(marker, extendedScreenPos.X - connection.X);
                 Canvas.SetTop(marker,  extendedScreenPos.Y - connection.Y);
                 return;

@@ -42,8 +42,8 @@ namespace InteractiveWorldMap.Views
 
         /// <summary>
         /// Positions an extended marker so its head sits on the extension endpoint.
-        /// For drawn pins this also hides the pin's own shaft, so the extension line is the
-        /// only shaft (no duplicate, off-axis shaft on top of the head).
+        /// Manual-layout drawn pins use a head-only visual because the extension line is
+        /// their shaft.
         /// </summary>
         void AnchorExtendedMarker(LocationMarker marker, Point extendedScreenPos);
 

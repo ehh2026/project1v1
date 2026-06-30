@@ -128,7 +128,12 @@ that means:
 
 ## PinMarkers (drawn fallback)
 
-When `UseCompositeRendering = false`, individual markers use the vector `PinMarker` control. Key fields:
+When `UseCompositeRendering = false`, individual markers use drawn pin controls. Drawn mode has two visual roles:
+
+- Auto stub pins use a drawn head plus the configured short vertical shaft.
+- Manual-layout pins use the same drawn head without an internal shaft; the saved/manual extension line is the shaft.
+
+This keeps edited drawn pins from drawing a duplicate vertical shaft under the head. Key fields:
 
 | Field | Default | Purpose |
 |-------|---------|---------|

@@ -18,7 +18,7 @@ Backlog links: [TO_DO.md](../../TO_DO.md) · Feature doc: [MANUAL_LAYOUT_EDITOR.
 | Core placement | [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) | Complete | Baseline for unzoomed rollout and legacy removal |
 | Unzoomed rollout | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Phase 7 smoke #1–7 passed; cross-plan pan/zoom closed | #8 regression + move to `completed/` |
 | Legacy removal | [remove-pins-jpg-legacy-path-plan.md](../completed/remove-pins-jpg-legacy-path-plan.md) | Complete | Superseded by drawn/composite-only pin paths |
-| Drawn pin model | [drawn-pin-model-separation-plan.md](drawn-pin-model-separation-plan.md) | Planned | Split drawn auto-stub vs manual-layout head-only roles |
+| Drawn pin model | [drawn-pin-model-separation-plan.md](../completed/drawn-pin-model-separation-plan.md) | Complete | Explicit auto-stub and manual-layout head-only roles landed |
 | Rendering polish | [pin-rendering-improvements-plan.md](../completed/pin-rendering-improvements-plan.md) | Complete | Shaft visibility follow-up assessment |
 | Shaft visibility | [composite-pin-shaft-visibility-plan.md](../completed/composite-pin-shaft-visibility-plan.md) | Complete | Default `outline_dark_7px` in `visual-config.json` |
 | Head visibility | [pinhead-black-outline-variants-plan.md](../completed/pinhead-black-outline-variants-plan.md) | Complete | Review/select default head variant |

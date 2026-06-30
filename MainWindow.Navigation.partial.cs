@@ -82,8 +82,10 @@ namespace InteractiveWorldMap
                             continue;
 
                         Point anchor;
-                        if (marker.Content is PinMarker pin)
-                            anchor = pin.GetShaftTipPoint();
+                        if (marker.Content is AutoStubPinMarker autoStub)
+                            anchor = autoStub.GetShaftTipPoint();
+                        else if (marker.Content is ManualLayoutPinMarker manual)
+                            anchor = manual.GetConnectionPoint();
                         else if (marker.Content is CompositePinMarker composite)
                             anchor = composite.GetTipAnchorPoint();
                         else
