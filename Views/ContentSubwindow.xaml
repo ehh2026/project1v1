@@ -40,7 +40,10 @@
                       TextWrapping="Wrap"/>
             
             <!-- Content Area with translation overlay -->
-            <Grid Grid.Row="1">
+            <Grid x:Name="ContentInteractionSurface"
+                  Grid.Row="1"
+                  Background="Transparent"
+                  MouseLeftButtonUp="ContentSurface_MouseLeftButtonUp">
                 <Viewbox x:Name="ContentViewbox"
                         Stretch="Uniform">
                     <ContentPresenter x:Name="ContentArea"/>
