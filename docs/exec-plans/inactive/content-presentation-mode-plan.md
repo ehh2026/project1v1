@@ -1,5 +1,5 @@
 ---
-status: active
+status: inactive
 owner: agent
 started: 2026-06-30
 ---
@@ -17,6 +17,10 @@ started: 2026-06-30
 **Design:** [2026-06-30-content-presentation-mode-design.md](../../superpowers/specs/2026-06-30-content-presentation-mode-design.md)
 
 ---
+
+## Progress
+
+Core implementation and automated verification completed on 2026-06-30. `.\scripts\verify.ps1` passed with 496 tests and zero build warnings/errors. The plan is parked inactive because live GUI automation could not launch the app after Windows app-control approval timed out; only the manual mouse/touch smoke in Task 4 Step 1 remains.
 
 ## File and Ownership Map
 
@@ -44,7 +48,7 @@ started: 2026-06-30
 - Modify: `visual-config.json`
 - Modify: `Tests/VisualConfigServiceTests.cs`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Add:
 
@@ -105,7 +109,7 @@ public void Load_MaximizedContentBackgroundOpacity_Deserializes()
 }
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 Run:
 
@@ -115,7 +119,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: compilation fails because the property is absent.
 
-- [ ] **Step 3: Implement the property and checked-in value**
+- [x] **Step 3: Implement the property and checked-in value**
 
 Add `using System;` and this member to `VisualConfig`:
 
@@ -137,7 +141,7 @@ Add to `visual-config.json`:
 "MaximizedContentBackgroundOpacity": 1.0,
 ```
 
-- [ ] **Step 4: Verify GREEN and commit**
+- [x] **Step 4: Verify GREEN and commit**
 
 Run the focused test command from Step 2. Expected: all selected tests pass.
 
@@ -155,7 +159,7 @@ git commit -m "feat: configure content presentation background"
 - Modify: `Views/ContentSubwindow.xaml.cs`
 - Create: `Tests/ContentPresentationModeTests.cs`
 
-- [ ] **Step 1: Write failing STA behavior tests**
+- [x] **Step 1: Write failing STA behavior tests**
 
 Create `Tests/ContentPresentationModeTests.cs` with tests that construct `ContentSubwindow` on an STA thread and assert:
 
@@ -197,7 +201,7 @@ Assert.Equal(new Rect(100, 120, 400, 300),
 
 Use the existing `DrawnPinTipCapRendererTests.RunOnStaThread` pattern. Add a separate test asserting zero-width owner bounds return `false` without changing normal mode.
 
-- [ ] **Step 2: Write a failing XAML input contract test**
+- [x] **Step 2: Write a failing XAML input contract test**
 
 Parse `Views/ContentSubwindow.xaml` with `XDocument` and assert:
 
@@ -211,7 +215,7 @@ Assert.DoesNotContain(
     attribute => attribute.Name.LocalName == "MouseLeftButtonDown");
 ```
 
-- [ ] **Step 3: Verify RED**
+- [x] **Step 3: Verify RED**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~ContentPresentationModeTests"
@@ -219,7 +223,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: missing presentation API and XAML surface failures.
 
-- [ ] **Step 4: Wire the completed-click surface**
+- [x] **Step 4: Wire the completed-click surface**
 
 Name the row-1 content grid and wire mouse-up:
 
@@ -232,7 +236,7 @@ Name the row-1 content grid and wire mouse-up:
 
 Keep `TranslateButton` in row 2 outside this grid.
 
-- [ ] **Step 5: Implement presentation transitions**
+- [x] **Step 5: Implement presentation transitions**
 
 Add saved normal bounds/style fields and:
 
@@ -335,7 +339,7 @@ private void ContentSurface_MouseLeftButtonUp(
 }
 ```
 
-- [ ] **Step 6: Preserve presentation size on content refresh**
+- [x] **Step 6: Preserve presentation size on content refresh**
 
 Wrap the `ShowContent` size/position block:
 
@@ -348,7 +352,7 @@ if (!IsPresentationMode)
 }
 ```
 
-- [ ] **Step 7: Verify GREEN and commit**
+- [x] **Step 7: Verify GREEN and commit**
 
 Run the focused Task 2 command. Expected: all presentation tests pass.
 
@@ -365,7 +369,7 @@ git commit -m "feat: add borderless content presentation mode"
 - Modify: `MainWindow.Content.partial.cs`
 - Modify: `Tests/ContentPresentationModeTests.cs`
 
-- [ ] **Step 1: Write a failing source contract test**
+- [x] **Step 1: Write a failing source contract test**
 
 Read `MainWindow.Content.partial.cs` and assert it contains:
 
@@ -384,7 +388,7 @@ Assert.Contains("_activeDidacticWindow.Show();", source);
 Assert.Contains("ResetCompanionPresentationState();", source);
 ```
 
-- [ ] **Step 2: Verify RED**
+- [x] **Step 2: Verify RED**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~MainWindow_CoordinatesConfiguredContentAndCompanionVisibility"
@@ -392,7 +396,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: source contract assertion fails.
 
-- [ ] **Step 3: Centralize content-window creation**
+- [x] **Step 3: Centralize content-window creation**
 
 Add two restore flags and:
 
@@ -416,7 +420,7 @@ private ContentSubwindow CreateContentSubwindow(Location location)
 
 Use this factory in both current content-window creation paths.
 
-- [ ] **Step 4: Implement companion visibility coordination**
+- [x] **Step 4: Implement companion visibility coordination**
 
 Add the exact coordinator:
 
@@ -463,7 +467,7 @@ private void ResetCompanionPresentationState()
 
 Call it from both `CloseActiveSubwindow` and `CloseActiveSubwindowAsync` after companion cleanup, preventing hidden closed windows from reappearing.
 
-- [ ] **Step 5: Verify GREEN and commit**
+- [x] **Step 5: Verify GREEN and commit**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~ContentPresentationModeTests|FullyQualifiedName~SingleLocationZoomClickTests|FullyQualifiedName~ThumbnailBrowserWindowTests"
@@ -483,14 +487,14 @@ git commit -m "feat: coordinate content presentation companions"
 **Files:**
 - Modify: `docs/TO_DO.md`
 - Modify: `docs/exec-plans/active/README.md`
-- Move: this plan to `docs/exec-plans/completed/content-presentation-mode-plan.md`
+- Move: this plan to `docs/exec-plans/inactive/content-presentation-mode-plan.md`
 - Modify: `CHANGELOG.md`
 
 - [ ] **Step 1: Run the app and smoke the interaction**
 
 Run `.\run-demo.bat`. Open content with thumbnails, translation, and didactic text where available. Verify click/tap enters a main-window-sized borderless black presentation; title and companions hide; Translate stays usable and does not restore; a second content click restores exact popup bounds/chrome and companions. Enter again and navigate Back; confirm no hidden window reappears.
 
-- [ ] **Step 2: Run full verification**
+- [x] **Step 2: Run full verification**
 
 ```powershell
 .\scripts\verify.ps1
@@ -498,7 +502,7 @@ Run `.\run-demo.bat`. Open content with thumbnails, translation, and didactic te
 
 Expected: build, tests, architecture, docs, taste, vulnerability, and startup checks pass.
 
-- [ ] **Step 3: Narrow completed backlog scope**
+- [x] **Step 3: Narrow completed backlog scope**
 
 Remove the active presentation bullet from `docs/TO_DO.md`, retaining only:
 
@@ -506,7 +510,7 @@ Remove the active presentation bullet from `docs/TO_DO.md`, retaining only:
 - [ ] Main content images: support image zoom/pan within the content viewer for closer inspection.
 ```
 
-- [ ] **Step 4: Record the shipped feature**
+- [x] **Step 4: Record the shipped feature**
 
 Under `[Unreleased]` → `Added`:
 
@@ -514,9 +518,9 @@ Under `[Unreleased]` → `Added`:
 - **Content presentation mode:** Clicking or tapping center content toggles a borderless main-window-sized view with proportional image scaling, configurable black excess-area opacity, an available Translate control, temporary hiding of thumbnail/didactic companions, and exact popup restoration.
 ```
 
-- [ ] **Step 5: Archive and recheck documentation**
+- [x] **Step 5: Park and recheck documentation**
 
-Move this plan to `docs/exec-plans/completed/`, remove its active table row, and add it under “Recently completed” with move date `2026-06-30`. Run:
+Move this plan to `docs/exec-plans/inactive/`, remove its active table row, and register the pending live GUI smoke in the inactive index. Run:
 
 ```powershell
 py -3 scripts\verify_doc_links.py
@@ -526,24 +530,24 @@ git diff --check
 
 Expected: all exit successfully.
 
-- [ ] **Step 6: Commit completion bookkeeping**
+- [x] **Step 6: Commit completion bookkeeping**
 
 ```powershell
-git add docs/TO_DO.md docs/exec-plans/active/README.md docs/exec-plans/completed/content-presentation-mode-plan.md CHANGELOG.md
-git commit -m "docs: complete content presentation mode"
+git add docs/TO_DO.md docs/exec-plans/active/README.md docs/exec-plans/inactive/README.md docs/exec-plans/inactive/content-presentation-mode-plan.md CHANGELOG.md
+git commit -m "docs: park content presentation smoke check"
 ```
 
 ---
 
 ## Acceptance Criteria
 
-- [ ] Completed click/tap toggles presentation mode; Translate clicks do not.
-- [ ] The content window uses the main map window's current bounds.
-- [ ] Presentation has no border, rounded corners, shadow, title, or outer padding.
-- [ ] Images remain proportional and centered; excess area is configurable black, default opacity `1.0`.
-- [ ] Thumbnail and didactic companions hide and restore only if previously visible.
-- [ ] Exact popup bounds and styling restore.
-- [ ] Close/back cannot resurrect hidden companions.
-- [ ] Focused tests and `.\scripts\verify.ps1` pass.
-- [ ] TO_DO retains only unimplemented zoom/pan.
-- [ ] The completed plan is archived and `[Unreleased]` records the feature.
+- [x] Automated coverage verifies completed click/tap toggles presentation mode; Translate clicks do not.
+- [x] The content window uses the main map window's current bounds.
+- [x] Presentation has no border, rounded corners, shadow, title, or outer padding.
+- [x] Images remain proportional and centered; excess area is configurable black, default opacity `1.0`.
+- [x] Thumbnail and didactic companions hide and restore only if previously visible.
+- [x] Exact popup bounds and styling restore.
+- [x] Close/back cannot resurrect hidden companions.
+- [x] Focused tests and `.\scripts\verify.ps1` pass.
+- [x] TO_DO retains unimplemented zoom/pan and the parked live GUI smoke only.
+- [x] The inactive plan and `[Unreleased]` record the implementation state.

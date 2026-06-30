@@ -6,6 +6,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Added
 
+- **Content presentation mode:** Clicking or tapping center content toggles a borderless main-window-sized view with proportional image scaling, configurable black excess-area opacity, an available Translate control, temporary hiding of thumbnail/didactic companions, and exact popup restoration.
 - **Glossary:** Added `docs/reference/GLOSSARY.md` as the central terminology reference for pins, manual layouts, layout variants, and seeds; linked it from agent onboarding, the doc index, and the manual layout guide.
 - **Manual layout seed generator:** Added `Tools/ManualLayoutSeedGenerator`, a headless .NET tool that reuses runtime clustering, viewport, layout-key, and radial-extension code to generate `AutoSeed` manual layouts. `scripts/generate_manual_layout_seeds.ps1` now delegates to the tool instead of carrying duplicated PowerShell/C# placement math, and `scripts/verify.ps1` now includes non-destructive seed verification through `scripts/verify_manual_layout_seeds.ps1`.
 - **Drawn-pin divot cap (opt-in):** `PinMarkers.DrawnPinTipCap` now renders `Horizontal` and `Concave` as open, unfilled, near-black strokes. Concave bows away from the pin head and keeps its true midpoint at the shaft tip. Width, line weight, curvature, and `ScreenHorizontal`/`ShaftAligned` alignment are configurable in Runtime Tuning; `Style` remains default-off.
@@ -15,7 +16,6 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ### Changed
 
 - **Scrollable thumbnail browser:** The right-side thumbnail panel now uses vertical touch panning and mouse-wheel scrolling with its scrollbar hidden. Thumbnail activation occurs on a completed tap/click instead of initial press so a swipe can scroll without immediately loading an image.
-- **Content presentation mode plan:** Registered the implementation plan for click/tap borderless content presentation, configurable black excess-area opacity, and temporary thumbnail/didactic companion hiding.
 - **Drawn pin model separation:** Drawn manual-layout pins now use a head-only visual while auto stubs keep their built-in short shaft anchored by its tip. Extension roles are classified from final projected endpoints, and drag no longer carries a hidden or duplicate built-in stub.
 - **Bottom-left full-map navigation:** Moved and renamed the zoomed-content back button to `← Back to Full Map` in the lower-left corner, placed the manual-layout status above it, and hid that developer status when developer tools are disabled.
 - **Backlog maintenance:** Removed completed continuous-pin-tracking and Excel coordinate/table backlog items now that the work is archived/documented and already reflected in the app; clarified the zoom performance item as partial with remaining Phase 2b/2c scope; moved Tuning panel variant search/filter to a Deferred section. Strengthened agent workflow guidance so completed work updates `TO_DO.md`, archives completed plans, and records `CHANGELOG.md` consistently.

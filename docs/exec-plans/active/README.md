@@ -26,7 +26,6 @@ started: YYYY-MM-DD
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
 | [touch-scrollable-thumbnail-browser-plan.md](touch-scrollable-thumbnail-browser-plan.md) | Touch/mouse vertical thumbnail scrolling with tap-versus-swipe arbitration |
-| [content-presentation-mode-plan.md](content-presentation-mode-plan.md) | Borderless click/tap content presentation with configurable black background and hidden companion windows |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)

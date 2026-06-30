@@ -40,6 +40,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 ## Inactive (optional polish)
 
+- [ ] Manual GUI smoke only: verify content click/tap presentation, Translate independence, companion hiding/restoration, and Back cleanup in the running WPF app — [plan](exec-plans/inactive/content-presentation-mode-plan.md). Core code and automated verification are complete; parked because Windows app-control approval timed out.
 - [ ] Composite head visual polish — shaft collar clip (§8.4 step 4), pin_09/10 shading (step 5), `TargetHeadRadiusPx` tuning (step 6) — [composite-pin-head-placement-fix-plan.md](exec-plans/inactive/composite-pin-head-placement-fix-plan.md)
 
 ## Refactoring & quality
@@ -59,7 +60,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Physical touchscreen smoke check: swiping over a thumbnail scrolls without selecting it; a stationary tap selects it - [plan](exec-plans/active/touch-scrollable-thumbnail-browser-plan.md).
 - [ ] Main content: optionally show information about the selected image/content in a bottom pane or a separate left-side window.
 - [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
-- [ ] Main content presentation: tap/click the center content to toggle a borderless main-window-sized view with configurable black excess-area opacity while temporarily hiding thumbnail/didactic companions — [plan](exec-plans/active/content-presentation-mode-plan.md).
 - [ ] Main content images: support image zoom/pan within the content viewer for closer inspection.
 - [ ] Subwindow opens near pin, not screen center
 - [ ] Keep popup windows contained within the main map window, with popup position and scale derived from the main window's current bounds (lower priority for the full-screen gallery deployment, but required for windowed use).
