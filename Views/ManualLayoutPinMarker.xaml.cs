@@ -33,6 +33,13 @@ namespace InteractiveWorldMap.Views
 
         public void SetPinColor(Color color) => PinColor = color;
 
+        public void ApplyConfig(PinMarkerConfig pinConfig)
+        {
+            PinHead.ApplyConfig(pinConfig);
+            Width = PinHead.Width;
+            Height = PinHead.Height;
+        }
+
         public Point GetConnectionPoint() => new(Width / 2.0, Height / 2.0);
 
         public double GetHeadDiameter() => Math.Max(PinHead.Width, PinHead.Height);

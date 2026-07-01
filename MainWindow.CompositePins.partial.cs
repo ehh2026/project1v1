@@ -552,5 +552,59 @@ namespace InteractiveWorldMap
             return marker;
         }
 
+        private void RefreshDrawnPinVisuals()
+        {
+            foreach (var marker in _individualMarkers)
+            {
+                ApplyDrawnPinConfig(marker, marker.Content);
+
+                if (!_baseMarkerVisuals.TryGetValue(marker, out var state))
+                    continue;
+
+                ApplyDrawnPinConfig(marker, state.Content, updateMarkerBounds: false);
+                if (state.Content is FrameworkElement baseContent)
+                {
+                    _baseMarkerVisuals[marker] = new MarkerVisualState
+                    {
+                        Content = state.Content,
+                        Width = baseContent.Width,
+                        Height = baseContent.Height
+                    };
+                }
+            }
+        }
+
+        private void ApplyDrawnPinConfig(
+            LocationMarker marker,
+            object? content,
+            bool updateMarkerBounds = true)
+        {
+            FrameworkElement? drawnContent = content switch
+            {
+                AutoStubPinMarker autoStub => ApplyAutoStubConfig(autoStub),
+                ManualLayoutPinMarker manual => ApplyManualPinConfig(manual),
+                _ => null
+            };
+
+            if (!updateMarkerBounds || drawnContent == null ||
+                !ReferenceEquals(marker.Content, content))
+                return;
+
+            marker.Width = drawnContent.Width;
+            marker.Height = drawnContent.Height;
+        }
+
+        private FrameworkElement ApplyAutoStubConfig(AutoStubPinMarker marker)
+        {
+            marker.ApplyConfig(_visualConfig.PinMarkers);
+            return marker;
+        }
+
+        private FrameworkElement ApplyManualPinConfig(ManualLayoutPinMarker marker)
+        {
+            marker.ApplyConfig(_visualConfig.PinMarkers);
+            return marker;
+        }
+
     }
 }

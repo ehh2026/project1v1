@@ -456,7 +456,7 @@ git commit -m "feat: center marker input on visible heads"
 - Modify: `Tests/TuningPanelWiringTests.cs`
 - Modify: `Tests/MarkerInteractionWiringTests.cs`
 
-- [ ] **Step 1: Write failing runtime-apply tests**
+- [x] **Step 1: Write failing runtime-apply tests**
 
 Require assignments:
 
@@ -472,7 +472,7 @@ Assert.Contains("RefreshMarkerHitTargets()", source);
 
 Add a test requiring `ManualLayoutPinMarker.ApplyConfig(PinMarkerConfig)`.
 
-- [ ] **Step 2: Run runtime tuning tests and verify RED**
+- [x] **Step 2: Run runtime tuning tests and verify RED**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~TuningPanelWiringTests|FullyQualifiedName~MarkerInteractionWiringTests" --no-restore
@@ -480,7 +480,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: failures for missing assignments and refresh methods.
 
-- [ ] **Step 3: Implement visual refresh without losing layout state**
+- [x] **Step 3: Implement visual refresh without losing layout state**
 
 Add `ManualLayoutPinMarker.ApplyConfig`, mirroring construction:
 
@@ -498,7 +498,7 @@ to drawn content stored in `_baseMarkerVisuals`, then replaces each affected
 `MarkerVisualState` with updated width/height. Preserve each pin color and do
 not recreate location collections or saved layouts.
 
-- [ ] **Step 4: Apply and classify tuning changes**
+- [x] **Step 4: Apply and classify tuning changes**
 
 In `ApplyTuningAsync`, snapshot all five new values, assign them after
 validation, and classify:
@@ -519,11 +519,11 @@ For drawn changes call `RefreshDrawnPinVisuals` before
 `RefreshMarkerHitTargets` directly. Include the five values in
 `CreateTuningArgs` and `DeveloperTuningPanel.LoadValues`.
 
-- [ ] **Step 5: Run focused tuning and interaction tests**
+- [x] **Step 5: Run focused tuning and interaction tests**
 
 Run the Step 2 command. Expected: all selected tests pass.
 
-- [ ] **Step 6: Commit runtime application**
+- [x] **Step 6: Commit runtime application**
 
 ```powershell
 git add Views\ManualLayoutPinMarker.xaml.cs MainWindow.CompositePins.partial.cs MainWindow.DeveloperTuning.partial.cs Tests\TuningPanelWiringTests.cs Tests\MarkerInteractionWiringTests.cs

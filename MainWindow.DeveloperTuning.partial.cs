@@ -153,6 +153,11 @@ namespace InteractiveWorldMap
                 var oldTargetShaftHalfWidth = _visualConfig.PinParts.TargetShaftHalfWidthPx;
                 var oldLocationMarkerSize = _visualConfig.LocationMarkerSize;
                 var oldClusterMarkerSize = _visualConfig.ClusterMarkerSize;
+                var oldDrawnHeadDiameter = _visualConfig.PinMarkers.BallSize;
+                var oldDrawnShaftWidth = _visualConfig.PinMarkers.ShaftWidth;
+                var oldDrawnShaftLength = _visualConfig.PinMarkers.ShaftLength;
+                var oldPinHitDiameter = _visualConfig.MarkerHitTargets.PinDiameterPx;
+                var oldClusterHitDiameter = _visualConfig.MarkerHitTargets.ClusterDiameterPx;
 
                 var newShaftVariant = e.ShaftVariant.Trim();
                 var newHeadVariant = e.HeadVariant.Trim();
@@ -192,6 +197,15 @@ namespace InteractiveWorldMap
                     oldUsePrerasterize != e.UsePrerasterize ||
                     oldShowDebugOverlay != e.ShowDebugOverlay;
 
+                var drawnDimensionsChanged =
+                    !NearlyEqual(oldDrawnHeadDiameter, e.DrawnHeadDiameterPx) ||
+                    !NearlyEqual(oldDrawnShaftWidth, e.DrawnShaftWidthPx) ||
+                    !NearlyEqual(oldDrawnShaftLength, e.DrawnShaftLengthPx);
+
+                var hitTargetsChanged =
+                    !NearlyEqual(oldPinHitDiameter, e.PinHitDiameterPx) ||
+                    !NearlyEqual(oldClusterHitDiameter, e.ClusterHitDiameterPx);
+
                 _visualConfig.PinParts.Enabled = e.UseComposite;
                 _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
                 _visualConfig.PinParts.UsePrerasterizedRendering = e.UsePrerasterize;
@@ -206,6 +220,11 @@ namespace InteractiveWorldMap
                 _visualConfig.LocationMarkerSize = e.LocationMarkerSize;
                 _visualConfig.ClusterMarkerSize = e.ClusterMarkerSize;
                 _visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;
+                _visualConfig.PinMarkers.BallSize = e.DrawnHeadDiameterPx;
+                _visualConfig.PinMarkers.ShaftWidth = e.DrawnShaftWidthPx;
+                _visualConfig.PinMarkers.ShaftLength = e.DrawnShaftLengthPx;
+                _visualConfig.MarkerHitTargets.PinDiameterPx = e.PinHitDiameterPx;
+                _visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;
 
                 // Tip cap is a render-only drawn-pin setting; the ReapplyViewAfterTuningChange call
                 // below re-runs UpdatePinTipCaps, which reads these fresh values.
@@ -230,6 +249,9 @@ namespace InteractiveWorldMap
                     _overrideStore.ClearAll();
                 }
 
+                if (drawnDimensionsChanged)
+                    RefreshDrawnPinVisuals();
+
                 if (needsRecreate)
                 {
                     await RecreateAllMarkersAsync();
@@ -241,6 +263,9 @@ namespace InteractiveWorldMap
 
                     ReapplyViewAfterTuningChange();
                 }
+
+                if (hitTargetsChanged)
+                    RefreshMarkerHitTargets();
 
                 DeveloperTuningPanel.LoadValues(_visualConfig);
                 DeveloperTuningPanel.SetStatus("Applied tuning values.");

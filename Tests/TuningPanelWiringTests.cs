@@ -204,6 +204,31 @@ public class TuningPanelWiringTests
     }
 
     [Fact]
+    public void ApplyTuning_MapsDrawnDimensionsAndHitboxes()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("_visualConfig.PinMarkers.BallSize = e.DrawnHeadDiameterPx;", source);
+        Assert.Contains("_visualConfig.PinMarkers.ShaftWidth = e.DrawnShaftWidthPx;", source);
+        Assert.Contains("_visualConfig.PinMarkers.ShaftLength = e.DrawnShaftLengthPx;", source);
+        Assert.Contains("_visualConfig.MarkerHitTargets.PinDiameterPx = e.PinHitDiameterPx;", source);
+        Assert.Contains("_visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;", source);
+        Assert.Contains("RefreshDrawnPinVisuals()", source);
+        Assert.Contains("RefreshMarkerHitTargets()", source);
+    }
+
+    [Fact]
+    public void ManualLayoutPinMarker_CanApplyUpdatedPinConfig()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "ManualLayoutPinMarker.xaml.cs"));
+
+        Assert.Contains("public void ApplyConfig(PinMarkerConfig pinConfig)", source);
+        Assert.Contains("PinHead.ApplyConfig(pinConfig);", source);
+    }
+
+    [Fact]
     public void DeveloperTuningPanel_CombosHaveCorrectProperties()
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));

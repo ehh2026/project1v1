@@ -79,4 +79,14 @@ public class MarkerInteractionWiringTests
         Assert.Contains("OnMarkerDragMove", source);
         Assert.Contains("OnMarkerDragEnd", source);
     }
+
+    [Fact]
+    public void TuningRefreshesHitTargetsAfterApplyingNewDiameters()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("var hitTargetsChanged =", source);
+        Assert.Contains("RefreshMarkerHitTargets();", source);
+    }
 }
