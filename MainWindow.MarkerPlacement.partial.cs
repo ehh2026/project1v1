@@ -100,6 +100,7 @@ namespace InteractiveWorldMap
             ApplyCompositePinDepthSort();
 
             UpdatePinTipCaps();
+            RefreshMarkerHitTargets();
         }
 
         /// <summary>
@@ -183,6 +184,7 @@ namespace InteractiveWorldMap
         private void ClearAllMarkers()
         {
             _logger.LogInfo($"[ClearAllMarkers] Clearing {_individualMarkers.Count} individual and {_clusterMarkers.Count} cluster markers");
+            ClearMarkerHitTargets();
 
             foreach (var marker in _individualMarkers)
             {

@@ -218,6 +218,7 @@ namespace InteractiveWorldMap
             Canvas.SetLeft(marker, topLeft.X);
             Canvas.SetTop(marker, topLeft.Y);
             _overrideStore.RecordEndpoints(marker.Location.Name, target.StartScreen, target.EndScreen);
+            RefreshMarkerHitTargets();
         }
 
         /// <summary>
@@ -300,6 +301,7 @@ namespace InteractiveWorldMap
             var topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(originalScreenPos, plan);
             Canvas.SetLeft(marker, topLeft.X);
             Canvas.SetTop(marker, topLeft.Y);
+            RefreshMarkerHitTargets();
         }
 
         private static bool IsPinStyleMarkerBase(object? content)

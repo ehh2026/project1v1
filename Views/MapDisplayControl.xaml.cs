@@ -19,6 +19,11 @@ public partial class MapDisplayControl : UserControl
     /// Gets the marker canvas where markers should be added.
     /// </summary>
     public Canvas Markers => MarkerCanvas;
+
+    /// <summary>
+    /// Gets the overlay canvas that owns marker-specific pointer/touch targets.
+    /// </summary>
+    public Canvas MarkerInteractions => MarkerInteractionCanvas;
     
     /// <summary>
     /// Gets the source image for pre-rendering.

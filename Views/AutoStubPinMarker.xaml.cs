@@ -57,6 +57,8 @@ namespace InteractiveWorldMap.Views
 
         public Point GetConnectionPoint() => new(Width / 2.0, PinHead.Height / 2.0);
 
+        public double GetHeadDiameter() => Math.Max(PinHead.Width, PinHead.Height);
+
         public Point GetShaftTipPoint() => new(Width / 2.0, Height);
 
         public Point GetScaledShaftTipPoint() => ApplyPinTransform(GetShaftTipPoint());

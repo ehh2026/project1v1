@@ -35,6 +35,8 @@ namespace InteractiveWorldMap.Views
 
         public Point GetConnectionPoint() => new(Width / 2.0, Height / 2.0);
 
+        public double GetHeadDiameter() => Math.Max(PinHead.Width, PinHead.Height);
+
         public void AnimateHover(bool isHovered)
         {
             var animation = new DoubleAnimation

@@ -21,5 +21,10 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
                 Background="Transparent"/>
+
+        <!-- Only the circular child targets participate in input; this canvas has no background. -->
+        <Canvas x:Name="MarkerInteractionCanvas"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"/>
     </Grid>
 </UserControl>

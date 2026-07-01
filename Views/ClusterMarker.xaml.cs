@@ -127,16 +127,28 @@ namespace InteractiveWorldMap.Views
             _clickStoryboard?.Begin();
         }
 
+        public void AnimateHover(bool isHovered)
+        {
+            if (isHovered)
+            {
+                _hoverOutStoryboard?.Stop();
+                _hoverInStoryboard?.Begin();
+            }
+            else
+            {
+                _hoverInStoryboard?.Stop();
+                _hoverOutStoryboard?.Begin();
+            }
+        }
+
         private void OnMouseEnter(object sender, MouseEventArgs e)
         {
-            _hoverOutStoryboard?.Stop();
-            _hoverInStoryboard?.Begin();
+            AnimateHover(true);
         }
 
         private void OnMouseLeave(object sender, MouseEventArgs e)
         {
-            _hoverInStoryboard?.Stop();
-            _hoverOutStoryboard?.Begin();
+            AnimateHover(false);
         }
     }
 }

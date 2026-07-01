@@ -326,7 +326,7 @@ git commit -m "feat: organize runtime tuning by category"
 - Modify: `MainWindow.LayoutEditor.partial.cs`
 - Modify: `MainWindow.LayoutEditorDrag.partial.cs`
 
-- [ ] **Step 1: Write failing interaction-layer tests**
+- [x] **Step 1: Write failing interaction-layer tests**
 
 Add source/XAML guards that require:
 
@@ -357,7 +357,7 @@ Also require `RefreshMarkerHitTargets` after placement, composite replacement,
 drawn-role replacement, drag movement, and `ClearMarkerHitTargets` from
 `ClearAllMarkers`.
 
-- [ ] **Step 2: Run interaction tests and verify RED**
+- [x] **Step 2: Run interaction tests and verify RED**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~MarkerInteractionWiringTests" --no-restore
@@ -365,7 +365,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: failures for the missing Canvas and interaction partial.
 
-- [ ] **Step 3: Add the overlay Canvas and lifecycle**
+- [x] **Step 3: Add the overlay Canvas and lifecycle**
 
 Add after `MarkerCanvas`:
 
@@ -399,7 +399,7 @@ marker collection.
 Set visual markers `IsHitTestVisible = false` only after their target has
 authoritative center geometry.
 
-- [ ] **Step 4: Route navigation, hover, right-click, and edit drag**
+- [x] **Step 4: Route navigation, hover, right-click, and edit drag**
 
 Extract the individual and cluster click lambda bodies from `MainWindow.xaml.cs`
 into:
@@ -419,7 +419,7 @@ keeping `_draggedMarker` as the visual marker. Register drag handlers on target
 creation; they remain gated by `_layoutEditor.IsEditMode`, eliminating dynamic
 marker subscriptions in `OnEditLayoutButtonClick` and `ExitEditMode`.
 
-- [ ] **Step 5: Synchronize targets at every geometry boundary**
+- [x] **Step 5: Synchronize targets at every geometry boundary**
 
 Call `RefreshMarkerHitTargets`:
 
@@ -432,7 +432,7 @@ Call `RefreshMarkerHitTargets`:
 
 Call `ClearMarkerHitTargets` before clearing marker collections.
 
-- [ ] **Step 6: Run interaction and existing drag tests**
+- [x] **Step 6: Run interaction and existing drag tests**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~MarkerInteractionWiringTests|FullyQualifiedName~DrawnPinDragTests|FullyQualifiedName~CompositeDragStretchTests|FullyQualifiedName~CompositePinEditModeTests" --no-restore
@@ -440,7 +440,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: all selected tests pass.
 
-- [ ] **Step 7: Commit the interaction overlay**
+- [x] **Step 7: Commit the interaction overlay**
 
 ```powershell
 git add Views\MapDisplayControl.xaml Views\MapDisplayControl.xaml.cs MainWindow.MarkerInteraction.partial.cs MainWindow.xaml.cs MainWindow.CompositePins.partial.cs MainWindow.DrawnPins.partial.cs MainWindow.MarkerPlacement.partial.cs MainWindow.LayoutEditor.partial.cs MainWindow.LayoutEditorDrag.partial.cs Tests\MarkerInteractionWiringTests.cs

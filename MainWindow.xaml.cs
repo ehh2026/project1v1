@@ -362,49 +362,15 @@ namespace InteractiveWorldMap
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
             CaptureBaseMarkerVisual(marker);
-            
-            // Add click handler
-            marker.MouseLeftButtonDown += (s, e) =>
+
+            if (!_visualConfig.UsePinMarkers)
             {
-                var action = MarkerMouseDownPolicy.GetIndividualMarkerAction(_layoutEditor.IsEditMode);
-                if (action == MarkerMouseDownAction.AllowEditDrag)
+                marker.MouseLeftButtonDown += (_, e) =>
                 {
-                    return;
-                }
-
-                if (_mode == InteractionMode.Animating)
-                {
-                    return;
-                }
-                
-                AnimateMarkerClick(marker);
-                
-                // If we're at full map view (not zoomed), zoom to this location
-                // Otherwise, show content
-                var viewport = MapDisplay.CurrentViewport;
-                if (viewport != null && viewport.ZoomLevel <= 1.0)
-                {
-                    if (_visualConfig.AutoOpenSingleLocationContentAfterZoom)
-                    {
-                        _autoOpenLocation = location;
-                    }
-
-                    // Create a single-location cluster and zoom to it
-                    var singleCluster = new LocationCluster
-                    {
-                        Locations = new List<Location> { location },
-                        CenterPoint = new Point(location.PixelX, location.PixelY)
-                    };
-                    OnClusterClicked(singleCluster);
-                }
-                else
-                {
-                    // Already zoomed, show content
-                    ShowContentForLocation(location);
-                }
-                
-                e.Handled = true;
-            };
+                    HandleIndividualMarkerPrimaryAction(marker);
+                    e.Handled = true;
+                };
+            }
             
             _individualMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
@@ -427,22 +393,6 @@ namespace InteractiveWorldMap
             // Position will be updated by UpdateMarkerPositions()
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
-            
-            // Add click handler
-            marker.MouseLeftButtonDown += (s, e) =>
-            {
-                var action = MarkerMouseDownPolicy.GetClusterMarkerAction(_layoutEditor.IsEditMode);
-                if (action == MarkerMouseDownAction.BlockNavigation)
-                {
-                    ShowEditModeNavigationBlockedStatus();
-                    e.Handled = true;
-                    return;
-                }
-
-                marker.AnimateClick();
-                OnClusterClicked(cluster);
-                e.Handled = true;
-            };
             
             _clusterMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);

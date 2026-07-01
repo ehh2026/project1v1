@@ -30,6 +30,7 @@ namespace InteractiveWorldMap
             marker.Width = content.Width;
             marker.Height = content.Height;
             marker.Tag = content;
+            RefreshMarkerHitTargets();
         }
 
         private bool TryApplyCompositeOrPrepareDrawnManual(

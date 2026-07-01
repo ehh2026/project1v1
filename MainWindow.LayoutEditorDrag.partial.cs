@@ -121,6 +121,7 @@ namespace InteractiveWorldMap
                         LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head at ({mousePos.X:F1},{mousePos.Y:F1})");
                     }
                     UpdatePinTipCaps();
+                    RefreshMarkerHitTargets();
                     return;
                 }
 
@@ -148,6 +149,7 @@ namespace InteractiveWorldMap
                 _extensionLineRenderer.AnchorExtendedMarker(_draggedMarker, headScreen);
                 _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, tipScreen, headScreen);
                 UpdatePinTipCaps();
+                RefreshMarkerHitTargets();
 
                 LogDragDebug($"[DRAG] Drawn pin '{_draggedMarker.Location.Name}' head at ({headScreen.X:F1},{headScreen.Y:F1}), tip at ({tipScreen.X:F1},{tipScreen.Y:F1})");
             }
@@ -177,6 +179,7 @@ namespace InteractiveWorldMap
             _extensionLineRenderer.SetLineZIndex(_draggedMarker, 0);
             ApplyCompositePinDepthSort();
             UpdatePinTipCaps();
+            RefreshMarkerHitTargets();
 
             _draggedMarker = null;
 
