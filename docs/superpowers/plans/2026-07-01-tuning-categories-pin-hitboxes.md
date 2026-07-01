@@ -43,7 +43,7 @@
 - Modify: `Tests/CompositePinRenderPlanBuilderTests.cs`
 - Modify: `visual-config.json`
 
-- [ ] **Step 1: Write failing configuration and geometry tests**
+- [x] **Step 1: Write failing configuration and geometry tests**
 
 Add tests proving defaults, JSON round-trip, minimum sizing, and canvas-center
 translation:
@@ -84,7 +84,7 @@ Add a config-service round-trip test setting `PinDiameterPx = 36` and
 Assert.Equal(config.TargetHeadRadiusPx * 2.0, plan.HeadDiameterPx, 3);
 ```
 
-- [ ] **Step 2: Run focused tests and verify RED**
+- [x] **Step 2: Run focused tests and verify RED**
 
 Run:
 
@@ -96,7 +96,7 @@ Expected: compilation failures for missing `MarkerHitTargetConfig`,
 `MarkerHitTargetGeometry`, `VisualConfig.MarkerHitTargets`, and
 `CompositePinRenderPlan.HeadDiameterPx`.
 
-- [ ] **Step 3: Implement the model and geometry API**
+- [x] **Step 3: Implement the model and geometry API**
 
 Create:
 
@@ -156,11 +156,11 @@ Add the checked-in JSON:
 },
 ```
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run the Step 2 command. Expected: all selected tests pass.
 
-- [ ] **Step 5: Commit configuration and geometry**
+- [x] **Step 5: Commit configuration and geometry**
 
 ```powershell
 git add Models\MarkerHitTargetConfig.cs Models\VisualConfig.cs Models\CompositePinRenderPlan.cs Utilities\MarkerHitTargetGeometry.cs Services\CompositePinRenderPlanBuilder.cs Tests\MarkerHitTargetGeometryTests.cs Tests\VisualConfigServiceTests.cs Tests\CompositePinRenderPlanBuilderTests.cs visual-config.json

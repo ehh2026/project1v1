@@ -304,6 +304,10 @@ namespace InteractiveWorldMap.Services
                 StretchEndLocal     = s.StretchEnd,
                 HeadAttachLocal     = s.JoinAnchor,
                 HeadCenterLocal     = TransformPoint(ToPoint(v.HeadEntry.Head.LocalCenter), s.HeadTransform),
+                HeadDiameterPx      = 2.0 * v.HeadEntry.Head.LocalRadius *
+                    (config.TargetHeadRadiusPx > 0.0 && v.HeadEntry.Head.LocalRadius > 0.0
+                        ? config.TargetHeadRadiusPx / v.HeadEntry.Head.LocalRadius
+                        : geo.OverallScale),
                 ShaftTipCapLayer = new CompositePinLayerPlan
                 {
                     SourcePath   = shaftPath,

@@ -9,6 +9,29 @@ namespace InteractiveWorldMap.Tests;
 public class VisualConfigServiceTests
 {
     [Fact]
+    public void MarkerHitTargets_RoundTrip()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var service = new VisualConfigService();
+            var config = new VisualConfig();
+            config.MarkerHitTargets.PinDiameterPx = 36.0;
+            config.MarkerHitTargets.ClusterDiameterPx = 48.0;
+
+            service.Save(config, path);
+            var reloaded = service.Load(path);
+
+            Assert.Equal(36.0, reloaded.MarkerHitTargets.PinDiameterPx);
+            Assert.Equal(48.0, reloaded.MarkerHitTargets.ClusterDiameterPx);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void Load_ValidJsonFile_ReturnsConfig()
     {
         var tempDir = CreateTempDir();

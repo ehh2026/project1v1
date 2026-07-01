@@ -77,7 +77,8 @@ public class CompositePinRenderPlanBuilderTests
             RequestedStretchFactor = 0.75
         };
 
-        var plan = builder.BuildPlan(target, placement, new PinPartConfig());
+        var config = new PinPartConfig();
+        var plan = builder.BuildPlan(target, placement, config);
 
         Assert.Equal(90.0, plan.HeadRotationDeg, 1);
         Assert.Equal(90.0, plan.TargetAngleDeg, 1);
@@ -179,7 +180,8 @@ public class CompositePinRenderPlanBuilderTests
             RequestedStretchFactor = 1.375
         };
 
-        var plan = builder.BuildPlan(target, placement, new PinPartConfig());
+        var config = new PinPartConfig();
+        var plan = builder.BuildPlan(target, placement, config);
 
         var markerLeft = target.StartScreen.X - plan.TipAnchorLocal.X;
         var markerTop = target.StartScreen.Y - plan.TipAnchorLocal.Y;
@@ -187,6 +189,7 @@ public class CompositePinRenderPlanBuilderTests
         AssertClose(target.EndScreen, ToScreen(plan.JoinAnchorLocal, markerLeft, markerTop));
         AssertClose(target.EndScreen, ToScreen(plan.HeadAttachLocal, markerLeft, markerTop));
         AssertClose(target.EndScreen, ToScreen(plan.HeadCenterLocal, markerLeft, markerTop));
+        Assert.Equal(config.TargetHeadRadiusPx * 2.0, plan.HeadDiameterPx, 3);
         Assert.True(IsBetween(plan.TipAnchorLocal, plan.JoinAnchorLocal, plan.StretchStartLocal));
         Assert.True(IsBetween(plan.TipAnchorLocal, plan.JoinAnchorLocal, plan.StretchEndLocal));
     }
@@ -206,6 +209,7 @@ public class CompositePinRenderPlanBuilderTests
                 },
                 LocalCenter = new PinPartPoint { X = 40, Y = 40 },
                 LocalAttach = new PinPartPoint { X = 40, Y = 70 },
+                LocalRadius = 20.0,
                 StubDirectionDeg = 180.0
             },
             Shaft = new PinPartShaftGeometry

@@ -31,6 +31,7 @@ namespace InteractiveWorldMap.Models
         public Point StretchEndLocal { get; set; }
         public Point HeadAttachLocal { get; set; }
         public Point HeadCenterLocal { get; set; }
+        public double HeadDiameterPx { get; set; }
         public CompositePinLayerPlan ShaftTipCapLayer { get; set; } = new CompositePinLayerPlan();
         public CompositePinLayerPlan ShaftBodyLayer { get; set; } = new CompositePinLayerPlan();
         public CompositePinLayerPlan ShaftHeadCapLayer { get; set; } = new CompositePinLayerPlan();

@@ -68,6 +68,12 @@ namespace InteractiveWorldMap.Models
         public PinMarkerConfig PinMarkers { get; set; } = new PinMarkerConfig();
 
         /// <summary>
+        /// Pointer and touch target sizes for pins and cluster markers.
+        /// </summary>
+        public MarkerHitTargetConfig MarkerHitTargets { get; set; } =
+            new MarkerHitTargetConfig();
+
+        /// <summary>
         /// Configuration for part-based composite pins.
         /// </summary>
         public PinPartConfig PinParts { get; set; } = new PinPartConfig();
