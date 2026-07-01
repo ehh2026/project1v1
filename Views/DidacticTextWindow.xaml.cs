@@ -17,11 +17,16 @@ public partial class DidacticTextWindow : Window
     }
 
     /// <summary>
-    /// Sets the didactic text content to display.
+    /// Sets the didactic text and its Excel-derived location/person heading.
     /// </summary>
-    public void SetContent(string text)
+    public void SetContent(string text, string? locationName)
     {
         DidacticTextBlock.Text = text;
+        var heading = locationName?.Trim();
+        HeadingText.Text = heading ?? string.Empty;
+        HeadingText.Visibility = string.IsNullOrEmpty(heading)
+            ? Visibility.Collapsed
+            : Visibility.Visible;
     }
 
     /// <summary>

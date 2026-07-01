@@ -110,7 +110,7 @@ namespace InteractiveWorldMap
                     Owner = this
                 };
                 
-                _activeDidacticWindow.SetContent(didacticText);
+                _activeDidacticWindow.SetContent(didacticText, location.Name);
                 _activeDidacticWindow.PositionRelativeTo(_activeSubwindow);
                 _activeDidacticWindow.Show();
                 _activeDidacticWindow.AnimateOpen();

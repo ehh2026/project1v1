@@ -40,7 +40,6 @@ public partial class ContentSubwindow : Window
     private Thickness _normalPadding;
     private CornerRadius _normalCornerRadius;
     private Effect? _normalEffect;
-    private Visibility _normalTitleVisibility;
 
     public event EventHandler? PresentationModeChanged;
 
@@ -61,7 +60,7 @@ public partial class ContentSubwindow : Window
     /// Shows content at the specified anchor position.
     /// </summary>
     /// <param name="content">The content to display (ImageSource or string)</param>
-    /// <param name="locationName">The name of the location</param>
+    /// <param name="locationName">The associated location name (retained for caller compatibility)</param>
     /// <param name="anchorPosition">The position to anchor the window near</param>
     /// <param name="translationText">Optional translation text for the content</param>
     public void ShowContent(object content, string locationName, Point anchorPosition, string? translationText = null)
@@ -69,7 +68,6 @@ public partial class ContentSubwindow : Window
         if (content == null)
             throw new ArgumentNullException(nameof(content));
 
-        TitleText.Text = locationName ?? "Location";
         _currentTranslationText = translationText;
         _isTranslationVisible = false;
         TranslationOverlay.Visibility = Visibility.Collapsed;
@@ -153,7 +151,6 @@ public partial class ContentSubwindow : Window
         _normalPadding = ContentBorder.Padding;
         _normalCornerRadius = ContentBorder.CornerRadius;
         _normalEffect = ContentBorder.Effect;
-        _normalTitleVisibility = TitleText.Visibility;
 
         var opacity = Math.Clamp(MaximizedBackgroundOpacity, 0.0, 1.0);
         var alpha = (byte)Math.Round(opacity * byte.MaxValue);
@@ -163,7 +160,6 @@ public partial class ContentSubwindow : Window
         ContentBorder.Padding = new Thickness(0);
         ContentBorder.CornerRadius = new CornerRadius(0);
         ContentBorder.Effect = null;
-        TitleText.Visibility = Visibility.Collapsed;
 
         Left = ownerBounds.Left;
         Top = ownerBounds.Top;
@@ -186,7 +182,6 @@ public partial class ContentSubwindow : Window
         ContentBorder.Padding = _normalPadding;
         ContentBorder.CornerRadius = _normalCornerRadius;
         ContentBorder.Effect = _normalEffect;
-        TitleText.Visibility = _normalTitleVisibility;
 
         _normalBounds = null;
         IsPresentationMode = false;

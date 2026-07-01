@@ -31,8 +31,8 @@
             </Grid.RowDefinitions>
             
             <!-- Title -->
-            <TextBlock Grid.Row="0"
-                      Text="Information"
+            <TextBlock x:Name="HeadingText"
+                      Grid.Row="0"
                       FontSize="18"
                       FontWeight="SemiBold"
                       Foreground="#FFFFFFFF"

@@ -25,21 +25,12 @@
         
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <!-- Title -->
-            <TextBlock Grid.Row="0"
-                      Text="Images"
-                      FontSize="16"
-                      FontWeight="SemiBold"
-                      Foreground="#FFFFFFFF"
-                      Margin="0,0,0,10"/>
-            
             <!-- Thumbnail List -->
             <ScrollViewer x:Name="ThumbnailScrollViewer"
-                          Grid.Row="1"
+                          Grid.Row="0"
                           Background="Transparent"
                           VerticalScrollBarVisibility="Hidden"
                           HorizontalScrollBarVisibility="Disabled"
