@@ -5,7 +5,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 ## [Unreleased]
 
 - **Content window headings:** The left didactic window now shows the Excel-derived location/person name and hides its heading when that name is blank. Removed the duplicate name heading from the main content window and the generic `Images` heading from the thumbnail window.
-- **Backlog:** Added configurable window chrome and typography, grouped Runtime Tuning submenus, drawn-pin size controls, tunable/aligned interaction hitboxes, and a tap-and-hold magnifier for maximized content.
+- **Runtime Tuning and marker hitboxes:** The Tuning button now opens category-specific Map, Composite Pins, Drawn Pins, and Hitboxes panels. Drawn head/shaft dimensions and shared pin/cluster pointer targets are configurable; pin targets are centered on visible heads, cluster targets are centered on marker images, and neither can shrink below its visible artwork.
+- **Backlog:** Added configurable window chrome and typography and a tap-and-hold magnifier for maximized content.
 
 ### Added
 

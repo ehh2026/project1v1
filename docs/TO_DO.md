@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 30, 2026
+**Last updated:** July 1, 2026
 
 ## Zoom & animation
 
@@ -38,10 +38,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Developer tooling
 
-- [ ] Organize the Runtime Tuning button/panel into discoverable submenus as the option set grows (for example: Windows, Typography, Pins, Hitboxes, and Effects).
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
-- [ ] Expose drawn-pin head diameter and shaft width/length as Runtime Tuning controls, using the existing `PinMarkers` configuration values.
-- [ ] Make pointer/touch hitbox sizes tunable for pins and other interactive content; audit and document whether each pin hitbox is centered on the visible pin head, then correct any mismatch.
 
 ## User ideas (product)
 

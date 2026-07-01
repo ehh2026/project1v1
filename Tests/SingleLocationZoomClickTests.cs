@@ -31,10 +31,12 @@ public class SingleLocationZoomClickTests
     [Fact]
     public void IndividualMarker_SetsAutoOpenLocation_And_GuardsAgainstDoubleClicks()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
-        var methodBody = ExtractMethodBody(source, "private LocationMarker AddIndividualMarker");
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.MarkerInteraction.partial.cs"));
+        var methodBody = ExtractMethodBody(
+            source,
+            "private void HandleIndividualMarkerPrimaryAction");
 
-        // The handler is registered inline, so we verify its body logic
         Assert.Contains("_autoOpenLocation = location;", methodBody);
         
         // Ensure IsAnimating or InteractionMode.Animating guard exists
@@ -53,12 +55,15 @@ public class SingleLocationZoomClickTests
     [Fact]
     public void IndividualMarker_GatesAutoOpenLocationBehindConfig()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
-        var methodBody = ExtractMethodBody(source, "private LocationMarker AddIndividualMarker");
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.MarkerInteraction.partial.cs"));
+        var methodBody = ExtractMethodBody(
+            source,
+            "private void HandleIndividualMarkerPrimaryAction");
 
         var gateIdx = methodBody.IndexOf("_visualConfig.AutoOpenSingleLocationContentAfterZoom", StringComparison.Ordinal);
         var setIdx = methodBody.IndexOf("_autoOpenLocation = location;", StringComparison.Ordinal);
-        var clusterClickIdx = methodBody.IndexOf("OnClusterClicked(singleCluster);", StringComparison.Ordinal);
+        var clusterClickIdx = methodBody.IndexOf("OnClusterClicked(", StringComparison.Ordinal);
 
         Assert.True(gateIdx >= 0, "Individual full-map pin click must check AutoOpenSingleLocationContentAfterZoom.");
         Assert.True(setIdx > gateIdx, "_autoOpenLocation should only be set after the config gate.");
@@ -68,8 +73,11 @@ public class SingleLocationZoomClickTests
     [Fact]
     public void ClusterMarker_DoesNotSetAutoOpenLocation()
     {
-        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
-        var methodBody = ExtractMethodBody(source, "private void AddClusterMarker");
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.MarkerInteraction.partial.cs"));
+        var methodBody = ExtractMethodBody(
+            source,
+            "private void HandleClusterMarkerPrimaryAction");
 
         Assert.DoesNotContain("_autoOpenLocation", methodBody);
     }

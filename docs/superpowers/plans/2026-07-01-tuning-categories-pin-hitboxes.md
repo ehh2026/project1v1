@@ -537,7 +537,7 @@ git commit -m "feat: tune drawn pin dimensions and hitboxes"
 - Modify: `CHANGELOG.md`
 - Modify: `docs/superpowers/plans/2026-07-01-tuning-categories-pin-hitboxes.md`
 
-- [ ] **Step 1: Run all focused feature tests**
+- [x] **Step 1: Run all focused feature tests**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~MarkerHitTargetGeometryTests|FullyQualifiedName~MarkerInteractionWiringTests|FullyQualifiedName~TuningPanelWiringTests|FullyQualifiedName~TuningReloadValidationTests|FullyQualifiedName~VisualConfigServiceTests|FullyQualifiedName~CompositePinRenderPlanBuilderTests|FullyQualifiedName~DrawnPinDragTests|FullyQualifiedName~CompositeDragStretchTests" --no-restore
@@ -545,7 +545,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: all selected tests pass with zero build warnings/errors.
 
-- [ ] **Step 2: Update completion bookkeeping**
+- [x] **Step 2: Update completion bookkeeping**
 
 Remove these completed bullets from `docs/TO_DO.md`:
 
@@ -563,7 +563,7 @@ Under `[Unreleased]`, add:
   its visible artwork.
 ```
 
-- [ ] **Step 3: Run the full Windows verification gate**
+- [x] **Step 3: Run the full Windows verification gate**
 
 ```powershell
 .\scripts\verify.ps1
@@ -572,7 +572,7 @@ Under `[Unreleased]`, add:
 Expected: restore, vulnerability scan, Release build, full tests, seed checks,
 doc links, taste checks, and headless startup validation all pass.
 
-- [ ] **Step 4: Review the final diff**
+- [x] **Step 4: Review the final diff**
 
 ```powershell
 git status --short
@@ -583,7 +583,7 @@ git diff --stat
 Expected: only planned feature, test, config, plan, backlog, and changelog files
 are present; `git diff --check` emits no errors.
 
-- [ ] **Step 5: Mark this plan complete and commit bookkeeping**
+- [x] **Step 5: Mark this plan complete and commit bookkeeping**
 
 Change every remaining checkbox in this plan to checked, then:
 
