@@ -148,6 +148,66 @@ public class TuningReloadValidationTests
         Assert.Equal(string.Empty, error);
     }
 
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidDrawnHeadDiameter_ReturnsFalse(double value)
+    {
+        var args = ValidArgs(); args.DrawnHeadDiameterPx = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Drawn head diameter", error);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidDrawnShaftWidth_ReturnsFalse(double value)
+    {
+        var args = ValidArgs(); args.DrawnShaftWidthPx = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Drawn shaft width", error);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidDrawnShaftLength_ReturnsFalse(double value)
+    {
+        var args = ValidArgs(); args.DrawnShaftLengthPx = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Drawn shaft length", error);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidPinHitbox_ReturnsFalse(double value)
+    {
+        var args = ValidArgs(); args.PinHitDiameterPx = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Pin hitbox", error);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidClusterHitbox_ReturnsFalse(double value)
+    {
+        var args = ValidArgs(); args.ClusterHitDiameterPx = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Cluster hitbox", error);
+    }
+
     // ── Source guard: reload path calls TryValidate before ApplyTuningAsync ──
 
     [Fact]
@@ -173,6 +233,11 @@ public class TuningReloadValidationTests
         StubLength = 24,
         TargetHeadRadiusPx = 8,
         TargetShaftHalfWidthPx = 3,
+        DrawnHeadDiameterPx = 14,
+        DrawnShaftWidthPx = 3,
+        DrawnShaftLengthPx = 24,
+        PinHitDiameterPx = 32,
+        ClusterHitDiameterPx = 40,
         TipCapWidthPx = 12,
         TipCapLineWeightPx = 3,
         TipCapArcDepthPx = 3,

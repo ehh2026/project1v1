@@ -9,6 +9,46 @@ public class TuningPanelWiringTests
     private static string RepoRoot =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
+    [Theory]
+    [InlineData("MapSection")]
+    [InlineData("CompositePinsSection")]
+    [InlineData("DrawnPinsSection")]
+    [InlineData("HitboxesSection")]
+    public void DeveloperTuningPanel_HasCategorySection(string name)
+    {
+        var xaml = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        Assert.Contains($"x:Name=\"{name}\"", xaml);
+    }
+
+    [Fact]
+    public void TuningButton_OffersFourCategoryChoices()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml"));
+
+        foreach (var category in new[] { "Map", "Composite Pins", "Drawn Pins", "Hitboxes" })
+            Assert.Contains($"Header=\"{category}\"", xaml);
+    }
+
+    [Theory]
+    [InlineData("TxtDrawnHeadDiameter")]
+    [InlineData("TxtDrawnShaftWidth")]
+    [InlineData("TxtDrawnShaftLength")]
+    [InlineData("TxtPinHitDiameter")]
+    [InlineData("TxtClusterHitDiameter")]
+    public void DeveloperTuningPanel_NewNumericControl_HasTooltip(string controlName)
+    {
+        var xaml = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+        var nameIndex = xaml.IndexOf($"x:Name=\"{controlName}\"", StringComparison.Ordinal);
+
+        Assert.True(nameIndex >= 0, $"{controlName} not found.");
+        var endIndex = xaml.IndexOf("/>", nameIndex, StringComparison.Ordinal);
+        Assert.True(endIndex > nameIndex, $"{controlName} is not self-closing.");
+        Assert.Contains("ToolTip=", xaml.Substring(nameIndex, endIndex - nameIndex));
+    }
+
     [Fact]
     public void DeveloperTuningPanel_CodeBehind_DoesNotReferenceServicesOrUtilities()
     {

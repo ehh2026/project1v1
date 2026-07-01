@@ -16,6 +16,11 @@ namespace InteractiveWorldMap.Models
         public double TargetShaftHalfWidthPx { get; set; }
         public double LocationMarkerSize { get; set; }
         public double ClusterMarkerSize { get; set; }
+        public double DrawnHeadDiameterPx { get; set; }
+        public double DrawnShaftWidthPx { get; set; }
+        public double DrawnShaftLengthPx { get; set; }
+        public double PinHitDiameterPx { get; set; }
+        public double ClusterHitDiameterPx { get; set; }
 
         // Drawn-pin tip cap (PinMarkers.DrawnPinTipCap). Style None disables the cap.
         public DrawnPinTipCapStyle TipCapStyle { get; set; } = DrawnPinTipCapStyle.None;

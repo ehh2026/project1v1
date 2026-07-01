@@ -6,6 +6,14 @@ using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views;
 
+public enum TuningCategory
+{
+    Map,
+    CompositePins,
+    DrawnPins,
+    Hitboxes
+}
+
 public partial class DeveloperTuningPanel : UserControl
 {
     public const string BaseVariantLabel = "(base)";
@@ -15,10 +23,31 @@ public partial class DeveloperTuningPanel : UserControl
     public event EventHandler? SaveRequested;
     public event EventHandler? ReloadRequested;
 
+    public TuningCategory? VisibleCategory { get; private set; }
+
     public DeveloperTuningPanel()
     {
         InitializeComponent();
         ValidateInputs();
+    }
+
+    public void ShowCategory(TuningCategory category)
+    {
+        VisibleCategory = category;
+        CategoryTitleText.Text = category switch
+        {
+            TuningCategory.CompositePins => "Composite Pins",
+            TuningCategory.DrawnPins => "Drawn Pins",
+            _ => category.ToString()
+        };
+        MapSection.Visibility = category == TuningCategory.Map
+            ? Visibility.Visible : Visibility.Collapsed;
+        CompositePinsSection.Visibility = category == TuningCategory.CompositePins
+            ? Visibility.Visible : Visibility.Collapsed;
+        DrawnPinsSection.Visibility = category == TuningCategory.DrawnPins
+            ? Visibility.Visible : Visibility.Collapsed;
+        HitboxesSection.Visibility = category == TuningCategory.Hitboxes
+            ? Visibility.Visible : Visibility.Collapsed;
     }
 
     public void SetVariantOptions(System.Collections.Generic.IEnumerable<string> shaftVariants, System.Collections.Generic.IEnumerable<string> headVariants)
@@ -143,6 +172,12 @@ public partial class DeveloperTuningPanel : UserControl
             TxtClusterMarkerSize.Text = Format(config.ClusterMarkerSize);
 
             var pinConfig = config.PinMarkers ?? new PinMarkerConfig();
+            TxtDrawnHeadDiameter.Text = Format(pinConfig.BallSize);
+            TxtDrawnShaftWidth.Text = Format(pinConfig.ShaftWidth);
+            TxtDrawnShaftLength.Text = Format(pinConfig.ShaftLength);
+            var hitTargets = config.MarkerHitTargets ?? new MarkerHitTargetConfig();
+            TxtPinHitDiameter.Text = Format(hitTargets.PinDiameterPx);
+            TxtClusterHitDiameter.Text = Format(hitTargets.ClusterDiameterPx);
             var cap = pinConfig.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
             double outlineWidth = Math.Max(pinConfig.ShaftWidth, 2.5) +
                                   (2.0 * Math.Max(pinConfig.ShaftOutlineThickness, 1.0));
@@ -220,6 +255,11 @@ public partial class DeveloperTuningPanel : UserControl
             !TryReadNonNegative(TxtTargetShaftHalfWidth.Text, "Shaft half width", out var targetShaftHalfWidth, out error) ||
             !TryReadPositive(TxtLocationMarkerSize.Text, "Location marker", out var locationMarkerSize, out error) ||
             !TryReadPositive(TxtClusterMarkerSize.Text, "Cluster marker", out var clusterMarkerSize, out error) ||
+            !TryReadPositive(TxtDrawnHeadDiameter.Text, "Drawn head diameter", out var drawnHeadDiameter, out error) ||
+            !TryReadPositive(TxtDrawnShaftWidth.Text, "Drawn shaft width", out var drawnShaftWidth, out error) ||
+            !TryReadPositive(TxtDrawnShaftLength.Text, "Drawn shaft length", out var drawnShaftLength, out error) ||
+            !TryReadPositive(TxtPinHitDiameter.Text, "Pin hitbox", out var pinHitDiameter, out error) ||
+            !TryReadPositive(TxtClusterHitDiameter.Text, "Cluster hitbox", out var clusterHitDiameter, out error) ||
             !TryReadPositive(TxtTipCapWidth.Text, "Cap width", out var tipCapWidth, out error) ||
             !TryReadPositive(TxtTipCapLineWeight.Text, "Line weight", out var tipCapLineWeight, out error) ||
             !TryReadNonNegative(TxtTipCapArcDepth.Text, "Curvature", out var tipCapArcDepth, out error))
@@ -243,6 +283,11 @@ public partial class DeveloperTuningPanel : UserControl
             TargetShaftHalfWidthPx = targetShaftHalfWidth,
             LocationMarkerSize = locationMarkerSize,
             ClusterMarkerSize = clusterMarkerSize,
+            DrawnHeadDiameterPx = drawnHeadDiameter,
+            DrawnShaftWidthPx = drawnShaftWidth,
+            DrawnShaftLengthPx = drawnShaftLength,
+            PinHitDiameterPx = pinHitDiameter,
+            ClusterHitDiameterPx = clusterHitDiameter,
             TipCapStyle = GetTipCapStyle(),
             TipCapAlignment = GetTipCapAlignment(),
             TipCapWidthPx = tipCapWidth,
@@ -322,6 +367,16 @@ public partial class DeveloperTuningPanel : UserControl
         { error = "Head radius must be >= 0 and finite."; return false; }
         if (args.TargetShaftHalfWidthPx < 0 || !double.IsFinite(args.TargetShaftHalfWidthPx))
         { error = "Shaft half width must be >= 0 and finite."; return false; }
+        if (args.DrawnHeadDiameterPx <= 0 || !double.IsFinite(args.DrawnHeadDiameterPx))
+        { error = "Drawn head diameter must be > 0 and finite."; return false; }
+        if (args.DrawnShaftWidthPx <= 0 || !double.IsFinite(args.DrawnShaftWidthPx))
+        { error = "Drawn shaft width must be > 0 and finite."; return false; }
+        if (args.DrawnShaftLengthPx <= 0 || !double.IsFinite(args.DrawnShaftLengthPx))
+        { error = "Drawn shaft length must be > 0 and finite."; return false; }
+        if (args.PinHitDiameterPx <= 0 || !double.IsFinite(args.PinHitDiameterPx))
+        { error = "Pin hitbox must be > 0 and finite."; return false; }
+        if (args.ClusterHitDiameterPx <= 0 || !double.IsFinite(args.ClusterHitDiameterPx))
+        { error = "Cluster hitbox must be > 0 and finite."; return false; }
         if (args.TipCapWidthPx <= 0 || !double.IsFinite(args.TipCapWidthPx))
         { error = "Cap width must be > 0 and finite."; return false; }
         if (args.TipCapLineWeightPx <= 0 || !double.IsFinite(args.TipCapLineWeightPx))

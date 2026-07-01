@@ -448,6 +448,15 @@
                 Padding="15,8"
                 Background="#CC555555"
                 Foreground="White"
-                Click="OnTuningPanelToggleClick"/>
+                Click="OnTuningPanelToggleClick">
+            <Button.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Map" Tag="Map" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Composite Pins" Tag="CompositePins" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Drawn Pins" Tag="DrawnPins" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Hitboxes" Tag="Hitboxes" Click="OnTuningCategoryClick"/>
+                </ContextMenu>
+            </Button.ContextMenu>
+        </Button>
     </Grid>
 </Window>

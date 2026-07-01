@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Views;
@@ -46,9 +47,31 @@ namespace InteractiveWorldMap
             if (!AreDeveloperToolsEnabled() || !_visualConfig.Debug.EnableTuningPanel)
                 return;
 
-            DeveloperTuningPanel.Visibility = DeveloperTuningPanel.Visibility == Visibility.Visible
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            TuningPanelToggleBtn.ContextMenu.PlacementTarget = TuningPanelToggleBtn;
+            TuningPanelToggleBtn.ContextMenu.IsOpen = true;
+        }
+
+        private void OnTuningCategoryClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is MenuItem item &&
+                item.Tag is string value &&
+                Enum.TryParse<TuningCategory>(value, out var category))
+            {
+                ShowTuningCategory(category);
+            }
+        }
+
+        private void ShowTuningCategory(TuningCategory category)
+        {
+            if (DeveloperTuningPanel.Visibility == Visibility.Visible &&
+                DeveloperTuningPanel.VisibleCategory == category)
+            {
+                DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+                return;
+            }
+
+            DeveloperTuningPanel.ShowCategory(category);
+            DeveloperTuningPanel.Visibility = Visibility.Visible;
         }
 
         private async void OnApplyTuning(object? sender, TuningPanelEventArgs e)
@@ -314,6 +337,11 @@ namespace InteractiveWorldMap
                 TargetShaftHalfWidthPx = config.PinParts.TargetShaftHalfWidthPx,
                 LocationMarkerSize = config.LocationMarkerSize,
                 ClusterMarkerSize = config.ClusterMarkerSize,
+                DrawnHeadDiameterPx = pinConfig.BallSize,
+                DrawnShaftWidthPx = pinConfig.ShaftWidth,
+                DrawnShaftLengthPx = pinConfig.ShaftLength,
+                PinHitDiameterPx = config.MarkerHitTargets.PinDiameterPx,
+                ClusterHitDiameterPx = config.MarkerHitTargets.ClusterDiameterPx,
                 AutoOpenSingleLocationContentAfterZoom = config.AutoOpenSingleLocationContentAfterZoom,
                 TipCapStyle = cap.Style,
                 TipCapAlignment = cap.Alignment,

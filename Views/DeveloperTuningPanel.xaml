@@ -13,6 +13,10 @@
                 </Trigger>
             </Style.Triggers>
         </Style>
+        <Style x:Key="TuningLabelStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#DDDDDD"/>
+            <Setter Property="Margin" Value="0,3"/>
+        </Style>
     </UserControl.Resources>
 
     <Border Background="#EE111111"
@@ -20,206 +24,185 @@
             BorderThickness="1"
             CornerRadius="6"
             Padding="12">
-        <ScrollViewer MaxHeight="620"
-                      VerticalScrollBarVisibility="Auto">
+        <ScrollViewer MaxHeight="620" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <TextBlock Text="Runtime Tuning"
+                <TextBlock x:Name="CategoryTitleText"
+                           Text="Runtime Tuning"
                            Foreground="White"
                            FontSize="15"
                            FontWeight="SemiBold"
                            Margin="0,0,0,8"/>
 
-                <UniformGrid Columns="2"
-                             Margin="0,0,0,8">
-                    <CheckBox x:Name="ChkComposite"
-                              Content="Composite pins"
-                              Foreground="White"
-                              Margin="0,2"
-                              Click="OnPanelInputChanged"
-                              ToolTip="Use assembled shaft/head image parts. Off shows drawn fallback pins."/>
-                    <CheckBox x:Name="ChkPrerasterize"
-                              Content="Prerasterize"
-                              Foreground="White"
-                              Margin="0,2"
-                              Click="OnPanelInputChanged"
-                              ToolTip="Flatten each composite pin into one bitmap after choosing shaft/head parts."/>
-                    <CheckBox x:Name="ChkDebugOverlay"
-                              Content="Debug overlay"
-                              Foreground="White"
-                              Margin="0,2"
-                              Click="OnPanelInputChanged"
-                              ToolTip="Show composite pin anchor and stretch guides for visual debugging."/>
-                    <CheckBox x:Name="ChkUseLitShafts"
-                              Content="Lit shafts"
-                              Foreground="White"
-                              Margin="0,2"
-                              Click="OnPanelInputChanged"
-                              ToolTip="Prefer lit shaft assets when no shaft variant is set."/>
+                <StackPanel x:Name="MapSection" Visibility="Collapsed">
                     <CheckBox x:Name="ChkAutoOpenSingleLocationContent"
                               Content="Auto-open single content"
                               Foreground="White"
-                              Margin="0,2"
+                              Margin="0,2,0,8"
                               Click="OnPanelInputChanged"
                               ToolTip="After clicking a standalone full-map pin, open that location's content automatically when zoom-in completes."/>
-                </UniformGrid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Cluster threshold" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Pixel distance used to group nearby locations into cluster markers."/>
+                        <TextBlock Grid.Row="1" Text="Location marker" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Nominal individual-marker size used for placement and overlap math."/>
+                        <TextBlock Grid.Row="2" Text="Cluster marker" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Screen-pixel size of aggregate cluster markers."/>
+                    </Grid>
+                </StackPanel>
 
-                <TextBlock Text="Variants"
-                           Foreground="#CCCCCC"
-                           FontSize="11"
-                           FontWeight="SemiBold"
-                           Margin="0,4,0,2"/>
-                <TextBlock Text="Shaft"
-                           Foreground="#AAAAAA"
-                           FontSize="10"/>
-                <ComboBox x:Name="CmbShaftVariant"
-                          Margin="0,1,0,5"
-                          IsEditable="False"
-                          Background="#222222"
-                          Foreground="White"
-                          IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"
-                          SelectionChanged="OnVariantSelectionChanged"
-                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
-                          ToolTip="Select shaft variant folder name under Pins_v2/parts/shaft_variants. (base) uses base/lit shaft assets."/>
-                <TextBlock Text="Head"
-                           Foreground="#AAAAAA"
-                           FontSize="10"/>
-                <ComboBox x:Name="CmbHeadVariant"
-                          Margin="0,1,0,8"
-                          IsEditable="False"
-                          Background="#222222"
-                          Foreground="White"
-                          IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"
-                          SelectionChanged="OnVariantSelectionChanged"
-                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
-                          ToolTip="Select head variant folder name under Pins_v2/parts/head_variants. (base) uses base head assets."/>
+                <StackPanel x:Name="CompositePinsSection" Visibility="Collapsed">
+                    <UniformGrid Columns="2" Margin="0,0,0,8">
+                        <CheckBox x:Name="ChkComposite" Content="Composite pins" Foreground="White" Margin="0,2"
+                                  Click="OnPanelInputChanged"
+                                  ToolTip="Use assembled shaft/head image parts. Off shows drawn fallback pins."/>
+                        <CheckBox x:Name="ChkPrerasterize" Content="Prerasterize" Foreground="White" Margin="0,2"
+                                  Click="OnPanelInputChanged"
+                                  ToolTip="Flatten each composite pin into one bitmap after choosing shaft/head parts."/>
+                        <CheckBox x:Name="ChkDebugOverlay" Content="Debug overlay" Foreground="White" Margin="0,2"
+                                  Click="OnPanelInputChanged"
+                                  ToolTip="Show composite pin anchor and stretch guides for visual debugging."/>
+                        <CheckBox x:Name="ChkUseLitShafts" Content="Lit shafts" Foreground="White" Margin="0,2"
+                                  Click="OnPanelInputChanged"
+                                  ToolTip="Prefer lit shaft assets when no shaft variant is set."/>
+                    </UniformGrid>
+                    <TextBlock Text="Shaft" Foreground="#AAAAAA" FontSize="10"/>
+                    <ComboBox x:Name="CmbShaftVariant" Margin="0,1,0,5" IsEditable="False"
+                              Background="#222222" Foreground="White"
+                              IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"
+                              SelectionChanged="OnVariantSelectionChanged"
+                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                              ToolTip="Select shaft variant folder name under Pins_v2/parts/shaft_variants. (base) uses base/lit shaft assets."/>
+                    <TextBlock Text="Head" Foreground="#AAAAAA" FontSize="10"/>
+                    <ComboBox x:Name="CmbHeadVariant" Margin="0,1,0,8" IsEditable="False"
+                              Background="#222222" Foreground="White"
+                              IsEnabled="{Binding IsChecked, ElementName=ChkComposite}"
+                              SelectionChanged="OnVariantSelectionChanged"
+                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                              ToolTip="Select head variant folder name under Pins_v2/parts/head_variants. (base) uses base head assets."/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Stub length" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtStubLength" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Screen-pixel length from map location to pin head for automatic standalone stubs."/>
+                        <TextBlock Grid.Row="1" Text="Head radius" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Target composite head radius in screen pixels. Zero uses proportional fallback scaling."/>
+                        <TextBlock Grid.Row="2" Text="Shaft half width" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Target composite shaft half-width in screen pixels. Zero uses proportional shaft scaling."/>
+                    </Grid>
+                </StackPanel>
 
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="92"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
+                <StackPanel x:Name="DrawnPinsSection" Visibility="Collapsed">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Head diameter" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtDrawnHeadDiameter" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Diameter of the visible colored head for drawn pins."/>
+                        <TextBlock Grid.Row="1" Text="Shaft width" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtDrawnShaftWidth" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Width of the drawn pin shaft before its outline."/>
+                        <TextBlock Grid.Row="2" Text="Shaft length" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtDrawnShaftLength" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Length of the built-in drawn pin shaft."/>
+                    </Grid>
+                    <TextBlock Text="Tip cap" Foreground="#CCCCCC" FontSize="11" FontWeight="SemiBold" Margin="0,10,0,2"/>
+                    <TextBlock Text="Style" Foreground="#AAAAAA" FontSize="10"/>
+                    <ComboBox x:Name="CmbTipCapStyle" Margin="0,1,0,5" IsEditable="False"
+                              Background="#222222" Foreground="White"
+                              SelectionChanged="OnVariantSelectionChanged"
+                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                              ToolTip="Divot line drawn where the pin enters the map.">
+                        <ComboBoxItem Content="None"/>
+                        <ComboBoxItem Content="Horizontal"/>
+                        <ComboBoxItem Content="Concave"/>
+                    </ComboBox>
+                    <TextBlock Text="Alignment" Foreground="#AAAAAA" FontSize="10"/>
+                    <ComboBox x:Name="CmbTipCapAlignment" Margin="0,1,0,5" IsEditable="False"
+                              Background="#222222" Foreground="White"
+                              SelectionChanged="OnVariantSelectionChanged"
+                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                              ToolTip="Keep the cap horizontal on screen or rotate it perpendicular to the visible shaft.">
+                        <ComboBoxItem Content="ScreenHorizontal"/>
+                        <ComboBoxItem Content="ShaftAligned"/>
+                    </ComboBox>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Width (px)" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtTipCapWidth" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Total screen-space width of the divot line."/>
+                        <TextBlock Grid.Row="1" Text="Line weight (px)" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtTipCapLineWeight" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Thickness of the near-black divot line."/>
+                        <TextBlock Grid.Row="2" Text="Curvature (px)" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtTipCapArcDepth" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Endpoint rise toward the head side; the curve center remains at the shaft tip."/>
+                    </Grid>
+                </StackPanel>
 
-                    <TextBlock Grid.Row="0" Text="Cluster threshold" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtClusterThreshold" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Pixel distance used to group nearby locations into cluster markers."/>
+                <StackPanel x:Name="HitboxesSection" Visibility="Collapsed">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Pin diameter" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtPinHitDiameter" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Shared circular mouse/touch target for drawn and composite pins; never smaller than the visible head."/>
+                        <TextBlock Grid.Row="1" Text="Cluster diameter" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtClusterHitDiameter" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Circular mouse/touch target centered on the cluster image; never smaller than the image."/>
+                    </Grid>
+                </StackPanel>
 
-                    <TextBlock Grid.Row="1" Text="Stub length" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtStubLength" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Screen-pixel length from map location to pin head for automatic standalone stubs."/>
-
-                    <TextBlock Grid.Row="2" Text="Head radius" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTargetHeadRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Target composite head radius in screen pixels. Zero uses proportional fallback scaling."/>
-
-                    <TextBlock Grid.Row="3" Text="Shaft half width" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTargetShaftHalfWidth" Grid.Row="3" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Target composite shaft half-width in screen pixels. Zero uses proportional shaft scaling."/>
-
-                    <TextBlock Grid.Row="4" Text="Location marker" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtLocationMarkerSize" Grid.Row="4" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Nominal individual-marker size used for placement and overlap math."/>
-
-                    <TextBlock Grid.Row="5" Text="Cluster marker" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtClusterMarkerSize" Grid.Row="5" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Screen-pixel size of aggregate cluster markers."/>
-                </Grid>
-
-                <TextBlock Text="Tip cap (drawn pins)"
-                           Foreground="#CCCCCC"
-                           FontSize="11"
-                           FontWeight="SemiBold"
-                           Margin="0,10,0,2"/>
-                <TextBlock Text="Style"
-                           Foreground="#AAAAAA"
-                           FontSize="10"/>
-                <ComboBox x:Name="CmbTipCapStyle"
-                          Margin="0,1,0,5"
-                          IsEditable="False"
-                          Background="#222222"
-                          Foreground="White"
-                          SelectionChanged="OnVariantSelectionChanged"
-                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
-                          ToolTip="Divot line drawn where the pin enters the map. None disables it; Horizontal draws a straight line; Concave bows away from the pin head.">
-                    <ComboBoxItem Content="None"/>
-                    <ComboBoxItem Content="Horizontal"/>
-                    <ComboBoxItem Content="Concave"/>
-                </ComboBox>
-
-                <TextBlock Text="Alignment"
-                           Foreground="#AAAAAA"
-                           FontSize="10"/>
-                <ComboBox x:Name="CmbTipCapAlignment"
-                          Margin="0,1,0,5"
-                          IsEditable="False"
-                          Background="#222222"
-                          Foreground="White"
-                          SelectionChanged="OnVariantSelectionChanged"
-                          ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
-                          ToolTip="Keep the cap horizontal on screen or rotate it perpendicular to the visible shaft.">
-                    <ComboBoxItem Content="ScreenHorizontal"/>
-                    <ComboBoxItem Content="ShaftAligned"/>
-                </ComboBox>
-
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="92"/>
-                    </Grid.ColumnDefinitions>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <TextBlock Grid.Row="0" Text="Width (px)" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTipCapWidth" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Total screen-space width of the divot line."/>
-
-                    <TextBlock Grid.Row="1" Text="Line weight (px)" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTipCapLineWeight" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Thickness of the near-black divot line."/>
-
-                    <TextBlock Grid.Row="2" Text="Curvature (px)" Foreground="#DDDDDD" Margin="0,3"/>
-                    <TextBox x:Name="TxtTipCapArcDepth" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
-                             ToolTip="Endpoint rise toward the head side; the curve center remains at the shaft tip."/>
-                </Grid>
-
-                <TextBlock x:Name="StatusText"
-                           Foreground="#FFFFCC66"
-                           TextWrapping="Wrap"
-                           FontSize="11"
-                           Margin="0,8,0,0"/>
-                <TextBlock x:Name="ErrorText"
-                           Foreground="#FFFF8080"
-                           TextWrapping="Wrap"
-                           FontSize="11"
-                           Margin="0,4,0,0"/>
-
-                <StackPanel Orientation="Horizontal"
-                            HorizontalAlignment="Right"
-                            Margin="0,10,0,0">
-                    <Button Content="Reload"
-                            Padding="10,5"
-                            Margin="0,0,6,0"
-                            Click="OnReloadClick"
+                <TextBlock x:Name="StatusText" Foreground="#FFFFCC66" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"/>
+                <TextBlock x:Name="ErrorText" Foreground="#FFFF8080" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+                    <Button Content="Reload" Padding="10,5" Margin="0,0,6,0" Click="OnReloadClick"
                             ToolTip="Reload visual-config.json and apply supported tuning values at runtime."/>
-                    <Button Content="Save"
-                            Padding="10,5"
-                            Margin="0,0,6,0"
-                            Click="OnSaveClick"
+                    <Button Content="Save" Padding="10,5" Margin="0,0,6,0" Click="OnSaveClick"
                             ToolTip="Save the current runtime tuning values back to visual-config.json."/>
-                    <Button x:Name="ApplyButton"
-                            Content="Apply"
-                            Padding="10,5"
-                            Click="OnApplyClick"
+                    <Button x:Name="ApplyButton" Content="Apply" Padding="10,5" Click="OnApplyClick"
                             ToolTip="Apply the current panel values without restarting the app."/>
                 </StackPanel>
             </StackPanel>

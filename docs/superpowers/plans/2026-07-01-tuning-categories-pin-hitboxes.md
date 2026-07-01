@@ -178,7 +178,7 @@ git commit -m "feat: configure centered marker hit targets"
 - Modify: `Tests/TuningPanelWiringTests.cs`
 - Modify: `Tests/TuningReloadValidationTests.cs`
 
-- [ ] **Step 1: Write failing category and value-wiring tests**
+- [x] **Step 1: Write failing category and value-wiring tests**
 
 Extend `TuningPanelWiringTests` to require named category sections and the new
 controls:
@@ -210,7 +210,7 @@ Require `TxtDrawnHeadDiameter`, `TxtDrawnShaftWidth`,
 `TxtClusterHitDiameter`, each with a tooltip. Add validation theories that
 zero, negative, NaN, and infinity are rejected for every new numeric value.
 
-- [ ] **Step 2: Run tuning tests and verify RED**
+- [x] **Step 2: Run tuning tests and verify RED**
 
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~TuningPanelWiringTests|FullyQualifiedName~TuningReloadValidationTests" --no-restore
@@ -219,7 +219,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 Expected: failures because category sections, menu items, event fields, and
 validation do not exist.
 
-- [ ] **Step 3: Add category presentation**
+- [x] **Step 3: Add category presentation**
 
 Add a View-only enum in `DeveloperTuningPanel.xaml.cs`:
 
@@ -265,7 +265,7 @@ Replace the button's direct Click handler with a `ContextMenu` containing four
 `MenuItem`s whose `Tag` values match the enum names and whose shared handler is
 `OnTuningCategoryClick`.
 
-- [ ] **Step 4: Wire drawn dimensions and hit-target values through tuning**
+- [x] **Step 4: Wire drawn dimensions and hit-target values through tuning**
 
 Add to `TuningPanelEventArgs`:
 
@@ -301,11 +301,11 @@ private void ShowTuningCategory(TuningCategory category)
 The Tuning button click opens its context menu. A category menu item calls
 `ShowTuningCategory`.
 
-- [ ] **Step 5: Run tuning tests and verify GREEN**
+- [x] **Step 5: Run tuning tests and verify GREEN**
 
 Run the Step 2 command. Expected: all selected tests pass.
 
-- [ ] **Step 6: Commit category UI and value wiring**
+- [x] **Step 6: Commit category UI and value wiring**
 
 ```powershell
 git add Models\TuningPanelEventArgs.cs Views\DeveloperTuningPanel.xaml Views\DeveloperTuningPanel.xaml.cs MainWindow.xaml MainWindow.DeveloperTuning.partial.cs Tests\TuningPanelWiringTests.cs Tests\TuningReloadValidationTests.cs
