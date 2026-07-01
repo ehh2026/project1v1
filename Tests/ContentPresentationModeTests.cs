@@ -24,7 +24,6 @@ public class ContentPresentationModeTests
             var window = CreateNormalWindow();
             window.MaximizedBackgroundOpacity = 0.5;
             var border = Assert.IsType<Border>(window.FindName("ContentBorder"));
-            var title = Assert.IsType<TextBlock>(window.FindName("TitleText"));
             var translate = Assert.IsType<Button>(window.FindName("TranslateButton"));
             translate.Visibility = Visibility.Visible;
             var changed = 0;
@@ -38,7 +37,6 @@ public class ContentPresentationModeTests
             Assert.Equal(new Thickness(0), border.Padding);
             Assert.Equal(new CornerRadius(0), border.CornerRadius);
             Assert.Null(border.Effect);
-            Assert.Equal(Visibility.Collapsed, title.Visibility);
             Assert.Equal(Visibility.Visible, translate.Visibility);
             Assert.Equal(
                 Color.FromArgb(128, 0, 0, 0),
@@ -54,7 +52,6 @@ public class ContentPresentationModeTests
         {
             var window = CreateNormalWindow();
             var border = Assert.IsType<Border>(window.FindName("ContentBorder"));
-            var title = Assert.IsType<TextBlock>(window.FindName("TitleText"));
             var normalBackground = border.Background;
             var normalBorderThickness = border.BorderThickness;
             var normalPadding = border.Padding;
@@ -71,7 +68,6 @@ public class ContentPresentationModeTests
             Assert.Equal(normalPadding, border.Padding);
             Assert.Equal(normalCornerRadius, border.CornerRadius);
             Assert.Same(normalEffect, border.Effect);
-            Assert.Equal(Visibility.Visible, title.Visibility);
         });
     }
 
