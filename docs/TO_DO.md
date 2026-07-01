@@ -2,25 +2,12 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** June 28, 2026
-
----
-
-## URGENT bugs (June 24, 2026)
-
-- [x] **[URGENT] Pin tilt after manual layout edit** — code fix DONE 2026-06-24; **manual GUI confirmation only.** `GetMarkerEndpoint` now uses the drawn pin's `GetConnectionPoint()` instead of `LocationMarkerSize/2`, so newly saved/replayed pins stay vertical. Caveat: layouts saved before the fix may still have the lean baked into JSON; re-save or migrate them to straighten.
-- [x] **[URGENT] Drawn-pin shaft length scales with zoom** — code fix DONE 2026-06-24; **manual GUI confirmation only.** `CompositePinApplicationService.BuildApplyInstructions` now measures source-space saved head offsets against a full-map reference viewport, keeping shaft length zoom-invariant while still resize-aware.
-- [x] **[URGENT] Unload saved manual layout without deleting it** — code fix DONE 2026-06-24; **manual GUI confirmation only.** Edit mode now has an "Unload Layout" action that suppresses the saved layout for the session, reverts to auto-placement, and leaves the JSON untouched.
-
----
+**Last updated:** June 30, 2026
 
 ## Zoom & animation
 
 - [ ] Finish smooth/fast zoom performance + appearance — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md). Phase 1 hot-path logging/clock work and Phase 2a allocation/lookup reductions are code complete; remaining work is Phase 2b/2c (shadow/effect cost, keyframe bitmap I/O decision, render-options cleanup, anti-pop/crispness polish, shadow-opacity consistency, noisy warning downgrade). Findings: [performance-appearance-review.md](performance-appearance-review.md).
 - [ ] Review zoom-out implementation against zoom-in: compare rendering path, animation timing, smoothness, and image quality; optimize or share behavior where appropriate.
-- [x] Close any open content popup when backing out of a zoomed view (incl. the single-click auto-popup) — `AnimateZoomOut` now calls `CloseActiveSubwindow` (DONE 2026-06-23)
-
----
 
 ## Composite pins & manual layouts
 
@@ -29,11 +16,9 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Fix or remove composite pins that overstretch shadow
 - [ ] Manual GUI smoke only: generated AutoSeed loading — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md), Phase 3. Code and automated shared-path/load-key coverage are done; confirm in the running app for at least two seeded clusters.
 - [ ] Manual GUI smoke only: layout persistence robustness — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md), Phase 5. Per-user storage, crash-proof load, size-independent full-map keys, and source-space saved positions are code complete; confirm a full-map layout survives resize and lands correctly.
-- [x] Investigate drawn-pin tilt — **RESOLVED 2026-06-24** (see URGENT section above). Not a transform artifact: root cause was `MainWindow.GetMarkerEndpoint` saving the head with `LocationMarkerSize/2` instead of the pin's `GetConnectionPoint()`, offsetting the head ~2px left of the tip → ~5° CCW lean on replay. Fixed.
 - [ ] Explore post-render smooth black outline on composite pins (runtime, after shaft+head compose) — assess vs baked `outline_dark_*` asset variants; see feasibility notes in [composite-pins-program.md](exec-plans/active/composite-pins-program.md) or new exec plan if pursued
 - [ ] Composite mode: user UI to reassign pin head asset (`HeadSourcePath` / `pin_XX_head.png` — effectively head color) — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today heads are auto-picked by location hash; only **shaft** has right-click override; verify reassigned head persists on manual layout save/reload; infrastructure exists: `ManualLayoutMarker.HeadSourcePath`, enricher on save, replay via `preferredHeadSourcePath`; missing: head picker UI like shaft menu)
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
-- [x] Add pinhead variants with black outlines — generated `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, and `outline_black_14px` under `Images&Content/Pins_v2/parts/head_variants/` — [pinhead-black-outline-variants-plan.md](exec-plans/completed/pinhead-black-outline-variants-plan.md)
 - [ ] Do not use bright yellow pin heads unless manually assigned
 - [ ] Manual visual acceptance: drawn-pin divot caps. Code and automated coverage are complete; compare `ScreenHorizontal` and `ShaftAligned` on normal/inverted/angled pins, then smoke drag/hover/zoom behavior.
 - [ ] Revisit pin shadows — allow tuning shadow strength via config + Tuning panel (today: drawn head shadow hardcoded `PinMarker.xaml`, composite head shadow hardcoded `CompositePinMarker.xaml`, drawn extended-shaft shadow floored in `ExtensionLineRenderer.cs`; `ShadowOpacity` only partly honored). Follow-up to shadow perf work in [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md) (2.4/2.9)
@@ -53,7 +38,10 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Developer tooling
 
-- [x] Tuning panel: shaft/head variant pickers — replace `TxtShaftVariant` / `TxtHeadVariant` free-text boxes with drop-downs populated from `Images&Content/Pins_v2/parts/shaft_variants/` and `head_variants/` (include blank/base option); grey out both pickers when composite pins are off (`ChkComposite` unchecked). Follow-up to [runtime-tuning-panel-plan.md](exec-plans/completed/runtime-tuning-panel-plan.md). Plan: [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md).
+- [ ] Organize the Runtime Tuning button/panel into discoverable submenus as the option set grows (for example: Windows, Typography, Pins, Hitboxes, and Effects).
+- [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
+- [ ] Expose drawn-pin head diameter and shaft width/length as Runtime Tuning controls, using the existing `PinMarkers` configuration values.
+- [ ] Make pointer/touch hitbox sizes tunable for pins and other interactive content; audit and document whether each pin hitbox is centered on the visible pin head, then correct any mismatch.
 
 ## User ideas (product)
 
@@ -61,6 +49,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Main content: optionally show information about the selected image/content in a bottom pane or a separate left-side window.
 - [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
 - [ ] Main content images: support image zoom/pan within the content viewer for closer inspection.
+- [ ] When content is maximized, provide a tap-and-hold magnifier for close inspection; define release/cancel behavior and interaction with existing tap-to-restore presentation mode.
 - [ ] Subwindow opens near pin, not screen center
 - [ ] Keep popup windows contained within the main map window, with popup position and scale derived from the main window's current bounds (lower priority for the full-screen gallery deployment, but required for windowed use).
 - [ ] Home / welcome screen before map

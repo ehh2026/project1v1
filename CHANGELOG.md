@@ -4,6 +4,9 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Content window headings:** The left didactic window now shows the Excel-derived location/person name and hides its heading when that name is blank. Removed the duplicate name heading from the main content window and the generic `Images` heading from the thumbnail window.
+- **Backlog:** Added configurable window chrome and typography, grouped Runtime Tuning submenus, drawn-pin size controls, tunable/aligned interaction hitboxes, and a tap-and-hold magnifier for maximized content.
+
 ### Added
 
 - **Content presentation mode:** Clicking or tapping center content toggles a borderless main-window-sized view with proportional image scaling, configurable black excess-area opacity, an available Translate control, temporary hiding of thumbnail/didactic companions, and exact popup restoration.
