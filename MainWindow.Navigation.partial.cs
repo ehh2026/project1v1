@@ -589,6 +589,7 @@ namespace InteractiveWorldMap
                     var croppedBitmap = new CroppedBitmap(sourceImage, sourceRect);
                     var scaledBitmap = new TransformedBitmap(croppedBitmap,
                         new ScaleTransform(displayWidth / (double)sourceRect.Width, displayHeight / (double)sourceRect.Height));
+                    RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.Linear);
                     
                     prerenderedFrames[i] = new WriteableBitmap(scaledBitmap);
                     prerenderedFrames[i].Freeze();

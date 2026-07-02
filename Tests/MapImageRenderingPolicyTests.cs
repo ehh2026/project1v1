@@ -51,4 +51,52 @@ public class MapImageRenderingPolicyTests
             source,
             StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void AnimationFrames_SelectLinearBeforeMaterialization()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.Navigation.partial.cs"));
+
+        var transform = source.IndexOf(
+            "var scaledBitmap = new TransformedBitmap(",
+            StringComparison.Ordinal);
+        var linear = source.IndexOf(
+            "BitmapScalingMode.Linear",
+            transform,
+            StringComparison.Ordinal);
+        var materialize = source.IndexOf(
+            "new WriteableBitmap(scaledBitmap)",
+            transform,
+            StringComparison.Ordinal);
+
+        Assert.True(transform >= 0, "Keyframe transform not found.");
+        Assert.True(
+            linear > transform && linear < materialize,
+            "Linear scaling must be selected before keyframe materialization.");
+    }
+
+    [Fact]
+    public void AnimationFrameCache_VersionInvalidatesPriorPixelPolicy()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "Services", "AnimationFrameCache.cs"));
+
+        Assert.Contains(
+            "private const int CacheVersion = 16;",
+            source,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SettledZoomCrop_ContinuesToUseFant()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "Services", "ZoomedRegionCache.cs"));
+
+        Assert.Contains(
+            "BitmapScalingMode.Fant",
+            source,
+            StringComparison.Ordinal);
+    }
 }
