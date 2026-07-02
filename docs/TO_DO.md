@@ -65,7 +65,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 - [ ] Expose zoom level and cluster marker config options (marker size, badge size, font size) in Runtime Tuning panel
-- [ ] Investigate better rendering options for zoomed view: keep smoothness (avoid pixelation) while increasing sharpness of high-contrast edges (e.g. text letter edges) instead of introducing gradients/smearing
+- [ ] Improve settled zoomed-map rendering: generate exact physical-pixel output, strengthen source/DPI/algorithm cache identity, and compare `Fant`, `Lanczos3`, `MitchellNetravali`, `Bicubic`, and restrained sharpened bicubic through Runtime Tuning — [design](superpowers/specs/2026-07-01-zoomed-map-upscaling-design.md)
 
 ## Medium priority
 
@@ -81,5 +81,9 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Deferred
 
+- [ ] Zoomed-map source/scale alternatives: evaluate a lower default zoom or native-resolution zoom cap after the resampler comparison.
+- [ ] Zoomed-map source quality: seek a substantially higher-resolution lossless or vector replacement for the raster JPEG.
+- [ ] Zoomed-map hybrid rendering: consider vector overlays for labels and country borders over the raster base.
+- [ ] Zoomed-map neural super-resolution: evaluate offline only, with strict rejection criteria for invented geography, halos, and deformed text.
 - [ ] Tuning panel: variant search/filter — type-to-filter or grouping for 60+ shaft variant folders in combo pickers. Deferred from [tuning-panel-dropdowns-plan.md](exec-plans/completed/tuning-panel-dropdowns-plan.md) v1; dropdown picker basics are complete, and this is parked until the list size becomes a real workflow drag.
 - [ ] Intermittent divot cap inside a stub-looking pin head near Japan/China — not currently reproducible after stale-cap refresh and head-layer safeguards; revisit if observed again.
