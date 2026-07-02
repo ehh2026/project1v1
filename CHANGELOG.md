@@ -4,6 +4,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Map rendering quality plan:** Added an implementation plan to replace nearest-neighbor/aliased settled full-map rendering with `Fant`, make animation keyframes explicitly `Linear`, retain the high-resolution `Fant` zoom settle, and keep the existing full-screen `Fill` geometry. Deferred optional aspect/display modes and a measurement-gated monitor-sized render cache to the backlog.
 - **Content window headings:** The left didactic window now shows the Excel-derived location/person name and hides its heading when that name is blank. Removed the duplicate name heading from the main content window and the generic `Images` heading from the thumbnail window.
 - **Runtime Tuning and marker hitboxes:** The Tuning button now opens category-specific Map, Composite Pins, Drawn Pins, and Hitboxes panels. Drawn head/shaft dimensions and shared pin/cluster pointer targets are configurable; pin targets are centered on visible heads, cluster targets are centered on marker images, and neither can shrink below its visible artwork.
 - **Backlog:** Added configurable window chrome and typography and a tap-and-hold magnifier for maximized content.

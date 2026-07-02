@@ -6,8 +6,10 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ## Zoom & animation
 
-- [ ] Finish smooth/fast zoom performance + appearance — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md). Phase 1 hot-path logging/clock work and Phase 2a allocation/lookup reductions are code complete; remaining work is Phase 2b/2c (shadow/effect cost, keyframe bitmap I/O decision, render-options cleanup, anti-pop/crispness polish, shadow-opacity consistency, noisy warning downgrade). Findings: [performance-appearance-review.md](performance-appearance-review.md).
+- [ ] Finish smooth/fast zoom performance + appearance — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md). Phase 1 hot-path logging/clock work and Phase 2a allocation/lookup reductions are code complete; remaining work includes shadow/effect cost, the keyframe bitmap I/O decision, high-quality full-map/animation scaling, marker crispness, shadow-opacity consistency, and noisy-warning cleanup. Map rendering steps: [2026-07-01-map-render-quality.md](superpowers/plans/2026-07-01-map-render-quality.md).
 - [ ] Review zoom-out implementation against zoom-in: compare rendering path, animation timing, smoothness, and image quality; optimize or share behavior where appropriate.
+- [ ] Consider additional full-map presentation modes (`Uniform`, `UniformToFill`, letterboxed, or cropped) behind config/Runtime Tuning. Keep `Fill` as the current default; any implementation must share destination bounds across the image, marker and hit-target placement, source/screen conversion, and zoom animation frames.
+- [ ] Consider a DPI- and physical-resolution-aware settled full-map render cache if direct `Fant` rendering consistently exceeds 33 ms on target hardware or produces repeated resize/return-to-map frame gaps above 33 ms. Key it by source identity, output pixel size, DPI, and presentation mode; invalidate it when any key input changes.
 
 ## Composite pins & manual layouts
 
@@ -62,6 +64,8 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
+- [ ] Expose zoom level and cluster marker config options (marker size, badge size, font size) in Runtime Tuning panel
+- [ ] Investigate better rendering options for zoomed view: keep smoothness (avoid pixelation) while increasing sharpness of high-contrast edges (e.g. text letter edges) instead of introducing gradients/smearing
 
 ## Medium priority
 

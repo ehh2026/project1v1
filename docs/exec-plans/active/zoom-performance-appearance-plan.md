@@ -9,7 +9,7 @@ requirements_ref: zoom-performance-appearance
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make zoom in/out smooth and fast, and tighten marker appearance, by removing per-frame overhead in the animation loop and the rendering hot paths.
+**Goal:** Make zoom in/out smooth and fast, preserve fine map-image detail at rest and in motion, and tighten marker appearance by removing per-frame overhead and correcting rendering policy in the animation and display hot paths.
 
 **Source review:** [performance-appearance-review.md](../../performance-appearance-review.md) — findings, file:line references, and reasoning behind each item.
 
@@ -84,11 +84,11 @@ Structural changes to the animation loop and rendering. Higher effort / more vis
   - `PreRenderKeyframes` does synchronous disk I/O (30 PNG encode on miss / decode on hit) before the animation — the pre-zoom stall.
   - Unconditional sub-step: avoid the `new WriteableBitmap(...)` copy (`:539,550`) where a frozen `TransformedBitmap` displays identically.
   - **Verify:** pre-zoom stall (Phase 0 metric) shrinks; frames still correct; no first-frame flash.
-- [ ] **2.6 Trim redundant work in `UpdateViewport`** (`Views/MapDisplayControl.xaml.cs:86-112`) — set `RenderOptions` once at load, not every call. **Verify:** map still renders on resize/zoom.
+- [ ] **2.6 High-quality settled full-map rendering + render-options cleanup** (`Views/MapDisplayControl.xaml(.cs)`) — follow [the approved design](../../superpowers/specs/2026-07-01-map-render-quality-design.md) and [implementation plan](../../superpowers/plans/2026-07-01-map-render-quality.md): keep `Stretch="Fill"` and pixel snapping, replace local `NearestNeighbor` with settled `Fant`, remove `EdgeMode="Aliased"`, and set the unchanged cache hint once rather than on every viewport update. **Verify:** the `U` in `SOUTH AMERICA` and representative thin grid/coastline strokes retain coverage; marker/input alignment and full-screen Fill geometry remain unchanged.
 
-### 2c. Appearance polish (2.7 blocked on decision)
+### 2c. Appearance polish
 
-- [ ] **2.7 [D3] Smooth the NearestNeighbor→Fant "pop" at settle** (`Views/MapDisplayControl.xaml.cs:102`, keyframes in `PreRenderKeyframes`, vs `Services/ZoomedRegionCache.cs:213`) — approach pending **Decision D3**.
+- [ ] **2.7 Explicit animation and settled-zoom scaling policy** — use `Linear` before keyframe bitmap materialization, increment `AnimationFrameCache.CacheVersion` so old pixels cannot bypass the change, and preserve the existing full-resolution `Fant` path in `ZoomedRegionCache`. Detailed steps and the 1080p/1440p/4K visual matrix are in [2026-07-01-map-render-quality.md](../../superpowers/plans/2026-07-01-map-render-quality.md). This resolves **Decision D3** without adding the separately deferred settled full-map render cache.
 - [ ] **2.8 Sub-pixel marker crispness** (`Views/PinMarker.xaml:4-5`) — spike `UseLayoutRounding="True"` at rest; **revert if it shimmers during animation**. Low stakes.
 - [ ] **2.9 Fix shadow-opacity inconsistency** — `PinMarker.xaml:33` hard-codes `Opacity="0.55"` (not bound) and `ExtensionLineRenderer.cs:409` floors at `0.45`, so `visual-config.json:40` `ShadowOpacity` is only partly honored. Bind both to config. **Verify:** changing config value moves both shadows.
 - [ ] **2.10 Gate/downgrade the expected "Marker not found for location" warning** (`Views/ExtensionLineRenderer.cs:143`) — fires for markers outside the current view during zoom; put behind the debug flag or downgrade to info.
@@ -103,8 +103,8 @@ These change *what work happens* in Phase 2 and need a call (mine, with a recomm
 
 - **D1 — Shadow strategy (blocks 2.4). RESOLVED 2026-06-23:** drop shadows during animation + restore on settle, and halve the drawn extended shaft to one shadow; skip the `BitmapCache` option. Rationale: shadows are faint (op 0.35–0.55) and only the head is shadowed in both modes (drawn shaft shadow exists only when extended; composite shafts bake depth into the PNG), so hiding them during motion costs almost nothing visually while shedding the per-frame GPU pass. Future: make shadow strength config/Tuning-panel-driven (see TO_DO "Composite pins & manual layouts").
 - **D2 — Disk frame cache: keep or drop (blocks 2.5 scope).** `AnimationFrameCache` persists 30 PNGs/zoom to disk. The in-memory `CroppedBitmap`→`TransformedBitmap` build is cheap; the disk round-trip may cost more than it saves. **Spike to decide:** measure a "no disk cache, build in memory each zoom" variant against the Phase 0 baseline. If in-memory is within noise, delete the disk cache (simpler, no stale-cache bugs); otherwise keep it but move encode to a background thread. Recommendation: spike, lean toward delete.
-- **D3 — Anti-"pop" approach (blocks 2.7).** (a) render in-flight keyframes with `Linear`/`LowQuality` instead of `NearestNeighbor` (cheap; frames look a touch soft but no hard snap to sharp); (b) cross-fade the last keyframe into the high-quality region (nicer, more work). **Appearance call.** Recommendation: start with (a); only do (b) if the soft-then-sharp transition still reads as a pop.
-- **D4 — Appearance scope.** The original ask was "performance primarily." 2c is mostly appearance. Decide whether 2c ships with this plan or splits to a follow-up so the perf work can merge sooner. Recommendation: keep 2.9/2.10 (cheap, perf-adjacent), split 2.7/2.8 to follow-up if they slow the perf merge.
+- **D3 — Anti-"pop" approach (blocks 2.7). RESOLVED 2026-07-01:** use `Linear` for materialized animation keyframes, `Fant` for settled full-map and settled high-resolution zoom rendering, and invalidate existing frame-cache pixels. Do not add a cross-fade unless the verified result still shows a settle pop.
+- **D4 — Appearance scope. RESOLVED 2026-07-01 for map rendering:** items 2.6/2.7 stay in this plan because the settled full-map dropout has been reproduced and shares the same scaling-policy boundary. Item 2.8 remains independent low-stakes marker polish.
 
 ---
 
