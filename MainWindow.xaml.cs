@@ -70,7 +70,7 @@ namespace InteractiveWorldMap
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
         private DrawnPinMarkerFactory _drawnPinFactory = null!;
-        private readonly VisualConfigService _configService = new VisualConfigService();
+        private readonly VisualConfigService _configService;
         private readonly string _configPath;
         
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
@@ -130,6 +130,7 @@ namespace InteractiveWorldMap
 
                 // Initialize services
                 _logger = new FileLogger();
+                _configService = new VisualConfigService(message => _logger.LogWarning(message));
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
                 // Load visual configuration

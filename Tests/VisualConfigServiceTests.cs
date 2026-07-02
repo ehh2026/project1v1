@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
@@ -8,6 +9,45 @@ namespace InteractiveWorldMap.Tests;
 
 public class VisualConfigServiceTests
 {
+    [Fact]
+    public void ZoomedMapRendering_RoundTripsStringEnum()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var service = new VisualConfigService();
+            var config = new VisualConfig();
+            config.ZoomedMapRendering.ResamplingMode = ZoomedMapResamplingMode.MitchellNetravali;
+
+            service.Save(config, path);
+            var json = File.ReadAllText(path);
+            var reloaded = service.Load(path);
+
+            Assert.Contains("\"ResamplingMode\": \"MitchellNetravali\"", json);
+            Assert.Equal(ZoomedMapResamplingMode.MitchellNetravali, reloaded.ZoomedMapRendering.ResamplingMode);
+        }
+        finally { File.Delete(path); }
+    }
+
+    [Fact]
+    public void Load_UnknownZoomedMapMode_DefaultsOnlyModeAndWarns()
+    {
+        var path = Path.GetTempFileName();
+        var warnings = new List<string>();
+        try
+        {
+            File.WriteAllText(path,
+                "{ \"LocationMarkerSize\": 19.5, \"ZoomedMapRendering\": { \"ResamplingMode\": \"FutureFilter\" } }");
+            var config = new VisualConfigService(warnings.Add).Load(path);
+
+            Assert.Equal(19.5, config.LocationMarkerSize);
+            Assert.Equal(ZoomedMapResamplingMode.Fant, config.ZoomedMapRendering.ResamplingMode);
+            Assert.Single(warnings);
+            Assert.Contains("FutureFilter", warnings[0]);
+        }
+        finally { File.Delete(path); }
+    }
+
     [Fact]
     public void MarkerHitTargets_RoundTrip()
     {

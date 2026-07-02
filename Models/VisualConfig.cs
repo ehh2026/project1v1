@@ -104,6 +104,8 @@ namespace InteractiveWorldMap.Models
         /// </summary>
         public int AnimationDurationMs { get; set; } = 390;
 
+        public ZoomedMapRenderConfig ZoomedMapRendering { get; set; } = new ZoomedMapRenderConfig();
+
     }
 }
 
