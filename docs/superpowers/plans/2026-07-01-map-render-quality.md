@@ -31,7 +31,7 @@
 - Modify: `Views/MapDisplayControl.xaml`
 - Modify: `Views/MapDisplayControl.xaml.cs`
 
-- [ ] **Step 1: Write failing full-map rendering-policy tests**
+- [x] **Step 1: Write failing full-map rendering-policy tests**
 
 Create `Tests/MapImageRenderingPolicyTests.cs`:
 
@@ -92,7 +92,7 @@ public class MapImageRenderingPolicyTests
 }
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
@@ -105,7 +105,7 @@ because the XAML contains `NearestNeighbor` and `EdgeMode="Aliased"`;
 `UpdateViewport_DoesNotRestoreNearestNeighbor` fails on the code-behind
 override.
 
-- [ ] **Step 3: Apply the settled rendering policy**
+- [x] **Step 3: Apply the settled rendering policy**
 
 Change the `MapImage` attributes in `Views/MapDisplayControl.xaml` to:
 
@@ -144,13 +144,13 @@ var croppedBitmap = new CroppedBitmap(_sourceImage, sourceRect);
 MapImage.Source = croppedBitmap;
 ```
 
-- [ ] **Step 4: Run focused tests and verify GREEN**
+- [x] **Step 4: Run focused tests and verify GREEN**
 
 Run the Step 2 command.
 
 Expected: both `MapImageRenderingPolicyTests` tests pass.
 
-- [ ] **Step 5: Run viewport regression tests**
+- [x] **Step 5: Run viewport regression tests**
 
 Run:
 
@@ -161,7 +161,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 Expected: all selected tests pass, proving the quality change did not alter
 `Fill` coordinate mapping or marker-interaction layer wiring.
 
-- [ ] **Step 6: Commit settled-map rendering**
+- [x] **Step 6: Commit settled-map rendering**
 
 ```powershell
 git add Views\MapDisplayControl.xaml Views\MapDisplayControl.xaml.cs Tests\MapImageRenderingPolicyTests.cs
@@ -176,7 +176,7 @@ git commit -m "fix: use high-quality settled map scaling"
 - Modify: `Services/AnimationFrameCache.cs`
 - Verify: `Services/ZoomedRegionCache.cs`
 
-- [ ] **Step 1: Add failing animation and settled-zoom policy tests**
+- [x] **Step 1: Add failing animation and settled-zoom policy tests**
 
 Append these tests to `MapImageRenderingPolicyTests`:
 
@@ -230,7 +230,7 @@ public void SettledZoomCrop_ContinuesToUseFant()
 }
 ```
 
-- [ ] **Step 2: Run the focused tests and verify RED**
+- [x] **Step 2: Run the focused tests and verify RED**
 
 Run:
 
@@ -242,7 +242,7 @@ Expected: the animation test fails because no explicit `Linear` policy exists,
 and the cache-version test fails because the version is still 15. The settled
 zoom characterization test already passes.
 
-- [ ] **Step 3: Select Linear at the keyframe transformation boundary**
+- [x] **Step 3: Select Linear at the keyframe transformation boundary**
 
 In `PreRenderKeyframes`, set the scaling mode after constructing
 `scaledBitmap` and before constructing `WriteableBitmap`:
@@ -267,7 +267,7 @@ RenderOptions.SetBitmapScalingMode(
     scaledBitmap, BitmapScalingMode.Fant);
 ```
 
-- [ ] **Step 4: Invalidate old materialized animation frames**
+- [x] **Step 4: Invalidate old materialized animation frames**
 
 Change the cache version in `AnimationFrameCache`:
 
@@ -276,13 +276,13 @@ Change the cache version in `AnimationFrameCache`:
 private const int CacheVersion = 16;
 ```
 
-- [ ] **Step 5: Run focused tests and verify GREEN**
+- [x] **Step 5: Run focused tests and verify GREEN**
 
 Run the Step 2 command.
 
 Expected: all rendering-policy tests pass.
 
-- [ ] **Step 6: Run zoom cache and tracking regressions**
+- [x] **Step 6: Run zoom cache and tracking regressions**
 
 Run:
 
@@ -292,7 +292,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: all selected tests pass.
 
-- [ ] **Step 7: Commit animation rendering policy**
+- [x] **Step 7: Commit animation rendering policy**
 
 ```powershell
 git add MainWindow.Navigation.partial.cs Services\AnimationFrameCache.cs Tests\MapImageRenderingPolicyTests.cs
@@ -305,7 +305,7 @@ git commit -m "fix: smooth map animation resampling"
 - No source changes expected.
 - Record results in: `docs/exec-plans/active/zoom-performance-appearance-plan.md`
 
-- [ ] **Step 1: Run the complete automated gate**
+- [x] **Step 1: Run the complete automated gate**
 
 Run:
 
@@ -317,6 +317,10 @@ Expected: build, tests, harness checks, architecture checks, documentation
 checks, startup validation, and configured security checks pass.
 
 - [ ] **Step 2: Run the fixed full-map visual comparison**
+
+Pending: Windows app-control approval timed out on July 1, 2026 before the
+application could be launched for inspection. Automated startup validation
+passed, but this visual step was not run.
 
 Launch:
 
@@ -340,6 +344,8 @@ Expected:
 
 - [ ] **Step 3: Verify all rendering phases**
 
+Pending for the same app-control approval timeout recorded in Step 2.
+
 Exercise one standalone location and one dense cluster:
 
 1. settled full map;
@@ -357,6 +363,10 @@ Expected:
 
 - [ ] **Step 4: Check available output sizes**
 
+Pending. The available 2560 x 1440 display was detected during the
+investigation, but no live application image was approved for inspection;
+1080p and 4K were not available.
+
 Repeat the visual comparison at 1920 x 1080, 2560 x 1440, and 3840 x 2160
 when those outputs are available. If only one physical display is available,
 record the tested physical resolution and leave the unavailable resolutions
@@ -366,6 +376,9 @@ Expected: the map remains `Fill` at every tested size and the reference strokes
 do not exhibit nearest-neighbor dropout.
 
 - [ ] **Step 5: Measure whether deferred settled-map caching is warranted**
+
+Pending. Keep the separate cache backlog item active until the live timing
+check can run.
 
 Using the existing frame timing/logging workflow, observe full-map settle and
 resize behavior on target hardware.
@@ -379,7 +392,7 @@ Keep the cache deferred unless either condition is reproduced:
 Record observed timings in the owning exec plan. Do not add the cache in this
 implementation slice.
 
-- [ ] **Step 6: Commit verification evidence if it changes the plan**
+- [x] **Step 6: Commit verification evidence if it changes the plan**
 
 If measurements or unavailable hardware require a plan note:
 
@@ -408,14 +421,14 @@ In the active exec plan:
 - record the tested display resolutions and reference regions;
 - leave unrelated items 2.4, 2.5, and 2.8-2.10 unchanged.
 
-- [ ] **Step 2: Narrow the active backlog bullet**
+- [x] **Step 2: Narrow the active backlog bullet**
 
 Rewrite the smooth/fast zoom bullet in `docs/TO_DO.md` so its remaining scope
 does not list completed render-options or anti-pop work. Preserve the separate
 aspect/display-mode and settled-map-cache bullets until those follow-ups are
 implemented or intentionally parked.
 
-- [ ] **Step 3: Add the user-visible changelog entry**
+- [x] **Step 3: Add the user-visible changelog entry**
 
 Add under `[Unreleased]`:
 
@@ -426,7 +439,7 @@ Add under `[Unreleased]`:
   while the existing high-resolution settled zoom path remains Fant-filtered.
 ```
 
-- [ ] **Step 4: Re-run documentation and full verification**
+- [x] **Step 4: Re-run documentation and full verification**
 
 Run:
 
@@ -438,7 +451,7 @@ py -3 scripts\doc_gardening.py
 
 Expected: all commands pass.
 
-- [ ] **Step 5: Review the final diff**
+- [x] **Step 5: Review the final diff**
 
 Run:
 
@@ -452,7 +465,7 @@ Expected: only the planned rendering, tests, and bookkeeping changes appear;
 no aspect-mode, viewport-coordinate, marker-placement, or source-image changes
 are present.
 
-- [ ] **Step 6: Commit completion bookkeeping**
+- [x] **Step 6: Commit completion bookkeeping**
 
 ```powershell
 git add docs\exec-plans\active\zoom-performance-appearance-plan.md docs\TO_DO.md CHANGELOG.md
