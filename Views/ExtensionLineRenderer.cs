@@ -450,7 +450,7 @@ namespace InteractiveWorldMap.Views
                     Direction   = 270,
                     ShadowDepth = 1,
                     BlurRadius  = 2,
-                    Opacity     = Math.Max(pinConfig.ShadowOpacity, 0.45)
+                    Opacity     = pinConfig.ShadowOpacity
                 };
                 outline.Effect = shadow;
                 core.Effect = shadow;

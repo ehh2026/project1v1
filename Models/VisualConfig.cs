@@ -94,6 +94,12 @@ namespace InteractiveWorldMap.Models
         public double ClusterCountFontSize { get; set; } = 12.0;
 
         /// <summary>
+        /// Shadow settings shared by the cluster marker body and count badge.
+        /// </summary>
+        public ClusterMarkerShadowConfig ClusterMarkerShadow { get; set; } =
+            new ClusterMarkerShadowConfig();
+
+        /// <summary>
         /// Zoom magnification level when zoomed in on a cluster.
         /// Higher values = more magnification (e.g., 30.0 = 30x zoom).
         /// </summary>

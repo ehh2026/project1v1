@@ -7,14 +7,6 @@
                  Width="14"
                  Height="14"
                  Stroke="Black"
-                 StrokeThickness="1.5">
-            <Ellipse.Effect>
-                <DropShadowEffect Color="Black"
-                                  Direction="315"
-                                  ShadowDepth="1.5"
-                                  BlurRadius="2.5"
-                                  Opacity="0.55"/>
-            </Ellipse.Effect>
-        </Ellipse>
+                 StrokeThickness="1.5"/>
     </Grid>
 </UserControl>

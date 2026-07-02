@@ -79,6 +79,13 @@ The repository's development `visual-config.json` may set this to `true`; produc
   - Higher values = slower, smoother animation
   - Lower values = faster animation
 
+The Runtime Tuning **Map** category exposes `ClusterMarkerSize`,
+`ClusterBadgeSize`, `ClusterCountFontSize`, `ZoomScale`, and
+`AnimationDurationMs` together with the existing clustering and settled-map
+rendering controls. Apply updates the current runtime config; a changed zoom
+scale is used when the active zoomed view is rebuilt, while animation duration
+applies to subsequent zoom and Back transitions.
+
 - **UsePinMarkers** (default: `true`)
   - Master switch for pin-style markers instead of simple circular location dots
   - When `false`, locations use the basic circular `LocationMarker` visuals
@@ -147,8 +154,28 @@ This keeps edited drawn pins from drawing a duplicate vertical shaft under the h
 | `BallOutlineThickness` | `1.5` | Pin head rim width (px) |
 | `UseRandomColors` | `true` | Random saturated ball hues (no white/gray/black) |
 | `DefaultBallColor` | `#FFE53935` | Used when `UseRandomColors = false` |
+| `ShowShadow` | `true` | Enables the shared drawn-head, drawn extended-shaft, and composite-head shadow |
+| `ShadowOpacity` | `0.4` | Shared pin-shadow opacity from `0.0` through `1.0` |
 
 **Tuning tips:** Increase `ShaftOutlineThickness` or `BallOutlineThickness` for busy map backgrounds; set `UseRandomColors` to `false` and pick one strong `DefaultBallColor` for a uniform look.
+
+`ShowShadow` and `ShadowOpacity` are available under Runtime Tuning →
+**Shadows**. The opacity is honored exactly, including values below `0.45`.
+These settings do not add an effect to the ordinary drawn stub shaft or change
+baked lighting in composite shaft images.
+
+## ClusterMarkerShadow
+
+Aggregate cluster markers have a separate shadow policy:
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `Enabled` | `false` | Enables shadows on the cluster body and count badge |
+| `Opacity` | `0.0` | Shared body/badge opacity from `0.0` through `1.0` |
+
+Both fields are available under Runtime Tuning → **Shadows**. The checked-in
+development config keeps cluster shadows disabled. Apply refreshes visible
+cluster markers without reloading content.
 
 ## PinParts
 

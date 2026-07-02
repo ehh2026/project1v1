@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views
@@ -56,6 +57,7 @@ namespace InteractiveWorldMap.Views
             BadgeEllipse.Width = badgeSize;
             BadgeEllipse.Height = badgeSize;
             CountText.FontSize = fontSize;
+            ApplyShadowConfig(markerConfiguration.ClusterMarkerShadow);
 
             SizeChanged += (s, e) =>
             {
@@ -77,9 +79,11 @@ namespace InteractiveWorldMap.Views
         /// </summary>
         public void ApplyStampImage(ImageSource? stampImage)
         {
+            MarkerBodyHost.Children.Clear();
             if (stampImage != null)
             {
                 StampImage.Source = stampImage;
+                MarkerBodyHost.Children.Add(StampImage);
                 return;
             }
 
@@ -93,12 +97,30 @@ namespace InteractiveWorldMap.Views
                 StrokeThickness = 3
             };
 
-            if (Content is Grid grid)
-            {
-                grid.Children.Remove(StampImage);
-                grid.Children.Insert(0, ellipse);
-            }
+            MarkerBodyHost.Children.Add(ellipse);
         }
+
+        public void ApplyShadowConfig(ClusterMarkerShadowConfig config)
+        {
+            if (config == null) throw new ArgumentNullException(nameof(config));
+
+            MarkerBodyHost.Effect = config.Enabled
+                ? CreateShadow(depth: 2, blur: 4, config.Opacity)
+                : null;
+            BadgeEllipse.Effect = config.Enabled
+                ? CreateShadow(depth: 1, blur: 2, config.Opacity)
+                : null;
+        }
+
+        private static DropShadowEffect CreateShadow(
+            double depth, double blur, double opacity) => new()
+        {
+            Color = Colors.Black,
+            Direction = 270,
+            ShadowDepth = depth,
+            BlurRadius = blur,
+            Opacity = opacity
+        };
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {

@@ -14,6 +14,7 @@ public class TuningPanelWiringTests
     [InlineData("CompositePinsSection")]
     [InlineData("DrawnPinsSection")]
     [InlineData("HitboxesSection")]
+    [InlineData("ShadowsSection")]
     public void DeveloperTuningPanel_HasCategorySection(string name)
     {
         var xaml = File.ReadAllText(
@@ -27,8 +28,40 @@ public class TuningPanelWiringTests
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml"));
 
-        foreach (var category in new[] { "Map", "Composite Pins", "Drawn Pins", "Hitboxes" })
+        foreach (var category in new[] { "Map", "Composite Pins", "Drawn Pins", "Hitboxes", "Shadows" })
             Assert.Contains($"Header=\"{category}\"", xaml);
+    }
+
+    [Fact]
+    public void DeveloperTuningPanel_MapAndShadowControlsArePresent()
+    {
+        var xaml = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        foreach (var name in new[]
+        {
+            "TxtClusterBadgeSize",
+            "TxtClusterCountFontSize",
+            "TxtZoomScale",
+            "TxtAnimationDurationMs",
+            "ChkPinShadowEnabled",
+            "TxtPinShadowOpacity",
+            "ChkClusterShadowEnabled",
+            "TxtClusterShadowOpacity",
+            "ShadowsSection"
+        })
+        {
+            Assert.Contains($"x:Name=\"{name}\"", xaml);
+        }
+    }
+
+    [Fact]
+    public void MainWindow_TuningMenuIncludesShadows()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml"));
+        Assert.Contains(
+            "<MenuItem Header=\"Shadows\" Tag=\"Shadows\" Click=\"OnTuningCategoryClick\"/>",
+            xaml);
     }
 
     [Theory]
@@ -216,6 +249,74 @@ public class TuningPanelWiringTests
         Assert.Contains("_visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;", source);
         Assert.Contains("RefreshDrawnPinVisuals()", source);
         Assert.Contains("RefreshMarkerHitTargets()", source);
+    }
+
+    [Fact]
+    public void ApplyTuning_MapsMapAndShadowValues()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("_visualConfig.ClusterBadgeSize = e.ClusterBadgeSize;", source);
+        Assert.Contains("_visualConfig.ClusterCountFontSize = e.ClusterCountFontSize;", source);
+        Assert.Contains("_visualConfig.ZoomScale = e.ZoomScale;", source);
+        Assert.Contains("_visualConfig.AnimationDurationMs = e.AnimationDurationMs;", source);
+        Assert.Contains("_visualConfig.PinMarkers.ShowShadow = e.PinShadowEnabled;", source);
+        Assert.Contains("_visualConfig.PinMarkers.ShadowOpacity = e.PinShadowOpacity;", source);
+        Assert.Contains("_visualConfig.ClusterMarkerShadow.Enabled = e.ClusterShadowEnabled;", source);
+        Assert.Contains("_visualConfig.ClusterMarkerShadow.Opacity = e.ClusterShadowOpacity;", source);
+    }
+
+    [Fact]
+    public void ApplyTuning_RefreshesShadowVisualsWithoutContentReload()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("RefreshMarkerShadows()", source);
+        Assert.Contains("foreach (var clusterMarker in _clusterMarkers)", source);
+        Assert.Contains(
+            "clusterMarker.ApplyShadowConfig(_visualConfig.ClusterMarkerShadow)",
+            source);
+    }
+
+    [Fact]
+    public void CompositeCreation_AppliesConfiguredHeadShadow()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.CompositePins.partial.cs"));
+
+        Assert.Contains("compositeMarker.ApplyHeadShadow(", source);
+        Assert.Contains("_visualConfig.PinMarkers.ShowShadow", source);
+        Assert.Contains("_visualConfig.PinMarkers.ShadowOpacity", source);
+    }
+
+    [Fact]
+    public void NewTuningFields_ArePresentAcrossEventPanelAndApplyContracts()
+    {
+        var eventArgs = File.ReadAllText(
+            Path.Combine(RepoRoot, "Models", "TuningPanelEventArgs.cs"));
+        var panel = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml.cs"));
+        var apply = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        foreach (var field in new[]
+        {
+            "ClusterBadgeSize",
+            "ClusterCountFontSize",
+            "ZoomScale",
+            "AnimationDurationMs",
+            "PinShadowEnabled",
+            "PinShadowOpacity",
+            "ClusterShadowEnabled",
+            "ClusterShadowOpacity"
+        })
+        {
+            Assert.Contains(field, eventArgs);
+            Assert.Contains(field, panel);
+            Assert.Contains(field, apply);
+        }
     }
 
     [Fact]

@@ -2,6 +2,7 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Windows.Media.Effects;
 using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views
@@ -46,6 +47,16 @@ namespace InteractiveWorldMap.Views
 
             Width = ballSize + (2 * ballOutline);
             Height = ballSize + (2 * ballOutline);
+            PinBall.Effect = config.ShowShadow
+                ? new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Direction = 315,
+                    ShadowDepth = 1.5,
+                    BlurRadius = 2.5,
+                    Opacity = config.ShadowOpacity
+                }
+                : null;
             ApplyBallFill(PinColor);
         }
 

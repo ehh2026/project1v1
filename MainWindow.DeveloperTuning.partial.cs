@@ -153,6 +153,12 @@ namespace InteractiveWorldMap
                 var oldTargetShaftHalfWidth = _visualConfig.PinParts.TargetShaftHalfWidthPx;
                 var oldLocationMarkerSize = _visualConfig.LocationMarkerSize;
                 var oldClusterMarkerSize = _visualConfig.ClusterMarkerSize;
+                var oldClusterBadgeSize = _visualConfig.ClusterBadgeSize;
+                var oldClusterCountFontSize = _visualConfig.ClusterCountFontSize;
+                var oldPinShadowEnabled = _visualConfig.PinMarkers.ShowShadow;
+                var oldPinShadowOpacity = _visualConfig.PinMarkers.ShadowOpacity;
+                var oldClusterShadowEnabled = _visualConfig.ClusterMarkerShadow.Enabled;
+                var oldClusterShadowOpacity = _visualConfig.ClusterMarkerShadow.Opacity;
                 var oldDrawnHeadDiameter = _visualConfig.PinMarkers.BallSize;
                 var oldDrawnShaftWidth = _visualConfig.PinMarkers.ShaftWidth;
                 var oldDrawnShaftLength = _visualConfig.PinMarkers.ShaftLength;
@@ -170,6 +176,8 @@ namespace InteractiveWorldMap
                     !NearlyEqual(oldClusterThreshold, e.ClusterThreshold) ||
                     !NearlyEqual(oldLocationMarkerSize, e.LocationMarkerSize) ||
                     !NearlyEqual(oldClusterMarkerSize, e.ClusterMarkerSize) ||
+                    !NearlyEqual(oldClusterBadgeSize, e.ClusterBadgeSize) ||
+                    !NearlyEqual(oldClusterCountFontSize, e.ClusterCountFontSize) ||
                     (turningCompositeOff && _individualMarkers.Count > 0 && _baseMarkerVisuals.Count == 0);
 
                 // Recreate-class changes require a full-map cluster rebuild which is meaningless
@@ -208,6 +216,13 @@ namespace InteractiveWorldMap
                     !NearlyEqual(oldPinHitDiameter, e.PinHitDiameterPx) ||
                     !NearlyEqual(oldClusterHitDiameter, e.ClusterHitDiameterPx);
 
+                var pinShadowChanged =
+                    oldPinShadowEnabled != e.PinShadowEnabled ||
+                    !NearlyEqual(oldPinShadowOpacity, e.PinShadowOpacity);
+                var clusterShadowChanged =
+                    oldClusterShadowEnabled != e.ClusterShadowEnabled ||
+                    !NearlyEqual(oldClusterShadowOpacity, e.ClusterShadowOpacity);
+
                 _visualConfig.PinParts.Enabled = e.UseComposite;
                 _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
                 _visualConfig.PinParts.UsePrerasterizedRendering = e.UsePrerasterize;
@@ -221,10 +236,18 @@ namespace InteractiveWorldMap
                 _visualConfig.PinParts.TargetShaftHalfWidthPx = e.TargetShaftHalfWidthPx;
                 _visualConfig.LocationMarkerSize = e.LocationMarkerSize;
                 _visualConfig.ClusterMarkerSize = e.ClusterMarkerSize;
+                _visualConfig.ClusterBadgeSize = e.ClusterBadgeSize;
+                _visualConfig.ClusterCountFontSize = e.ClusterCountFontSize;
+                _visualConfig.ZoomScale = e.ZoomScale;
+                _visualConfig.AnimationDurationMs = e.AnimationDurationMs;
                 _visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;
                 _visualConfig.PinMarkers.BallSize = e.DrawnHeadDiameterPx;
                 _visualConfig.PinMarkers.ShaftWidth = e.DrawnShaftWidthPx;
                 _visualConfig.PinMarkers.ShaftLength = e.DrawnShaftLengthPx;
+                _visualConfig.PinMarkers.ShowShadow = e.PinShadowEnabled;
+                _visualConfig.PinMarkers.ShadowOpacity = e.PinShadowOpacity;
+                _visualConfig.ClusterMarkerShadow.Enabled = e.ClusterShadowEnabled;
+                _visualConfig.ClusterMarkerShadow.Opacity = e.ClusterShadowOpacity;
                 _visualConfig.MarkerHitTargets.PinDiameterPx = e.PinHitDiameterPx;
                 _visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;
                 _visualConfig.ZoomedMapRendering.ResamplingMode = e.ZoomedMapResamplingMode;
@@ -254,6 +277,9 @@ namespace InteractiveWorldMap
 
                 if (drawnDimensionsChanged)
                     RefreshDrawnPinVisuals();
+
+                if (pinShadowChanged || clusterShadowChanged)
+                    RefreshMarkerShadows();
 
                 if (needsRecreate)
                 {
@@ -294,6 +320,24 @@ namespace InteractiveWorldMap
             _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
             _clusters = await _contentLoader.LoadClustersAsync();
             AddClustersToMap(_clusters);
+        }
+
+        private void RefreshMarkerShadows()
+        {
+            RefreshDrawnPinVisuals();
+
+            foreach (var marker in _individualMarkers)
+            {
+                if (marker.Content is CompositePinMarker composite)
+                {
+                    composite.ApplyHeadShadow(
+                        _visualConfig.PinMarkers.ShowShadow,
+                        _visualConfig.PinMarkers.ShadowOpacity);
+                }
+            }
+
+            foreach (var clusterMarker in _clusterMarkers)
+                clusterMarker.ApplyShadowConfig(_visualConfig.ClusterMarkerShadow);
         }
 
         private bool CanRunTuningAction(string action)
@@ -365,6 +409,14 @@ namespace InteractiveWorldMap
                 TargetShaftHalfWidthPx = config.PinParts.TargetShaftHalfWidthPx,
                 LocationMarkerSize = config.LocationMarkerSize,
                 ClusterMarkerSize = config.ClusterMarkerSize,
+                ClusterBadgeSize = config.ClusterBadgeSize,
+                ClusterCountFontSize = config.ClusterCountFontSize,
+                ZoomScale = config.ZoomScale,
+                AnimationDurationMs = config.AnimationDurationMs,
+                PinShadowEnabled = pinConfig.ShowShadow,
+                PinShadowOpacity = pinConfig.ShadowOpacity,
+                ClusterShadowEnabled = config.ClusterMarkerShadow.Enabled,
+                ClusterShadowOpacity = config.ClusterMarkerShadow.Opacity,
                 DrawnHeadDiameterPx = pinConfig.BallSize,
                 DrawnShaftWidthPx = pinConfig.ShaftWidth,
                 DrawnShaftLengthPx = pinConfig.ShaftLength,

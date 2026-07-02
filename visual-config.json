@@ -12,6 +12,10 @@
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,
   "ClusterCountFontSize": 11.0,
+  "ClusterMarkerShadow": {
+    "Enabled": false,
+    "Opacity": 0.0
+  },
   "ZoomScale": 55.0,
   "AnimationDurationMs": 390,
   "ZoomedMapRendering": {

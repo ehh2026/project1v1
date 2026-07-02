@@ -6,6 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Windows.Media.Effects;
 using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views
@@ -95,6 +96,24 @@ namespace InteractiveWorldMap.Views
         public Point GetHeadAttachPoint()
         {
             return RenderPlan?.HeadAttachLocal ?? new Point(Width / 2, Height / 2);
+        }
+
+        public void ApplyHeadShadow(bool enabled, double opacity)
+        {
+            var wasPrerasterized = FlattenedImage.Visibility == Visibility.Visible;
+            HeadImage.Effect = enabled
+                ? new DropShadowEffect
+                {
+                    Color = Colors.Black,
+                    Direction = 315,
+                    ShadowDepth = 2,
+                    BlurRadius = 3,
+                    Opacity = opacity
+                }
+                : null;
+
+            if (wasPrerasterized)
+                TryApplyPrerasterizedRendering();
         }
 
         public void AnimateHover(bool isHovered)

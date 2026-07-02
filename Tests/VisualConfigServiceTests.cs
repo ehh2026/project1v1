@@ -673,6 +673,55 @@ public class VisualConfigServiceTests
         }
     }
 
+    [Fact]
+    public void Load_ClusterMarkerShadow_UsesDisabledDefaultsWhenOmitted()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            File.WriteAllText(path, "{}");
+
+            var shadow = new VisualConfigService().Load(path).ClusterMarkerShadow;
+
+            Assert.False(shadow.Enabled);
+            Assert.Equal(0.0, shadow.Opacity);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void SaveAndReload_ClusterMarkerShadow_RoundTrips()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var path = Path.Combine(tempDir, "visual-config.json");
+            var service = new VisualConfigService();
+            var config = new VisualConfig
+            {
+                ClusterMarkerShadow = new ClusterMarkerShadowConfig
+                {
+                    Enabled = true,
+                    Opacity = 0.65
+                }
+            };
+
+            service.Save(config, path);
+            var reloaded = service.Load(path);
+
+            Assert.True(reloaded.ClusterMarkerShadow.Enabled);
+            Assert.Equal(0.65, reloaded.ClusterMarkerShadow.Opacity);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     private static string CreateTempDir()
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-visual-config-" + Guid.NewGuid().ToString("N"));

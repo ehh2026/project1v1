@@ -1,10 +1,14 @@
-# Map and Shadow Runtime Tuning Implementation Plan
+﻿# Map and Shadow Runtime Tuning Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+**Status:** Completed July 2, 2026. Full Windows verification passed with 604
+tests, zero build warnings, doc-link/taste checks, manual-layout seed
+verification, and headless startup validation.
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Complete the Map tuning controls and add independently configurable, live-applied pin and cluster-marker shadows.
 
-**Architecture:** Extend the existing `VisualConfig` → `TuningPanelEventArgs` → `DeveloperTuningPanel` → `MainWindow.DeveloperTuning` data path. Marker views own applying/removing their WPF effects, while `MainWindow` classifies recreate-class map changes and render-only shadow changes and refreshes the active view without losing manual layouts.
+**Architecture:** Extend the existing `VisualConfig` â†’ `TuningPanelEventArgs` â†’ `DeveloperTuningPanel` â†’ `MainWindow.DeveloperTuning` data path. Marker views own applying/removing their WPF effects, while `MainWindow` classifies recreate-class map changes and render-only shadow changes and refreshes the active view without losing manual layouts.
 
 **Tech Stack:** .NET 6, C#, WPF/XAML, `System.Text.Json`, xUnit, existing runtime-tuning and marker-refresh infrastructure.
 
@@ -52,7 +56,7 @@ root.
 - Modify: `visual-config.json`
 - Test: `Tests/VisualConfigServiceTests.cs`
 
-- [ ] **Step 1: Write failing default and round-trip tests**
+- [x] **Step 1: Write failing default and round-trip tests**
 
 Add to `Tests/VisualConfigServiceTests.cs`:
 
@@ -107,7 +111,7 @@ public void SaveAndReload_ClusterMarkerShadow_RoundTrips()
 }
 ```
 
-- [ ] **Step 2: Run the focused tests and verify they fail**
+- [x] **Step 2: Run the focused tests and verify they fail**
 
 Run:
 
@@ -118,7 +122,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "Load_ClusterMarkerS
 Expected: FAIL because `ClusterMarkerShadowConfig` and
 `VisualConfig.ClusterMarkerShadow` do not exist.
 
-- [ ] **Step 3: Add the focused model and VisualConfig property**
+- [x] **Step 3: Add the focused model and VisualConfig property**
 
 Create `Models/ClusterMarkerShadowConfig.cs`:
 
@@ -148,7 +152,7 @@ public ClusterMarkerShadowConfig ClusterMarkerShadow { get; set; } =
 Do not clamp opacity in the model. The tuning Apply/Reload path must reject
 invalid values rather than silently rewriting them.
 
-- [ ] **Step 4: Record the preferred checked-in setting**
+- [x] **Step 4: Record the preferred checked-in setting**
 
 Add beside the existing cluster marker values in `visual-config.json`:
 
@@ -159,7 +163,7 @@ Add beside the existing cluster marker values in `visual-config.json`:
 },
 ```
 
-- [ ] **Step 5: Run model tests**
+- [x] **Step 5: Run model tests**
 
 Run:
 
@@ -169,7 +173,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit the model slice**
+- [x] **Step 6: Commit the model slice**
 
 ```powershell
 git add Models/ClusterMarkerShadowConfig.cs Models/VisualConfig.cs visual-config.json Tests/VisualConfigServiceTests.cs
@@ -188,7 +192,7 @@ git commit -m "feat: configure cluster marker shadows"
 - Test: `Tests/TuningPanelWiringTests.cs`
 - Test: `Tests/TuningReloadValidationTests.cs`
 
-- [ ] **Step 1: Write failing category and control-presence tests**
+- [x] **Step 1: Write failing category and control-presence tests**
 
 Update the category expectations in `Tests/TuningPanelWiringTests.cs` to include
 `ShadowsSection` and `"Shadows"`, then add:
@@ -227,7 +231,7 @@ public void MainWindow_TuningMenuIncludesShadows()
 }
 ```
 
-- [ ] **Step 2: Write failing validation tests**
+- [x] **Step 2: Write failing validation tests**
 
 Extend `ValidArgs()` in `Tests/TuningReloadValidationTests.cs`:
 
@@ -298,7 +302,7 @@ public void TryValidate_NonPositiveAnimationDuration_ReturnsFalse()
 Add equivalent non-positive tests for `ClusterBadgeSize` and
 `ClusterCountFontSize`.
 
-- [ ] **Step 3: Run the focused tests and verify they fail**
+- [x] **Step 3: Run the focused tests and verify they fail**
 
 Run:
 
@@ -309,7 +313,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "DeveloperTuningPane
 Expected: FAIL because the category, controls, event fields, and validation do
 not exist.
 
-- [ ] **Step 4: Extend the event contract**
+- [x] **Step 4: Extend the event contract**
 
 Add these properties to `TuningPanelEventArgs`:
 
@@ -324,7 +328,7 @@ public bool ClusterShadowEnabled { get; set; }
 public double ClusterShadowOpacity { get; set; }
 ```
 
-- [ ] **Step 5: Add the fifth category and XAML controls**
+- [x] **Step 5: Add the fifth category and XAML controls**
 
 Add `Shadows` to `TuningCategory`. Extend `ShowCategory` with:
 
@@ -385,7 +389,7 @@ shared footer:
 </StackPanel>
 ```
 
-- [ ] **Step 6: Load, parse, and emit the values**
+- [x] **Step 6: Load, parse, and emit the values**
 
 In `LoadValues`, assign:
 
@@ -439,7 +443,7 @@ private static bool TryReadOpacity(
 Populate every new `TuningPanelEventArgs` property from the parsed values and
 checkboxes.
 
-- [ ] **Step 7: Extend reload validation**
+- [x] **Step 7: Extend reload validation**
 
 Add checks to `TryValidate`:
 
@@ -465,7 +469,7 @@ private static bool IsValidOpacity(double value) =>
     double.IsFinite(value) && value >= 0 && value <= 1;
 ```
 
-- [ ] **Step 8: Run tuning-panel and validation tests**
+- [x] **Step 8: Run tuning-panel and validation tests**
 
 Run:
 
@@ -475,7 +479,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: PASS.
 
-- [ ] **Step 9: Commit the UI contract**
+- [x] **Step 9: Commit the UI contract**
 
 ```powershell
 git add Models/TuningPanelEventArgs.cs Views/DeveloperTuningPanel.xaml Views/DeveloperTuningPanel.xaml.cs MainWindow.xaml Tests/TuningPanelWiringTests.cs Tests/TuningReloadValidationTests.cs
@@ -496,7 +500,7 @@ git commit -m "feat: add map and shadow tuning controls"
 - Modify: `Views/ExtensionLineRenderer.cs`
 - Create: `Tests/MarkerShadowRenderingTests.cs`
 
-- [ ] **Step 1: Write failing view-level shadow tests**
+- [x] **Step 1: Write failing view-level shadow tests**
 
 Create `Tests/MarkerShadowRenderingTests.cs`. The repository does not carry an
 STA xUnit extension, so keep these as structural wiring tests rather than
@@ -555,7 +559,7 @@ public class MarkerShadowRenderingTests
 }
 ```
 
-- [ ] **Step 2: Run the new tests and verify they fail**
+- [x] **Step 2: Run the new tests and verify they fail**
 
 Run:
 
@@ -566,7 +570,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 Expected: FAIL because the public effect accessors/application methods do not
 exist and the opacity floor remains.
 
-- [ ] **Step 3: Make PinHead apply the shared pin-shadow config**
+- [x] **Step 3: Make PinHead apply the shared pin-shadow config**
 
 Remove `<Ellipse.Effect>` from `PinHead.xaml`. In `PinHead.xaml.cs`, expose a
 read-only test seam and apply the effect inside `ApplyConfig`:
@@ -593,7 +597,7 @@ private void ApplyShadow(PinMarkerConfig config)
 
 Call `ApplyShadow(config)` from `ApplyConfig` after size/stroke application.
 
-- [ ] **Step 4: Make CompositePinMarker apply the same pin-shadow values**
+- [x] **Step 4: Make CompositePinMarker apply the same pin-shadow values**
 
 Remove the hardcoded `HeadImage.Effect` block from
 `CompositePinMarker.xaml`. Add:
@@ -621,7 +625,7 @@ public void ApplyHeadShadow(bool enabled, double opacity)
 Keep shadow application separate from `SetCompositeImages` so live tuning can
 refresh it without rebuilding the render plan.
 
-- [ ] **Step 5: Make ClusterMarker apply its dedicated config**
+- [x] **Step 5: Make ClusterMarker apply its dedicated config**
 
 Remove both hardcoded effects from `ClusterMarker.xaml`. In code-behind add:
 
@@ -665,7 +669,7 @@ ClusterMarkerShadowConfig ClusterMarkerShadow { get; }
 Update test fakes implementing `IMarkerConfiguration` to return
 `new ClusterMarkerShadowConfig()`.
 
-- [ ] **Step 6: Remove the extended-shaft opacity floor**
+- [x] **Step 6: Remove the extended-shaft opacity floor**
 
 In `ExtensionLineRenderer`, replace:
 
@@ -681,7 +685,7 @@ Opacity = pinConfig.ShadowOpacity
 
 The existing `if (pinConfig.ShowShadow)` remains the enablement gate.
 
-- [ ] **Step 7: Complete view tests**
+- [x] **Step 7: Complete view tests**
 
 Add a `CompositePinMarker_ApplyHeadShadow_UsesExactOpacityAndSupportsRemoval`
 source-wiring test matching the PinHead test. Also assert that the governed
@@ -695,7 +699,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: PASS.
 
-- [ ] **Step 8: Commit the rendering slice**
+- [x] **Step 8: Commit the rendering slice**
 
 ```powershell
 git add Models/IMarkerConfiguration.cs Views/PinHead.xaml Views/PinHead.xaml.cs Views/CompositePinMarker.xaml Views/CompositePinMarker.xaml.cs Views/ClusterMarker.xaml Views/ClusterMarker.xaml.cs Views/ExtensionLineRenderer.cs Tests/MarkerShadowRenderingTests.cs Tests/ZoomOutTrackingTests.cs Tests/MarkerPlacementOrchestratorTests.cs
@@ -712,7 +716,7 @@ git commit -m "feat: apply configurable marker shadows"
 - Test: `Tests/TuningPanelWiringTests.cs`
 - Test: `Tests/TuningReapplyTests.cs`
 
-- [ ] **Step 1: Write failing end-to-end wiring tests**
+- [x] **Step 1: Write failing end-to-end wiring tests**
 
 Add to `Tests/TuningPanelWiringTests.cs`:
 
@@ -753,7 +757,7 @@ compositeMarker.ApplyHeadShadow(
     _visualConfig.PinMarkers.ShadowOpacity);
 ```
 
-- [ ] **Step 2: Run the focused tests and verify they fail**
+- [x] **Step 2: Run the focused tests and verify they fail**
 
 Run:
 
@@ -763,7 +767,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "ApplyTuning_MapsMap
 
 Expected: FAIL because mapping and refresh orchestration are absent.
 
-- [ ] **Step 3: Map disk/UI values into CreateTuningArgs**
+- [x] **Step 3: Map disk/UI values into CreateTuningArgs**
 
 Add:
 
@@ -780,7 +784,7 @@ ClusterShadowOpacity = config.ClusterMarkerShadow.Opacity,
 
 This keeps Reload using the same validated event contract as Apply.
 
-- [ ] **Step 4: Classify map and shadow changes before mutation**
+- [x] **Step 4: Classify map and shadow changes before mutation**
 
 Capture old values and define:
 
@@ -804,7 +808,7 @@ Include `clusterAppearanceChanged` in `needsRecreate`, preserving the existing
 zoomed-state rejection for cluster reconstruction. Do not include shadow
 changes or animation duration in `needsRecreate`.
 
-- [ ] **Step 5: Mutate every new value only after the zoomed-state guard**
+- [x] **Step 5: Mutate every new value only after the zoomed-state guard**
 
 Add:
 
@@ -822,7 +826,7 @@ _visualConfig.ClusterMarkerShadow.Opacity = e.ClusterShadowOpacity;
 Keeping these assignments after the recreate rejection prevents partial
 mutation when a zoomed user attempts a badge/font change.
 
-- [ ] **Step 6: Add focused live shadow refresh**
+- [x] **Step 6: Add focused live shadow refresh**
 
 Add to `MainWindow.DeveloperTuning.partial.cs`:
 
@@ -851,7 +855,7 @@ Call it when `pinShadowChanged || clusterShadowChanged`. If
 to drawn content or call the composite loop after replacement; the final
 observable state must retain composite rendering.
 
-- [ ] **Step 7: Pass shadow config during composite construction**
+- [x] **Step 7: Pass shadow config during composite construction**
 
 Immediately after constructing/configuring a `CompositePinMarker` in
 `MainWindow.CompositePins.partial.cs`, call:
@@ -865,7 +869,7 @@ compositeMarker.ApplyHeadShadow(
 This covers first render, recreate, zoom transitions, and cache misses without
 depending on a later tuning refresh.
 
-- [ ] **Step 8: Apply zoom scale to an active zoomed view**
+- [x] **Step 8: Apply zoom scale to an active zoomed view**
 
 In the non-recreate branch, ensure `zoomScaleChanged` reaches
 `ReapplyViewAfterTuningChange()`. That helper already calls
@@ -878,7 +882,7 @@ reads `_visualConfig.AnimationDurationMs` for subsequent transitions. Add a
 source assertion to `TuningPanelWiringTests` for those existing call sites if
 coverage is absent.
 
-- [ ] **Step 9: Run tuning and reapply tests**
+- [x] **Step 9: Run tuning and reapply tests**
 
 Run:
 
@@ -888,7 +892,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: PASS.
 
-- [ ] **Step 10: Commit orchestration**
+- [x] **Step 10: Commit orchestration**
 
 ```powershell
 git add MainWindow.CompositePins.partial.cs MainWindow.DeveloperTuning.partial.cs Tests/TuningPanelWiringTests.cs Tests/TuningReapplyTests.cs
@@ -907,7 +911,7 @@ git commit -m "feat: apply map and shadow tuning live"
 - Modify: `CHANGELOG.md`
 - Modify: `docs/superpowers/plans/2026-07-02-map-and-shadow-tuning.md`
 
-- [ ] **Step 1: Add a complete event-contract coverage test**
+- [x] **Step 1: Add a complete event-contract coverage test**
 
 Add one test that reads `Models/TuningPanelEventArgs.cs`,
 `Views/DeveloperTuningPanel.xaml.cs`, and
@@ -928,9 +932,9 @@ var fields = new[]
 };
 ```
 
-This guards Load → Apply → Reload symmetry without repeating behavioral tests.
+This guards Load â†’ Apply â†’ Reload symmetry without repeating behavioral tests.
 
-- [ ] **Step 2: Run the full focused feature set**
+- [x] **Step 2: Run the full focused feature set**
 
 Run:
 
@@ -940,21 +944,21 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~
 
 Expected: PASS with zero failed tests.
 
-- [ ] **Step 3: Update the visual-config guide**
+- [x] **Step 3: Update the visual-config guide**
 
 In `docs/guides/VISUAL_CONFIG.md`:
 
 - state that badge size, count font size, zoom scale, and animation duration are
-  available in Runtime Tuning → Map;
+  available in Runtime Tuning â†’ Map;
 - add `PinMarkers.ShowShadow` and `PinMarkers.ShadowOpacity` to the PinMarkers
   table;
 - document that those settings govern drawn heads, drawn extended shafts, and
   composite heads, but not baked composite shaft shading;
 - add `ClusterMarkerShadow.Enabled` and `.Opacity`, defaulting to disabled/0.0;
 - state that cluster body and badge share the cluster opacity;
-- document the inclusive `0.0–1.0` range and live Apply behavior.
+- document the inclusive `0.0â€“1.0` range and live Apply behavior.
 
-- [ ] **Step 4: Perform finish bookkeeping**
+- [x] **Step 4: Perform finish bookkeeping**
 
 In `docs/TO_DO.md`:
 
@@ -974,10 +978,10 @@ Under `[Unreleased]` in `CHANGELOG.md`, add:
   checked-in cluster-shadow default is off.
 ```
 
-Mark Tasks 1–5 complete in this plan only after their verification commands
+Mark Tasks 1â€“5 complete in this plan only after their verification commands
 pass.
 
-- [ ] **Step 5: Run documentation and diff checks**
+- [x] **Step 5: Run documentation and diff checks**
 
 Run:
 
@@ -989,7 +993,7 @@ git diff --check
 Expected: `git diff --check` produces no output and the repository verification
 script exits 0.
 
-- [ ] **Step 6: Self-review the implementation**
+- [x] **Step 6: Self-review the implementation**
 
 Review:
 
@@ -1008,14 +1012,14 @@ Confirm:
 - checked-in cluster shadows are disabled;
 - all completed backlog text is removed or narrowed.
 
-- [ ] **Step 7: Commit documentation and verified completion state**
+- [x] **Step 7: Commit documentation and verified completion state**
 
 ```powershell
 git add Tests/TuningPanelWiringTests.cs Tests/TuningReloadValidationTests.cs docs/guides/VISUAL_CONFIG.md docs/TO_DO.md CHANGELOG.md docs/superpowers/plans/2026-07-02-map-and-shadow-tuning.md
 git commit -m "docs: complete map and shadow tuning"
 ```
 
-- [ ] **Step 8: Archive the completed plan**
+- [x] **Step 8: Archive the completed plan**
 
 After every checkbox is complete and `.\scripts\verify.ps1` passes:
 
@@ -1033,8 +1037,8 @@ instead leave the plan active and narrow its remaining checklist.
 
 ## Final Acceptance Criteria
 
-- Runtime Tuning → Map exposes all four newly requested map values.
-- Runtime Tuning → Shadows exposes independent enabled/opacity controls for
+- Runtime Tuning â†’ Map exposes all four newly requested map values.
+- Runtime Tuning â†’ Shadows exposes independent enabled/opacity controls for
   pins and cluster markers.
 - Existing pin config remains backward-compatible.
 - Cluster shadows default off in both the model and checked-in config.
@@ -1048,3 +1052,4 @@ instead leave the plan active and narrow its remaining checklist.
 - Focused tests and `.\scripts\verify.ps1` pass.
 - `docs/TO_DO.md`, `docs/guides/VISUAL_CONFIG.md`, `CHANGELOG.md`, and plan
   archival state satisfy `AGENTS.md`.
+

@@ -208,6 +208,76 @@ public class TuningReloadValidationTests
         Assert.Contains("Cluster hitbox", error);
     }
 
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(-1.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidZoomScale_ReturnsFalse(double value)
+    {
+        var args = ValidArgs();
+        args.ZoomScale = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Zoom scale", error);
+    }
+
+    [Theory]
+    [InlineData(-0.01)]
+    [InlineData(1.01)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidShadowOpacity_ReturnsFalse(double value)
+    {
+        var pinArgs = ValidArgs();
+        pinArgs.PinShadowOpacity = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(pinArgs, out var pinError));
+        Assert.Contains("Pin shadow opacity", pinError);
+
+        var clusterArgs = ValidArgs();
+        clusterArgs.ClusterShadowOpacity = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(clusterArgs, out var clusterError));
+        Assert.Contains("Cluster shadow opacity", clusterError);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(1.0)]
+    public void TryValidate_ShadowOpacityBoundaries_ReturnTrue(double value)
+    {
+        var args = ValidArgs();
+        args.PinShadowOpacity = value;
+        args.ClusterShadowOpacity = value;
+        Assert.True(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error), error);
+    }
+
+    [Fact]
+    public void TryValidate_NonPositiveAnimationDuration_ReturnsFalse()
+    {
+        var args = ValidArgs();
+        args.AnimationDurationMs = 0;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error));
+        Assert.Contains("Animation duration", error);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void TryValidate_InvalidClusterAppearanceSizes_ReturnFalse(double value)
+    {
+        var badgeArgs = ValidArgs();
+        badgeArgs.ClusterBadgeSize = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(
+            badgeArgs, out var badgeError));
+        Assert.Contains("Cluster badge", badgeError);
+
+        var fontArgs = ValidArgs();
+        fontArgs.ClusterCountFontSize = value;
+        Assert.False(InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(
+            fontArgs, out var fontError));
+        Assert.Contains("Cluster count font", fontError);
+    }
+
     // ── Source guard: reload path calls TryValidate before ApplyTuningAsync ──
 
     [Fact]
@@ -230,6 +300,12 @@ public class TuningReloadValidationTests
         ClusterThreshold = 50,
         LocationMarkerSize = 16,
         ClusterMarkerSize = 24,
+        ClusterBadgeSize = 12,
+        ClusterCountFontSize = 11,
+        ZoomScale = 55,
+        AnimationDurationMs = 390,
+        PinShadowOpacity = 0.55,
+        ClusterShadowOpacity = 0.0,
         StubLength = 24,
         TargetHeadRadiusPx = 8,
         TargetShaftHalfWidthPx = 3,

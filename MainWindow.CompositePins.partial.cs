@@ -286,6 +286,9 @@ namespace InteractiveWorldMap
             BitmapSource headImage)
         {
             var compositeMarker = new CompositePinMarker { Location = marker.Location };
+            compositeMarker.ApplyHeadShadow(
+                _visualConfig.PinMarkers.ShowShadow,
+                _visualConfig.PinMarkers.ShadowOpacity);
             compositeMarker.SetCompositeImages(
                 shaftImage,
                 headImage,

@@ -11,7 +11,8 @@ public enum TuningCategory
     Map,
     CompositePins,
     DrawnPins,
-    Hitboxes
+    Hitboxes,
+    Shadows
 }
 
 public partial class DeveloperTuningPanel : UserControl
@@ -47,6 +48,8 @@ public partial class DeveloperTuningPanel : UserControl
         DrawnPinsSection.Visibility = category == TuningCategory.DrawnPins
             ? Visibility.Visible : Visibility.Collapsed;
         HitboxesSection.Visibility = category == TuningCategory.Hitboxes
+            ? Visibility.Visible : Visibility.Collapsed;
+        ShadowsSection.Visibility = category == TuningCategory.Shadows
             ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -193,6 +196,16 @@ public partial class DeveloperTuningPanel : UserControl
             TxtClusterMarkerSize.Text = Format(config.ClusterMarkerSize);
 
             var pinConfig = config.PinMarkers ?? new PinMarkerConfig();
+            TxtClusterBadgeSize.Text = Format(config.ClusterBadgeSize);
+            TxtClusterCountFontSize.Text = Format(config.ClusterCountFontSize);
+            TxtZoomScale.Text = Format(config.ZoomScale);
+            TxtAnimationDurationMs.Text =
+                config.AnimationDurationMs.ToString(CultureInfo.InvariantCulture);
+            ChkPinShadowEnabled.IsChecked = pinConfig.ShowShadow;
+            TxtPinShadowOpacity.Text = Format(pinConfig.ShadowOpacity);
+            var clusterShadow = config.ClusterMarkerShadow ?? new ClusterMarkerShadowConfig();
+            ChkClusterShadowEnabled.IsChecked = clusterShadow.Enabled;
+            TxtClusterShadowOpacity.Text = Format(clusterShadow.Opacity);
             TxtDrawnHeadDiameter.Text = Format(pinConfig.BallSize);
             TxtDrawnShaftWidth.Text = Format(pinConfig.ShaftWidth);
             TxtDrawnShaftLength.Text = Format(pinConfig.ShaftLength);
@@ -276,6 +289,12 @@ public partial class DeveloperTuningPanel : UserControl
             !TryReadNonNegative(TxtTargetShaftHalfWidth.Text, "Shaft half width", out var targetShaftHalfWidth, out error) ||
             !TryReadPositive(TxtLocationMarkerSize.Text, "Location marker", out var locationMarkerSize, out error) ||
             !TryReadPositive(TxtClusterMarkerSize.Text, "Cluster marker", out var clusterMarkerSize, out error) ||
+            !TryReadPositive(TxtClusterBadgeSize.Text, "Cluster badge", out var clusterBadgeSize, out error) ||
+            !TryReadPositive(TxtClusterCountFontSize.Text, "Cluster count font", out var clusterCountFontSize, out error) ||
+            !TryReadPositive(TxtZoomScale.Text, "Zoom scale", out var zoomScale, out error) ||
+            !TryReadPositiveInt(TxtAnimationDurationMs.Text, "Animation duration", out var animationDurationMs, out error) ||
+            !TryReadOpacity(TxtPinShadowOpacity.Text, "Pin shadow opacity", out var pinShadowOpacity, out error) ||
+            !TryReadOpacity(TxtClusterShadowOpacity.Text, "Cluster shadow opacity", out var clusterShadowOpacity, out error) ||
             !TryReadPositive(TxtDrawnHeadDiameter.Text, "Drawn head diameter", out var drawnHeadDiameter, out error) ||
             !TryReadPositive(TxtDrawnShaftWidth.Text, "Drawn shaft width", out var drawnShaftWidth, out error) ||
             !TryReadPositive(TxtDrawnShaftLength.Text, "Drawn shaft length", out var drawnShaftLength, out error) ||
@@ -305,6 +324,14 @@ public partial class DeveloperTuningPanel : UserControl
             TargetShaftHalfWidthPx = targetShaftHalfWidth,
             LocationMarkerSize = locationMarkerSize,
             ClusterMarkerSize = clusterMarkerSize,
+            ClusterBadgeSize = clusterBadgeSize,
+            ClusterCountFontSize = clusterCountFontSize,
+            ZoomScale = zoomScale,
+            AnimationDurationMs = animationDurationMs,
+            PinShadowEnabled = ChkPinShadowEnabled.IsChecked == true,
+            PinShadowOpacity = pinShadowOpacity,
+            ClusterShadowEnabled = ChkClusterShadowEnabled.IsChecked == true,
+            ClusterShadowOpacity = clusterShadowOpacity,
             DrawnHeadDiameterPx = drawnHeadDiameter,
             DrawnShaftWidthPx = drawnShaftWidth,
             DrawnShaftLengthPx = drawnShaftLength,
@@ -348,6 +375,39 @@ public partial class DeveloperTuningPanel : UserControl
         return true;
     }
 
+    private static bool TryReadPositiveInt(
+        string text, string label, out int value, out string error)
+    {
+        if (!int.TryParse(
+                text,
+                NumberStyles.Integer,
+                CultureInfo.InvariantCulture,
+                out value) ||
+            value <= 0)
+        {
+            error = $"{label} must be a positive integer.";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    private static bool TryReadOpacity(
+        string text, string label, out double value, out string error)
+    {
+        if (!TryReadDouble(text, label, out value, out error))
+            return false;
+
+        if (value < 0 || value > 1)
+        {
+            error = $"{label} must be between 0 and 1.";
+            return false;
+        }
+
+        return true;
+    }
+
     private static bool TryReadDouble(string text, string label, out double value, out string error)
     {
         if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
@@ -383,6 +443,18 @@ public partial class DeveloperTuningPanel : UserControl
         { error = "Location marker size must be > 0 and finite."; return false; }
         if (args.ClusterMarkerSize <= 0 || !double.IsFinite(args.ClusterMarkerSize))
         { error = "Cluster marker size must be > 0 and finite."; return false; }
+        if (args.ClusterBadgeSize <= 0 || !double.IsFinite(args.ClusterBadgeSize))
+        { error = "Cluster badge size must be > 0 and finite."; return false; }
+        if (args.ClusterCountFontSize <= 0 || !double.IsFinite(args.ClusterCountFontSize))
+        { error = "Cluster count font size must be > 0 and finite."; return false; }
+        if (args.ZoomScale <= 0 || !double.IsFinite(args.ZoomScale))
+        { error = "Zoom scale must be > 0 and finite."; return false; }
+        if (args.AnimationDurationMs <= 0)
+        { error = "Animation duration must be a positive integer."; return false; }
+        if (!IsValidOpacity(args.PinShadowOpacity))
+        { error = "Pin shadow opacity must be between 0 and 1 and finite."; return false; }
+        if (!IsValidOpacity(args.ClusterShadowOpacity))
+        { error = "Cluster shadow opacity must be between 0 and 1 and finite."; return false; }
         if (args.StubLength < 0 || !double.IsFinite(args.StubLength))
         { error = "Stub length must be >= 0 and finite."; return false; }
         if (args.TargetHeadRadiusPx < 0 || !double.IsFinite(args.TargetHeadRadiusPx))
@@ -409,4 +481,7 @@ public partial class DeveloperTuningPanel : UserControl
         error = string.Empty;
         return true;
     }
+
+    private static bool IsValidOpacity(double value) =>
+        double.IsFinite(value) && value >= 0 && value <= 1;
 }

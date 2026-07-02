@@ -455,6 +455,7 @@
                     <MenuItem Header="Composite Pins" Tag="CompositePins" Click="OnTuningCategoryClick"/>
                     <MenuItem Header="Drawn Pins" Tag="DrawnPins" Click="OnTuningCategoryClick"/>
                     <MenuItem Header="Hitboxes" Tag="Hitboxes" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Shadows" Tag="Shadows" Click="OnTuningCategoryClick"/>
                 </ContextMenu>
             </Button.ContextMenu>
         </Button>

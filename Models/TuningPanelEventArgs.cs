@@ -18,6 +18,14 @@ namespace InteractiveWorldMap.Models
         public double TargetShaftHalfWidthPx { get; set; }
         public double LocationMarkerSize { get; set; }
         public double ClusterMarkerSize { get; set; }
+        public double ClusterBadgeSize { get; set; }
+        public double ClusterCountFontSize { get; set; }
+        public double ZoomScale { get; set; }
+        public int AnimationDurationMs { get; set; }
+        public bool PinShadowEnabled { get; set; }
+        public double PinShadowOpacity { get; set; }
+        public bool ClusterShadowEnabled { get; set; }
+        public double ClusterShadowOpacity { get; set; }
         public double DrawnHeadDiameterPx { get; set; }
         public double DrawnShaftWidthPx { get; set; }
         public double DrawnShaftLengthPx { get; set; }
