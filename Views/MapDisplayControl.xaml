@@ -12,8 +12,7 @@
                Stretch="Fill" 
                HorizontalAlignment="Stretch" 
                VerticalAlignment="Stretch"
-               RenderOptions.BitmapScalingMode="NearestNeighbor"
-               RenderOptions.EdgeMode="Aliased"
+               RenderOptions.BitmapScalingMode="Fant"
                SnapsToDevicePixels="True"/>
         
         <!-- Marker Canvas - fills entire control, markers positioned in screen space -->
