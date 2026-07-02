@@ -272,10 +272,8 @@ namespace InteractiveWorldMap
                     // Load or generate high-quality zoomed region
                     var centerX = cluster.CenterPoint.X;
                     var centerY = cluster.CenterPoint.Y;
-                    var displayWidth = (int)MapDisplay.ActualWidth;
-                    var displayHeight = (int)MapDisplay.ActualHeight;
-                    
-                    var cachedRegion = _zoomedRegionCache.TryLoadRegion(centerX, centerY, ZoomScale, displayWidth, displayHeight);
+                    var request = TryCreateZoomedRegionRenderRequest(viewport, centerX, centerY);
+                    var cachedRegion = request == null ? null : _zoomedRegionCache.TryLoadRegion(request);
                     
                     if (cachedRegion != null)
                     {
@@ -285,13 +283,11 @@ namespace InteractiveWorldMap
                     else
                     {
                         _logger.LogInfo("  Generating high-quality zoomed region...");
-                        var sourceRect = viewport.GetSourceRect();
                         var sourceImage = MapDisplay.SourceImage;
                         
-                        if (sourceImage != null)
+                        if (sourceImage != null && request != null)
                         {
-                            var highQualityRegion = _zoomedRegionCache.GenerateAndCacheRegion(
-                                sourceImage, sourceRect, centerX, centerY, ZoomScale, displayWidth, displayHeight);
+                            var highQualityRegion = _zoomedRegionCache.GenerateAndCacheRegion(sourceImage, request);
                             MapDisplay.DisplayImage.Source = highQualityRegion;
                             _logger.LogInfo("  High-quality zoomed region generated and cached");
                         }

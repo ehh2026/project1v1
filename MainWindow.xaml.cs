@@ -205,7 +205,10 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("AnimationFrameCache created");
 
                 // Initialize zoomed region cache with the full-resolution source image.
-                _zoomedRegionCache = new ZoomedRegionCache(_logger, _contentLoader.GetFullResolutionWorldMapPath());
+                _zoomedRegionCache = new ZoomedRegionCache(
+                    _logger,
+                    _contentLoader.GetFullResolutionWorldMapPath(),
+                    _contentLoader.GetWorldMapPath());
                 _logger.LogInfo("ZoomedRegionCache created");
 
                 // Phase 4: composite render-plan disk cache

@@ -158,6 +158,7 @@ namespace InteractiveWorldMap
                 var oldDrawnShaftLength = _visualConfig.PinMarkers.ShaftLength;
                 var oldPinHitDiameter = _visualConfig.MarkerHitTargets.PinDiameterPx;
                 var oldClusterHitDiameter = _visualConfig.MarkerHitTargets.ClusterDiameterPx;
+                var oldZoomedMapMode = _visualConfig.ZoomedMapRendering.ResamplingMode;
 
                 var newShaftVariant = e.ShaftVariant.Trim();
                 var newHeadVariant = e.HeadVariant.Trim();
@@ -195,7 +196,8 @@ namespace InteractiveWorldMap
                 // Render-only changes: need a visual refresh but do not invalidate cached plans.
                 var renderSettingsChanged =
                     oldUsePrerasterize != e.UsePrerasterize ||
-                    oldShowDebugOverlay != e.ShowDebugOverlay;
+                    oldShowDebugOverlay != e.ShowDebugOverlay ||
+                    oldZoomedMapMode != e.ZoomedMapResamplingMode;
 
                 var drawnDimensionsChanged =
                     !NearlyEqual(oldDrawnHeadDiameter, e.DrawnHeadDiameterPx) ||
@@ -225,6 +227,7 @@ namespace InteractiveWorldMap
                 _visualConfig.PinMarkers.ShaftLength = e.DrawnShaftLengthPx;
                 _visualConfig.MarkerHitTargets.PinDiameterPx = e.PinHitDiameterPx;
                 _visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;
+                _visualConfig.ZoomedMapRendering.ResamplingMode = e.ZoomedMapResamplingMode;
 
                 // Tip cap is a render-only drawn-pin setting; the ReapplyViewAfterTuningChange call
                 // below re-runs UpdatePinTipCaps, which reads these fresh values.
@@ -368,6 +371,7 @@ namespace InteractiveWorldMap
                 PinHitDiameterPx = config.MarkerHitTargets.PinDiameterPx,
                 ClusterHitDiameterPx = config.MarkerHitTargets.ClusterDiameterPx,
                 AutoOpenSingleLocationContentAfterZoom = config.AutoOpenSingleLocationContentAfterZoom,
+                ZoomedMapResamplingMode = config.ZoomedMapRendering.ResamplingMode,
                 TipCapStyle = cap.Style,
                 TipCapAlignment = cap.Alignment,
                 TipCapWidthPx = cap.ResolveWidthPx(outlineWidth),

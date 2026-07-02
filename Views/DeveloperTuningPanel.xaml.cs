@@ -150,6 +150,26 @@ public partial class DeveloperTuningPanel : UserControl
         return DrawnPinTipCapAlignment.ScreenHorizontal;
     }
 
+    private void SetZoomedMapResamplingMode(ZoomedMapResamplingMode mode)
+    {
+        foreach (var item in CmbZoomedMapResampling.Items)
+        {
+            if (item is ComboBoxItem option && option.Content?.ToString() == mode.ToString())
+            {
+                CmbZoomedMapResampling.SelectedItem = option;
+                return;
+            }
+        }
+        CmbZoomedMapResampling.SelectedIndex = 0;
+    }
+
+    private ZoomedMapResamplingMode GetZoomedMapResamplingMode()
+    {
+        var text = (CmbZoomedMapResampling.SelectedItem as ComboBoxItem)?.Content?.ToString();
+        return Enum.TryParse<ZoomedMapResamplingMode>(text, out var mode)
+            ? mode : ZoomedMapResamplingMode.Fant;
+    }
+
     public void LoadValues(VisualConfig config)
     {
         if (config == null) throw new ArgumentNullException(nameof(config));
@@ -162,6 +182,7 @@ public partial class DeveloperTuningPanel : UserControl
             ChkDebugOverlay.IsChecked = config.Debug.ShowCompositePinDebugOverlay;
             ChkUseLitShafts.IsChecked = config.PinParts.UseLitShafts;
             ChkAutoOpenSingleLocationContent.IsChecked = config.AutoOpenSingleLocationContentAfterZoom;
+            SetZoomedMapResamplingMode(config.ZoomedMapRendering.ResamplingMode);
             SelectVariant(CmbShaftVariant, config.PinParts.ShaftAssetVariant);
             SelectVariant(CmbHeadVariant, config.PinParts.HeadAssetVariant);
             TxtClusterThreshold.Text = Format(config.ClusterDistanceThreshold);
@@ -275,6 +296,7 @@ public partial class DeveloperTuningPanel : UserControl
             ShowDebugOverlay = ChkDebugOverlay.IsChecked == true,
             UseLitShafts = ChkUseLitShafts.IsChecked == true,
             AutoOpenSingleLocationContentAfterZoom = ChkAutoOpenSingleLocationContent.IsChecked == true,
+            ZoomedMapResamplingMode = GetZoomedMapResamplingMode(),
             ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim(),
             HeadVariant = GetVariantFromCombo(CmbHeadVariant).Trim(),
             ClusterThreshold = clusterThreshold,

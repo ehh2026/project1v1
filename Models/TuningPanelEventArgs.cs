@@ -8,6 +8,8 @@ namespace InteractiveWorldMap.Models
         public bool ShowDebugOverlay { get; set; }
         public bool UseLitShafts { get; set; }
         public bool AutoOpenSingleLocationContentAfterZoom { get; set; }
+        public ZoomedMapResamplingMode ZoomedMapResamplingMode { get; set; } =
+            ZoomedMapResamplingMode.Fant;
         public string ShaftVariant { get; set; } = string.Empty;
         public string HeadVariant { get; set; } = string.Empty;
         public double ClusterThreshold { get; set; }

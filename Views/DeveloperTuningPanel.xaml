@@ -40,6 +40,19 @@
                               Margin="0,2,0,8"
                               Click="OnPanelInputChanged"
                               ToolTip="After clicking a standalone full-map pin, open that location's content automatically when zoom-in completes."/>
+                    <TextBlock Text="Zoomed map resampling" Style="{StaticResource TuningLabelStyle}"/>
+                    <ComboBox x:Name="CmbZoomedMapResampling"
+                              IsEditable="False"
+                              Background="#222222" Foreground="White"
+                              SelectionChanged="OnVariantSelectionChanged"
+                              ItemContainerStyle="{StaticResource DarkComboBoxItemStyle}"
+                              ToolTip="Resampling used only after zoom settles; animation remains Linear.">
+                        <ComboBoxItem Content="Fant"/>
+                        <ComboBoxItem Content="Lanczos3"/>
+                        <ComboBoxItem Content="MitchellNetravali"/>
+                        <ComboBoxItem Content="Bicubic"/>
+                        <ComboBoxItem Content="BicubicSharpened"/>
+                    </ComboBox>
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

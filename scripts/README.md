@@ -40,4 +40,18 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 
 - [AGENTS.md](../AGENTS.md) — agent entry map
 - [docs/index.md](../docs/index.md) — full documentation catalog
+
+## Zoomed-map resampler comparison
+
+Generate ignored 1080p, 1440p, and 4K comparisons for the `SOUTH` label crop:
+
+```powershell
+dotnet run --project Tools\MapResamplerComparison\MapResamplerComparison.csproj -- `
+  --source "Images&Content\World Map 1976.jpg" `
+  --crop "5160,7390,358,202" `
+  --output "temp\map-resampler-comparison"
+```
+
+Compare letter edges, thin borders, softness, blockiness, ringing, and halos.
+The generated PNGs and timing CSV are local evidence, not product assets.
 - [docs/exec-plans/completed/pin-extraction-script.md](../docs/exec-plans/completed/pin-extraction-script.md) — pin extraction design notes

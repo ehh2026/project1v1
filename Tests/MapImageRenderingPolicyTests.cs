@@ -89,14 +89,14 @@ public class MapImageRenderingPolicyTests
     }
 
     [Fact]
-    public void SettledZoomCrop_ContinuesToUseFant()
+    public void SettledZoomCrop_DefaultsToFantThroughConfiguredResampler()
     {
-        var source = File.ReadAllText(
-            Path.Combine(RepoRoot, "Services", "ZoomedRegionCache.cs"));
+        var config = File.ReadAllText(
+            Path.Combine(RepoRoot, "Models", "ZoomedMapRenderConfig.cs"));
+        var resampler = File.ReadAllText(
+            Path.Combine(RepoRoot, "Services", "ZoomedMapResampler.cs"));
 
-        Assert.Contains(
-            "BitmapScalingMode.Fant",
-            source,
-            StringComparison.Ordinal);
+        Assert.Contains("ZoomedMapResamplingMode.Fant", config, StringComparison.Ordinal);
+        Assert.Contains("BitmapScalingMode.Fant", resampler, StringComparison.Ordinal);
     }
 }
