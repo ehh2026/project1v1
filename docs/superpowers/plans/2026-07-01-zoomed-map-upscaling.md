@@ -10,6 +10,15 @@
 
 **Approved design:** [2026-07-01-zoomed-map-upscaling-design.md](../specs/2026-07-01-zoomed-map-upscaling-design.md)
 
+**Implementation status (July 2, 2026):** Tasks 1-7 are code complete. The
+comparison generator produced all 15 1080p/1440p/4K outputs. Parallelized custom
+generation measures about 1.7-3.3 seconds at 1440p and 3.7-8.8 seconds at 4K on
+the development machine; `Fant` measures about 0.1-0.3 seconds. Automated full
+gate components pass: clean Release build, 579 tests, NuGet audit, seed
+verification, doc links, taste checks, and headless startup. The wrapper itself
+timed out after leaving child `dotnet` processes, so its components were rerun
+individually. Live WPF mode comparison/default selection remains Task 8.
+
 ---
 
 ## File and ownership map

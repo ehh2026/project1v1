@@ -65,7 +65,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 - [ ] Expose zoom level and cluster marker config options (marker size, badge size, font size) in Runtime Tuning panel
-- [ ] Improve settled zoomed-map rendering: generate exact physical-pixel output, strengthen source/DPI/algorithm cache identity, and compare `Fant`, `Lanczos3`, `MitchellNetravali`, `Bicubic`, and restrained sharpened bicubic through Runtime Tuning — [plan](superpowers/plans/2026-07-01-zoomed-map-upscaling.md), [design](superpowers/specs/2026-07-01-zoomed-map-upscaling-design.md)
+- [ ] Manual acceptance for settled zoomed-map rendering: compare the five Runtime Tuning modes on the target monitor, choose the default, and decide whether the measured first-generation custom-filter delay (about 1.7-3.3 seconds at 1440p here; cached afterward) needs further optimization — [plan](superpowers/plans/2026-07-01-zoomed-map-upscaling.md)
 
 ## Medium priority
 
