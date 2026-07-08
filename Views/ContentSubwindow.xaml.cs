@@ -63,7 +63,13 @@ public partial class ContentSubwindow : Window
     /// <param name="locationName">The associated location name (retained for caller compatibility)</param>
     /// <param name="anchorPosition">The position to anchor the window near</param>
     /// <param name="translationText">Optional translation text for the content</param>
-    public void ShowContent(object content, string locationName, Point anchorPosition, string? translationText = null)
+    /// <param name="captionText">Optional caption/explanation text for the selected content</param>
+    public void ShowContent(
+        object content,
+        string locationName,
+        Point anchorPosition,
+        string? translationText = null,
+        string? captionText = null)
     {
         if (content == null)
             throw new ArgumentNullException(nameof(content));
@@ -83,6 +89,11 @@ public partial class ContentSubwindow : Window
         {
             TranslateButton.Visibility = Visibility.Collapsed;
         }
+
+        CaptionText.Text = string.IsNullOrWhiteSpace(captionText)
+            ? string.Empty
+            : captionText.Trim();
+        UpdateCaptionVisibility();
 
         // Render content based on type and calculate size
         if (content is ImageSource imageSource)
@@ -160,6 +171,7 @@ public partial class ContentSubwindow : Window
         ContentBorder.Padding = new Thickness(0);
         ContentBorder.CornerRadius = new CornerRadius(0);
         ContentBorder.Effect = null;
+        CaptionPane.Visibility = Visibility.Collapsed;
 
         Left = ownerBounds.Left;
         Top = ownerBounds.Top;
@@ -185,6 +197,7 @@ public partial class ContentSubwindow : Window
 
         _normalBounds = null;
         IsPresentationMode = false;
+        UpdateCaptionVisibility();
     }
 
     private void ContentSurface_MouseLeftButtonUp(
@@ -236,6 +249,14 @@ public partial class ContentSubwindow : Window
         targetHeight = Math.Max(MinWindowHeight, targetHeight);
 
         PreferredSize = new Size(targetWidth, targetHeight);
+    }
+
+    private void UpdateCaptionVisibility()
+    {
+        CaptionPane.Visibility =
+            !IsPresentationMode && !string.IsNullOrWhiteSpace(CaptionText.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
     /// <summary>

@@ -1,0 +1,1 @@
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. This demo caption is loaded from a same-prefix sidecar file ending in -caption.txt.

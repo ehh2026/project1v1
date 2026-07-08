@@ -72,6 +72,32 @@ public class ContentPresentationModeTests
     }
 
     [Fact]
+    public void TogglePresentationMode_HidesCaptionPaneAndRestoresItAfterExit()
+    {
+        RunOnStaThread(() =>
+        {
+            var window = CreateNormalWindow();
+            window.ShowContent(
+                "Body",
+                "Test",
+                new Point(0, 0),
+                captionText: "Caption about the selected image.");
+            var captionPane = Assert.IsType<Border>(window.FindName("CaptionPane"));
+
+            Assert.Equal(Visibility.Visible, captionPane.Visibility);
+
+            Assert.True(window.TryTogglePresentationMode(new Rect(10, 20, 1000, 700)));
+
+            Assert.Equal(Visibility.Collapsed, captionPane.Visibility);
+
+            Assert.True(window.TryTogglePresentationMode(new Rect(10, 20, 1000, 700)));
+
+            Assert.Equal(Visibility.Visible, captionPane.Visibility);
+            window.Close();
+        });
+    }
+
+    [Fact]
     public void TogglePresentationMode_InvalidBoundsLeavesNormalModeUnchanged()
     {
         RunOnStaThread(() =>

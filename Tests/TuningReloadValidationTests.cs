@@ -285,14 +285,22 @@ public class TuningReloadValidationTests
     {
         var source = File.ReadAllText(
             Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+        var reloadStart = source.IndexOf(
+            "OnReloadTuningFromDisk",
+            System.StringComparison.Ordinal);
+        Assert.True(reloadStart >= 0, "Reload tuning handler not found.");
 
-        var validateIdx = source.IndexOf(
+        var reloadBlock = source.Substring(
+            reloadStart,
+            System.Math.Min(2500, source.Length - reloadStart));
+
+        var validateIdx = reloadBlock.IndexOf(
             "DeveloperTuningPanel.TryValidate(", System.StringComparison.Ordinal);
-        var applyIdx = source.IndexOf(
-            "await ApplyTuningAsync(args)", System.StringComparison.Ordinal);
+        var applyIdx = reloadBlock.IndexOf(
+            "ApplyTuningAsync(args)", System.StringComparison.Ordinal);
 
         Assert.True(validateIdx >= 0, "TryValidate call not found in MainWindow.DeveloperTuning.partial.cs.");
-        Assert.True(applyIdx > validateIdx, "TryValidate must precede await ApplyTuningAsync(args).");
+        Assert.True(applyIdx > validateIdx, "TryValidate must precede ApplyTuningAsync(args) in the reload handler.");
     }
 
     private static TuningPanelEventArgs ValidArgs() => new TuningPanelEventArgs

@@ -10,9 +10,8 @@
         ShowInTaskbar="False"
         Topmost="True">
     <Border x:Name="ContentBorder"
-            Background="#A61E1E1E"
+            Background="#D91E1E1E"
             CornerRadius="12"
-            Padding="15"
             BorderThickness="2"
             BorderBrush="#FFFFFFFF">
         <Border.Effect>
@@ -27,11 +26,13 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="*"/>
                 <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
             
             <!-- Content Area with translation overlay -->
             <Grid x:Name="ContentInteractionSurface"
                   Grid.Row="0"
+                  Margin="15"
                   Background="Transparent"
                   MouseLeftButtonUp="ContentSurface_MouseLeftButtonUp">
                 <Viewbox x:Name="ContentViewbox"
@@ -53,13 +54,13 @@
                     </Viewbox>
                 </Border>
             </Grid>
-            
+
             <!-- Translate Button -->
             <Button x:Name="TranslateButton"
                    Grid.Row="1"
                    Content="Translate"
                    Visibility="Collapsed"
-                   Margin="0,12,0,0"
+                   Margin="15,0,15,12"
                    Padding="20,8"
                    Background="#FF2196F3"
                    Foreground="White"
@@ -90,6 +91,27 @@
                     </Style>
                 </Button.Style>
             </Button>
+
+            <!-- Optional image caption / explanation text -->
+            <Border x:Name="CaptionPane"
+                    Grid.Row="2"
+                    Visibility="Collapsed"
+                    Margin="0"
+                    Padding="12,9"
+                    Background="#FF000000"
+                    BorderBrush="#66FFFFFF"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,10,10"
+                    MaxHeight="160">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled">
+                    <TextBlock x:Name="CaptionText"
+                               Foreground="White"
+                               FontSize="13"
+                               LineHeight="18"
+                               TextWrapping="Wrap"/>
+                </ScrollViewer>
+            </Border>
         </Grid>
     </Border>
 </Window>

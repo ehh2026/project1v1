@@ -44,7 +44,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## User ideas (product)
 
 - [ ] Physical touchscreen smoke check: swiping over a thumbnail scrolls without selecting it; a stationary tap selects it - [plan](exec-plans/active/touch-scrollable-thumbnail-browser-plan.md).
-- [ ] Main content: optionally show information about the selected image/content in a bottom pane or a separate left-side window.
 - [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
 - [ ] Main content images: support image zoom/pan within the content viewer for closer inspection.
 - [ ] When content is maximized, provide a tap-and-hold magnifier for close inspection; define release/cancel behavior and interaction with existing tap-to-restore presentation mode.
@@ -53,6 +52,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish
 - [ ] Wire in actual locations and content; accession-number folder structure
+- [ ] Consider and optimize how images, didactic (bio) text, and captions are stored and read in. Likely keep images in the existing Excel file as extra columns alongside names and coordinates (`image 1 filename`, `image 2 filename`, etc.), then add two new Excel sheets: one for bio text with `Name` and `Bio Text` columns, and one for captions with `Name`, `Image filename`, and `Caption text` columns.
 - [ ] Welcome / instructions screen
 - [ ] Content ordering; bio popup per marker
 - [ ] Don't animate extension lines until fully zoomed in

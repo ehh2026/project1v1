@@ -21,7 +21,7 @@ public interface IContentLoader
     Task<BitmapImage> LoadMapImageAsync();
     Task<List<LocationCluster>> LoadClustersAsync();
     Task<List<Location>> LoadLocationsAsync();
-    Task<(BitmapImage Image, string? TranslationText)[]> LoadAllLocationImagesWithTranslationsAsync(Location location);
+    Task<(BitmapImage Image, string? TranslationText, string? CaptionText)[]> LoadAllLocationImagesWithTranslationsAsync(Location location);
     Task<BitmapImage[]> LoadAllLocationImagesAsync(Location location);
     Task<BitmapImage?> LoadLocationContentAsync(Location location);
     bool ValidateContentFolder();

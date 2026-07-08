@@ -236,6 +236,11 @@ public partial class DeveloperTuningPanel : UserControl
         StatusText.Text = message;
     }
 
+    public bool TryGetCurrentValues(out TuningPanelEventArgs args)
+    {
+        return TryBuildEventArgs(out args);
+    }
+
     private void OnPanelInputChanged(object sender, RoutedEventArgs e)
     {
         if (!_isLoading)

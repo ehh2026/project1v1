@@ -56,7 +56,42 @@ public class ContentWindowHeadingTests
         Assert.DoesNotContain(
             document.Descendants(),
             element => (string?)element.Attribute(Xaml + "Name") == "TitleText");
-        Assert.Equal(2, RootGridRowCount(document));
+        Assert.Equal(3, RootGridRowCount(document));
+        Assert.Contains(
+            document.Descendants(),
+            element => (string?)element.Attribute(Xaml + "Name") == "CaptionPane");
+    }
+
+    [Fact]
+    public void MainContentWindow_CaptionPaneSpansWholeBottomAndIsOpaque()
+    {
+        var document = LoadView("ContentSubwindow.xaml");
+        var rootGrid = RootGrid(document);
+        var captionPane = document
+            .Descendants()
+            .Single(element => (string?)element.Attribute(Xaml + "Name") == "CaptionPane");
+
+        Assert.Equal("2", (string?)captionPane.Attribute("Grid.Row"));
+        Assert.Equal("0", (string?)captionPane.Attribute("Margin"));
+        Assert.Equal("#FF000000", (string?)captionPane.Attribute("Background"));
+
+        var rootGridChildren = rootGrid.Elements().ToList();
+        Assert.Contains(captionPane, rootGridChildren);
+    }
+
+    [Theory]
+    [InlineData("ContentSubwindow.xaml")]
+    [InlineData("DidacticTextWindow.xaml")]
+    [InlineData("ThumbnailBrowserWindow.xaml")]
+    public void PopupWindows_UseMoreOpaqueNormalBackgrounds(string fileName)
+    {
+        var document = LoadView(fileName);
+        var popupBorder = document
+            .Root!
+            .Elements()
+            .First(element => element.Name.LocalName == "Border");
+
+        Assert.Equal("#D91E1E1E", (string?)popupBorder.Attribute("Background"));
     }
 
     [Fact]
@@ -77,10 +112,7 @@ public class ContentWindowHeadingTests
 
     private static int RootGridRowCount(XDocument document)
     {
-        var rootGrid = document
-            .Root!
-            .Descendants()
-            .First(element => element.Name.LocalName == "Grid");
+        var rootGrid = RootGrid(document);
         var rowDefinitions = rootGrid
             .Elements()
             .Single(element => element.Name.LocalName == "Grid.RowDefinitions");
@@ -88,6 +120,12 @@ public class ContentWindowHeadingTests
             .Elements()
             .Count(element => element.Name.LocalName == "RowDefinition");
     }
+
+    private static XElement RootGrid(XDocument document) =>
+        document
+            .Root!
+            .Descendants()
+            .First(element => element.Name.LocalName == "Grid");
 
     private static void RunOnStaThread(Action action)
     {

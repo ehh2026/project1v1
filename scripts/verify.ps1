@@ -39,15 +39,18 @@ if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
 
 Write-Host "[1/8] dotnet restore"
 dotnet restore InteractiveWorldMap.sln
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[2/8] NuGet vulnerability check"
 Invoke-HarnessPython "scripts/verify_nuget_vulnerabilities.py"
 
 Write-Host "[3/8] dotnet build"
 dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[4/8] dotnet test"
 dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[5/8] manual layout seed verification"
 & "$PSScriptRoot\verify_manual_layout_seeds.ps1"

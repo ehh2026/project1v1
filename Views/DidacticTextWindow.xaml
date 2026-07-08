@@ -11,7 +11,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True">
-    <Border Background="#A61E1E1E"
+    <Border Background="#D91E1E1E"
             CornerRadius="12"
             Padding="16"
             BorderThickness="2"

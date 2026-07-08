@@ -9,6 +9,9 @@ namespace InteractiveWorldMap.Tests;
 
 public class VisualConfigServiceTests
 {
+    private static string RepoRoot =>
+        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
+
     [Fact]
     public void ZoomedMapRendering_RoundTripsStringEnum()
     {
@@ -192,6 +195,23 @@ public class VisualConfigServiceTests
         {
             Directory.Delete(tempDir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void DebugConfig_WindowedMode_DefaultsToFullscreen()
+    {
+        var config = new VisualConfig();
+
+        Assert.False(config.Debug.WindowedMode);
+    }
+
+    [Fact]
+    public void CheckedInVisualConfig_RunsFullscreenByDefault()
+    {
+        var config = new VisualConfigService().Load(
+            Path.Combine(RepoRoot, "visual-config.json"));
+
+        Assert.False(config.Debug.WindowedMode);
     }
 
     [Fact]

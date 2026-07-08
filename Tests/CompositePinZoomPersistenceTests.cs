@@ -92,7 +92,7 @@ public class CompositePinZoomPersistenceTests
     public void TurningCompositeOff_ClearsOverrideStore()
     {
         var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
-        var body = ExtractMethodBody(source, "private async Task ApplyTuningAsync");
+        var body = ExtractMethodBody(source, "private async Task<bool> ApplyTuningAsync");
 
         var guardIdx = body.IndexOf("if (turningCompositeOff)", StringComparison.Ordinal);
         Assert.True(guardIdx >= 0, "ApplyTuningAsync must branch on turningCompositeOff.");

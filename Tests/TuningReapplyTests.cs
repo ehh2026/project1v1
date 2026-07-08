@@ -125,6 +125,6 @@ public class TuningReapplyTests
         // Find the closing brace of the guard block (heuristic: next statement line after the if).
         var guardBlock = source.Substring(guardIdx, 300);
         Assert.Contains("SetStatus(", guardBlock);
-        Assert.Contains("return;", guardBlock);
+        Assert.Contains("return false;", guardBlock);
     }
 }

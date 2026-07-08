@@ -271,8 +271,8 @@ public class ContentLoader : IContentLoader
     /// Content is expected to be in a subfolder named after the location.
     /// </summary>
     /// <param name="location">The location to load content for</param>
-    /// <returns>Array of tuples containing BitmapImage and optional translation text</returns>
-    public async Task<(BitmapImage Image, string? TranslationText)[]> LoadAllLocationImagesWithTranslationsAsync(Location location)
+    /// <returns>Array of tuples containing BitmapImage and optional translation/caption text</returns>
+    public async Task<(BitmapImage Image, string? TranslationText, string? CaptionText)[]> LoadAllLocationImagesWithTranslationsAsync(Location location)
     {
         if (location == null)
             throw new ArgumentNullException(nameof(location));
@@ -286,7 +286,7 @@ public class ContentLoader : IContentLoader
             if (!Directory.Exists(locationFolder))
             {
                 _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
-                return Array.Empty<(BitmapImage, string?)>();
+                return Array.Empty<(BitmapImage, string?, string?)>();
             }
 
             // Find all image files in the location folder and sort by filename
@@ -297,10 +297,10 @@ public class ContentLoader : IContentLoader
             if (imageFiles.Length == 0)
             {
                 _logger.LogWarning($"No image files found in location folder: {locationFolder}");
-                return Array.Empty<(BitmapImage, string?)>();
+                return Array.Empty<(BitmapImage, string?, string?)>();
             }
 
-            var results = new (BitmapImage, string?)[imageFiles.Length];
+            var results = new (BitmapImage, string?, string?)[imageFiles.Length];
             
             for (int i = 0; i < imageFiles.Length; i++)
             {
@@ -309,25 +309,20 @@ public class ContentLoader : IContentLoader
                 // Load image
                 var image = await Task.Run(() => LoadFrozenBitmap(imagePath));
 
-                // Look for corresponding translation text file
+                // Look for corresponding translation and caption sidecars.
                 var imageFileNameWithoutExt = Path.GetFileNameWithoutExtension(imagePath);
-                var translationPath = Path.Combine(locationFolder, imageFileNameWithoutExt + ".txt");
-                
-                string? translationText = null;
-                if (File.Exists(translationPath))
-                {
-                    try
-                    {
-                        translationText = await File.ReadAllTextAsync(translationPath);
-                        _logger.LogInfo($"  Found translation for: {imageFileNameWithoutExt}");
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning($"Failed to read translation file {translationPath}: {ex.Message}");
-                    }
-                }
+                var translationText = await TryReadSidecarTextAsync(
+                    locationFolder,
+                    imageFileNameWithoutExt + ".txt",
+                    "translation",
+                    imageFileNameWithoutExt);
+                var captionText = await TryReadSidecarTextAsync(
+                    locationFolder,
+                    imageFileNameWithoutExt + "-caption.txt",
+                    "caption",
+                    imageFileNameWithoutExt);
 
-                results[i] = (image, translationText);
+                results[i] = (image, translationText, captionText);
             }
 
             _logger.LogInfo($"Successfully loaded {results.Length} images with translations for location: {location.Name}");
@@ -336,7 +331,7 @@ public class ContentLoader : IContentLoader
         catch (Exception ex)
         {
             _logger.LogError($"Failed to load images with translations for location {location.Name}: {ex.Message}\n{ex.StackTrace}");
-            return Array.Empty<(BitmapImage, string?)>();
+            return Array.Empty<(BitmapImage, string?, string?)>();
         }
     }
 
@@ -473,6 +468,29 @@ public class ContentLoader : IContentLoader
             .Concat(Directory.GetFiles(folder, "*.png"))
             .Concat(Directory.GetFiles(folder, "*.jpeg"))
             .ToArray();
+
+    private async Task<string?> TryReadSidecarTextAsync(
+        string folder,
+        string fileName,
+        string label,
+        string imagePrefix)
+    {
+        var path = Path.Combine(folder, fileName);
+        if (!File.Exists(path))
+            return null;
+
+        try
+        {
+            var text = await File.ReadAllTextAsync(path);
+            _logger.LogInfo($"  Found {label} for: {imagePrefix}");
+            return text;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning($"Failed to read {label} file {path}: {ex.Message}");
+            return null;
+        }
+    }
 
     /// <summary>
     /// Loads didactic text from a location's folder if it exists.

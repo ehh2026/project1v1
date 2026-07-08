@@ -87,13 +87,22 @@ namespace InteractiveWorldMap
             }
         }
 
-        private void OnSaveTuningToDisk(object? sender, EventArgs e)
+        private async void OnSaveTuningToDisk(object? sender, EventArgs e)
         {
             if (!CanRunTuningAction("save"))
                 return;
 
             try
             {
+                if (!DeveloperTuningPanel.TryGetCurrentValues(out var args))
+                {
+                    DeveloperTuningPanel.SetStatus("Save rejected: fix invalid tuning values first.");
+                    return;
+                }
+
+                if (!await ApplyTuningAsync(args))
+                    return;
+
                 _configService.Save(_visualConfig, _configPath);
                 DeveloperTuningPanel.SetStatus($"Saved tuning values to {_configPath}.");
                 _logger.LogInfo($"[Tuning] Saved visual config to {_configPath}");
@@ -122,7 +131,9 @@ namespace InteractiveWorldMap
                 }
 
                 RefreshTuningPanelVariantOptions(fresh.PinParts.ShaftAssetVariant, fresh.PinParts.HeadAssetVariant);
-                await ApplyTuningAsync(args);
+                if (!await ApplyTuningAsync(args))
+                    return;
+
                 DeveloperTuningPanel.SetStatus($"Reloaded tuning values from {_configPath}.");
             }
             catch (Exception ex)
@@ -132,10 +143,10 @@ namespace InteractiveWorldMap
             }
         }
 
-        private async Task ApplyTuningAsync(TuningPanelEventArgs e)
+        private async Task<bool> ApplyTuningAsync(TuningPanelEventArgs e)
         {
             if (!CanRunTuningAction("apply"))
-                return;
+                return false;
 
             _isTuningBusy = true;
             try
@@ -185,7 +196,7 @@ namespace InteractiveWorldMap
                 if (needsRecreate && _currentZoomedCluster != null)
                 {
                     DeveloperTuningPanel.SetStatus("Zoom out to apply cluster/marker-size changes.");
-                    return;
+                    return false;
                 }
 
                 var assetVariantChanged =
@@ -299,11 +310,13 @@ namespace InteractiveWorldMap
                 DeveloperTuningPanel.LoadValues(_visualConfig);
                 DeveloperTuningPanel.SetStatus("Applied tuning values.");
                 _logger.LogInfo("[Tuning] Applied runtime tuning values.");
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError($"[Tuning] Failed to apply runtime tuning values: {ex.Message}");
                 DeveloperTuningPanel.SetStatus("Apply failed; see log for details.");
+                return false;
             }
             finally
             {

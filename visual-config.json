@@ -95,7 +95,7 @@
     "LogAnimationFrames": false,
     "ShowCompositePinDebugOverlay": false,
     "EnableTuningPanel": true,
-    "WindowedMode": true,
+    "WindowedMode": false,
     "WindowedWidth": 1280,
     "WindowedHeight": 800
   }

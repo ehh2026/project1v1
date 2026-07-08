@@ -91,15 +91,15 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Shows a specific image from a location's image collection.
         /// </summary>
-        private async Task ShowImageAtIndexAsync(Location location, (BitmapImage Image, string? TranslationText)[] allImagesWithTranslations, int index)
+        private async Task ShowImageAtIndexAsync(Location location, (BitmapImage Image, string? TranslationText, string? CaptionText)[] allImagesWithTranslations, int index)
         {
-            var (image, translationText) = allImagesWithTranslations[index];
+            var (image, translationText, captionText) = allImagesWithTranslations[index];
             
             // Create and show content subwindow
             _activeSubwindow = CreateContentSubwindow(location);
 
             var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-            _activeSubwindow.ShowContent(image, location.Name, markerPosition, translationText);
+            _activeSubwindow.ShowContent(image, location.Name, markerPosition, translationText, captionText);
 
             // Load and show didactic text if available
             var didacticText = await _contentLoader.LoadDidacticTextAsync(location);
@@ -139,9 +139,9 @@ namespace InteractiveWorldMap
                 {
                     if (_activeSubwindow != null)
                     {
-                        var (selectedImage, selectedTranslation) = allImagesWithTranslations[selectedIndex];
+                        var (selectedImage, selectedTranslation, selectedCaption) = allImagesWithTranslations[selectedIndex];
                         var newMarkerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-                        _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation);
+                        _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation, selectedCaption);
                         _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
                     }
                 };

@@ -447,4 +447,41 @@ public class TuningPanelWiringTests
             validateIndex < refreshIndex,
             "Reload must validate disk values before refreshing variant combo lists.");
     }
+
+    [Fact]
+    public void SaveTuning_ValidatesAndAppliesPanelValuesBeforeWritingDisk()
+    {
+        var mainWindowSource = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+        var panelSource = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml.cs"));
+
+        Assert.Contains(
+            "public bool TryGetCurrentValues(out TuningPanelEventArgs args)",
+            panelSource);
+        Assert.Contains(
+            "if (!DeveloperTuningPanel.TryGetCurrentValues(out var args))",
+            mainWindowSource);
+        Assert.Contains("if (!await ApplyTuningAsync(args))", mainWindowSource);
+
+        var saveStart = mainWindowSource.IndexOf(
+            "OnSaveTuningToDisk",
+            StringComparison.Ordinal);
+        Assert.True(saveStart >= 0, "Save tuning handler not found.");
+        var saveBlock = mainWindowSource.Substring(
+            saveStart,
+            Math.Min(1600, mainWindowSource.Length - saveStart));
+        var applyIndex = saveBlock.IndexOf(
+            "ApplyTuningAsync(args)",
+            StringComparison.Ordinal);
+        var saveIndex = saveBlock.IndexOf(
+            "_configService.Save(_visualConfig, _configPath)",
+            StringComparison.Ordinal);
+
+        Assert.True(applyIndex >= 0, "Save must apply current panel values first.");
+        Assert.True(saveIndex >= 0, "Save must still write visual-config.json.");
+        Assert.True(
+            applyIndex < saveIndex,
+            "Save must persist the just-applied panel values, not stale _visualConfig values.");
+    }
 }
