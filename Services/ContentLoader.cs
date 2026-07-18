@@ -281,46 +281,44 @@ public class ContentLoader : IContentLoader
         {
             _logger.LogInfo($"Loading all images with translations for location: {location.Name}");
 
-            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
-            
-            if (!Directory.Exists(locationFolder))
-            {
-                _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
-                return Array.Empty<(BitmapImage, string?, string?)>();
-            }
-
-            // Find all image files in the location folder and sort by filename
-            var imageFiles = FindImageFiles(locationFolder)
-                .OrderBy(f => Path.GetFileName(f))
-                .ToArray();
-
+            var imageFiles = ResolveLocationImageFiles(location);
             if (imageFiles.Length == 0)
             {
-                _logger.LogWarning($"No image files found in location folder: {locationFolder}");
+                _logger.LogWarning($"No image files found for location {location.Name}");
                 return Array.Empty<(BitmapImage, string?, string?)>();
             }
 
             var results = new (BitmapImage, string?, string?)[imageFiles.Length];
+            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
             
             for (int i = 0; i < imageFiles.Length; i++)
             {
                 var imagePath = imageFiles[i];
+                if (!Path.IsPathRooted(imagePath))
+                {
+                    imagePath = Path.Combine(locationFolder, imagePath);
+                }
+
+                if (!File.Exists(imagePath))
+                {
+                    _logger.LogWarning($"Missing image file for location {location.Name}: {imagePath}");
+                    continue;
+                }
                 
                 // Load image
                 var image = await Task.Run(() => LoadFrozenBitmap(imagePath));
 
-                // Look for corresponding translation and caption sidecars.
-                var imageFileNameWithoutExt = Path.GetFileNameWithoutExtension(imagePath);
-                var translationText = await TryReadSidecarTextAsync(
+                var imageFileName = Path.GetFileName(imagePath);
+                var translationText = location.DidacticText ?? await TryReadSidecarTextAsync(
                     locationFolder,
-                    imageFileNameWithoutExt + ".txt",
+                    Path.GetFileNameWithoutExtension(imageFileName) + ".txt",
                     "translation",
-                    imageFileNameWithoutExt);
-                var captionText = await TryReadSidecarTextAsync(
+                    Path.GetFileNameWithoutExtension(imageFileName)) ?? await LoadDidacticTextAsync(location);
+                var captionText = GetCaptionText(location, imageFileName) ?? await TryReadSidecarTextAsync(
                     locationFolder,
-                    imageFileNameWithoutExt + "-caption.txt",
+                    Path.GetFileNameWithoutExtension(imageFileName) + "-caption.txt",
                     "caption",
-                    imageFileNameWithoutExt);
+                    Path.GetFileNameWithoutExtension(imageFileName));
 
                 results[i] = (image, translationText, captionText);
             }
@@ -492,6 +490,43 @@ public class ContentLoader : IContentLoader
         }
     }
 
+    private string[] ResolveLocationImageFiles(Location location)
+    {
+        if (location.ImageFileNames.Count > 0)
+        {
+            return location.ImageFileNames
+                .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
+                .OrderBy(fileName => ExtractLeadingSortKey(fileName ?? string.Empty))
+                .ThenBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+        }
+
+        var folder = Path.Combine(ContentFolderPath, location.Name);
+        if (!Directory.Exists(folder))
+            return Array.Empty<string>();
+
+        return FindImageFiles(folder)
+            .Select(Path.GetFileName)
+            .Where(fileName => !string.IsNullOrWhiteSpace(fileName))
+            .OrderBy(fileName => ExtractLeadingSortKey(fileName ?? string.Empty))
+            .ThenBy(fileName => fileName, StringComparer.OrdinalIgnoreCase)
+            .ToArray()!;
+    }
+
+    private string? GetCaptionText(Location location, string imageFileName)
+    {
+        return location.CaptionsByImageFileName.TryGetValue(imageFileName, out var caption)
+            ? caption
+            : null;
+    }
+
+    private static int ExtractLeadingSortKey(string fileName)
+    {
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var digits = new string(baseName.TakeWhile(char.IsDigit).ToArray());
+        return int.TryParse(digits, out var value) ? value : int.MaxValue;
+    }
+
     /// <summary>
     /// Loads didactic text from a location's folder if it exists.
     /// </summary>
@@ -504,6 +539,11 @@ public class ContentLoader : IContentLoader
 
         try
         {
+            if (!string.IsNullOrWhiteSpace(location.DidacticText))
+            {
+                return location.DidacticText;
+            }
+
             var locationFolder = Path.Combine(ContentFolderPath, location.Name);
             var didacticPath = Path.Combine(locationFolder, "didactic.txt");
 

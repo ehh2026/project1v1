@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace InteractiveWorldMap.Models
 {
     /// <summary>
@@ -29,6 +31,21 @@ namespace InteractiveWorldMap.Models
         /// Path to the content file associated with this location.
         /// </summary>
         public string ContentFilePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Ordered image file names associated with this location.
+        /// </summary>
+        public List<string> ImageFileNames { get; set; } = new();
+
+        /// <summary>
+        /// Didactic bio text associated with this location.
+        /// </summary>
+        public string? DidacticText { get; set; }
+
+        /// <summary>
+        /// Captions keyed by image file name.
+        /// </summary>
+        public Dictionary<string, string> CaptionsByImageFileName { get; set; } = new();
 
         /// <summary>
         /// Type of content (Image or Text).
