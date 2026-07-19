@@ -202,7 +202,10 @@ public class ExcelCoordinateReader
         if (!cellValues.TryGetValue("A", out var name) || string.IsNullOrWhiteSpace(name))
             return null;
 
-        if (!TryGetDouble(cellValues, "B", out var pixelX) || !TryGetDouble(cellValues, "C", out var pixelY))
+        if (!TryGetDouble(cellValues, "E", out var pixelX) && !TryGetDouble(cellValues, "B", out pixelX))
+            return null;
+
+        if (!TryGetDouble(cellValues, "F", out var pixelY) && !TryGetDouble(cellValues, "C", out pixelY))
             return null;
 
         var location = new Location

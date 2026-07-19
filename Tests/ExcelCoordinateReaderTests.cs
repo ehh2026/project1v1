@@ -26,8 +26,8 @@ public class ExcelCoordinateReaderTests
 
             var location = Assert.Single(locations);
             Assert.Equal("Kevin", location.Name);
-            Assert.Equal(4920, location.PixelX);
-            Assert.Equal(5153, location.PixelY);
+            Assert.Equal(2460, location.PixelX);
+            Assert.Equal(2577, location.PixelY);
             Assert.Equal("New York, NY", location.ContentFilePath);
             Assert.Equal(new[] { "1-letter-product-pic.jpg", "2-second-image.jpg" }, location.ImageFileNames);
             Assert.Equal("Bio text from workbook", location.DidacticText);
@@ -100,16 +100,20 @@ public class ExcelCoordinateReaderTests
       <c r=""B1"" t=""inlineStr""><is><t>Coordinate X</t></is></c>
       <c r=""C1"" t=""inlineStr""><is><t>Coordinates Y</t></is></c>
       <c r=""D1"" t=""inlineStr""><is><t>Address</t></is></c>
-      <c r=""E1"" t=""inlineStr""><is><t>Image 1 filename</t></is></c>
-      <c r=""F1"" t=""inlineStr""><is><t>Image 2 filename</t></is></c>
+      <c r=""E1"" t=""inlineStr""><is><t>Coordinate X halfsize</t></is></c>
+      <c r=""F1"" t=""inlineStr""><is><t>Coordinate Y halfsize</t></is></c>
+      <c r=""G1"" t=""inlineStr""><is><t>Image 1 filename</t></is></c>
+      <c r=""H1"" t=""inlineStr""><is><t>Image 2 filename</t></is></c>
     </row>
     <row r=""2"">
       <c r=""A2"" t=""inlineStr""><is><t>Kevin</t></is></c>
       <c r=""B2""><v>4920</v></c>
       <c r=""C2""><v>5153</v></c>
       <c r=""D2"" t=""inlineStr""><is><t>New York, NY</t></is></c>
-      <c r=""E2"" t=""inlineStr""><is><t>1-letter-product-pic.jpg</t></is></c>
-      <c r=""F2"" t=""inlineStr""><is><t>2-second-image.jpg</t></is></c>
+      <c r=""E2""><v>2460</v></c>
+      <c r=""F2""><v>2577</v></c>
+      <c r=""G2"" t=""inlineStr""><is><t>1-letter-product-pic.jpg</t></is></c>
+      <c r=""H2"" t=""inlineStr""><is><t>2-second-image.jpg</t></is></c>
     </row>
   </sheetData>
 </worksheet>");
