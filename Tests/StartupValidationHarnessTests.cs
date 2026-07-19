@@ -26,16 +26,16 @@ public class StartupValidationHarnessTests
     [Fact]
     public void Repo_VisualConfig_Deserializes()
     {
-        var configPath = Path.Combine(RepoRoot, "visual-config.json");
+        var configPath = Path.Combine(RepoRoot, "visual-config.default.json");
         Assert.True(File.Exists(configPath),
-            $"REMEDIATION: Add visual-config.json at repo root");
+            $"REMEDIATION: Add visual-config.default.json at repo root");
 
         var config = new VisualConfigService().Load(configPath);
         Assert.NotNull(config);
         Assert.True(config.ClusterDistanceThreshold > 0,
-            "REMEDIATION: Set valid ClusterDistanceThreshold in visual-config.json");
+            "REMEDIATION: Set valid ClusterDistanceThreshold in visual-config.default.json");
         Assert.False(config.Debug.ShowCompositePinDebugOverlay,
-            "REMEDIATION: Keep composite pin debug overlay disabled by default in visual-config.json");
+            "REMEDIATION: Keep composite pin debug overlay disabled by default in visual-config.default.json");
     }
 
     [Fact]

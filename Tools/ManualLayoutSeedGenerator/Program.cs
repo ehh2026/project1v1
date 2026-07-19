@@ -17,7 +17,7 @@ internal static class Program
         {
             var parsed = CliOptions.Parse(args);
             var logger = new ConsoleLogger();
-            var config = new VisualConfigService().Load(parsed.ConfigPath);
+            var config = new VisualConfigService().Load(ResolveConfigPath(parsed.ConfigPath));
             var locations = new ExcelCoordinateReader(logger).ReadLocationsFromExcel(parsed.ExcelPath);
             var (imageWidth, imageHeight) = ReadImageDimensions(parsed.MapImagePath);
             var existing = LoadExisting(parsed.OutputPath);
@@ -45,6 +45,19 @@ internal static class Program
             Console.Error.WriteLine(ex.Message);
             return 1;
         }
+    }
+
+    // A fresh checkout has no user visual-config.json (it is seeded at app runtime), so fall
+    // back to the tracked visual-config.default.json when the requested file is absent.
+    private static string ResolveConfigPath(string requested)
+    {
+        if (File.Exists(requested))
+            return requested;
+
+        var fallback = Path.Combine(
+            Path.GetDirectoryName(requested) ?? string.Empty,
+            "visual-config.default.json");
+        return File.Exists(fallback) ? fallback : requested;
     }
 
     private static ManualLayoutCollection LoadExisting(string outputPath)

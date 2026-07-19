@@ -4,7 +4,14 @@ The application now supports runtime configuration of visual parameters through 
 
 ## Configuration File
 
-The configuration is stored in `visual-config.json` in the application root directory. This file is automatically created with default values on first run if it doesn't exist.
+There are two files:
+
+- **`visual-config.default.json`** — tracked in git, ships the baseline defaults. Updates change this file. Do not store personal tweaks here.
+- **`visual-config.json`** — your local, gitignored copy. It is seeded from the default file on first run and is where your tuning (and the Runtime Tuning panel's Save) is written.
+
+On load, the app reads the default file as a baseline and overlays your `visual-config.json` on top (a deep merge): values you set win, while any settings newly added to a later `visual-config.default.json` still flow through to you. This means **your local tuning survives `git pull`/updates**, and you never hit a merge conflict on the tracked config.
+
+Both files live in the application root directory (and are copied to the build output). If `visual-config.json` is missing it is recreated from the default file.
 
 ## Available Settings
 
@@ -29,6 +36,7 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - `PinMarkers`
 - `RadialExtension`
 - `ManualLayoutEditor`
+- `ContentWindows`
 - `Debug`
 
 ## Developer Tools Master Gate
@@ -247,9 +255,55 @@ When set to `true` and composite rendering is also enabled for the current marke
 
 This is intended for tuning and screenshot-based inspection only, and should normally remain `false`.
 
+## ContentWindows
+
+Appearance of the three content popups — the image/text subwindow, the didactic text window, and the thumbnail browser. One shared style block applies to all three. Colors use RGB hex with a **separate opacity** (0.0–1.0) for the two translucent surfaces, so hue and translucency can be tuned independently; border/text colors take an ARGB hex directly. Font family is global; font sizes are per-role.
+
+```json
+"ContentWindows": {
+  "FontFamily": "Segoe UI",
+  "Popup": {
+    "BackgroundColor": "#1E1E1E",
+    "BackgroundOpacity": 0.70,
+    "BorderColor": "#FFFFFFFF",
+    "BorderThickness": 2.0,
+    "CornerRadius": 12.0,
+    "TextColor": "#FFFFFFFF",
+    "HeadingFontSize": 18.0,
+    "BodyFontSize": 14.0
+  },
+  "Caption": {
+    "BackgroundColor": "#000000",
+    "BackgroundOpacity": 0.85,
+    "TopBorderColor": "#66FFFFFF",
+    "TextColor": "#FFFFFFFF",
+    "FontSize": 13.0
+  }
+}
+```
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `FontFamily` | `Segoe UI` | Font family for all popup text |
+| `Popup.BackgroundColor` | `#1E1E1E` | Popup body fill (RGB; opacity applied separately) |
+| `Popup.BackgroundOpacity` | `0.70` | Popup body translucency (`0.0`–`1.0`) |
+| `Popup.BorderColor` | `#FFFFFFFF` | Popup border (ARGB) |
+| `Popup.BorderThickness` | `2.0` | Popup border width (px) |
+| `Popup.CornerRadius` | `12.0` | Popup corner radius (px) |
+| `Popup.TextColor` | `#FFFFFFFF` | Heading/body text color (ARGB) |
+| `Popup.HeadingFontSize` | `18.0` | Didactic heading font size |
+| `Popup.BodyFontSize` | `14.0` | Didactic body font size |
+| `Caption.BackgroundColor` | `#000000` | Caption pane fill (RGB) |
+| `Caption.BackgroundOpacity` | `0.85` | Caption pane translucency (`0.0`–`1.0`) |
+| `Caption.TopBorderColor` | `#66FFFFFF` | Caption top divider (ARGB) |
+| `Caption.TextColor` | `#FFFFFFFF` | Caption text color (ARGB) |
+| `Caption.FontSize` | `13.0` | Caption text font size |
+
+These are JSON-editable today; exposing them in the Runtime Tuning panel is planned as a follow-up.
+
 ## How to Use
 
-1. **Edit the config file**: Open `visual-config.json` in the project root directory
+1. **Edit the config file**: Open your local `visual-config.json` in the project root directory (created on first run). To change the shipped defaults for everyone, edit `visual-config.default.json` instead.
 2. **Modify values**: Change any of the numeric values to your preference
 3. **Save the file**: Save your changes
 4. **Rebuild the application**: Build the project to copy the config to the output directory
@@ -258,9 +312,9 @@ This is intended for tuning and screenshot-based inspection only, and should nor
 ### Quick Testing (Without Rebuild)
 
 If you want to test changes immediately without rebuilding:
-- Edit the config file in the build output directory: `bin\Debug\net6.0-windows\visual-config.json`
+- Edit the user config in the build output directory: `bin\Debug\net6.0-windows\visual-config.json`
 - Restart the application
-- Note: This file will be overwritten on next build if the source file is newer
+- Note: this output-dir user file is **not** overwritten by builds, so your edits persist. (The shipped `visual-config.default.json` is the one copied with `PreserveNewest`.)
 
 ## Example Configurations
 

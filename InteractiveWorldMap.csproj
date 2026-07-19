@@ -29,7 +29,7 @@
     <None Update="Coordinates for map.xlsx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="visual-config.json">
+    <None Update="visual-config.default.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

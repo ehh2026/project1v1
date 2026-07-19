@@ -1,5 +1,7 @@
 using System;
 using System.Windows;
+using System.Windows.Media;
+using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views;
 
@@ -14,6 +16,29 @@ public partial class DidacticTextWindow : Window
         
         // Start with opacity 0 for animation
         Opacity = 0;
+    }
+
+    /// <summary>
+    /// Applies configured popup colors, opacity, and fonts. Call before the window is shown.
+    /// </summary>
+    public void ApplyStyle(ContentWindowConfig style)
+    {
+        if (style == null) return;
+
+        var fontFamily = new FontFamily(style.FontFamily);
+        FontFamily = fontFamily;
+
+        RootBorder.Background = ContentWindowTheme.ToBrush(
+            style.Popup.BackgroundColor, style.Popup.BackgroundOpacity, Color.FromRgb(0x1E, 0x1E, 0x1E));
+        RootBorder.BorderBrush = ContentWindowTheme.ToBrush(style.Popup.BorderColor, Colors.White);
+        RootBorder.BorderThickness = new Thickness(style.Popup.BorderThickness);
+        RootBorder.CornerRadius = new CornerRadius(style.Popup.CornerRadius);
+
+        var textBrush = ContentWindowTheme.ToBrush(style.Popup.TextColor, Colors.White);
+        HeadingText.Foreground = textBrush;
+        HeadingText.FontSize = style.Popup.HeadingFontSize;
+        DidacticTextBlock.Foreground = textBrush;
+        DidacticTextBlock.FontSize = style.Popup.BodyFontSize;
     }
 
     /// <summary>

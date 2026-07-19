@@ -121,7 +121,7 @@ namespace InteractiveWorldMap
 
             try
             {
-                var fresh = _configService.Load(_configPath);
+                var fresh = _configService.Load(_configPath, _defaultConfigPath);
                 var args = CreateTuningArgs(fresh);
                 if (!DeveloperTuningPanel.TryValidate(args, out var error))
                 {

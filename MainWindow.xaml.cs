@@ -72,6 +72,7 @@ namespace InteractiveWorldMap
         private DrawnPinMarkerFactory _drawnPinFactory = null!;
         private readonly VisualConfigService _configService;
         private readonly string _configPath;
+        private readonly string _defaultConfigPath;
         
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
         private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
@@ -133,9 +134,11 @@ namespace InteractiveWorldMap
                 _configService = new VisualConfigService(message => _logger.LogWarning(message));
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
-                // Load visual configuration
+                // Load visual configuration: user file overlaid on shipped defaults so local
+                // tuning survives updates (see docs/guides/VISUAL_CONFIG.md).
                 _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
-                _visualConfig = _configService.Load(_configPath);
+                _defaultConfigPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.default.json");
+                _visualConfig = _configService.Load(_configPath, _defaultConfigPath);
                 _drawnPinFactory = new DrawnPinMarkerFactory(_visualConfig);
                 _logger.LogInfo($"Visual config loaded from: {_configPath}");
 

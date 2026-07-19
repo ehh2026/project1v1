@@ -15,6 +15,13 @@ bld/
 [Ll]og/
 [Ll]ogs/
 
+# Test run artifacts (coverage, TRX)
+Tests/TestResults/
+
+# User-local visual config (seeded from visual-config.default.json on first run).
+# Kept out of git so local tuning survives pulls; see docs/guides/VISUAL_CONFIG.md.
+/visual-config.json
+
 # Visual Studio cache/options
 .vs/
 .vscode/

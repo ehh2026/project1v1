@@ -112,7 +112,7 @@ Effective stack depth: **0 or 1** (`CanGoBack` is a boolean gate). Not multi-lev
 
 ### Config (live)
 
-From [visual-config.json](../../visual-config.json):
+From [visual-config.default.json](../../visual-config.default.json):
 
 | Key | Value | Role |
 |-----|-------|------|

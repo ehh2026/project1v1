@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** July 1, 2026
+**Last updated:** July 19, 2026
 
 ## Zoom & animation
 
@@ -51,6 +51,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 - [ ] Keep popup windows contained within the main map window, with popup position and scale derived from the main window's current bounds (lower priority for the full-screen gallery deployment, but required for windowed use).
 - [ ] Home / welcome screen before map
 - [ ] Larger popup windows; general UI polish
+- [ ] Organize `Images&Content/`: create `Assets/`, `Demo Content/`, and `Production Content/` subfolders, migrate existing assets/content into them, and wire the app to load from the appropriate folder (config- or mode-driven selection between demo and production content) — [plan](exec-plans/active/content-folder-reorganization-plan.md) (NEEDS REVIEW).
 - [ ] Wire in actual locations and content; accession-number folder structure
 - [ ] Consider and optimize how images, didactic (bio) text, and captions are stored and read in. Likely keep images in the existing Excel file as extra columns alongside names and coordinates (`image 1 filename`, `image 2 filename`, etc.), then add two new Excel sheets: one for bio text with `Name` and `Bio Text` columns, and one for captions with `Name`, `Image filename`, and `Caption text` columns.
 - [ ] Welcome / instructions screen

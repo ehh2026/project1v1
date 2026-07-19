@@ -112,6 +112,11 @@ namespace InteractiveWorldMap.Models
 
         public ZoomedMapRenderConfig ZoomedMapRendering { get; set; } = new ZoomedMapRenderConfig();
 
+        /// <summary>
+        /// Appearance of the content popup windows (background/border colors, opacity, fonts).
+        /// </summary>
+        public ContentWindowConfig ContentWindows { get; set; } = new ContentWindowConfig();
+
     }
 }
 

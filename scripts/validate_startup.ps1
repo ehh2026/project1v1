@@ -27,16 +27,16 @@ if (-not (Test-Path $ContentPath)) {
     exit 1
 }
 
-Write-Host "[3/4] visual-config.json"
-$ConfigPath = Join-Path $Root "visual-config.json"
+Write-Host "[3/4] visual-config.default.json"
+$ConfigPath = Join-Path $Root "visual-config.default.json"
 if (-not (Test-Path $ConfigPath)) {
-    Write-Error "visual-config.json missing. REMEDIATION: Add config at repo root."
+    Write-Error "visual-config.default.json missing. REMEDIATION: Add default config at repo root."
     exit 1
 }
 try {
     $null = Get-Content $ConfigPath -Raw | ConvertFrom-Json
 } catch {
-    Write-Error "visual-config.json invalid JSON. REMEDIATION: Fix JSON syntax."
+    Write-Error "visual-config.default.json invalid JSON. REMEDIATION: Fix JSON syntax."
     exit 1
 }
 
