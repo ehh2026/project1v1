@@ -24,7 +24,8 @@ public class ExcelCoordinateReaderTests
 
             var locations = reader.ReadLocationsFromExcel(excelPath);
 
-            var location = Assert.Single(locations);
+            Assert.Equal(2, locations.Count);
+            var location = Assert.Single(locations, loc => loc.Name == "Kevin");
             Assert.Equal("Kevin", location.Name);
             Assert.Equal(2460, location.PixelX);
             Assert.Equal(2577, location.PixelY);
@@ -33,6 +34,10 @@ public class ExcelCoordinateReaderTests
             Assert.Equal("Bio text from workbook", location.DidacticText);
             Assert.Equal("CAPTION", location.CaptionsByImageFileName["1-letter-product-pic.jpg"]);
             Assert.Equal("CAPTION", location.CaptionsByImageFileName["2-second-image.jpg"]);
+
+            var halfOnly = Assert.Single(locations, loc => loc.Name == "Half Only");
+            Assert.Equal(6378, halfOnly.PixelX);
+            Assert.Equal(2933, halfOnly.PixelY);
         }
         finally
         {
@@ -114,6 +119,11 @@ public class ExcelCoordinateReaderTests
       <c r=""F2""><v>2577</v></c>
       <c r=""G2"" t=""inlineStr""><is><t>1-letter-product-pic.jpg</t></is></c>
       <c r=""H2"" t=""inlineStr""><is><t>2-second-image.jpg</t></is></c>
+    </row>
+    <row r=""3"">
+      <c r=""A3"" t=""inlineStr""><is><t>Half Only</t></is></c>
+      <c r=""E3""><v>6378</v></c>
+      <c r=""F3""><v>2933</v></c>
     </row>
   </sheetData>
 </worksheet>");
