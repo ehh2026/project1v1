@@ -1,0 +1,19 @@
+#!/bin/sh
+set -u
+
+if command -v py >/dev/null 2>&1; then
+  PYTHON_CMD="py -3"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_CMD="python3"
+else
+  PYTHON_CMD="python"
+fi
+
+echo "Running advisory pre-push checks..."
+
+$PYTHON_CMD scripts/verify_doc_links.py || exit 1
+$PYTHON_CMD scripts/verify_taste.py || exit 1
+$PYTHON_CMD scripts/advisory_code_health.py || true
+
+echo "Advisory pre-push checks finished."
+echo "Tip: run .\\scripts\\verify.ps1 before merge-ready pushes."

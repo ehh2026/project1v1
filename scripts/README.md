@@ -31,10 +31,39 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `verify_nuget_vulnerabilities.py` | `verify.ps1`, `verify.sh`, CI | stdlib | Fail on High/Critical NuGet advisories |
 | `verify_doc_links.py` | `verify.ps1`, `verify.sh`, doc-gardening CI | stdlib | Markdown link integrity |
 | `verify_taste.py` | `verify.ps1`, `verify.sh` | stdlib | Architecture taste invariants (Views, JObject, etc.) |
+| `advisory_code_health.py` | Pre-push, advisory CI | stdlib | Non-blocking largest-file, advisory size, and approximate method complexity report |
+| `summarize_coverage.py` | Advisory CI | stdlib | Summarize Cobertura coverage emitted by `dotnet test --collect:"XPlat Code Coverage"` |
+| `install_git_hooks.ps1` | Manual | Git | Configure local `core.hooksPath` to use `.githooks/pre-push` |
+| `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 | `create_head_asset_variants.py` | Manual | venv | Generate black-outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |
+
+## Advisory hooks and health checks
+
+Install the repo-local pre-push hook:
+
+```powershell
+.\scripts\install_git_hooks.ps1
+```
+
+The hook runs doc links, taste checks, and the advisory code-health report before push.
+It is intentionally lightweight and does not replace the merge gate; run `.\scripts\verify.ps1`
+before merge-ready pushes. In emergencies, bypass the hook with `git push --no-verify`.
+
+Generate the advisory report directly:
+
+```powershell
+py -3 scripts\advisory_code_health.py
+```
+
+Generate local coverage and summarize it:
+
+```powershell
+dotnet test Tests\InteractiveWorldMap.Tests.csproj --collect:"XPlat Code Coverage" --results-directory TestResults\coverage-advisory
+py -3 scripts\summarize_coverage.py TestResults\coverage-advisory
+```
 
 ## Related docs
 
