@@ -15,20 +15,35 @@ namespace InteractiveWorldMap.Views
         /// </summary>
         public static Color ParseColor(string? value, Color fallback)
         {
+            return TryParseColor(value, out var parsed) ? parsed : fallback;
+        }
+
+        /// <summary>
+        /// Attempts to parse an ARGB/RGB hex color. Returns false for null/blank/malformed input
+        /// (used to validate user-entered or config-supplied colors without throwing).
+        /// </summary>
+        public static bool TryParseColor(string? value, out Color color)
+        {
+            color = default;
             if (string.IsNullOrWhiteSpace(value))
             {
-                return fallback;
+                return false;
             }
 
             try
             {
-                return ColorConverter.ConvertFromString(value) is Color parsed ? parsed : fallback;
+                if (ColorConverter.ConvertFromString(value) is Color parsed)
+                {
+                    color = parsed;
+                    return true;
+                }
             }
             catch (FormatException)
             {
-                // User-edited config may contain a malformed color; fall back rather than crash.
-                return fallback;
+                // Malformed color string; treat as unparseable rather than crash.
             }
+
+            return false;
         }
 
         /// <summary>

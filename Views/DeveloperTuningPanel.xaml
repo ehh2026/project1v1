@@ -243,6 +243,151 @@
                              ToolTip="Shared cluster body/badge opacity from 0.0 through 1.0."/>
                 </StackPanel>
 
+                <StackPanel x:Name="ContentWindowsSection" Visibility="Collapsed">
+                    <TextBlock Text="Font" Foreground="#CCCCCC" FontSize="11" FontWeight="SemiBold"/>
+                    <TextBlock Text="Family" Style="{StaticResource TuningLabelStyle}"/>
+                    <TextBox x:Name="TxtContentFontFamily" TextChanged="OnPanelInputChanged"
+                             ToolTip="Font family for all popup text, e.g. Segoe UI. Per-role sizes are set below."/>
+
+                    <TextBlock Text="Popup body" Foreground="#CCCCCC" FontSize="11"
+                               FontWeight="SemiBold" Margin="0,10,0,0"/>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="78"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Background" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox Grid.Column="1" x:Name="TxtPopupBackgroundColor" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Popup body fill color (RGB hex, e.g. #1E1E1E). Opacity is set separately below."/>
+                        <Border Grid.Column="2" x:Name="SwPopupBackgroundColor" Width="18" Height="18"
+                                Margin="6,0,0,0" BorderBrush="#888888" BorderThickness="1" CornerRadius="2"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Opacity" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtPopupBackgroundOpacity" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Popup body opacity from 0.0 through 1.0."/>
+                        <TextBlock Grid.Row="1" Text="Border thickness" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtPopupBorderThickness" Grid.Row="1" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Popup border width in pixels (0 or greater)."/>
+                        <TextBlock Grid.Row="2" Text="Corner radius" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtPopupCornerRadius" Grid.Row="2" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Popup corner radius in pixels (0 or greater)."/>
+                        <TextBlock Grid.Row="3" Text="Heading size" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtPopupHeadingFontSize" Grid.Row="3" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Didactic heading font size (px, greater than 0)."/>
+                    </Grid>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="78"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Border color" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox Grid.Column="1" x:Name="TxtPopupBorderColor" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Popup border color (ARGB hex, e.g. #FFFFFFFF)."/>
+                        <Border Grid.Column="2" x:Name="SwPopupBorderColor" Width="18" Height="18"
+                                Margin="6,0,0,0" BorderBrush="#888888" BorderThickness="1" CornerRadius="2"/>
+                    </Grid>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="78"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Text color" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox Grid.Column="1" x:Name="TxtPopupTextColor" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Heading/body text color (ARGB hex, e.g. #FFFFFFFF)."/>
+                        <Border Grid.Column="2" x:Name="SwPopupTextColor" Width="18" Height="18"
+                                Margin="6,0,0,0" BorderBrush="#888888" BorderThickness="1" CornerRadius="2"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Body size" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtPopupBodyFontSize" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Didactic body font size (px, greater than 0)."/>
+                    </Grid>
+
+                    <TextBlock Text="Caption pane" Foreground="#CCCCCC" FontSize="11"
+                               FontWeight="SemiBold" Margin="0,10,0,0"/>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="78"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Background" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox Grid.Column="1" x:Name="TxtCaptionBackgroundColor" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Caption pane fill color (RGB hex, e.g. #000000). Opacity is set separately below."/>
+                        <Border Grid.Column="2" x:Name="SwCaptionBackgroundColor" Width="18" Height="18"
+                                Margin="6,0,0,0" BorderBrush="#888888" BorderThickness="1" CornerRadius="2"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Opacity" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtCaptionBackgroundOpacity" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Caption pane opacity from 0.0 through 1.0."/>
+                    </Grid>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="78"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Top border" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox Grid.Column="1" x:Name="TxtCaptionTopBorderColor" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Caption top divider color (ARGB hex, e.g. #66FFFFFF)."/>
+                        <Border Grid.Column="2" x:Name="SwCaptionTopBorderColor" Width="18" Height="18"
+                                Margin="6,0,0,0" BorderBrush="#888888" BorderThickness="1" CornerRadius="2"/>
+                    </Grid>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="78"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Text color" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox Grid.Column="1" x:Name="TxtCaptionTextColor" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Caption text color (ARGB hex, e.g. #FFFFFFFF)."/>
+                        <Border Grid.Column="2" x:Name="SwCaptionTextColor" Width="18" Height="18"
+                                Margin="6,0,0,0" BorderBrush="#888888" BorderThickness="1" CornerRadius="2"/>
+                    </Grid>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="92"/>
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Text size" Style="{StaticResource TuningLabelStyle}"/>
+                        <TextBox x:Name="TxtCaptionFontSize" Grid.Row="0" Grid.Column="1" TextChanged="OnPanelInputChanged"
+                                 ToolTip="Caption text font size (px, greater than 0)."/>
+                    </Grid>
+                </StackPanel>
+
                 <TextBlock x:Name="StatusText" Foreground="#FFFFCC66" TextWrapping="Wrap" FontSize="11" Margin="0,8,0,0"/>
                 <TextBlock x:Name="ErrorText" Foreground="#FFFF8080" TextWrapping="Wrap" FontSize="11" Margin="0,4,0,0"/>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">

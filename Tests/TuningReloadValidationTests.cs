@@ -327,6 +327,58 @@ public class TuningReloadValidationTests
         TipCapArcDepthPx = 3,
         AutoOpenSingleLocationContentAfterZoom = false,
         ShaftVariant = "outline_dark_7px",
-        HeadVariant = string.Empty
+        HeadVariant = string.Empty,
+        ContentFontFamily = "Segoe UI",
+        PopupBackgroundColor = "#1E1E1E",
+        PopupBackgroundOpacity = 0.70,
+        PopupBorderColor = "#FFFFFFFF",
+        PopupBorderThickness = 2.0,
+        PopupCornerRadius = 12.0,
+        PopupTextColor = "#FFFFFFFF",
+        PopupHeadingFontSize = 18.0,
+        PopupBodyFontSize = 14.0,
+        CaptionBackgroundColor = "#000000",
+        CaptionBackgroundOpacity = 0.85,
+        CaptionTopBorderColor = "#66FFFFFF",
+        CaptionTextColor = "#FFFFFFFF",
+        CaptionFontSize = 13.0
     };
+
+    // ── Content window validation ──
+
+    [Fact]
+    public void TryValidate_InvalidPopupColor_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.PopupBackgroundColor = "not-a-color";
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Popup background color", error);
+    }
+
+    [Fact]
+    public void TryValidate_OutOfRangeCaptionOpacity_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.CaptionBackgroundOpacity = 1.5;
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Caption background opacity", error);
+    }
+
+    [Fact]
+    public void TryValidate_EmptyFontFamily_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.ContentFontFamily = "   ";
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Font family", error);
+    }
+
+    [Fact]
+    public void TryValidate_ZeroCaptionFontSize_ReturnsFalse()
+    {
+        var args = ValidArgs(); args.CaptionFontSize = 0;
+        var ok = InteractiveWorldMap.Views.DeveloperTuningPanel.TryValidate(args, out var error);
+        Assert.False(ok);
+        Assert.Contains("Caption text size", error);
+    }
 }

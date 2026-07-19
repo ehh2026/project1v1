@@ -299,7 +299,7 @@ Appearance of the three content popups — the image/text subwindow, the didacti
 | `Caption.TextColor` | `#FFFFFFFF` | Caption text color (ARGB) |
 | `Caption.FontSize` | `13.0` | Caption text font size |
 
-These are JSON-editable today; exposing them in the Runtime Tuning panel is planned as a follow-up.
+These are also editable at runtime under Runtime Tuning → **Content Windows**, where colors use a hex box with a live swatch and Apply restyles any open popup immediately.
 
 ## How to Use
 

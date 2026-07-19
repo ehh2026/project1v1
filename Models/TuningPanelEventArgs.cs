@@ -42,5 +42,22 @@ namespace InteractiveWorldMap.Models
         public double TipCapLineWeightPx { get; set; }
         /// <summary>Concave arc depth (px) — the curvature knob.</summary>
         public double TipCapArcDepthPx { get; set; }
+
+        // Content popup/caption styling (VisualConfig.ContentWindows). Colors are ARGB/RGB hex
+        // strings; opacities are 0..1; sizes/thickness/radius are pixels.
+        public string ContentFontFamily { get; set; } = "Segoe UI";
+        public string PopupBackgroundColor { get; set; } = "#1E1E1E";
+        public double PopupBackgroundOpacity { get; set; }
+        public string PopupBorderColor { get; set; } = "#FFFFFFFF";
+        public double PopupBorderThickness { get; set; }
+        public double PopupCornerRadius { get; set; }
+        public string PopupTextColor { get; set; } = "#FFFFFFFF";
+        public double PopupHeadingFontSize { get; set; }
+        public double PopupBodyFontSize { get; set; }
+        public string CaptionBackgroundColor { get; set; } = "#000000";
+        public double CaptionBackgroundOpacity { get; set; }
+        public string CaptionTopBorderColor { get; set; } = "#66FFFFFF";
+        public string CaptionTextColor { get; set; } = "#FFFFFFFF";
+        public double CaptionFontSize { get; set; }
     }
 }

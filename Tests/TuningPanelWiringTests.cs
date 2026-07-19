@@ -15,6 +15,7 @@ public class TuningPanelWiringTests
     [InlineData("DrawnPinsSection")]
     [InlineData("HitboxesSection")]
     [InlineData("ShadowsSection")]
+    [InlineData("ContentWindowsSection")]
     public void DeveloperTuningPanel_HasCategorySection(string name)
     {
         var xaml = File.ReadAllText(
@@ -24,11 +25,12 @@ public class TuningPanelWiringTests
     }
 
     [Fact]
-    public void TuningButton_OffersFourCategoryChoices()
+    public void TuningButton_OffersAllCategoryChoices()
     {
         var xaml = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml"));
 
-        foreach (var category in new[] { "Map", "Composite Pins", "Drawn Pins", "Hitboxes", "Shadows" })
+        foreach (var category in new[]
+                 { "Map", "Composite Pins", "Drawn Pins", "Hitboxes", "Shadows", "Content Windows" })
             Assert.Contains($"Header=\"{category}\"", xaml);
     }
 
@@ -483,5 +485,51 @@ public class TuningPanelWiringTests
         Assert.True(
             applyIndex < saveIndex,
             "Save must persist the just-applied panel values, not stale _visualConfig values.");
+    }
+
+    [Theory]
+    [InlineData("TxtContentFontFamily")]
+    [InlineData("TxtPopupBackgroundColor")]
+    [InlineData("TxtPopupBackgroundOpacity")]
+    [InlineData("TxtPopupBorderColor")]
+    [InlineData("TxtPopupBorderThickness")]
+    [InlineData("TxtPopupCornerRadius")]
+    [InlineData("TxtPopupTextColor")]
+    [InlineData("TxtPopupHeadingFontSize")]
+    [InlineData("TxtPopupBodyFontSize")]
+    [InlineData("TxtCaptionBackgroundColor")]
+    [InlineData("TxtCaptionBackgroundOpacity")]
+    [InlineData("TxtCaptionTopBorderColor")]
+    [InlineData("TxtCaptionTextColor")]
+    [InlineData("TxtCaptionFontSize")]
+    [InlineData("SwPopupBackgroundColor")]
+    [InlineData("SwCaptionTextColor")]
+    public void DeveloperTuningPanel_ContentWindowsControlsPresent(string controlName)
+    {
+        var xaml = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "DeveloperTuningPanel.xaml"));
+
+        Assert.Contains($"x:Name=\"{controlName}\"", xaml);
+    }
+
+    [Fact]
+    public void MainWindow_TuningMenuIncludesContentWindows()
+    {
+        var xaml = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml"));
+        Assert.Contains(
+            "<MenuItem Header=\"Content Windows\" Tag=\"ContentWindows\" Click=\"OnTuningCategoryClick\"/>",
+            xaml);
+    }
+
+    [Fact]
+    public void ApplyTuning_AppliesContentWindowStyleToOpenPopups()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.DeveloperTuning.partial.cs"));
+
+        Assert.Contains("cw.Popup.BackgroundOpacity = e.PopupBackgroundOpacity;", source);
+        Assert.Contains("cw.Caption.FontSize = e.CaptionFontSize;", source);
+        Assert.Contains("_activeSubwindow?.ApplyStyle(", source);
+        Assert.Contains("_activeDidacticWindow?.ApplyStyle(", source);
+        Assert.Contains("_activeThumbnailBrowser?.ApplyStyle(", source);
     }
 }

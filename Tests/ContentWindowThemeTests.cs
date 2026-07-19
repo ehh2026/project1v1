@@ -40,4 +40,24 @@ public class ContentWindowThemeTests
 
         Assert.Equal(Colors.Red, brush.Color);
     }
+
+    [Theory]
+    [InlineData("#1E1E1E")]
+    [InlineData("#FF1E1E1E")]
+    [InlineData("Red")]
+    public void TryParseColor_ValidInputs_ReturnTrue(string value)
+    {
+        Assert.True(ContentWindowTheme.TryParseColor(value, out _));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData(null)]
+    [InlineData("not-a-color")]
+    [InlineData("#GGGGGG")]
+    public void TryParseColor_InvalidInputs_ReturnFalse(string? value)
+    {
+        Assert.False(ContentWindowTheme.TryParseColor(value, out _));
+    }
 }
