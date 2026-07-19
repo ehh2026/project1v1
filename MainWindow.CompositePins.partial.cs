@@ -74,17 +74,44 @@ namespace InteractiveWorldMap
         private bool RestoreDrawnFallbackForCompositeFailure(LocationMarker marker, MarkerScreenPlacement placement)
         {
             RestoreBaseMarkerVisual(marker);
-            Canvas.SetLeft(marker, placement.Left);
-            Canvas.SetTop(marker, placement.Top);
+            if (!TryPlaceDrawnPinAtMapPoint(marker, placement))
+            {
+                Canvas.SetLeft(marker, placement.Left);
+                Canvas.SetTop(marker, placement.Top);
+            }
             return false;
+        }
+
+        private bool TryPlaceDrawnPinAtMapPoint(LocationMarker marker, MarkerScreenPlacement placement)
+        {
+            if (marker.Content is not AutoStubPinMarker autoStub)
+                return false;
+
+            var mapPoint = GetMarkerMapPoint(placement);
+            var shaftTip = autoStub.GetShaftTipPoint();
+            Canvas.SetLeft(marker, mapPoint.X - shaftTip.X);
+            Canvas.SetTop(marker, mapPoint.Y - shaftTip.Y);
+            return true;
+        }
+
+        private Point GetMarkerMapPoint(MarkerScreenPlacement placement)
+        {
+            var locationMarkerRadius = _visualConfig.LocationMarkerSize / 2.0;
+            return new Point(
+                placement.Left + locationMarkerRadius,
+                placement.Top + locationMarkerRadius);
         }
 
         private void AnimateMarkerClick(LocationMarker marker)
         {
             switch (marker.Content)
             {
-                case PinMarker pinMarker:
-                    pinMarker.AnimateClick();
+                case AutoStubPinMarker autoStub:
+                    autoStub.AnimateClick();
+                    _logger.LogInfo($"Animated PIN marker click for '{marker.Location.Name}'");
+                    break;
+                case ManualLayoutPinMarker manual:
+                    manual.AnimateClick();
                     _logger.LogInfo($"Animated PIN marker click for '{marker.Location.Name}'");
                     break;
                 case CompositePinMarker compositePinMarker:
@@ -147,7 +174,16 @@ namespace InteractiveWorldMap
         {
             if (!CanUseCompositePins())
                 return false;
-            var ok = ApplyCompositePinToMarker(marker, originalScreenPos, extendedScreenPos, preferredPairId, preferredHeadSourcePath);
+
+            var target = new PinPlacementTarget
+            {
+                StartScreen = originalScreenPos,
+                EndScreen = extendedScreenPos,
+                LocationId = marker.Location.Name,
+                GroupId = 0
+            };
+
+            var ok = TryApplyCompositePinAtTarget(marker, target, preferredPairId, preferredHeadSourcePath);
             // Phase 4: extension line as drag guide + endpoint source in edit mode
             if (ok && _layoutEditor.IsEditMode)
                 _extensionLineRenderer.AddLine(marker, originalScreenPos, extendedScreenPos);
@@ -155,26 +191,49 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Core composite-pin apply logic. Used both by the normal (non-edit) path via
-        /// <see cref="TryApplyCompositePinMarker"/> and by Reassign Pins which bypasses the
-        /// edit-mode gate in <see cref="CanUseCompositePins"/>.
+        /// Applies or repositions a composite pin for a built target. Reposition-only when the
+        /// segment vector and assignment are unchanged (Phase 7).
+        /// </summary>
+        private bool TryApplyCompositePinAtTarget(LocationMarker marker, PinPlacementTarget target,
+            string? preferredPairId = null, string? preferredHeadSourcePath = null)
+        {
+            if (marker.Content is CompositePinMarker compositeMarker &&
+                compositeMarker.RenderPlan != null &&
+                CompositePinPlacementPolicy.ShouldRepositionOnly(
+                    compositeMarker.RenderPlan, target, preferredPairId, preferredHeadSourcePath))
+            {
+                RepositionCompositePinMarker(marker, target, compositeMarker.RenderPlan);
+                return true;
+            }
+
+            return ApplyCompositePinTargetToMarker(marker, target, preferredPairId, preferredHeadSourcePath);
+        }
+
+        private void RepositionCompositePinMarker(
+            LocationMarker marker,
+            PinPlacementTarget target,
+            CompositePinRenderPlan plan)
+        {
+            var topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(target.StartScreen, plan);
+            Canvas.SetLeft(marker, topLeft.X);
+            Canvas.SetTop(marker, topLeft.Y);
+            _overrideStore.RecordEndpoints(marker.Location.Name, target.StartScreen, target.EndScreen);
+            RefreshMarkerHitTargets();
+        }
+
+        /// <summary>
+        /// Core composite-pin apply logic. Used by drag, reassign, and override paths.
         /// </summary>
         private bool ApplyCompositePinToMarker(LocationMarker marker, Point originalScreenPos, Point extendedScreenPos,
             string? preferredPairId = null, string? preferredHeadSourcePath = null)
         {
-            var target = _compositePinTargetBuilder.Build(
-                marker.Location,
-                new ViewportState(),
-                containerWidth: 0,
-                containerHeight: 0,
-                _visualConfig.PinParts,
-                new RadialExtension
-                {
-                    Location = marker.Location,
-                    OriginalPosition = originalScreenPos,
-                    ExtendedPosition = extendedScreenPos,
-                    GroupId = 0
-                });
+            var target = new PinPlacementTarget
+            {
+                StartScreen = originalScreenPos,
+                EndScreen = extendedScreenPos,
+                LocationId = marker.Location.Name,
+                GroupId = 0
+            };
 
             return ApplyCompositePinTargetToMarker(marker, target, preferredPairId, preferredHeadSourcePath);
         }
@@ -227,11 +286,14 @@ namespace InteractiveWorldMap
             BitmapSource headImage)
         {
             var compositeMarker = new CompositePinMarker { Location = marker.Location };
+            compositeMarker.ApplyHeadShadow(
+                _visualConfig.PinMarkers.ShowShadow,
+                _visualConfig.PinMarkers.ShadowOpacity);
             compositeMarker.SetCompositeImages(
                 shaftImage,
                 headImage,
                 plan,
-                _visualConfig.Debug.ShowCompositePinDebugOverlay,
+                AreDeveloperToolsEnabled() && _visualConfig.Debug.ShowCompositePinDebugOverlay,
                 _visualConfig.PinParts.UsePrerasterizedRendering);
             compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
             _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);
@@ -239,13 +301,15 @@ namespace InteractiveWorldMap
             marker.Width   = compositeMarker.Width;
             marker.Height  = compositeMarker.Height;
             Panel.SetZIndex(marker, 2000);
-            Canvas.SetLeft(marker, originalScreenPos.X - plan.TipAnchorLocal.X);
-            Canvas.SetTop(marker, originalScreenPos.Y - plan.TipAnchorLocal.Y);
+            var topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(originalScreenPos, plan);
+            Canvas.SetLeft(marker, topLeft.X);
+            Canvas.SetTop(marker, topLeft.Y);
+            RefreshMarkerHitTargets();
         }
 
         private static bool IsPinStyleMarkerBase(object? content)
         {
-            return content is PinMarker or CompositePinMarker;
+            return content is AutoStubPinMarker or CompositePinMarker;
         }
 
         private bool TryGetCompositeAnchoredPlacement(LocationMarker marker, MarkerScreenPlacement placement, out Point topLeft)
@@ -304,21 +368,26 @@ namespace InteractiveWorldMap
             }
         }
 
+        /// <summary>
+        /// Applies composite pins to normal (non-extension) placements when composite mode is on.
+        /// During <see cref="InteractionMode.Animating"/>, this method returns early; tip reposition
+        /// for existing composites is handled by <c>ApplyIndividualPlacements</c> until settled state.
+        /// </summary>
         private void ApplyCompositePinsToNormalPlacements(
             IReadOnlyList<MarkerScreenPlacement> placements,
             ViewportState viewport,
             double containerWidth,
-            double containerHeight)
+            double containerHeight,
+            IReadOnlyDictionary<string, LocationMarker> markerByName)
         {
             if (!CanUseCompositePins() || IsAnimating)
                 return;
 
             foreach (var placement in placements)
             {
-                var marker = _individualMarkers.FirstOrDefault(
-                    m => m.Visibility == Visibility.Visible
-                         && string.Equals(m.Location.Name, placement.LocationName, StringComparison.Ordinal));
-                if (marker == null || _extensionLineRenderer.HasLine(marker))
+                if (!markerByName.TryGetValue(placement.LocationName, out var marker)
+                    || marker.Visibility != Visibility.Visible
+                    || _extensionLineRenderer.HasLine(marker))
                     continue;
 
                 var target = _compositePinTargetBuilder.Build(
@@ -327,7 +396,7 @@ namespace InteractiveWorldMap
                     containerWidth,
                     containerHeight,
                     _visualConfig.PinParts);
-                if (ApplyCompositePinTargetToMarker(marker, target))
+                if (TryApplyCompositePinAtTarget(marker, target))
                 {
                     // Phase 4: stub line as drag guide + endpoint source in edit mode
                     if (_layoutEditor.IsEditMode)
@@ -422,6 +491,14 @@ namespace InteractiveWorldMap
         /// </summary>
         private void ReapplyPendingOverrides()
         {
+            // Overrides record composite head/shaft choices, so replaying them applies a composite
+            // pin (ApplyCompositePinToMarker bypasses the mode check). In drawn-pin mode that would
+            // leak a composite pin onto the overridden marker — visible e.g. only when zooming into
+            // that single location, where ApplyManualLayout triggers this replay. Never apply
+            // composite overrides unless composite rendering is actually active.
+            if (!CanUseCompositePins())
+                return;
+
             foreach (var kvp in _overrideStore.GetAllOverrides())
             {
                 var locationName = kvp.Key;
@@ -460,20 +537,75 @@ namespace InteractiveWorldMap
         /// </summary>
         private LocationMarker CreateDrawnPinMarker(Location location)
         {
-            var pinMarker = new PinMarker(_visualConfig) { Location = location };
+            var autoStub =
+                (AutoStubPinMarker)_drawnPinFactory.Create(DrawnPinRole.AutoStub);
 
             var pinConfig = _visualConfig.PinMarkers;
             if (!pinConfig.UseRandomColors)
             {
                 if (ColorConverter.ConvertFromString(pinConfig.DefaultBallColor) is Color defaultColor)
-                    pinMarker.SetPinColor(defaultColor);
+                    autoStub.PinColor = defaultColor;
             }
 
             var marker = new LocationMarker(_visualConfig) { Location = location };
-            marker.Content = pinMarker;
-            marker.Width = pinMarker.Width;
-            marker.Height = pinMarker.Height;
-            marker.Tag = pinMarker;
+            marker.Content = autoStub;
+            marker.Width = autoStub.Width;
+            marker.Height = autoStub.Height;
+            marker.Tag = autoStub;
+            return marker;
+        }
+
+        private void RefreshDrawnPinVisuals()
+        {
+            foreach (var marker in _individualMarkers)
+            {
+                ApplyDrawnPinConfig(marker, marker.Content);
+
+                if (!_baseMarkerVisuals.TryGetValue(marker, out var state))
+                    continue;
+
+                ApplyDrawnPinConfig(marker, state.Content, updateMarkerBounds: false);
+                if (state.Content is FrameworkElement baseContent)
+                {
+                    _baseMarkerVisuals[marker] = new MarkerVisualState
+                    {
+                        Content = state.Content,
+                        Width = baseContent.Width,
+                        Height = baseContent.Height
+                    };
+                }
+            }
+        }
+
+        private void ApplyDrawnPinConfig(
+            LocationMarker marker,
+            object? content,
+            bool updateMarkerBounds = true)
+        {
+            FrameworkElement? drawnContent = content switch
+            {
+                AutoStubPinMarker autoStub => ApplyAutoStubConfig(autoStub),
+                ManualLayoutPinMarker manual => ApplyManualPinConfig(manual),
+                _ => null
+            };
+
+            if (!updateMarkerBounds || drawnContent == null ||
+                !ReferenceEquals(marker.Content, content))
+                return;
+
+            marker.Width = drawnContent.Width;
+            marker.Height = drawnContent.Height;
+        }
+
+        private FrameworkElement ApplyAutoStubConfig(AutoStubPinMarker marker)
+        {
+            marker.ApplyConfig(_visualConfig.PinMarkers);
+            return marker;
+        }
+
+        private FrameworkElement ApplyManualPinConfig(ManualLayoutPinMarker marker)
+        {
+            marker.ApplyConfig(_visualConfig.PinMarkers);
             return marker;
         }
 

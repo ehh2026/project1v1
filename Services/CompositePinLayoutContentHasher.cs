@@ -61,7 +61,8 @@ namespace InteractiveWorldMap.Services
                       $"{config.TargetHeadRadiusPx:F2}:" +
                       $"{config.TargetShaftHalfWidthPx:F2}:" +
                       $"{config.UseLitShafts}:" +
-                      $"{config.ShaftAssetVariant}";
+                      $"{config.ShaftAssetVariant}:" +
+                      $"{config.HeadAssetVariant}";
             return Sha256Short(key);
         }
 

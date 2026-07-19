@@ -6,7 +6,7 @@ started: 2026-06-05
 
 # Refactoring Plan — Active Execution Tracker
 
-Full plan: [REFACTORING_PLAN.md](../../../REFACTORING_PLAN.md)
+Full plan: [REFACTORING_PLAN.md](../../archive/planning/REFACTORING_PLAN.md)
 Assessment: [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md)
 
 ---

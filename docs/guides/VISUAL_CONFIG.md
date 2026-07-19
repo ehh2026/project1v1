@@ -13,6 +13,8 @@ The configuration is stored in `visual-config.json` in the application root dire
   "ClusterDistanceThreshold": 30.0,
   "LocationMarkerSize": 12.0,
   "UsePinMarkers": true,
+  "EnableDeveloperTools": false,
+  "AutoOpenSingleLocationContentAfterZoom": false,
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,
   "ClusterCountFontSize": 11.0,
@@ -28,6 +30,19 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - `RadialExtension`
 - `ManualLayoutEditor`
 - `Debug`
+
+## Developer Tools Master Gate
+
+`EnableDeveloperTools` is the single master switch for in-app developer controls. It defaults to `false` in the model so gallery/guest display configs are safe by default.
+
+When `EnableDeveloperTools` is `false`:
+
+- Edit Layout is hidden and cannot be entered.
+- Runtime Tuning and the F12 tuning toggle are disabled.
+- Composite debug overlays and verbose debug logging are treated as off.
+- Debug-only windowed mode is ignored.
+
+The repository's development `visual-config.json` may set this to `true`; production/gallery deployments should set it to `false`.
 
 ### Parameters
 
@@ -64,9 +79,26 @@ This top-level sample is intentionally abbreviated. The actual file also include
   - Higher values = slower, smoother animation
   - Lower values = faster animation
 
+The Runtime Tuning **Map** category exposes `ClusterMarkerSize`,
+`ClusterBadgeSize`, `ClusterCountFontSize`, `ZoomScale`, and
+`AnimationDurationMs` together with the existing clustering and settled-map
+rendering controls. Apply updates the current runtime config; a changed zoom
+scale is used when the active zoomed view is rebuilt, while animation duration
+applies to subsequent zoom and Back transitions.
+
 - **UsePinMarkers** (default: `true`)
   - Master switch for pin-style markers instead of simple circular location dots
   - When `false`, locations use the basic circular `LocationMarker` visuals
+
+- **EnableDeveloperTools** (default: `false`)
+  - Master switch for in-app developer controls
+  - When `false`, gallery guests cannot access Edit Layout, Runtime Tuning/F12, debug overlays/logging, or debug-only windowed mode
+  - Development configs can set this to `true`, then use the nested `ManualLayoutEditor` and `Debug` sub-settings normally
+
+- **AutoOpenSingleLocationContentAfterZoom** (default: `false`)
+  - When `true`, clicking a standalone full-map pin zooms into that location and opens its content automatically after zoom settles
+  - When `false`, the click still zooms in, but users click the zoomed pin again to open content
+  - Also available in the debug-gated Runtime Tuning panel
 
 ## Pin Rendering Modes
 
@@ -101,6 +133,50 @@ that means:
 - unzoomed multi-location cluster aggregates remain stamp-style `ClusterMarker` blobs
 - manual layout edit works on composite pins in zoomed clusters and on visible full-map single-location stubs
 
+## PinMarkers (drawn fallback)
+
+When `UseCompositeRendering = false`, individual markers use drawn pin controls. Drawn mode has two visual roles:
+
+- Auto stub pins use a drawn head plus the configured short vertical shaft.
+- Manual-layout pins use the same drawn head without an internal shaft; the saved/manual extension line is the shaft.
+
+This keeps edited drawn pins from drawing a duplicate vertical shaft under the head. Key fields:
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `BallSize` | `14` | Pin head diameter (px) |
+| `ShaftWidth` | `3` | Core shaft width (px) |
+| `ShaftLength` | `24` | Stub shaft length on non-extended pins (px) |
+| `ShaftColor` | `#FFD8D8D8` | Light silver shaft core |
+| `ShaftOutlineColor` | `#FF1A1A1A` | Dark halo behind shaft (stub + extension lines) |
+| `ShaftOutlineThickness` | `1.25` | Extra px on each side of shaft core |
+| `BallOutlineColor` | `#FF000000` | Pin head rim |
+| `BallOutlineThickness` | `1.5` | Pin head rim width (px) |
+| `UseRandomColors` | `true` | Random saturated ball hues (no white/gray/black) |
+| `DefaultBallColor` | `#FFE53935` | Used when `UseRandomColors = false` |
+| `ShowShadow` | `true` | Enables the shared drawn-head, drawn extended-shaft, and composite-head shadow |
+| `ShadowOpacity` | `0.4` | Shared pin-shadow opacity from `0.0` through `1.0` |
+
+**Tuning tips:** Increase `ShaftOutlineThickness` or `BallOutlineThickness` for busy map backgrounds; set `UseRandomColors` to `false` and pick one strong `DefaultBallColor` for a uniform look.
+
+`ShowShadow` and `ShadowOpacity` are available under Runtime Tuning →
+**Shadows**. The opacity is honored exactly, including values below `0.45`.
+These settings do not add an effect to the ordinary drawn stub shaft or change
+baked lighting in composite shaft images.
+
+## ClusterMarkerShadow
+
+Aggregate cluster markers have a separate shadow policy:
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `Enabled` | `false` | Enables shadows on the cluster body and count badge |
+| `Opacity` | `0.0` | Shared body/badge opacity from `0.0` through `1.0` |
+
+Both fields are available under Runtime Tuning → **Shadows**. The checked-in
+development config keeps cluster shadows disabled. Apply refreshes visible
+cluster markers without reloading content.
+
 ## PinParts
 
 `PinParts` config controls the newer part-based composite renderer.
@@ -119,6 +195,7 @@ Key fields:
 - `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
 - `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
 - `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set (default: `outline_dark_7px`), composite pins load shafts from that baked variant folder while heads remain in the base parts folder. Generate variants with `scripts/create_shaft_asset_variants.py`.
+- `HeadAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/head_variants/`; when empty, heads load from the base parts folder. Use `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, or `outline_black_14px` to load generated black-outline head assets. Generate variants with `scripts/create_head_asset_variants.py`.
 
   **Outer outline:** `outline_dark`, `outline_dark_bold`, `outline_dark_<N>px` (e.g. `outline_dark_6px`, `outline_dark_7px`) — dark halo grows **outside** the shaft alpha.
 

@@ -209,18 +209,39 @@ public class LayoutKeyGeneratorTests
     }
 
     [Fact]
-    public void GenerateFullMapGroupKey_RoundsCanvasSize()
+    public void GenerateFullMapGroupKey_IsSizeIndependent()
     {
-        var key = LayoutKeyGenerator.GenerateFullMapGroupKey(1919.6, 1080.4);
-
-        Assert.Equal("fullmap_s1920x1080", key);
+        // The full-map layout is keyed by identity alone; canvas size must not appear,
+        // otherwise a resize would orphan the saved layout (Phase 5c).
+        Assert.Equal("fullmap", LayoutKeyGenerator.GenerateFullMapGroupKey());
     }
 
     [Fact]
-    public void AreKeysCompatible_FullMapDifferentSizes_ReturnsFalse()
+    public void AreKeysCompatible_FullMapDifferentSizes_ReturnsTrue()
     {
-        Assert.False(LayoutKeyGenerator.AreKeysCompatible(
+        // Any two full-map keys (including legacy sized forms) describe the same "whole map"
+        // layout, so they are compatible — the saved layout survives a window resize.
+        Assert.True(LayoutKeyGenerator.AreKeysCompatible(
             "fullmap_s1920x1080",
             "fullmap_s1440x900"));
+        Assert.True(LayoutKeyGenerator.AreKeysCompatible(
+            "fullmap",
+            "fullmap_s1440x900"));
+    }
+
+    [Fact]
+    public void AreKeysCompatible_FullMapVsCluster_ReturnsFalse()
+    {
+        var clusterKey = LayoutKeyGenerator.GenerateKey(
+            new List<Location>
+            {
+                new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+                new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+            },
+            MakeZoomedViewport(),
+            MakeConfig());
+
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible("fullmap", clusterKey));
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(clusterKey, "fullmap_s1920x1080"));
     }
 }

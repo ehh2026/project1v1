@@ -33,6 +33,20 @@ namespace InteractiveWorldMap.Views
         /// <summary>Creates and tracks a line for the given marker.</summary>
         void AddLine(LocationMarker marker, Point start, Point end);
 
+        /// <summary>
+        /// Moves an existing pin extension-line pair in place (updates endpoints only, reusing the
+        /// Line/Brush/Effect objects). Returns false if no pin-line pair is tracked for the marker.
+        /// Used on the zoom-animation hot path to avoid clearing and re-creating lines every frame.
+        /// </summary>
+        bool TryRepositionPinLine(LocationMarker marker, Point start, Point end);
+
+        /// <summary>
+        /// Positions an extended marker so its head sits on the extension endpoint.
+        /// Manual-layout drawn pins use a head-only visual because the extension line is
+        /// their shaft.
+        /// </summary>
+        void AnchorExtendedMarker(LocationMarker marker, Point extendedScreenPos);
+
         /// <summary>Replaces the tracked line for a marker with a new one ending at <paramref name="newEndpoint"/>.</summary>
         void MoveLineEndpoint(LocationMarker marker, Point newEndpoint);
 
@@ -41,6 +55,12 @@ namespace InteractiveWorldMap.Views
 
         /// <summary>Gets the current endpoint of the tracked line for a marker. Returns false if no line.</summary>
         bool TryGetLineEndpoint(LocationMarker marker, out Point endpoint);
+
+        /// <summary>
+        /// Gets the current start (map anchor) of the tracked line for a marker. This is the
+        /// pin tip end of the extension line. Returns false if no line is tracked.
+        /// </summary>
+        bool TryGetLineStart(LocationMarker marker, out Point start);
 
         // Hover event handlers — subscribe directly to marker.MouseEnter/Leave
         void OnMouseEnter(object sender, MouseEventArgs e);

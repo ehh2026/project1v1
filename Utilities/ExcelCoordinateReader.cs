@@ -1,17 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Xml;
 using System.IO.Compression;
 using System.Linq;
+using System.Xml;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
-using InteractiveWorldMap.Utilities;
 
 namespace InteractiveWorldMap.Utilities;
 
 /// <summary>
-/// Reads coordinate data from Excel files.
+/// Reads location and content data from Excel files.
 /// </summary>
 public class ExcelCoordinateReader
 {
@@ -22,11 +21,6 @@ public class ExcelCoordinateReader
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
-    /// <summary>
-    /// Reads location data from an Excel file.
-    /// </summary>
-    /// <param name="excelPath">Path to the Excel file</param>
-    /// <returns>List of Location objects</returns>
     public List<Location> ReadLocationsFromExcel(string excelPath)
     {
         var locations = new List<Location>();
@@ -39,52 +33,71 @@ public class ExcelCoordinateReader
                 return locations;
             }
 
-            _logger.LogInfo($"Reading Excel file: {excelPath}");
+            using var zip = ZipFile.OpenRead(excelPath);
+            var sharedStrings = ReadSharedStrings(zip);
+            var sheetPaths = ReadWorksheetPaths(zip);
 
-            // Excel files are ZIP archives
-            using (var zip = ZipFile.OpenRead(excelPath))
+            if (sheetPaths.Count == 0)
             {
-                // Read shared strings first
-                var sharedStrings = ReadSharedStrings(zip);
-                _logger.LogInfo($"Loaded {sharedStrings.Count} shared strings");
+                _logger.LogWarning("No worksheets were found in the Excel file");
+                return locations;
+            }
 
-                // Read worksheet data
-                var entry = zip.GetEntry("xl/worksheets/sheet1.xml");
-                if (entry == null)
+            var locationRows = ReadWorksheetRows(zip, sheetPaths[0], sharedStrings);
+            var bioRows = sheetPaths.Count > 1
+                ? ReadWorksheetRows(zip, sheetPaths[1], sharedStrings)
+                : new List<Dictionary<string, string>>();
+            var captionRows = sheetPaths.Count > 2
+                ? ReadWorksheetRows(zip, sheetPaths[2], sharedStrings)
+                : new List<Dictionary<string, string>>();
+
+            var locationHeaderRow = locationRows.FirstOrDefault() ?? new Dictionary<string, string>();
+            var imageColumns = locationHeaderRow
+                .Where(pair => pair.Value.StartsWith("Image ", StringComparison.OrdinalIgnoreCase))
+                .Select(pair => pair.Key)
+                .OrderBy(column => column, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var bioByName = bioRows
+                .Where(row => row.TryGetValue("A", out var name) && !string.IsNullOrWhiteSpace(name))
+                .ToDictionary(
+                    row => row["A"],
+                    row => row.TryGetValue("B", out var text) ? text : string.Empty,
+                    StringComparer.OrdinalIgnoreCase);
+
+            var captionsByName = captionRows
+                .Where(row => row.TryGetValue("A", out var name) && !string.IsNullOrWhiteSpace(name))
+                .GroupBy(row => row["A"], StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group
+                        .Where(row => row.TryGetValue("B", out var imageName) && !string.IsNullOrWhiteSpace(imageName))
+                        .ToDictionary(
+                            row => row["B"],
+                            row => row.TryGetValue("C", out var caption) ? caption : string.Empty,
+                            StringComparer.OrdinalIgnoreCase),
+                    StringComparer.OrdinalIgnoreCase);
+
+            var locationIndex = 0;
+            foreach (var row in locationRows.Skip(1))
+            {
+                locationIndex++;
+                var location = ParseLocationRow(row, locationIndex, imageColumns);
+                if (location == null)
+                    continue;
+
+                if (bioByName.TryGetValue(location.Name, out var bioText) && !string.IsNullOrWhiteSpace(bioText))
                 {
-                    _logger.LogError("sheet1.xml not found in Excel file");
-                    return locations;
+                    location.DidacticText = bioText;
                 }
 
-                using (var stream = entry.Open())
-                using (var reader = new StreamReader(stream))
+                if (captionsByName.TryGetValue(location.Name, out var captions))
                 {
-                    var xml = new XmlDocument();
-                    xml.Load(reader);
-
-                    var rows = xml.GetElementsByTagName("row");
-                    _logger.LogInfo($"Found {rows.Count} rows in worksheet");
-
-                    int rowIndex = 0;
-                    foreach (XmlElement row in rows)
-                    {
-                        rowIndex++;
-                        
-                        // Skip header row
-                        if (rowIndex == 1)
-                        {
-                            _logger.LogInfo("Skipping header row");
-                            continue;
-                        }
-
-                        var location = ParseLocationRow(row, sharedStrings, rowIndex);
-                        if (location != null)
-                        {
-                            locations.Add(location);
-                            _logger.LogInfo($"Parsed location: {location.Name} at ({location.PixelX}, {location.PixelY})");
-                        }
-                    }
+                    location.CaptionsByImageFileName = captions;
                 }
+
+                locations.Add(location);
+                _logger.LogInfo($"Parsed location: {location.Name} at ({location.PixelX}, {location.PixelY})");
             }
 
             _logger.LogInfo($"Successfully read {locations.Count} locations from Excel");
@@ -97,137 +110,159 @@ public class ExcelCoordinateReader
         }
     }
 
-    private Dictionary<int, string> ReadSharedStrings(ZipArchive zip)
+    private List<string> ReadSharedStrings(ZipArchive zip)
     {
-        var sharedStrings = new Dictionary<int, string>();
+        var sharedStrings = new List<string>();
+        var entry = zip.GetEntry("xl/sharedStrings.xml");
+        if (entry == null)
+            return sharedStrings;
 
-        try
+        using var stream = entry.Open();
+        var xml = new XmlDocument();
+        xml.Load(stream);
+
+        var ns = new XmlNamespaceManager(xml.NameTable);
+        ns.AddNamespace("x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+        foreach (XmlElement si in xml.SelectNodes("//x:si", ns)!)
         {
-            var entry = zip.GetEntry("xl/sharedStrings.xml");
-            if (entry == null)
-            {
-                _logger.LogWarning("sharedStrings.xml not found");
-                return sharedStrings;
-            }
-
-            using (var stream = entry.Open())
-            using (var reader = new StreamReader(stream))
-            {
-                var xml = new XmlDocument();
-                xml.Load(reader);
-
-                var sis = xml.GetElementsByTagName("si");
-                int index = 0;
-                foreach (XmlElement si in sis)
-                {
-                    var t = si.GetElementsByTagName("t");
-                    if (t.Count > 0 && t.Item(0) is XmlElement textElement)
-                    {
-                        sharedStrings[index] = textElement.InnerText;
-                    }
-                    index++;
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error reading shared strings: {ex.Message}");
+            sharedStrings.Add(string.Concat(si.SelectNodes(".//x:t", ns)!.Cast<XmlNode>().Select(node => node.InnerText)));
         }
 
         return sharedStrings;
     }
 
-    private Location? ParseLocationRow(XmlElement row, Dictionary<int, string> sharedStrings, int rowIndex)
+    private List<string> ReadWorksheetPaths(ZipArchive zip)
     {
-        try
+        var paths = new List<string>();
+        var workbookEntry = zip.GetEntry("xl/workbook.xml");
+        var relsEntry = zip.GetEntry("xl/_rels/workbook.xml.rels");
+        if (workbookEntry == null || relsEntry == null)
+            return paths;
+
+        var workbook = LoadXml(workbookEntry);
+        var rels = LoadXml(relsEntry);
+
+        var ns = new XmlNamespaceManager(workbook.NameTable);
+        ns.AddNamespace("x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+        ns.AddNamespace("r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships");
+
+        var relMap = rels
+            .SelectNodes("//*[local-name()='Relationship']")!
+            .Cast<XmlElement>()
+            .ToDictionary(
+                rel => rel.GetAttribute("Id"),
+                rel => rel.GetAttribute("Target"),
+                StringComparer.OrdinalIgnoreCase);
+
+        foreach (XmlElement sheet in workbook.SelectNodes("//x:sheets/x:sheet", ns)!)
         {
-            var cells = row.GetElementsByTagName("c");
-            
-            // Build a dictionary of column -> cell value
-            var cellValues = new Dictionary<string, string>();
-            foreach (XmlElement cell in cells)
-            {
-                var cellRef = cell.GetAttribute("r"); // e.g., "A2", "D2"
-                if (string.IsNullOrEmpty(cellRef))
-                    continue;
-                    
-                // Extract column letter (e.g., "A" from "A2")
-                var column = new string(cellRef.TakeWhile(char.IsLetter).ToArray());
-                cellValues[column] = GetCellValue(cell, sharedStrings);
-            }
+            var relId = sheet.GetAttribute("r:id");
+            if (!relMap.TryGetValue(relId, out var target))
+                continue;
 
-            // Column A: Name
-            if (!cellValues.TryGetValue("A", out var name) || string.IsNullOrEmpty(name))
-            {
-                _logger.LogWarning($"Row {rowIndex}: Missing name in column A");
-                return null;
-            }
-
-            // Columns E & F: Half size coordinates (Coordinate X halfsize, Coordinate Y halfsize)
-            if (!cellValues.TryGetValue("E", out var pixelXStr) || string.IsNullOrEmpty(pixelXStr))
-            {
-                _logger.LogWarning($"Row {rowIndex}: Missing X coordinate in column E (available columns: {string.Join(", ", cellValues.Keys)})");
-                return null;
-            }
-
-            if (!cellValues.TryGetValue("F", out var pixelYStr) || string.IsNullOrEmpty(pixelYStr))
-            {
-                _logger.LogWarning($"Row {rowIndex}: Missing Y coordinate in column F (available columns: {string.Join(", ", cellValues.Keys)})");
-                return null;
-            }
-
-            // Column D: Address (optional)
-            cellValues.TryGetValue("D", out var address);
-
-            // Log what we're trying to parse
-            _logger.LogInfo($"Row {rowIndex}: Attempting to parse X='{pixelXStr}', Y='{pixelYStr}'");
-
-            if (!double.TryParse(pixelXStr, out var pixelX) || !double.TryParse(pixelYStr, out var pixelY))
-            {
-                _logger.LogWarning($"Row {rowIndex}: Could not parse pixel coordinates (X='{pixelXStr}', Y='{pixelYStr}')");
-                return null;
-            }
-
-            return new Location
-            {
-                Id = $"loc_{rowIndex:D3}",
-                Name = name,
-                PixelX = pixelX,
-                PixelY = pixelY,
-                ContentFilePath = address ?? string.Empty,
-                ContentType = LocationContentType.Image
-            };
+            paths.Add("xl/" + target.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar));
         }
-        catch (Exception ex)
-        {
-            _logger.LogError($"Error parsing row {rowIndex}: {ex.Message}");
-            return null;
-        }
+
+        return paths;
     }
 
-    private string GetCellValue(XmlElement cell, Dictionary<int, string> sharedStrings)
+    private List<Dictionary<string, string>> ReadWorksheetRows(ZipArchive zip, string path, List<string> sharedStrings)
     {
-        try
+        var rows = new List<Dictionary<string, string>>();
+        var normalized = path.Replace(Path.DirectorySeparatorChar, '/');
+        var entry = zip.GetEntry(normalized);
+        if (entry == null)
+            return rows;
+
+        var xml = LoadXml(entry);
+        var ns = new XmlNamespaceManager(xml.NameTable);
+        ns.AddNamespace("x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
+
+        foreach (XmlElement row in xml.SelectNodes("//x:sheetData/x:row", ns)!)
         {
-            var vElement = cell.GetElementsByTagName("v");
-            if (vElement.Count == 0 || vElement.Item(0) is not XmlElement valueElement)
-                return string.Empty;
-
-            var value = valueElement.InnerText;
-            var cellType = cell.GetAttribute("t");
-
-            // If it's a shared string reference
-            if (cellType == "s" && int.TryParse(value, out var index))
+            var cellValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (XmlElement cell in row.SelectNodes("x:c", ns)!)
             {
-                return sharedStrings.TryGetValue(index, out var str) ? str : string.Empty;
+                var cellRef = cell.GetAttribute("r");
+                if (string.IsNullOrWhiteSpace(cellRef))
+                    continue;
+
+                var column = new string(cellRef.TakeWhile(char.IsLetter).ToArray());
+                cellValues[column] = GetCellValue(cell, sharedStrings, ns);
             }
 
-            return value;
+            rows.Add(cellValues);
         }
-        catch (Exception ex)
+
+        return rows;
+    }
+
+    private Location? ParseLocationRow(Dictionary<string, string> cellValues, int locationIndex, IReadOnlyList<string> imageColumns)
+    {
+        if (!cellValues.TryGetValue("A", out var name) || string.IsNullOrWhiteSpace(name))
+            return null;
+
+        if (!TryGetDouble(cellValues, "E", out var pixelX) && !TryGetDouble(cellValues, "B", out pixelX))
+            return null;
+
+        if (!TryGetDouble(cellValues, "F", out var pixelY) && !TryGetDouble(cellValues, "C", out pixelY))
+            return null;
+
+        var location = new Location
         {
-            _logger.LogError($"Error getting cell value: {ex.Message}");
-            return string.Empty;
+            Id = $"loc_{locationIndex:D3}",
+            Name = name,
+            PixelX = pixelX,
+            PixelY = pixelY,
+            ContentType = LocationContentType.Image
+        };
+
+        if (cellValues.TryGetValue("D", out var address) && !string.IsNullOrWhiteSpace(address))
+        {
+            location.ContentFilePath = address;
         }
+
+        foreach (var column in imageColumns)
+        {
+            if (!cellValues.TryGetValue(column, out var fileName) || string.IsNullOrWhiteSpace(fileName))
+                continue;
+
+            location.ImageFileNames.Add(fileName);
+        }
+
+        return location;
+    }
+
+    private static bool TryGetDouble(IReadOnlyDictionary<string, string> cellValues, string column, out double value)
+    {
+        value = default;
+        return cellValues.TryGetValue(column, out var text) && double.TryParse(text, out value);
+    }
+
+    private string GetCellValue(XmlElement cell, List<string> sharedStrings, XmlNamespaceManager ns)
+    {
+        var cellType = cell.GetAttribute("t");
+        if (cellType == "inlineStr")
+        {
+            return string.Concat(cell.SelectNodes("x:is/x:t", ns)!.Cast<XmlNode>().Select(node => node.InnerText));
+        }
+
+        var valueNode = cell.SelectSingleNode("x:v", ns);
+        if (valueNode == null)
+            return string.Empty;
+
+        var rawValue = valueNode.InnerText;
+        if (cellType == "s" && int.TryParse(rawValue, out var sharedIndex) && sharedIndex >= 0 && sharedIndex < sharedStrings.Count)
+            return sharedStrings[sharedIndex];
+
+        return rawValue;
+    }
+
+    private static XmlDocument LoadXml(ZipArchiveEntry entry)
+    {
+        using var stream = entry.Open();
+        var xml = new XmlDocument();
+        xml.Load(stream);
+        return xml;
     }
 }

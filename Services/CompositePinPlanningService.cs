@@ -86,15 +86,13 @@ namespace InteractiveWorldMap.Services
             PinPartConfig config,
             string? preferredHeadSourcePath)
         {
-            // Honour saved path when it still resolves to a known entry.
-            // HeadSourcePath in the render plan == Path.Combine(config.PartsFolderPath, entry.HeadFile).
+            // Honour saved path when it still resolves to a known entry by head file name.
+            // HeadSourcePath may point at base parts or head_variants/<variant>/; identity is HeadFile.
             if (preferredHeadSourcePath != null)
             {
+                var preferredHeadFile = System.IO.Path.GetFileName(preferredHeadSourcePath);
                 var match = candidates.Values.FirstOrDefault(e =>
-                    string.Equals(
-                        System.IO.Path.Combine(config.PartsFolderPath, e.HeadFile),
-                        preferredHeadSourcePath,
-                        StringComparison.OrdinalIgnoreCase));
+                    string.Equals(e.HeadFile, preferredHeadFile, StringComparison.OrdinalIgnoreCase));
                 if (match != null)
                     return match;
             }

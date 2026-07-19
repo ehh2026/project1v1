@@ -18,4 +18,4 @@ Extract individual pin PNGs from `Images&Content/Pins.jpg` with transparent back
 
 ## Original plan
 
-See [.cursor/plans/pin_extraction_script_a7871bc8.plan.md](../../../.cursor/plans/pin_extraction_script_a7871bc8.plan.md)
+Original Cursor agent plan is no longer in-repo; this completed doc is the canonical record.

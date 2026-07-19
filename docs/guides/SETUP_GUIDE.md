@@ -26,7 +26,7 @@ The app is .NET/WPF; Python is used only for CI harness checks and optional comp
 
 | Task | Python to use | Dependencies |
 |------|---------------|--------------|
-| `verify.ps1` / `verify.sh` harness | System `python` or `py -3` | None (stdlib only) |
+| `verify.ps1` / `verify.sh` harness | Windows: `py -3`; macOS/Linux: `python3` | None (stdlib only) |
 | Composite-pin asset tooling (`split_pin_parts.py`, `create_shaft_asset_variants.py`) | `scripts/venv/` | `scripts/requirements.txt` |
 
 **Create or refresh the venv** (not in git — recreate on each machine):

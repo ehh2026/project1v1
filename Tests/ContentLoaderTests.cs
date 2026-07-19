@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Tests.TestHelpers;
@@ -87,6 +89,36 @@ public class ContentLoaderTests
             Assert.Single(locations);
             Assert.Equal("Paris", locations[0].Name);
             Assert.True(loader.IsInitialized);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadClustersAsync_UsesCurrentClusterDistanceThreshold()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            File.WriteAllText(
+                Path.Combine(tempDir, "locations.json"),
+                "[" +
+                "{\"Id\":\"a1\",\"Name\":\"Alpha\",\"PixelX\":100,\"PixelY\":100}," +
+                "{\"Id\":\"b1\",\"Name\":\"Beta\",\"PixelX\":140,\"PixelY\":100}" +
+                "]");
+
+            var closeThresholdLoader = CreateLoaderForJsonTests(tempDir);
+            closeThresholdLoader.ClusterDistanceThreshold = 50.0;
+            var closeThresholdClusters = await closeThresholdLoader.LoadClustersAsync();
+
+            var smallThresholdLoader = CreateLoaderForJsonTests(tempDir);
+            smallThresholdLoader.ClusterDistanceThreshold = 10.0;
+            var smallThresholdClusters = await smallThresholdLoader.LoadClustersAsync();
+
+            Assert.Single(closeThresholdClusters);
+            Assert.Equal(2, smallThresholdClusters.Count);
         }
         finally
         {
@@ -294,6 +326,35 @@ public class ContentLoaderTests
         }
     }
 
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_LoadsCaptionSidecarByImagePrefix()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Test");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1-letter.png"));
+            File.WriteAllText(Path.Combine(locationFolder, "1-letter.txt"), "Translated text");
+            File.WriteAllText(
+                Path.Combine(locationFolder, "1-letter-caption.txt"),
+                "Caption text about this letter.");
+
+            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Test", Id = "t" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.Equal("Translated text", image.TranslationText);
+            Assert.Equal("Caption text about this letter.", image.CaptionText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // LoadLocationContentAsync — additional coverage
     // -------------------------------------------------------------------------
@@ -339,5 +400,23 @@ public class ContentLoaderTests
         Directory.CreateDirectory(tempDir);
         File.WriteAllText(Path.Combine(tempDir, ContentFileNames.WorldMapFileName), "fake-image-data");
         return tempDir;
+    }
+
+    private static void SaveTinyPng(string path)
+    {
+        var bitmap = BitmapSource.Create(
+            1,
+            1,
+            96,
+            96,
+            PixelFormats.Bgra32,
+            null,
+            new byte[] { 0, 0, 255, 255 },
+            4);
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(bitmap));
+
+        using var stream = File.Create(path);
+        encoder.Save(stream);
     }
 }

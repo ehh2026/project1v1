@@ -178,8 +178,8 @@ public class RadialExtensionAdjuster
         int pass = 0;
         bool hadAdjustments;
 
-        bool logAngles  = _visualConfig.Debug.LogRadialExtensionAngles;
-        bool logOverlaps = _visualConfig.Debug.LogRadialExtensionOverlaps;
+        bool logAngles  = _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionAngles;
+        bool logOverlaps = _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionOverlaps;
 
         if (protectedLocations != null && protectedLocations.Count > 0 && logOverlaps)
             _logger.LogInfo($"[AdjustForMarkerOverlaps] Protected locations (won't adjust angles): {string.Join(", ", protectedLocations)}");

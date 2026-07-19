@@ -12,8 +12,7 @@
                Stretch="Fill" 
                HorizontalAlignment="Stretch" 
                VerticalAlignment="Stretch"
-               RenderOptions.BitmapScalingMode="NearestNeighbor"
-               RenderOptions.EdgeMode="Aliased"
+               RenderOptions.BitmapScalingMode="Fant"
                SnapsToDevicePixels="True"/>
         
         <!-- Marker Canvas - fills entire control, markers positioned in screen space -->
@@ -21,5 +20,10 @@
                 HorizontalAlignment="Stretch"
                 VerticalAlignment="Stretch"
                 Background="Transparent"/>
+
+        <!-- Only the circular child targets participate in input; this canvas has no background. -->
+        <Canvas x:Name="MarkerInteractionCanvas"
+                HorizontalAlignment="Stretch"
+                VerticalAlignment="Stretch"/>
     </Grid>
 </UserControl>

@@ -1,0 +1,1 @@
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. This demo caption represents explanatory text for the selected photograph, shown in the bottom pane of the main content window.

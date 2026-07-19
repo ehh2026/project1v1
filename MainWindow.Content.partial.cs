@@ -21,6 +21,22 @@ namespace InteractiveWorldMap
 {
     public partial class MainWindow
     {
+        private bool _restoreThumbnailAfterPresentation;
+        private bool _restoreDidacticAfterPresentation;
+
+        private ContentSubwindow CreateContentSubwindow(Location location)
+        {
+            var window = new ContentSubwindow
+            {
+                AssociatedLocation = location,
+                Owner = this,
+                MaximizedBackgroundOpacity =
+                    _visualConfig.MaximizedContentBackgroundOpacity
+            };
+            window.PresentationModeChanged += OnContentPresentationModeChanged;
+            return window;
+        }
+
         public async void ShowContentForLocation(Location location)
         {
             try
@@ -53,11 +69,7 @@ namespace InteractiveWorldMap
                     // Show text message if no content available
                     var content = $"Content not available for {location.Name}";
                     
-                    _activeSubwindow = new ContentSubwindow
-                    {
-                        AssociatedLocation = location,
-                        Owner = this
-                    };
+                    _activeSubwindow = CreateContentSubwindow(location);
                     
                     var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
                     _activeSubwindow.ShowContent(content, location.Name, markerPosition);
@@ -79,19 +91,15 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Shows a specific image from a location's image collection.
         /// </summary>
-        private async Task ShowImageAtIndexAsync(Location location, (BitmapImage Image, string? TranslationText)[] allImagesWithTranslations, int index)
+        private async Task ShowImageAtIndexAsync(Location location, (BitmapImage Image, string? TranslationText, string? CaptionText)[] allImagesWithTranslations, int index)
         {
-            var (image, translationText) = allImagesWithTranslations[index];
+            var (image, translationText, captionText) = allImagesWithTranslations[index];
             
             // Create and show content subwindow
-            _activeSubwindow = new ContentSubwindow
-            {
-                AssociatedLocation = location,
-                Owner = this
-            };
+            _activeSubwindow = CreateContentSubwindow(location);
 
             var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-            _activeSubwindow.ShowContent(image, location.Name, markerPosition, translationText);
+            _activeSubwindow.ShowContent(image, location.Name, markerPosition, translationText, captionText);
 
             // Load and show didactic text if available
             var didacticText = await _contentLoader.LoadDidacticTextAsync(location);
@@ -102,7 +110,7 @@ namespace InteractiveWorldMap
                     Owner = this
                 };
                 
-                _activeDidacticWindow.SetContent(didacticText);
+                _activeDidacticWindow.SetContent(didacticText, location.Name);
                 _activeDidacticWindow.PositionRelativeTo(_activeSubwindow);
                 _activeDidacticWindow.Show();
                 _activeDidacticWindow.AnimateOpen();
@@ -131,9 +139,9 @@ namespace InteractiveWorldMap
                 {
                     if (_activeSubwindow != null)
                     {
-                        var (selectedImage, selectedTranslation) = allImagesWithTranslations[selectedIndex];
+                        var (selectedImage, selectedTranslation, selectedCaption) = allImagesWithTranslations[selectedIndex];
                         var newMarkerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-                        _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation);
+                        _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation, selectedCaption);
                         _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
                     }
                 };
@@ -175,6 +183,8 @@ namespace InteractiveWorldMap
                 _activeDidacticWindow.Close();
                 _activeDidacticWindow = null;
             }
+
+            ResetCompanionPresentationState();
         }
 
         /// <summary>
@@ -183,7 +193,10 @@ namespace InteractiveWorldMap
         private Task CloseActiveSubwindowAsync()
         {
             if (_activeSubwindow == null && _activeThumbnailBrowser == null && _activeDidacticWindow == null)
+            {
+                ResetCompanionPresentationState();
                 return Task.CompletedTask;
+            }
 
             _logger.LogInfo("Closing active subwindow (async)");
             
@@ -205,6 +218,8 @@ namespace InteractiveWorldMap
                 _activeDidacticWindow = null;
             }
 
+            ResetCompanionPresentationState();
+
             if (windowToClose != null)
             {
                 windowToClose.AnimateClose(() =>
@@ -219,6 +234,53 @@ namespace InteractiveWorldMap
             }
 
             return tcs.Task;
+        }
+
+        private void OnContentPresentationModeChanged(
+            object? sender,
+            EventArgs e)
+        {
+            if (sender is not ContentSubwindow window ||
+                !ReferenceEquals(window, _activeSubwindow))
+            {
+                return;
+            }
+
+            if (window.IsPresentationMode)
+            {
+                _restoreThumbnailAfterPresentation =
+                    _activeThumbnailBrowser?.IsVisible == true;
+                _restoreDidacticAfterPresentation =
+                    _activeDidacticWindow?.IsVisible == true;
+
+                if (_restoreThumbnailAfterPresentation)
+                    _activeThumbnailBrowser!.Hide();
+
+                if (_restoreDidacticAfterPresentation)
+                    _activeDidacticWindow!.Hide();
+
+                return;
+            }
+
+            if (_restoreThumbnailAfterPresentation &&
+                _activeThumbnailBrowser != null)
+            {
+                _activeThumbnailBrowser.Show();
+            }
+
+            if (_restoreDidacticAfterPresentation &&
+                _activeDidacticWindow != null)
+            {
+                _activeDidacticWindow.Show();
+            }
+
+            ResetCompanionPresentationState();
+        }
+
+        private void ResetCompanionPresentationState()
+        {
+            _restoreThumbnailAfterPresentation = false;
+            _restoreDidacticAfterPresentation = false;
         }
 
         /// <summary>

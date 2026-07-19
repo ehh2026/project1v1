@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -6,6 +6,14 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InteractiveWorldMap", "InteractiveWorldMap.csproj", "{A1B2C3D4-E5F6-7890-ABCD-EF1234567890}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InteractiveWorldMap.Tests", "Tests\InteractiveWorldMap.Tests.csproj", "{B2C3D4E5-F6A7-8901-BCDE-F12345678901}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ManualLayoutSeedGenerator", "Tools\ManualLayoutSeedGenerator\ManualLayoutSeedGenerator.csproj", "{C3D4E5F6-A7B8-9012-CDEF-234567890123}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThumbnailTouchSmoke", "Tools\ThumbnailTouchSmoke\ThumbnailTouchSmoke.csproj", "{D4E5F6A7-B8C9-0123-DEFA-345678901234}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tools", "Tools", "{E156DE21-DA0E-42FB-B07B-D49816FEAFEC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MapResamplerComparison", "Tools\MapResamplerComparison\MapResamplerComparison.csproj", "{20CB577D-1223-40C6-ABA3-0E004479F773}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,5 +29,20 @@ Global
 		{B2C3D4E5-F6A7-8901-BCDE-F12345678901}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B2C3D4E5-F6A7-8901-BCDE-F12345678901}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B2C3D4E5-F6A7-8901-BCDE-F12345678901}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3D4E5F6-A7B8-9012-CDEF-234567890123}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D4E5F6A7-B8C9-0123-DEFA-345678901234}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D4E5F6A7-B8C9-0123-DEFA-345678901234}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D4E5F6A7-B8C9-0123-DEFA-345678901234}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D4E5F6A7-B8C9-0123-DEFA-345678901234}.Release|Any CPU.Build.0 = Release|Any CPU
+		{20CB577D-1223-40C6-ABA3-0E004479F773}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{20CB577D-1223-40C6-ABA3-0E004479F773}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{20CB577D-1223-40C6-ABA3-0E004479F773}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{20CB577D-1223-40C6-ABA3-0E004479F773}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{20CB577D-1223-40C6-ABA3-0E004479F773} = {E156DE21-DA0E-42FB-B07B-D49816FEAFEC}
 	EndGlobalSection
 EndGlobal

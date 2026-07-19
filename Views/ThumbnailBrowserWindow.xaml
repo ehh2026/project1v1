@@ -10,7 +10,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True">
-    <Border Background="#A61E1E1E"
+    <Border Background="#D91E1E1E"
             CornerRadius="12"
             Padding="12"
             BorderThickness="2"
@@ -25,46 +25,58 @@
         
         <Grid>
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
             </Grid.RowDefinitions>
             
-            <!-- Title -->
-            <TextBlock Grid.Row="0"
-                      Text="Images"
-                      FontSize="16"
-                      FontWeight="SemiBold"
-                      Foreground="#FFFFFFFF"
-                      Margin="0,0,0,10"/>
-            
             <!-- Thumbnail List -->
-            <ItemsControl x:Name="ThumbnailList" Grid.Row="1">
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <Border x:Name="ThumbnailBorder"
-                               Margin="0,0,0,8"
-                               BorderThickness="2"
-                               BorderBrush="Transparent"
-                               CornerRadius="8"
-                               Cursor="Hand"
-                               Background="#33000000"
-                               Width="140"
-                               Height="80">
-                            <Viewbox Stretch="Uniform">
-                                <Image Source="{Binding Thumbnail}"
-                                      RenderOptions.BitmapScalingMode="HighQuality"
-                                      MouseLeftButtonDown="Thumbnail_Click"/>
-                            </Viewbox>
-                        </Border>
-                        <DataTemplate.Triggers>
-                            <DataTrigger Binding="{Binding IsSelected}" Value="True">
-                                <Setter TargetName="ThumbnailBorder" Property="BorderBrush" Value="#FF2196F3"/>
-                                <Setter TargetName="ThumbnailBorder" Property="Background" Value="#662196F3"/>
-                            </DataTrigger>
-                        </DataTemplate.Triggers>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ScrollViewer x:Name="ThumbnailScrollViewer"
+                          Grid.Row="0"
+                          Background="Transparent"
+                          VerticalScrollBarVisibility="Hidden"
+                          HorizontalScrollBarVisibility="Disabled"
+                          PanningMode="VerticalFirst">
+                <ItemsControl x:Name="ThumbnailList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Click="Thumbnail_Click"
+                                    Focusable="False"
+                                    Cursor="Hand"
+                                    Background="Transparent"
+                                    BorderThickness="0"
+                                    Padding="0"
+                                    HorizontalContentAlignment="Center"
+                                    VerticalContentAlignment="Center">
+                                <Button.Template>
+                                    <ControlTemplate TargetType="{x:Type Button}">
+                                        <ContentPresenter
+                                            HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                            VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                    </ControlTemplate>
+                                </Button.Template>
+                                <Border x:Name="ThumbnailBorder"
+                                        Margin="0,0,0,8"
+                                        BorderThickness="2"
+                                        BorderBrush="Transparent"
+                                        CornerRadius="8"
+                                        Background="#33000000"
+                                        Width="140"
+                                        Height="80">
+                                    <Viewbox Stretch="Uniform">
+                                        <Image Source="{Binding Thumbnail}"
+                                               RenderOptions.BitmapScalingMode="HighQuality"/>
+                                    </Viewbox>
+                                </Border>
+                            </Button>
+                            <DataTemplate.Triggers>
+                                <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                                    <Setter TargetName="ThumbnailBorder" Property="BorderBrush" Value="#FF2196F3"/>
+                                    <Setter TargetName="ThumbnailBorder" Property="Background" Value="#662196F3"/>
+                                </DataTrigger>
+                            </DataTemplate.Triggers>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Grid>
     </Border>
 </Window>

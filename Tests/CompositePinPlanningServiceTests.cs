@@ -121,6 +121,48 @@ public class CompositePinPlanningServiceTests
         Assert.Equal("pin_a", result.Selection.PairId);
     }
 
+    [Fact]
+    public void BuildPlan_WhenPreferredHeadPathUsesVariantFolder_SelectsMatchingHeadGeometry()
+    {
+        var service = MakeService();
+        var (target, candidates, config) = MakeFixture("loc-preferred-variant-head");
+        candidates["pin_b"] = CloneGeometry(candidates["pin_a"], "pin_b", "pin_b_head.png");
+        config.HeadAssetVariant = "outline_black_6px";
+
+        var preferredHead = System.IO.Path.Combine(
+            config.PartsFolderPath, "head_variants", "outline_black_6px", "pin_b_head.png");
+
+        var result = service.BuildPlan(
+            target,
+            candidates,
+            config,
+            preferredPairId: "pin_a",
+            preferredHeadSourcePath: preferredHead);
+
+        var expectedHead = System.IO.Path.Combine(
+            config.PartsFolderPath, "head_variants", "outline_black_6px", "pin_b_head.png");
+        Assert.Equal(expectedHead, result.RenderPlan.HeadSourcePath);
+    }
+
+    [Fact]
+    public void BuildPlan_WhenPreferredHeadPathUsesBaseFolder_SelectsMatchingHeadGeometry()
+    {
+        var service = MakeService();
+        var (target, candidates, config) = MakeFixture("loc-preferred-base-head");
+        candidates["pin_b"] = CloneGeometry(candidates["pin_a"], "pin_b", "pin_b_head.png");
+
+        var preferredHead = System.IO.Path.Combine(config.PartsFolderPath, "pin_b_head.png");
+
+        var result = service.BuildPlan(
+            target,
+            candidates,
+            config,
+            preferredPairId: "pin_a",
+            preferredHeadSourcePath: preferredHead);
+
+        Assert.Equal(preferredHead, result.RenderPlan.HeadSourcePath);
+    }
+
     // ─── helpers ──────────────────────────────────────────────────────────────
 
     private static CompositePinPlanningService MakeService() =>
@@ -176,6 +218,17 @@ public class CompositePinPlanningServiceTests
             }
         };
         return (target, candidates, config);
+    }
+
+    private static PinPartGeometryEntry CloneGeometry(PinPartGeometryEntry source, string pairId, string headFile)
+    {
+        return new PinPartGeometryEntry
+        {
+            HeadFile = headFile,
+            ShaftFile = $"{pairId}_shaft.png",
+            Head = source.Head,
+            Shaft = source.Shaft
+        };
     }
 
     private static double Distance(Point a, Point b)

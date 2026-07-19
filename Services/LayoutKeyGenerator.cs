@@ -59,10 +59,14 @@ namespace InteractiveWorldMap.Services
 
         /// <summary>
         /// Generate the manual layout group key for full-map layouts.
+        /// Size-independent: there is only ever one "whole map" layout, and marker positions
+        /// re-project from source space (<see cref="Models.ManualLayoutMarker.SourceExtendedX"/>),
+        /// so the canvas size must not be part of the key (a resize would otherwise orphan it).
+        /// Legacy sized keys (<c>fullmap_s{W}x{H}</c>) still resolve via <see cref="AreKeysCompatible"/>.
         /// </summary>
-        public static string GenerateFullMapGroupKey(double canvasWidth, double canvasHeight)
+        public static string GenerateFullMapGroupKey()
         {
-            return $"fullmap_s{canvasWidth:F0}x{canvasHeight:F0}";
+            return "fullmap";
         }
 
         /// <summary>
@@ -83,8 +87,13 @@ namespace InteractiveWorldMap.Services
         /// </summary>
         public static bool AreKeysCompatible(string key1, string key2, double zoomTolerance = 0.1)
         {
-            if (IsFullMapKey(key1) || IsFullMapKey(key2))
-                return string.Equals(key1, key2, StringComparison.Ordinal);
+            // Full-map layouts are size-independent: any two full-map keys (including legacy
+            // sized `fullmap_s{W}x{H}` forms) describe the same "whole map" layout and are
+            // compatible. A full-map key is never compatible with a cluster key.
+            bool fullMap1 = IsFullMapKey(key1);
+            bool fullMap2 = IsFullMapKey(key2);
+            if (fullMap1 || fullMap2)
+                return fullMap1 && fullMap2;
 
             var parts1 = key1.Split('_');
             var parts2 = key2.Split('_');
@@ -118,7 +127,8 @@ namespace InteractiveWorldMap.Services
 
         private static bool IsFullMapKey(string key)
         {
-            return key.StartsWith("fullmap_s", StringComparison.Ordinal);
+            // Matches both the current constant key ("fullmap") and legacy sized keys ("fullmap_s…").
+            return key.StartsWith("fullmap", StringComparison.Ordinal);
         }
     }
 }

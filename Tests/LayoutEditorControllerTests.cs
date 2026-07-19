@@ -147,6 +147,51 @@ public class LayoutEditorControllerTests
         Assert.False(ctrl.IsManualLayoutActive);
     }
 
+    [Fact]
+    public void IsManualLayoutSuppressed_DefaultsFalse()
+    {
+        var (ctrl, _, _, _) = Make();
+        Assert.False(ctrl.IsManualLayoutSuppressed);
+    }
+
+    [Fact]
+    public void UnloadManualLayout_SuppressesAndDeactivates()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetManualLayoutActive(true);
+
+        ctrl.UnloadManualLayout();
+
+        Assert.True(ctrl.IsManualLayoutSuppressed);
+        Assert.False(ctrl.IsManualLayoutActive);
+    }
+
+    [Fact]
+    public void SetManualLayoutActive_True_ClearsSuppression()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.UnloadManualLayout();
+        Assert.True(ctrl.IsManualLayoutSuppressed);
+
+        ctrl.SetManualLayoutActive(true);
+
+        Assert.False(ctrl.IsManualLayoutSuppressed);
+        Assert.True(ctrl.IsManualLayoutActive);
+    }
+
+    [Fact]
+    public void SetManualLayoutActive_False_LeavesSuppressionUntouched()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.UnloadManualLayout();
+
+        // Auto-apply paths call SetManualLayoutActive(false) when no layout is found; that must not
+        // clear a session unload.
+        ctrl.SetManualLayoutActive(false);
+
+        Assert.True(ctrl.IsManualLayoutSuppressed);
+    }
+
     // ─── BuildExtensions (static) ─────────────────────────────────────────────
 
     [Fact]
@@ -483,7 +528,7 @@ public class LayoutEditorControllerTests
     }
 
     [Fact]
-    public void CreateLayoutApplications_MissingVisibleMarker_SkipsAndLogsWarning()
+    public void CreateLayoutApplications_MissingVisibleMarker_SkipsAndLogsInfo()
     {
         var (ctrl, _, logger, _) = Make();
         var layout = new ManualLayout(
@@ -496,7 +541,9 @@ public class LayoutEditorControllerTests
         var applications = ctrl.CreateLayoutApplications(layout, new[] { "other" });
 
         Assert.Empty(applications);
-        Assert.Contains(logger.WarningMessages, message => message.Contains("missing"));
+        // Not-currently-visible layout markers are skipped by design — logged at info, not warn.
+        Assert.DoesNotContain(logger.WarningMessages, message => message.Contains("missing"));
+        Assert.Contains(logger.InfoMessages, message => message.Contains("missing"));
     }
 
     [Fact]

@@ -15,8 +15,6 @@ namespace InteractiveWorldMap.Services;
 /// </summary>
 public sealed class LayoutEditorController
 {
-    private const double ExtensionLineThreshold = 5.0;
-
     private readonly IManualLayoutManager _layoutManager;
     private readonly VisualConfig        _visualConfig;
     private readonly ILogger             _logger;
@@ -26,6 +24,14 @@ public sealed class LayoutEditorController
     public bool    IsEditMode           { get; private set; }
     public bool    IsManualLayoutActive { get; private set; }
     public string? CurrentLayoutKey     { get; private set; }
+
+    /// <summary>
+    /// True when the user has unloaded the saved layout for this session (see
+    /// <see cref="UnloadManualLayout"/>). Auto-apply paths must skip applying while this is set so
+    /// pins stay at their auto-placed positions. Session-scoped: cleared whenever a layout next
+    /// becomes active (re-edit) and not persisted, so a restart restores normal auto-apply.
+    /// </summary>
+    public bool    IsManualLayoutSuppressed { get; private set; }
 
     /// <summary>VariantId of the variant that is currently loaded into the editor.</summary>
     public string?             ActiveVariantId      { get; private set; }
@@ -106,7 +112,21 @@ public sealed class LayoutEditorController
     public void SetManualLayoutActive(bool active)
     {
         IsManualLayoutActive = active;
+        // A layout becoming active re-engages the workflow, so clear any prior session unload.
+        if (active)
+            IsManualLayoutSuppressed = false;
         ManualLayoutActivityChanged?.Invoke(active);
+    }
+
+    /// <summary>
+    /// Non-destructively unloads the active manual layout: flags it suppressed so the auto-apply
+    /// paths skip it (markers revert to auto-placement) while leaving the saved JSON on disk intact.
+    /// The layout returns when it next becomes active — re-entering the editor or restarting the app.
+    /// </summary>
+    public void UnloadManualLayout()
+    {
+        IsManualLayoutSuppressed = true;
+        SetManualLayoutActive(false);
     }
 
     // ─── Data operations ─────────────────────────────────────────────────────
@@ -168,19 +188,22 @@ public sealed class LayoutEditorController
         {
             if (!visibleNames.Contains(layoutMarker.LocationName))
             {
-                _logger.LogWarning($"  Marker not found for location: {layoutMarker.LocationName}");
+                // Expected: a saved full-map layout carries every location, but only a subset is
+                // visible in the current view (e.g. a single-location zoom). Skipping the rest is
+                // by design — not an error — so log at info level to avoid alarming warn spam.
+                _logger.LogInfo($"  Skipping layout marker not visible in current view: {layoutMarker.LocationName}");
                 continue;
             }
 
-            double dx = layoutMarker.ExtendedPosition.X - layoutMarker.OriginalPosition.X;
-            double dy = layoutMarker.ExtendedPosition.Y - layoutMarker.OriginalPosition.Y;
-            double distance = Math.Sqrt(dx * dx + dy * dy);
+            bool requiresExtensionLine = ManualLayoutPlacementPolicy.RequiresExtensionLine(
+                layoutMarker.OriginalPosition,
+                layoutMarker.ExtendedPosition);
 
             applications.Add(new LayoutMarkerApplication(
                 layoutMarker.LocationName,
                 layoutMarker.OriginalPosition,
                 layoutMarker.ExtendedPosition,
-                distance > ExtensionLineThreshold)
+                requiresExtensionLine)
             {
                 SourceExtendedX = layoutMarker.SourceExtendedX,
                 SourceExtendedY = layoutMarker.SourceExtendedY,

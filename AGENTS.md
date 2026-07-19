@@ -6,12 +6,23 @@
 
 Windows desktop app (WPF / .NET 6 / C#) displaying a full-screen interactive world map with clickable location markers and content popups.
 
+## Non-Negotiable Finish Bookkeeping
+
+Every agent must keep completion state current before handing work back:
+
+- Remove completed `docs/TO_DO.md` bullets instead of leaving stale checked items.
+- Narrow partially completed `docs/TO_DO.md` bullets to only the remaining scope.
+- Move parked work to Deferred/Inactive with a short reason.
+- Archive completed exec plans to `docs/exec-plans/completed/` and update active registries.
+- Add or update the `[Unreleased]` `CHANGELOG.md` entry for user-visible or workflow-visible changes.
+
 ## Quick Commands
 
 ```bash
 # Build and test (run before claiming work is done)
 ./scripts/verify.sh          # macOS / Linux (build + test + harness checks)
 .\scripts\verify.ps1         # Windows (full verification)
+.\scripts\verify_manual_layout_seeds.ps1 # Windows: seed generator/load sanity check
 
 # Manual steps
 dotnet build InteractiveWorldMap.sln
@@ -27,7 +38,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **Merge gate:** GitHub Actions on `windows-latest` runs build, test, NuGet vulnerability scan, doc links, taste checks, and headless startup validation; **Gitleaks** runs separately on Ubuntu. Local Windows gate: `.\scripts\verify.ps1`. macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
 
-**Python (optional tooling):** Harness scripts use stdlib only — `verify.ps1` / `verify.sh` call system `python` or `py -3`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
+**Python (optional tooling):** Harness scripts use stdlib only. On Windows use `py -3 scripts\...`; `verify.ps1` prefers `py -3` before bare `python` because local pyenv shims may exist without a selected version. On macOS/Linux use `python3 scripts/...`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
 
 ## Repository Layout
 
@@ -96,8 +107,14 @@ Full loop: [docs/agent-workflows.md](docs/agent-workflows.md)
 - Exec plans that touch large files, composition roots, or shared workflows must include modularity/file-size impact: expected file growth, ownership boundaries, extraction points, and tests
 - Scripts for test runners go in `scripts/`; test projects in `Tests/`
 
+## Pin/Location Terminology
+
+Use [docs/reference/GLOSSARY.md](docs/reference/GLOSSARY.md) terms consistently in docs, plans, tests, and code comments.
+
 ## When You Finish
 
 - [ ] `scripts/verify` passes
 - [ ] Exec plan updated (if applicable)
+- [ ] Finished exec plan archived to `docs/exec-plans/completed/` and active registries updated, if the plan is complete
+- [ ] `docs/TO_DO.md` updated: remove completed items, narrow partial items to remaining scope, or move parked items to Deferred/Inactive
 - [ ] `CHANGELOG.md` entry under `[Unreleased]` or new version

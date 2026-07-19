@@ -46,8 +46,67 @@ namespace InteractiveWorldMap
                 if (startViewport == null)
                 {
                     _logger.LogError("Current viewport is null");
+                    _autoOpenLocation = null;
                     return;
                 }
+
+                // Phase 1: capture settled-state pin-to-map offsets so markers track
+                // the map during the animation instead of freezing in place.
+                // Must run while _mode == Normal so the orchestrator produces
+                // authoritative placements (MarkerPlacementMode.WithExtensions).
+                {
+                    UpdateMarkerPositions();
+
+                    // UpdateMarkerPositions() above recomputes *default* placements: it rebuilds
+                    // single-location pins as default stubs (composite) or drops the manual
+                    // extension line (drawn), discarding the edited appearance an active full-map
+                    // manual layout applied. Re-apply that layout before capturing offsets so the
+                    // pins tracked through the zoom animation match the settled edited appearance
+                    // instead of reverting to default stubs for the duration of the zoom.
+                    if (_layoutEditor.IsManualLayoutActive)
+                        TryApplyFullMapManualLayout();
+
+                    var containerWidth = MapDisplay.ActualWidth;
+                    var containerHeight = MapDisplay.ActualHeight;
+
+                    foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+                    {
+                        var pMap = startViewport.SourceToScreen(
+                            marker.Location.PixelX,
+                            marker.Location.PixelY,
+                            containerWidth,
+                            containerHeight);
+
+                        var pCanvas = new Point(Canvas.GetLeft(marker), Canvas.GetTop(marker));
+                        if (double.IsNaN(pCanvas.X) || double.IsNaN(pCanvas.Y))
+                            continue;
+
+                        Point anchor;
+                        if (marker.Content is AutoStubPinMarker autoStub)
+                            anchor = autoStub.GetShaftTipPoint();
+                        else if (marker.Content is ManualLayoutPinMarker manual)
+                            anchor = manual.GetConnectionPoint();
+                        else if (marker.Content is CompositePinMarker composite)
+                            anchor = composite.GetTipAnchorPoint();
+                        else
+                            anchor = new Point(0, 0);
+
+                        _animationOffsets[marker] = new Vector(
+                            pCanvas.X + anchor.X - pMap.X,
+                            pCanvas.Y + anchor.Y - pMap.Y);
+                    }
+
+                    _extensionLineRenderer.Clear();
+                    _logger.LogInfo($"  Captured animation offsets for {_animationOffsets.Count} markers");
+                }
+
+                // Drawn-pin manual layouts render their shaft as a separate extension line that
+                // the offset system above just cleared, and AnchorExtendedMarker hides the pin's
+                // own shaft — so without per-frame replay only the head would show during zoom-in.
+                // Mirror zoom-out: replay the layout each frame so the shaft tracks the map. Returns
+                // null in composite mode (CanUseCompositePins), where the offset path already keeps
+                // the whole composite pin — head and shaft — together.
+                var animationLayout = TryLoadFullMapManualLayoutForAnimation();
 
                 _mode = InteractionMode.Animating;
 
@@ -63,18 +122,68 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  Start viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}");
                 _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
-                AnimateViewportTransition(startViewport, targetViewport, "Zoom animation", () =>
-                {
-                    ShowZoomedView(cluster);
-                    BackButton.Visibility = Visibility.Visible;
-                });
+                AnimateViewportTransition(
+                    startViewport,
+                    targetViewport,
+                    "Zoom animation",
+                    () =>
+                    {
+                        var toOpen = _autoOpenLocation;
+                        _autoOpenLocation = null;
+
+                        _animationOffsets.Clear();
+                        ShowZoomedView(cluster);
+                        BackButton.Visibility = Visibility.Visible;
+
+                        if (toOpen != null)
+                        {
+                            ShowContentForLocation(toOpen);
+                        }
+                    },
+                    () => ApplyManualLayoutDuringAnimation(animationLayout));
             }
             catch (Exception ex)
             {
+                _autoOpenLocation = null;
                 _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
+
+        /// <summary>
+        /// Phase 7: single-location zoom must replay the full-map manual layout (angle/length/assignment)
+        /// so the composite stub matches the unzoomed appearance. Cluster layout keys are not used
+        /// when a full-map entry exists for that location.
+        /// </summary>
+        private bool TryApplyFullMapLayoutForZoomedSingle(LocationCluster cluster)
+        {
+            if (!cluster.IsSingleLocation)
+                return false;
+
+            // Honor a session unload: a zoomed single location stays at its auto-placed position.
+            if (_layoutEditor.IsManualLayoutSuppressed)
+                return false;
+
+            var locationName = cluster.Locations[0].Name;
+            var key = GenerateCurrentFullMapGroupKey();
+            var layout = _layoutEditor.TryLoad(key);
+            if (layout == null)
+                return false;
+
+            if (!FullMapLayoutContainsLocation(layout, locationName))
+                return false;
+
+            _layoutEditor.SetLayoutKey(key);
+            _logger.LogInfo(
+                $"[TryApplyFullMapLayoutForZoomedSingle] Replaying full-map layout for '{locationName}' at key={key}");
+            ApplyManualLayout(layout);
+            _layoutEditor.SetManualLayoutActive(true);
+            return true;
+        }
+
+        private static bool FullMapLayoutContainsLocation(ManualLayout layout, string locationName) =>
+            layout.Markers.Any(m =>
+                string.Equals(m.LocationName, locationName, StringComparison.Ordinal));
 
         /// <summary>
         /// Shows the cluster view (full map with cluster markers).
@@ -121,33 +230,50 @@ namespace InteractiveWorldMap
                     // Generate layout key and try to load saved layout
                     if (_layoutManager != null && _visualConfig.RadialExtension.Enabled)
                     {
-                        _layoutEditor.SetLayoutKey(LayoutKeyGenerator.GenerateKey(
-                            cluster.Locations,
-                            viewport,
-                            _visualConfig.RadialExtension));
-
-                        _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
-
-                        // Try to load saved layout
-                        var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
-                        if (savedLayout != null)
+                        var preferFullMapLayout = false;
+                        if (cluster.IsSingleLocation)
                         {
-                            _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
-                            _savedLayoutToApply = savedLayout; // Store for later application
+                            var fullMapKey = GenerateCurrentFullMapGroupKey();
+                            var fullMapLayout = _layoutEditor.TryLoad(fullMapKey);
+                            preferFullMapLayout = fullMapLayout != null &&
+                                FullMapLayoutContainsLocation(fullMapLayout, cluster.Locations[0].Name);
+                            if (preferFullMapLayout)
+                            {
+                                _logger.LogInfo(
+                                    "  Single-location zoom: full-map manual layout takes precedence over cluster layout");
+                            }
                         }
-                        else
+
+                        if (!preferFullMapLayout)
                         {
-                            _logger.LogInfo($"  No saved layout found for key: {_layoutEditor.CurrentLayoutKey}");
+                            _layoutEditor.SetLayoutKey(LayoutKeyGenerator.GenerateKey(
+                                cluster.Locations,
+                                viewport,
+                                _visualConfig.RadialExtension));
+
+                            _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
+
+                            // Try to load saved layout. The layout key is still set above (so Edit
+                            // Layout works), but a session unload means we do not stage it for
+                            // auto-apply — the cluster reverts to auto-placement.
+                            var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
+                            if (savedLayout != null && !_layoutEditor.IsManualLayoutSuppressed)
+                            {
+                                _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
+                                _savedLayoutToApply = savedLayout; // Store for later application
+                            }
+                            else
+                            {
+                                _logger.LogInfo($"  No saved layout found for key: {_layoutEditor.CurrentLayoutKey}");
+                            }
                         }
                     }
                     
                     // Load or generate high-quality zoomed region
                     var centerX = cluster.CenterPoint.X;
                     var centerY = cluster.CenterPoint.Y;
-                    var displayWidth = (int)MapDisplay.ActualWidth;
-                    var displayHeight = (int)MapDisplay.ActualHeight;
-                    
-                    var cachedRegion = _zoomedRegionCache.TryLoadRegion(centerX, centerY, ZoomScale, displayWidth, displayHeight);
+                    var request = TryCreateZoomedRegionRenderRequest(viewport, centerX, centerY);
+                    var cachedRegion = request == null ? null : _zoomedRegionCache.TryLoadRegion(request);
                     
                     if (cachedRegion != null)
                     {
@@ -157,30 +283,41 @@ namespace InteractiveWorldMap
                     else
                     {
                         _logger.LogInfo("  Generating high-quality zoomed region...");
-                        var sourceRect = viewport.GetSourceRect();
                         var sourceImage = MapDisplay.SourceImage;
                         
-                        if (sourceImage != null)
+                        if (sourceImage != null && request != null)
                         {
-                            var highQualityRegion = _zoomedRegionCache.GenerateAndCacheRegion(
-                                sourceImage, sourceRect, centerX, centerY, ZoomScale, displayWidth, displayHeight);
+                            var highQualityRegion = _zoomedRegionCache.GenerateAndCacheRegion(sourceImage, request);
                             MapDisplay.DisplayImage.Source = highQualityRegion;
                             _logger.LogInfo("  High-quality zoomed region generated and cached");
                         }
                     }
                 }
 
-                // Show only individual markers for this cluster (calculated positions)
+                // Show only individual markers for this cluster (visibility only — placement below)
                 ShowOnlyIndividualMarkers(cluster);
-                
-                // Apply saved manual layout if one was found
-                if (_savedLayoutToApply != null)
+
+                if (cluster.IsSingleLocation && TryApplyFullMapLayoutForZoomedSingle(cluster))
                 {
-                    ApplyManualLayout(_savedLayoutToApply);
-                    _layoutEditor.SetManualLayoutActive(true);
-                    _savedLayoutToApply = null; // Clear after applying
-                    
-                    _logger.LogInfo("Manual layout applied after high-res region loaded");
+                    _logger.LogInfo("Full-map manual layout applied for single-location zoom");
+                }
+                else
+                {
+                    UpdateMarkerPositions();
+
+                    // Apply saved cluster manual layout if one was found and not unloaded this session.
+                    if (_savedLayoutToApply != null && !_layoutEditor.IsManualLayoutSuppressed)
+                    {
+                        ApplyManualLayout(_savedLayoutToApply);
+                        _layoutEditor.SetManualLayoutActive(true);
+                        _savedLayoutToApply = null; // Clear after applying
+
+                        _logger.LogInfo("Manual layout applied after high-res region loaded");
+                    }
+                    else
+                    {
+                        _savedLayoutToApply = null; // Drop any stale/suppressed staged layout.
+                    }
                 }
                 
                 UpdateEditLayoutButtonVisibility();
@@ -192,8 +329,24 @@ namespace InteractiveWorldMap
                 _logger.LogError($"Error showing zoomed view: {ex.Message}\n{ex.StackTrace}");
             }
         }
+        private void OnBackButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (_layoutEditor.IsEditMode)
+            {
+                ShowEditModeNavigationBlockedStatus();
+                return;
+            }
+
+            AnimateZoomOut();
+        }
+
+        /// <summary>
+        /// Animates zooming out to the full map view using viewport-based rendering.
+        /// </summary>
         private void AnimateZoomOut()
         {
+            _autoOpenLocation = null;
+
             if (_layoutEditor.IsEditMode)
             {
                 ShowEditModeNavigationBlockedStatus();
@@ -210,6 +363,13 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== AnimateZoomOut START (Viewport) ===");
 
+                // Backing out of a zoomed view always dismisses any open content popup (subwindow,
+                // thumbnail browser, didactic window) — including the one auto-opened from a
+                // single-location unzoomed click. Otherwise it lingers over the full map.
+                CloseActiveSubwindow();
+
+                var animationLayout = TryLoadFullMapManualLayoutForAnimation();
+
                 _extensionLineRenderer.Clear();
                 _logger.LogInfo("  Cleared radial extension lines");
 
@@ -222,6 +382,8 @@ namespace InteractiveWorldMap
 
                 _logger.LogInfo($"  Current viewport: ({startViewport.ViewportX:F2}, {startViewport.ViewportY:F2}) {startViewport.ViewportWidth:F2}x{startViewport.ViewportHeight:F2}, zoom={startViewport.ZoomLevel:F2}");
 
+                // By design, zoom-out always returns to the full-map view: the navigation stack is a
+                // depth gate (CanGoBack), not a viewport history, so previousState's payload is unused.
                 var previousState = _navigationService.PopState();
                 if (previousState == null)
                 {
@@ -241,28 +403,64 @@ namespace InteractiveWorldMap
 
                 _logger.LogInfo($"  Target viewport: ({targetViewport.ViewportX:F2}, {targetViewport.ViewportY:F2}) {targetViewport.ViewportWidth:F2}x{targetViewport.ViewportHeight:F2}");
 
-                AnimateViewportTransition(startViewport, targetViewport, "Zoom-out animation", () =>
-                {
-                    _currentZoomedCluster = null;
-                    ClearFullMapLayoutSession();
-                    ShowClusterView();
-
-                    if (!_navigationService.CanGoBack)
+                AnimateViewportTransition(
+                    startViewport,
+                    targetViewport,
+                    "Zoom-out animation",
+                    () =>
                     {
-                        _logger.LogInfo("  Hiding Back button (at root level)");
-                        BackButton.Visibility = Visibility.Collapsed;
-                    }
+                        _currentZoomedCluster = null;
+                        ClearFullMapLayoutSession();
+                        ShowClusterView();
 
-                    _overrideStore.ClearAll();
-                    EditModePanel.Visibility = Visibility.Collapsed;
-                    OverridePendingIndicator.Visibility = Visibility.Collapsed;
-                    UpdateEditLayoutButtonVisibility();
-                });
+                        if (!_navigationService.CanGoBack)
+                        {
+                            _logger.LogInfo("  Hiding Back button (at root level)");
+                            BackButton.Visibility = Visibility.Collapsed;
+                        }
+
+                        _overrideStore.ClearAll();
+                        EditModePanel.Visibility = Visibility.Collapsed;
+                        OverridePendingIndicator.Visibility = Visibility.Collapsed;
+                        UpdateEditLayoutButtonVisibility();
+                    },
+                    () => ApplyManualLayoutDuringAnimation(animationLayout));
             }
             catch (Exception ex)
             {
                 _logger.LogError($"Error zooming out: {ex.Message}\n{ex.StackTrace}");
             }
+        }
+
+        private ManualLayout? TryLoadFullMapManualLayoutForAnimation()
+        {
+            if (CanUseCompositePins())
+                return null;
+
+            // Honor a session unload: do not replay the saved layout through the zoom animation.
+            if (_layoutEditor.IsManualLayoutSuppressed)
+                return null;
+
+            var key = GenerateCurrentFullMapGroupKey();
+            _layoutEditor.SetLayoutKey(key);
+
+            var layout = _layoutEditor.TryLoad(key);
+            if (layout != null)
+                _logger.LogInfo($"  Loaded full-map manual layout for zoom animation: {key}");
+
+            return layout;
+        }
+
+        private void ApplyManualLayoutDuringAnimation(ManualLayout? layout)
+        {
+            if (layout == null)
+                return;
+
+            _layoutEditor.SetLayoutKey(string.IsNullOrWhiteSpace(layout.GroupKey)
+                ? GenerateCurrentFullMapGroupKey()
+                : layout.GroupKey);
+            ApplyManualLayout(layout);
+            _layoutEditor.SetManualLayoutActive(true);
         }
 
         /// <summary>
@@ -275,7 +473,8 @@ namespace InteractiveWorldMap
             ViewportState startViewport,
             ViewportState targetViewport,
             string animationLabel,
-            Action onAnimationComplete)
+            Action onAnimationComplete,
+            Action? onFrameUpdated = null)
         {
             const int keyframeCount = 30;
             var prerenderedFrames = PreRenderKeyframes(startViewport, targetViewport, keyframeCount, out var keyframeProgress);
@@ -284,36 +483,34 @@ namespace InteractiveWorldMap
             MapDisplay.DisplayImage.Source = prerenderedFrames[0];
             MapDisplay.SetCurrentViewport(startViewport);
             UpdateMarkerPositions();
+            onFrameUpdated?.Invoke();
 
-            var animStart = DateTime.Now;
+            // Stopwatch (monotonic, sub-ms) instead of DateTime.Now (~15.6 ms resolution), which
+            // quantized progress at a 16 ms frame budget and caused visible stutter.
+            var animClock = System.Diagnostics.Stopwatch.StartNew();
             var frameCount = 0;
-            var lastFrameTime = animStart;
+            var lastFrameMs = 0.0;
 
             EventHandler? renderHandler = null;
             renderHandler = (s, e) =>
             {
                 frameCount++;
-                var now = DateTime.Now;
-                var frameDelta = (now - lastFrameTime).TotalMilliseconds;
-                lastFrameTime = now;
+                var elapsed = animClock.Elapsed.TotalMilliseconds;
+                var frameDelta = elapsed - lastFrameMs;
+                lastFrameMs = elapsed;
 
-                var elapsed = (now - animStart).TotalMilliseconds;
                 var progress = Math.Min(1.0, elapsed / AnimationDurationMs);
 
-                // Find the pre-rendered keyframe closest to the current progress
-                int frameIndex = 0;
-                double minDiff = double.MaxValue;
-                for (int i = 0; i < keyframeCount; i++)
-                {
-                    double diff = Math.Abs(keyframeProgress[i] - progress);
-                    if (diff < minDiff) { minDiff = diff; frameIndex = i; }
-                }
+                // keyframeProgress is linear/monotonic (i / (count-1)), so the nearest keyframe is a
+                // direct index — no per-frame search needed.
+                int frameIndex = Math.Min(keyframeCount - 1, (int)Math.Round(progress * (keyframeCount - 1)));
 
                 MapDisplay.DisplayImage.Source = prerenderedFrames[frameIndex];
 
                 var currentViewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[frameIndex]);
                 MapDisplay.SetCurrentViewport(currentViewport);
                 UpdateMarkerPositions();
+                onFrameUpdated?.Invoke();
 
                 if (frameCount <= 3 || frameCount % 3 == 0)
                 {
@@ -331,6 +528,7 @@ namespace InteractiveWorldMap
 
                     MapDisplay.UpdateViewport(targetViewport);
                     UpdateMarkerPositions();
+                    onFrameUpdated?.Invoke();
 
                     onAnimationComplete();
                 }
@@ -387,6 +585,7 @@ namespace InteractiveWorldMap
                     var croppedBitmap = new CroppedBitmap(sourceImage, sourceRect);
                     var scaledBitmap = new TransformedBitmap(croppedBitmap,
                         new ScaleTransform(displayWidth / (double)sourceRect.Width, displayHeight / (double)sourceRect.Height));
+                    RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.Linear);
                     
                     prerenderedFrames[i] = new WriteableBitmap(scaledBitmap);
                     prerenderedFrames[i].Freeze();

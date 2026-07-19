@@ -34,7 +34,7 @@ def run_doc_link_check(errors: list[str]) -> None:
     if result.returncode != 0:
         errors.append(
             "Broken documentation links detected. "
-            "REMEDIATION: Run python scripts/verify_doc_links.py and fix paths."
+            "REMEDIATION: Run py -3 scripts/verify_doc_links.py on Windows or python3 scripts/verify_doc_links.py on macOS/Linux and fix paths."
         )
 
 

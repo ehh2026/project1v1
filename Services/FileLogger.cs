@@ -52,6 +52,11 @@ namespace InteractiveWorldMap.Services
                 using var writer = new StreamWriter(_logFilePath!, append: true) { AutoFlush = false };
                 foreach (var message in _queue.GetConsumingEnumerable())
                 {
+                    // Console/Debug output happens here on the background thread, not on the
+                    // (often UI) thread that logged — so logging never blocks the caller.
+                    Console.WriteLine(message);
+                    System.Diagnostics.Debug.WriteLine(message);
+
                     writer.WriteLine(message);
                     // Flush only when queue is momentarily empty (batches writes)
                     if (_queue.Count == 0)
@@ -81,9 +86,8 @@ namespace InteractiveWorldMap.Services
 
         private static void WriteLog(string message)
         {
-            // Non-blocking: just enqueue. Console write is fast enough.
-            Console.WriteLine(message);
-            System.Diagnostics.Debug.WriteLine(message);
+            // Hot path: enqueue only. The background WriterLoop does the file + console/debug
+            // writes, so logging never blocks the calling (often UI) thread during animation.
             _queue.TryAdd(message); // drops if queue is full (shouldn't happen)
         }
 

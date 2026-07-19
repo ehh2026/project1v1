@@ -1,0 +1,6 @@
+## Findings for `docs/exec-plans/active/continuous-pin-tracking-during-zoom-plan.md`
+
+1. The plan treats `ApplyCompositePinsToNormalPlacements()` as if it is the only composite-pin animation gap, but the current code already replays `UpdateMarkerPositions()` on every animation frame and the settled composite path is split across `TryApplyCompositePinAtTarget()`, `ApplyCompositePinDepthSort()`, and the manual-layout replay in `ShowZoomedView()`. A pure per-marker offset cache does not say how z-order, render-plan selection, or the post-animation replay will stay consistent, so the plan is missing the failure mode where pins track correctly but still pop or reorder when animation settles.
+
+2. The proposed offset-cache design assumes the visual delta can be captured once before animation and reused throughout the transition. That is only safe if the marker content, shaft endpoint, and tip anchor remain invariant for the whole animation. In this codebase, composite pins can be rebuilt from saved layouts or override replay, and `ApplyCompositePinsToNormalPlacements()` is explicitly skipped during animation. The plan does not define how to handle cases where a marker's composite layout changes during the same transition, so it risks caching an offset against a visual state that is no longer valid by the end of the animation.
+

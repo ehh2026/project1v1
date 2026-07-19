@@ -52,3 +52,6 @@ backups/
 
 # Local agent/editor state
 .claude/
+
+# Local agent scratch / review notes
+temp/

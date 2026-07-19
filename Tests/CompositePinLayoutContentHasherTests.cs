@@ -28,4 +28,29 @@ public class CompositePinLayoutContentHasherTests
             CompositePinLayoutContentHasher.ComputeConfigHash(baseConfig),
             CompositePinLayoutContentHasher.ComputeConfigHash(variantConfig));
     }
+
+    [Fact]
+    public void ComputeConfigHash_Changes_WhenHeadAssetVariantChanges()
+    {
+        var baseConfig = new PinPartConfig
+        {
+            TargetHeadRadiusPx = 8.0,
+            TargetShaftHalfWidthPx = 1.75,
+            UseLitShafts = true,
+            ShaftAssetVariant = "outline_dark",
+            HeadAssetVariant = string.Empty
+        };
+        var variantConfig = new PinPartConfig
+        {
+            TargetHeadRadiusPx = 8.0,
+            TargetShaftHalfWidthPx = 1.75,
+            UseLitShafts = true,
+            ShaftAssetVariant = "outline_dark",
+            HeadAssetVariant = "outline_black_6px"
+        };
+
+        Assert.NotEqual(
+            CompositePinLayoutContentHasher.ComputeConfigHash(baseConfig),
+            CompositePinLayoutContentHasher.ComputeConfigHash(variantConfig));
+    }
 }

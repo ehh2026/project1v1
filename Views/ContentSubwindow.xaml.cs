@@ -1,8 +1,10 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using InteractiveWorldMap.Models;
 
@@ -32,6 +34,18 @@ public partial class ContentSubwindow : Window
 
     private string? _currentTranslationText;
     private bool _isTranslationVisible;
+    private Rect? _normalBounds;
+    private Brush? _normalBackground;
+    private Thickness _normalBorderThickness;
+    private Thickness _normalPadding;
+    private CornerRadius _normalCornerRadius;
+    private Effect? _normalEffect;
+
+    public event EventHandler? PresentationModeChanged;
+
+    public bool IsPresentationMode { get; private set; }
+
+    public double MaximizedBackgroundOpacity { get; set; } = 1.0;
 
     public ContentSubwindow()
     {
@@ -46,15 +60,20 @@ public partial class ContentSubwindow : Window
     /// Shows content at the specified anchor position.
     /// </summary>
     /// <param name="content">The content to display (ImageSource or string)</param>
-    /// <param name="locationName">The name of the location</param>
+    /// <param name="locationName">The associated location name (retained for caller compatibility)</param>
     /// <param name="anchorPosition">The position to anchor the window near</param>
     /// <param name="translationText">Optional translation text for the content</param>
-    public void ShowContent(object content, string locationName, Point anchorPosition, string? translationText = null)
+    /// <param name="captionText">Optional caption/explanation text for the selected content</param>
+    public void ShowContent(
+        object content,
+        string locationName,
+        Point anchorPosition,
+        string? translationText = null,
+        string? captionText = null)
     {
         if (content == null)
             throw new ArgumentNullException(nameof(content));
 
-        TitleText.Text = locationName ?? "Location";
         _currentTranslationText = translationText;
         _isTranslationVisible = false;
         TranslationOverlay.Visibility = Visibility.Collapsed;
@@ -70,6 +89,11 @@ public partial class ContentSubwindow : Window
         {
             TranslateButton.Visibility = Visibility.Collapsed;
         }
+
+        CaptionText.Text = string.IsNullOrWhiteSpace(captionText)
+            ? string.Empty
+            : captionText.Trim();
+        UpdateCaptionVisibility();
 
         // Render content based on type and calculate size
         if (content is ImageSource imageSource)
@@ -99,16 +123,100 @@ public partial class ContentSubwindow : Window
             CalculateContentSize();
         }
 
-        // Apply the calculated size
-        Width = PreferredSize.Width;
-        Height = PreferredSize.Height;
-
-        // Position the window
-        PositionWindow(anchorPosition);
+        if (!IsPresentationMode)
+        {
+            Width = PreferredSize.Width;
+            Height = PreferredSize.Height;
+            PositionWindow(anchorPosition);
+        }
 
         // Show and animate
         Show();
         AnimateOpen();
+    }
+
+    public bool TryTogglePresentationMode(Rect ownerBounds)
+    {
+        if (!IsPresentationMode &&
+            (ownerBounds.IsEmpty ||
+             ownerBounds.Width <= 0 ||
+             ownerBounds.Height <= 0))
+        {
+            return false;
+        }
+
+        if (IsPresentationMode)
+            ExitPresentationMode();
+        else
+            EnterPresentationMode(ownerBounds);
+
+        PresentationModeChanged?.Invoke(this, EventArgs.Empty);
+        return true;
+    }
+
+    private void EnterPresentationMode(Rect ownerBounds)
+    {
+        _normalBounds = new Rect(Left, Top, Width, Height);
+        _normalBackground = ContentBorder.Background;
+        _normalBorderThickness = ContentBorder.BorderThickness;
+        _normalPadding = ContentBorder.Padding;
+        _normalCornerRadius = ContentBorder.CornerRadius;
+        _normalEffect = ContentBorder.Effect;
+
+        var opacity = Math.Clamp(MaximizedBackgroundOpacity, 0.0, 1.0);
+        var alpha = (byte)Math.Round(opacity * byte.MaxValue);
+        ContentBorder.Background = new SolidColorBrush(
+            Color.FromArgb(alpha, 0, 0, 0));
+        ContentBorder.BorderThickness = new Thickness(0);
+        ContentBorder.Padding = new Thickness(0);
+        ContentBorder.CornerRadius = new CornerRadius(0);
+        ContentBorder.Effect = null;
+        CaptionPane.Visibility = Visibility.Collapsed;
+
+        Left = ownerBounds.Left;
+        Top = ownerBounds.Top;
+        Width = ownerBounds.Width;
+        Height = ownerBounds.Height;
+        IsPresentationMode = true;
+    }
+
+    private void ExitPresentationMode()
+    {
+        if (_normalBounds is not Rect bounds)
+            return;
+
+        Left = bounds.Left;
+        Top = bounds.Top;
+        Width = bounds.Width;
+        Height = bounds.Height;
+        ContentBorder.Background = _normalBackground;
+        ContentBorder.BorderThickness = _normalBorderThickness;
+        ContentBorder.Padding = _normalPadding;
+        ContentBorder.CornerRadius = _normalCornerRadius;
+        ContentBorder.Effect = _normalEffect;
+
+        _normalBounds = null;
+        IsPresentationMode = false;
+        UpdateCaptionVisibility();
+    }
+
+    private void ContentSurface_MouseLeftButtonUp(
+        object sender,
+        MouseButtonEventArgs e)
+    {
+        if (Owner is not Window owner)
+            return;
+
+        var ownerWidth = owner.ActualWidth > 0 ? owner.ActualWidth : owner.Width;
+        var ownerHeight = owner.ActualHeight > 0 ? owner.ActualHeight : owner.Height;
+        var ownerBounds = new Rect(
+            owner.Left,
+            owner.Top,
+            ownerWidth,
+            ownerHeight);
+
+        if (TryTogglePresentationMode(ownerBounds))
+            e.Handled = true;
     }
 
     private void TranslateButton_Click(object sender, RoutedEventArgs e)
@@ -141,6 +249,14 @@ public partial class ContentSubwindow : Window
         targetHeight = Math.Max(MinWindowHeight, targetHeight);
 
         PreferredSize = new Size(targetWidth, targetHeight);
+    }
+
+    private void UpdateCaptionVisibility()
+    {
+        CaptionPane.Visibility =
+            !IsPresentationMode && !string.IsNullOrWhiteSpace(CaptionText.Text)
+                ? Visibility.Visible
+                : Visibility.Collapsed;
     }
 
     /// <summary>

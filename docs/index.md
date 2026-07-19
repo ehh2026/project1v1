@@ -18,6 +18,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | Doc | Description |
 |-----|-------------|
 | [reference/](reference/) | Quality, reliability, security |
+| [reference/GLOSSARY.md](reference/GLOSSARY.md) | Shared project terms for pins, layouts, and seeds |
 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | Layer model, invariants, domain map |
 | [../scripts/README.md](../scripts/README.md) | Script catalog, Python venv |
 
@@ -27,9 +28,9 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 |-----|-------------|
 | [design-docs/index.md](design-docs/index.md) | Bridge to Kiro specs and feature design |
 | [design-docs/golden-principles.md](design-docs/golden-principles.md) | Mechanical rules for code consistency |
-| [../.kiro/specs/interactive-world-map/requirements.md](../.kiro/specs/interactive-world-map/requirements.md) | Formal requirements with acceptance criteria |
-| [../.kiro/specs/interactive-world-map/design.md](../.kiro/specs/interactive-world-map/design.md) | Architecture, properties, component design |
-| [../.kiro/specs/interactive-world-map/tasks.md](../.kiro/specs/interactive-world-map/tasks.md) | Implementation checklist with traceability |
+| [../.kiro/specs/interactive-world-map/requirements.md](../.kiro/specs/interactive-world-map/requirements.md) | Formal requirements with acceptance criteria *(frozen baseline — exec plans are authoritative for current work)* |
+| [../.kiro/specs/interactive-world-map/design.md](../.kiro/specs/interactive-world-map/design.md) | Architecture, properties, component design *(frozen baseline)* |
+| [../.kiro/specs/interactive-world-map/tasks.md](../.kiro/specs/interactive-world-map/tasks.md) | Implementation checklist with traceability *(frozen baseline)* |
 
 ## Execution Plans
 
@@ -61,8 +62,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 
 | Doc | Description |
 |-----|-------------|
+| [../CLAUDE.md](../CLAUDE.md) | Agent quick start (auto-loaded by Claude Code) |
 | [../README.md](../README.md) | User-facing project overview |
-| [../QUICK_START.md](../QUICK_START.md) | Quick start guide |
-| [../UPDATE_MARKERS.md](../UPDATE_MARKERS.md) | Marker update instructions |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
 | [../Images&Content/README.md](../Images&Content/README.md) | Content folder format |

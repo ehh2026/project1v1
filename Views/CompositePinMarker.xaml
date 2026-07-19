@@ -24,15 +24,7 @@
             <Image x:Name="HeadImage"
                    Stretch="None"
                    RenderOptions.BitmapScalingMode="Fant"
-                   RenderOptions.EdgeMode="Unspecified">
-                <Image.Effect>
-                    <DropShadowEffect Color="Black"
-                                      Direction="315"
-                                      ShadowDepth="2"
-                                      BlurRadius="3"
-                                      Opacity="0.35"/>
-                </Image.Effect>
-            </Image>
+                   RenderOptions.EdgeMode="Unspecified"/>
         </Canvas>
 
         <Image x:Name="FlattenedImage"

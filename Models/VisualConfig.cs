@@ -1,3 +1,5 @@
+using System;
+
 namespace InteractiveWorldMap.Models
 {
     /// <summary>
@@ -36,9 +38,40 @@ namespace InteractiveWorldMap.Models
         public bool UsePinMarkers { get; set; } = true;
 
         /// <summary>
+        /// Master gate for in-app developer tools such as Edit Layout, Runtime Tuning,
+        /// debug overlays/logging, and debug-only windowed mode.
+        /// Defaults off so gallery/guest display configs are safe unless explicitly enabled.
+        /// </summary>
+        public bool EnableDeveloperTools { get; set; } = false;
+
+        /// <summary>
+        /// Whether clicking a standalone full-map pin should open its content automatically after zooming in.
+        /// </summary>
+        public bool AutoOpenSingleLocationContentAfterZoom { get; set; } = false;
+
+        private double _maximizedContentBackgroundOpacity = 1.0;
+
+        /// <summary>
+        /// Opacity of the black unused area around content in presentation mode.
+        /// </summary>
+        public double MaximizedContentBackgroundOpacity
+        {
+            get => _maximizedContentBackgroundOpacity;
+            set => _maximizedContentBackgroundOpacity = double.IsNaN(value)
+                ? 1.0
+                : Math.Clamp(value, 0.0, 1.0);
+        }
+
+        /// <summary>
         /// Configuration for pin marker appearance.
         /// </summary>
         public PinMarkerConfig PinMarkers { get; set; } = new PinMarkerConfig();
+
+        /// <summary>
+        /// Pointer and touch target sizes for pins and cluster markers.
+        /// </summary>
+        public MarkerHitTargetConfig MarkerHitTargets { get; set; } =
+            new MarkerHitTargetConfig();
 
         /// <summary>
         /// Configuration for part-based composite pins.
@@ -61,6 +94,12 @@ namespace InteractiveWorldMap.Models
         public double ClusterCountFontSize { get; set; } = 12.0;
 
         /// <summary>
+        /// Shadow settings shared by the cluster marker body and count badge.
+        /// </summary>
+        public ClusterMarkerShadowConfig ClusterMarkerShadow { get; set; } =
+            new ClusterMarkerShadowConfig();
+
+        /// <summary>
         /// Zoom magnification level when zoomed in on a cluster.
         /// Higher values = more magnification (e.g., 30.0 = 30x zoom).
         /// </summary>
@@ -70,6 +109,8 @@ namespace InteractiveWorldMap.Models
         /// Duration of zoom animation in milliseconds.
         /// </summary>
         public int AnimationDurationMs { get; set; } = 390;
+
+        public ZoomedMapRenderConfig ZoomedMapRendering { get; set; } = new ZoomedMapRenderConfig();
 
     }
 }

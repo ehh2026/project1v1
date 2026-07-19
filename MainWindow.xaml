@@ -8,52 +8,72 @@
         Background="Black">
     <Grid x:Name="RootGrid" RenderOptions.BitmapScalingMode="HighQuality">
         <!-- Map Display with integrated markers -->
-        <views:MapDisplayControl x:Name="MapDisplay" 
-                                RenderOptions.CachingHint="Cache"
-                                CacheMode="BitmapCache"
+        <!-- No CacheMode="BitmapCache" here: it rasterized the whole control (map + vector pin
+             markers/shafts) into a bitmap that gets resampled, softening and darkening the crisp
+             vector shafts/heads when zoomed (measured shaft core ~176 vs ~216 unzoomed). The zoom
+             animation already uses its own pre-rendered keyframe bitmaps, so the live cache is not
+             needed for smoothness. -->
+        <views:MapDisplayControl x:Name="MapDisplay"
                                 MouseLeftButtonDown="OnMapMouseLeftButtonDown"
                                 MouseMove="OnMapMouseMove" />
         
-        <!-- Back Button -->
-        <Button x:Name="BackButton"
-                Content="← Back to Map"
-                Visibility="Collapsed"
-                HorizontalAlignment="Left"
-                VerticalAlignment="Top"
-                Margin="20"
-                Padding="15,8"
-                FontSize="14"
-                FontWeight="SemiBold"
-                Foreground="White"
-                Background="#CC000000"
-                BorderBrush="White"
-                BorderThickness="2"
-                Cursor="Hand"
-                Click="OnBackButtonClick">
-            <Button.Style>
-                <Style TargetType="Button">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Button">
-                                <Border Background="{TemplateBinding Background}"
-                                        BorderBrush="{TemplateBinding BorderBrush}"
-                                        BorderThickness="{TemplateBinding BorderThickness}"
-                                        CornerRadius="8"
-                                        Padding="{TemplateBinding Padding}">
-                                    <ContentPresenter HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"/>
-                                </Border>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                    <Style.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter Property="Background" Value="#DD000000"/>
-                        </Trigger>
-                    </Style.Triggers>
-                </Style>
-            </Button.Style>
-        </Button>
+        <!-- Bottom-left navigation and developer status -->
+        <StackPanel HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    Margin="20">
+            <Border x:Name="ManualLayoutIndicator"
+                    Visibility="Collapsed"
+                    Margin="0,0,0,8"
+                    HorizontalAlignment="Left"
+                    Background="#CC4169E1"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10,5">
+                <TextBlock Text="Manual Layout Active"
+                           Foreground="White"
+                           FontSize="11"
+                           FontWeight="SemiBold"/>
+            </Border>
+
+            <Button x:Name="BackButton"
+                    Content="← Back to Full Map"
+                    Visibility="Collapsed"
+                    HorizontalAlignment="Left"
+                    Padding="15,8"
+                    FontSize="14"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CC000000"
+                    BorderBrush="White"
+                    BorderThickness="2"
+                    Cursor="Hand"
+                    Click="OnBackButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="8"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DD000000"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+        </StackPanel>
 
         <!-- Edit Layout Button (shown when zoomed and edit mode enabled in config) -->
         <Button x:Name="EditLayoutButton"
@@ -295,6 +315,44 @@
                 </Button.Style>
             </Button>
 
+            <!-- Unload Layout Button (non-destructive: reverts to auto-placement, keeps file on disk) -->
+            <Button x:Name="UnloadLayoutButton"
+                    Content="Unload Layout"
+                    Padding="15,8"
+                    Margin="5"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CCDAA520"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    Click="OnUnloadLayoutButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DDFFC125"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+
             <!-- Auto Assign Pins Button -->
             <Button x:Name="ReassignPinsButton"
                     Content="Auto Assign Pins"
@@ -372,21 +430,34 @@
             </Button>
         </StackPanel>
 
-        <!-- Manual Layout Active Indicator (shown when manual layout is loaded) -->
-        <Border x:Name="ManualLayoutIndicator"
+        <views:DeveloperTuningPanel x:Name="DeveloperTuningPanel"
+                                    Visibility="Collapsed"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Margin="20,20,20,60"
+                                    ApplyRequested="OnApplyTuning"
+                                    SaveRequested="OnSaveTuningToDisk"
+                                    ReloadRequested="OnReloadTuningFromDisk"/>
+
+        <Button x:Name="TuningPanelToggleBtn"
+                Content="Tuning"
                 Visibility="Collapsed"
-                HorizontalAlignment="Left"
+                HorizontalAlignment="Right"
                 VerticalAlignment="Bottom"
                 Margin="20"
-                Background="#CC4169E1"
-                BorderBrush="White"
-                BorderThickness="1"
-                CornerRadius="6"
-                Padding="10,5">
-            <TextBlock Text="Manual Layout Active"
-                       Foreground="White"
-                       FontSize="11"
-                       FontWeight="SemiBold"/>
-        </Border>
+                Padding="15,8"
+                Background="#CC555555"
+                Foreground="White"
+                Click="OnTuningPanelToggleClick">
+            <Button.ContextMenu>
+                <ContextMenu>
+                    <MenuItem Header="Map" Tag="Map" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Composite Pins" Tag="CompositePins" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Drawn Pins" Tag="DrawnPins" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Hitboxes" Tag="Hitboxes" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Shadows" Tag="Shadows" Click="OnTuningCategoryClick"/>
+                </ContextMenu>
+            </Button.ContextMenu>
+        </Button>
     </Grid>
 </Window>

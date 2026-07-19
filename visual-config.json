@@ -2,11 +2,25 @@
   "ClusterDistanceThreshold": 30.0,
   "LocationMarkerSize": 12.0,
   "UsePinMarkers": true,
+  "EnableDeveloperTools": true,
+  "AutoOpenSingleLocationContentAfterZoom": false,
+  "MaximizedContentBackgroundOpacity": 1.0,
+  "MarkerHitTargets": {
+    "PinDiameterPx": 32.0,
+    "ClusterDiameterPx": 40.0
+  },
   "ClusterMarkerSize": 25.0,
   "ClusterBadgeSize": 12.0,
   "ClusterCountFontSize": 11.0,
+  "ClusterMarkerShadow": {
+    "Enabled": false,
+    "Opacity": 0.0
+  },
   "ZoomScale": 55.0,
   "AnimationDurationMs": 390,
+  "ZoomedMapRendering": {
+    "ResamplingMode": "Fant"
+  },
   "PinParts": {
     "Enabled": true,
     "PartsFolderPath": "Pins_v2/parts",
@@ -15,25 +29,38 @@
     "MaxResidualRotationDeg": 20.0,
     "MinStretchFactor": 0.75,
     "MaxStretchFactor": 1.35,
-    "UseCompositeRendering": true,
+    "UseCompositeRendering": false,
     "UsePrerasterizedRendering": true,
     "UseLitShafts": true,
     "ShaftAssetVariant": "outline_dark_10px_in8px_bright",
+    "HeadAssetVariant": "",
     "TargetHeadRadiusPx": 8.0,
     "TargetShaftHalfWidthPx": 1.75,
     "DefaultStubLengthPixels": 24.0
   },
 
   "PinMarkers": {
-    "BallSize": 8.0,
-    "ShaftWidth": 1.5,
-    "ShaftLength": 20.0,
-    "ShaftColor": "#FFB0B0B0",
+    "BallSize": 14.0,
+    "ShaftWidth": 3.0,
+    "ShaftLength": 24.0,
+    "ShaftColor": "#FFD8D8D8",
+    "ShaftOutlineColor": "#FF1A1A1A",
+    "ShaftOutlineThickness": 1.25,
+    "BallOutlineColor": "#FF000000",
+    "BallOutlineThickness": 1.5,
     "UseRandomColors": true,
     "DefaultBallColor": "#FFE53935",
     "ShowShadow": true,
-    "ShadowOpacity": 0.4,
-    "EnableManualEditing": true
+    "ShadowOpacity": 0.55,
+    "EnableManualEditing": true,
+    "DrawnPinTipCap": {
+      "Style": "None",
+      "Alignment": "ShaftAligned",
+      "WidthPx": 12.0,
+      "LineWeightPx": 3.0,
+      "ArcDepthPx": 3.0,
+      "Color": "#FF111111"
+    }
   },
   
   "RadialExtension": {
@@ -61,13 +88,14 @@
   },
 
   "Debug": {
-    "LogRadialExtensionCalculation": true,
-    "LogRadialExtensionAngles": true,
-    "LogRadialExtensionOverlaps": true,
-    "LogMarkerPositioning": true,
+    "LogRadialExtensionCalculation": false,
+    "LogRadialExtensionAngles": false,
+    "LogRadialExtensionOverlaps": false,
+    "LogMarkerPositioning": false,
     "LogAnimationFrames": false,
     "ShowCompositePinDebugOverlay": false,
-    "WindowedMode": true,
+    "EnableTuningPanel": true,
+    "WindowedMode": false,
     "WindowedWidth": 1280,
     "WindowedHeight": 800
   }

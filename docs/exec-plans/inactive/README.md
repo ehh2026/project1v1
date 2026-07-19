@@ -6,4 +6,5 @@ When optional work is picked up again, move the plan back to [../active/](../act
 
 | Plan | Scope | Parked |
 |------|--------|--------|
+| [content-presentation-mode-plan.md](content-presentation-mode-plan.md) | Core implementation and automated verification complete; live mouse/touch smoke parked after Windows app-control approval timed out | 2026-06-30 |
 | [composite-pin-head-placement-fix-plan.md](composite-pin-head-placement-fix-plan.md) | Head-ball anchor fix; pin_07 recalibration — optional collar/shading/radius polish deferred | 2026-06-09 |

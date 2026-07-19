@@ -68,8 +68,11 @@ namespace InteractiveWorldMap.Services
             bool shouldApplyExtensions = _visualConfig.RadialExtension.Enabled &&
                                          _extensionCalculator != null &&
                                          viewport.ZoomLevel >= _visualConfig.RadialExtension.ZoomThresholdForExtensions;
+            var logRadialExtensionCalculation =
+                _visualConfig.EnableDeveloperTools &&
+                _visualConfig.Debug.LogRadialExtensionCalculation;
 
-            if (_visualConfig.Debug.LogRadialExtensionCalculation)
+            if (logRadialExtensionCalculation)
             {
                 _logger.LogInfo(
                     $"[MarkerPlacement] ZoomLevel={viewport.ZoomLevel:F2}, " +
@@ -97,17 +100,17 @@ namespace InteractiveWorldMap.Services
                 t => t.Location,
                 t => viewport.SourceToScreen(t.PixelX, t.PixelY, containerWidth, containerHeight));
 
-            if (_visualConfig.Debug.LogRadialExtensionCalculation)
+            if (logRadialExtensionCalculation)
                 _logger.LogInfo($"[MarkerPlacement] Calculated {markerScreenPositions.Count} marker positions");
 
             var denseGroups = _extensionCalculator!.DetectDenseGroups(markerSourcePositions);
 
-            if (_visualConfig.Debug.LogRadialExtensionCalculation)
+            if (logRadialExtensionCalculation)
                 _logger.LogInfo($"[MarkerPlacement] Detected {denseGroups.Count} dense groups");
 
             if (!denseGroups.Any())
             {
-                if (_visualConfig.Debug.LogRadialExtensionCalculation)
+                if (logRadialExtensionCalculation)
                     _logger.LogInfo("[MarkerPlacement] No dense groups detected, using normal positioning");
 
                 var normalIndividuals = BuildIndividualPlacements(
@@ -126,7 +129,7 @@ namespace InteractiveWorldMap.Services
 
             foreach (var group in denseGroups)
             {
-                if (_visualConfig.Debug.LogRadialExtensionCalculation)
+                if (logRadialExtensionCalculation)
                 {
                     _logger.LogInfo(
                         $"  Processing group {groupId} with {group.Count} locations at center " +
@@ -139,7 +142,7 @@ namespace InteractiveWorldMap.Services
                     containerWidth,
                     containerHeight);
 
-                if (_visualConfig.Debug.LogRadialExtensionCalculation)
+                if (logRadialExtensionCalculation)
                     _logger.LogInfo($"  Calculated {extensions.Count} extensions");
 
                 foreach (var ext in extensions)
@@ -147,7 +150,7 @@ namespace InteractiveWorldMap.Services
 
                 if (_extensionCalculator.ValidateNoCrossings(extensions))
                 {
-                    if (_visualConfig.Debug.LogRadialExtensionCalculation)
+                    if (logRadialExtensionCalculation)
                         _logger.LogInfo("  Validation passed");
 
                     group.Extensions = extensions;

@@ -23,6 +23,19 @@ namespace InteractiveWorldMap.Models
         public Point ExtendedPosition { get; set; }
 
         /// <summary>
+        /// Source-image X coordinate of the extended position (optional).
+        /// Set at save time from <see cref="ExtendedPosition"/> via <c>viewport.ScreenToSource</c>
+        /// so the saved layout re-projects to the correct map position at any window size.
+        /// Flows through to <see cref="ManualLayoutMarker.SourceExtendedX"/>.
+        /// </summary>
+        public double? SourceExtendedX { get; set; }
+
+        /// <summary>
+        /// Source-image Y coordinate of the extended position (optional). See <see cref="SourceExtendedX"/>.
+        /// </summary>
+        public double? SourceExtendedY { get; set; }
+
+        /// <summary>
         /// Angle in degrees from center (0° = north, clockwise).
         /// </summary>
         public double Angle { get; set; }

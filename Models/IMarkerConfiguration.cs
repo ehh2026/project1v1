@@ -9,4 +9,5 @@ public interface IMarkerConfiguration
     double ClusterMarkerSize { get; }
     double ClusterBadgeSize { get; }
     double ClusterCountFontSize { get; }
+    ClusterMarkerShadowConfig ClusterMarkerShadow { get; }
 }

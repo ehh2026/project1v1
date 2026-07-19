@@ -4,7 +4,56 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Content popup polish and tuning persistence:** Content captions now span the full bottom of the main content popup as a fully opaque pane, all content popups use a more opaque normal background, the checked-in config launches fullscreen by default, and Runtime Tuning Save now applies current panel edits before writing `visual-config.json`. The Windows verification script now exits on failed restore/build/test instead of continuing to later checks.
+- **Map and shadow Runtime Tuning:** Completed the Map category with zoom scale, animation duration, cluster badge size, and cluster count font size. Added a Shadows category with shared pin and independent cluster-marker controls; pin opacity is now honored consistently without a hidden floor, while the checked-in cluster-shadow default is off.
+- **Zoomed-map rendering options:** Settled zoom output is generated at physical monitor pixels and cached by source fingerprint, DPI, output size, resampler, and policy version. Runtime Tuning can compare `Fant`, `Lanczos3`, `MitchellNetravali`, bicubic, and restrained sharpened bicubic while animation remains `Linear`; a comparison tool generates repeatable 1080p/1440p/4K samples. `Fant` remains the default pending live target-monitor review.
+- **Map image rendering quality:** Settled full-map rendering now uses `Fant` downsampling without forced aliased edges, and zoom animation frames use explicit `Linear` scaling with cache-version invalidation. The full-screen `Fill` presentation is unchanged, while the existing high-resolution settled zoom path remains `Fant`-filtered. Automated verification passes; live full-map and zoom-transition visual confirmation remains pending after Windows app-control approval timed out.
+- **Workbook-backed content tables:** `Coordinates for map.xlsx` keeps its full-size and half-size coordinate columns, restores the pre-existing nonzero coordinate values, adds per-location image filename columns, and adds new `Bio Text` and `Captions` sheets. `ContentLoader` and `ExcelCoordinateReader` now prefer the workbook-backed image order, didactic text, and captions while preserving legacy `.txt` sidecar fallback.
+- **Content captions:** Main content images can now show same-prefix `-caption.txt` explanation text in a bottom pane that collapses when absent and hides while the content is maximized. Added sample lorem ipsum captions under the `Test` content folders.
+- **Backlog:** Added a content-organization item to consider storing images, didactic text, and captions together with the Excel location data, including filename columns and either keyed caption records or `-caption.txt` sidecars.
+- **Content window headings:** The left didactic window now shows the Excel-derived location/person name and hides its heading when that name is blank. Removed the duplicate name heading from the main content window and the generic `Images` heading from the thumbnail window.
+- **Runtime Tuning and marker hitboxes:** The Tuning button now opens category-specific Map, Composite Pins, Drawn Pins, and Hitboxes panels. Drawn head/shaft dimensions and shared pin/cluster pointer targets are configurable; pin targets are centered on visible heads, cluster targets are centered on marker images, and neither can shrink below its visible artwork.
+- **Backlog:** Added configurable window chrome and typography and a tap-and-hold magnifier for maximized content.
+
+### Added
+
+- **Content presentation mode:** Clicking or tapping center content toggles a borderless main-window-sized view with proportional image scaling, configurable black excess-area opacity, an available Translate control, temporary hiding of thumbnail/didactic companions, and exact popup restoration.
+- **Glossary:** Added `docs/reference/GLOSSARY.md` as the central terminology reference for pins, manual layouts, layout variants, and seeds; linked it from agent onboarding, the doc index, and the manual layout guide.
+- **Manual layout seed generator:** Added `Tools/ManualLayoutSeedGenerator`, a headless .NET tool that reuses runtime clustering, viewport, layout-key, and radial-extension code to generate `AutoSeed` manual layouts. `scripts/generate_manual_layout_seeds.ps1` now delegates to the tool instead of carrying duplicated PowerShell/C# placement math, and `scripts/verify.ps1` now includes non-destructive seed verification through `scripts/verify_manual_layout_seeds.ps1`.
+- **Drawn-pin divot cap (opt-in):** `PinMarkers.DrawnPinTipCap` now renders `Horizontal` and `Concave` as open, unfilled, near-black strokes. Concave bows away from the pin head and keeps its true midpoint at the shaft tip. Width, line weight, curvature, and `ScreenHorizontal`/`ShaftAligned` alignment are configurable in Runtime Tuning; `Style` remains default-off.
+- **Single-location auto-open tuning:** Added default-off `AutoOpenSingleLocationContentAfterZoom` config and a Runtime Tuning panel checkbox. Full-map standalone pin clicks still zoom in; content now opens automatically after zoom only when this option is enabled.
+- **Developer tools production gate:** Added a single `EnableDeveloperTools` master config switch. When disabled, gallery/guest mode hides and blocks Edit Layout, Runtime Tuning/F12, debug overlays/logging, and debug-only windowed mode. The model default is safe-off; the checked-in development config opts in.
+
+### Changed
+
+- **Scrollable thumbnail browser:** The right-side thumbnail panel now uses vertical touch panning and mouse-wheel scrolling with its scrollbar hidden. Thumbnail activation occurs on a completed tap/click instead of initial press so a swipe can scroll without immediately loading an image.
+- **Drawn pin model separation:** Drawn manual-layout pins now use a head-only visual while auto stubs keep their built-in short shaft anchored by its tip. Extension roles are classified from final projected endpoints, and drag no longer carries a hidden or duplicate built-in stub.
+- **Bottom-left full-map navigation:** Moved and renamed the zoomed-content back button to `← Back to Full Map` in the lower-left corner, placed the manual-layout status above it, and hid that developer status when developer tools are disabled.
+- **Backlog maintenance:** Removed completed continuous-pin-tracking and Excel coordinate/table backlog items now that the work is archived/documented and already reflected in the app; clarified the zoom performance item as partial with remaining Phase 2b/2c scope; moved Tuning panel variant search/filter to a Deferred section. Strengthened agent workflow guidance so completed work updates `TO_DO.md`, archives completed plans, and records `CHANGELOG.md` consistently.
+
+- **800-line taste-limit refactor:** Two files that were failing `scripts/verify_taste.py` (and blocking `verify.ps1`) have been brought back under the limit by splitting into focused partials. `MainWindow.xaml.cs` (872 → 625 taste-lines): marker-placement engine (`UpdateMarkerPositions`, `BuildIndividualMarkerIndex`, `ApplyIndividualPlacements`, `ApplyClusterPlacements`, `ClearAllMarkers`, `ShowOnlyClusterMarkers`, `ShowOnlyIndividualMarkers`) extracted to `MainWindow.MarkerPlacement.partial.cs`. `MainWindow.LayoutEditor.partial.cs` (801 → 661 taste-lines): drag handlers (`OnMarkerDragStart`, `OnMarkerDragMove`, `LogDragDebug`, `OnMarkerDragEnd`) extracted to `MainWindow.LayoutEditorDrag.partial.cs`. Pure mechanical moves — no behavior change. Source-guard tests updated to read from the new files. `verify.ps1` now fully green.
+
+`PinMarkers.DrawnPinTipCap` applies at the visible terminus of either a built-in stub or extension line. Caps can remain horizontal in screen space or rotate perpendicular to the visible shaft, render above extension lines and below heads, and track hover, drag, and zoom. Alignment visual sign-off and the remaining interaction smoke matrix are still pending. (`docs/exec-plans/active/drawn-pin-tip-cap-plan.md`)
+
 ### Fixed
+
+- **Drawn-pin divot cap lifecycle and layering:** Manual-layout replay and edit-mode drag now refresh pooled cap paths after marker/line mutations, preventing stale caps from surviving at old coordinates. Eligible drawn-pin heads are explicitly kept above the cap layer, so a neighboring cap cannot paint across a stub or post-drag head.
+
+- **Full-map layouts survive window resize (persistence 5c):** Full-map manual layouts are now keyed by identity (`"fullmap"`) instead of canvas size, so a window resize no longer orphans them; legacy `fullmap_s{W}x{H}` keys still resolve via compatible-key matching. User saves now persist the extended position in source-image space (`SourceExtendedX/Y` on `RadialExtension` → `ManualLayoutMarker`, set in `MainWindow.CollectCurrentExtensions` via `viewport.ScreenToSource`), so saved positions re-project to the correct map location at any window size — matching the size-independence seeds already had. (`Services/LayoutKeyGenerator.cs`, `Models/RadialExtension.cs`, `Models/ManualLayoutMarker.cs`, `MainWindow.LayoutEditor.partial.cs`)
+
+- **Tuning panel reload rejection:** Reload-from-disk now validates `visual-config.json` before refreshing variant combo lists, so a rejected reload no longer leaves shaft/head pickers out of sync with the active in-memory config.
+
+- **Tuning & pin-render fixes:** Runtime tuning changes now replay the active manual layout immediately (composite on/off no longer requires entering Edit Layout); recreate-class changes while zoomed are cleanly rejected with a status message; drawn-pin drag keeps the tip fixed at its Excel location with a single connecting shaft during drag; composite drag head no longer diverges from the guide line when the shaft stretch clamp fires (Policy A: guide line follows the rendered head); reload-from-disk validates numeric values before applying them; `ShouldRepositionOnly` now uses independent angle (`toleranceDeg`) and length (`tolerancePx`) tolerances; orphaned composite guide lines in edit mode are fixed by removing stale untracking calls in `ExtensionLineRenderer.Apply`; dead `CreateLine` method removed; redundant composite-plan-changed flag and over-broad plan cache invalidation cleaned up; async void handlers wrapped in try-catch. (`MainWindow.DeveloperTuning.partial.cs`, `MainWindow.LayoutEditor.partial.cs`, `Views/ExtensionLineRenderer.cs`, `Views/DeveloperTuningPanel.xaml.cs`, `Services/CompositePinPlacementPolicy.cs`)
+
+- **Continuous pin tracking during zoom-in:** Markers with radial extension lines no longer freeze at pre-animation screen positions during zoom-in animations. Pin-to-map offsets are captured in the settled state before the animation and reapplied each frame, keeping pins attached to the moving map. Extension lines are suppressed during animation and rebuilt at settle. (`MainWindow.xaml.cs`, `MainWindow.Navigation.partial.cs`)
+
+- **Drawn manual-layout pin zoom-out persistence:** Zoom-out animation now replays the loaded full-map manual layout after each animated marker-position update, preventing edited standalone drawn pins from temporarily reverting to auto stub pins before the full-map settle replay.
+
+- **Drawn pin fallback visibility:** `PinMarker` now sizes ball and shaft from `PinMarkers` config (was scaling down via `LocationMarkerSize` and ignoring config). Extension lines use a thicker resting stroke and hover restores the configured style instead of only becoming visible on hover.
+
+- **Drawn pin high-contrast styling:** Stub shafts use a dark outline halo behind a light silver core; pin heads get a configurable black rim; random ball colors exclude low-contrast white/gray/black; extension lines render as outline+core pairs. Tunable via `PinMarkers.ShaftOutlineColor`, `BallOutlineColor`, and related fields in `visual-config.json`.
+
+- **Single-location zoom layout precedence:** Zooming into a single-location cluster now replays the `fullmap_sWxH` manual layout when present, instead of auto stub placement or a stale cluster layout key. Fixes composite stub changing after zoom settles. Added `CompositePinPlacementPolicy.ShouldRepositionOnly` and `GetCompositeTopLeft(Point, …)`; normal and extension apply paths use `TryApplyCompositePinAtTarget` to reposition existing composites without `BuildPlan` when segment vector/assignment are unchanged; `ApplyCompositePinToMarker` no longer uses a fake empty `ViewportState`. 11 behavior/contract tests added; `verify.ps1` passes (314 tests).
 
 - **Composite pin zoom persistence (automated guard):** Marker placement updates no longer unconditionally restore visible pins to drawn fallback before composite reapply, composite stubs keep screen-space length/direction across viewport projections, failed normal composite reapply recenters the drawn fallback, and composite top-left persistence math now has behavior-level policy coverage.
 - **Full-map edit drag regression:** Individual marker mouse-downs in edit mode now allow the drag handler to start instead of showing the blocked-zoom status; cluster/navigation clicks still remain blocked while editing.
@@ -16,7 +65,25 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Changed
 
+- **Tuning panel dropdown pickers:** Replaced free-text variant text boxes with non-editable `ComboBox` dropdowns populated from on-disk variant folders. Added `(base)` option mapping to empty/base config. The selection is disabled when composite pins are off. Added `PinPartVariantCatalog` service for variant enumeration. Plan completed: [tuning-panel-dropdowns-plan.md](docs/exec-plans/completed/tuning-panel-dropdowns-plan.md).
+
+- **Runtime tuning panel:** Added a debug-gated in-app developer panel for live visual-config tuning, including a single composite-pin toggle, shaft/head variants, marker sizes, cluster threshold, prerasterization, debug overlay, save, reload, and hover tooltips. Drawn fallback pins now use the shaft tip as the map anchor outside manual layout. The local `visual-config.json` enables the panel while the model default remains off. Plan completed: [runtime-tuning-panel-plan.md](docs/exec-plans/completed/runtime-tuning-panel-plan.md).
+
+- **Drawn pin model separation plan:** Added and completed [drawn-pin-model-separation-plan.md](docs/exec-plans/completed/drawn-pin-model-separation-plan.md), splitting drawn pins into head-only, auto-stub, and manual-layout roles; moved completed [remove-pins-jpg-legacy-path-plan.md](docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md) out of active plans.
+
+- **Manual-layout pin appearance plan:** Registered [manual-layout-pin-appearance-plan.md](docs/exec-plans/active/manual-layout-pin-appearance-plan.md) for composite head reassignment and drawn pin color override UI.
+
+- **TO_DO:** Added a high-priority item to split the drawn pin model into head-only, auto-stub, and manual-layout components instead of relying on shaft hiding.
+
+- **Pin terminology:** Added agent-facing definitions for dense-cluster locations, standalone locations, auto stub pins, and manual-layout pins in `AGENTS.md`.
+
+- **TO_DO:** Phase 7 manual smoke #1–7 passed (2026-06-20); #8 composite-off regression still open. Added backlog item to explore post-render smooth black outline on composite pins.
+
+- **Composite pins unzoomed plan (round 2 review):** Incorporated `temp/review-composite-pins-unzoomed-plan-2026-06-20.md` — task 7/8 split, drag vs extension callback qualifiers, settled-state forward reference, extension-callback test row, DoD bullets, `tryCompositePinApplier` rename.
+
 - **Pinhead outline variants plan:** Added [pinhead-black-outline-variants-plan.md](docs/exec-plans/active/pinhead-black-outline-variants-plan.md) to generate 2-14px black-outline head variants and wire `PinParts.HeadAssetVariant` through render-plan selection.
+
+- **Pinhead outline variants:** Added generated black-outline head asset variants (`outline_black_2px` through `outline_black_14px`) under `Images&Content/Pins_v2/parts/head_variants/`, config-gated `PinParts.HeadAssetVariant` (default empty), planning-service filename matching for saved head paths, and `scripts/create_head_asset_variants.py`. Plan completed — [pinhead-black-outline-variants-plan.md](docs/exec-plans/completed/pinhead-black-outline-variants-plan.md).
 
 - **Legacy `pins.jpg` path removed:** Deleted `PinImages` config/model, `ImagePinMarker`, obsolete sprite extraction scripts, and `Images&Content/pins.jpg`; pin-style markers now use drawn `PinMarker` fallback or part-based `CompositePinMarker` rendering only.
 - **Composite fallback regression:** Added coverage that missing composite assets keep the drawn-pin fallback policy and do not reference the removed legacy image path.
@@ -53,6 +120,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 - **Documentation cleanup:** Slimmed [docs/TO_DO.md](docs/TO_DO.md) to a short human backlog; added [composite-pins-program.md](docs/exec-plans/active/composite-pins-program.md) as the composite-pin status dashboard; completed [exec-plans/active/README.md](docs/exec-plans/active/README.md) registry; archived historical plans to [docs/archive/planning/](docs/archive/planning/); refreshed [docs/index.md](docs/index.md) and [tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md); extended `scripts/doc_gardening.py` with TO_DO size, active-plan registry, and front-matter checks; documented maintenance rules in [agent-workflows.md](docs/agent-workflows.md#documentation-maintenance) and linked from [AGENTS.md](AGENTS.md).
 
 ### Added
+
+- **Single-location zoom click:** Clicking on a standalone unzoomed marker now zooms the map and auto-opens the marker's content subwindow once the zoom completes. Rapid double-clicks are ignored during animation to prevent state races.
 
 - **Manual Layout Variants (Phases 1–4):**
   - `Models/ManualLayoutSummary.cs` — lightweight `sealed record` for variant list display (GroupKey, VariantId, DisplayName, Origin, UpdatedUtc, IsDefault, IsSelected, MarkerCount).

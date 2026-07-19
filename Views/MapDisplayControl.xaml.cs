@@ -19,6 +19,11 @@ public partial class MapDisplayControl : UserControl
     /// Gets the marker canvas where markers should be added.
     /// </summary>
     public Canvas Markers => MarkerCanvas;
+
+    /// <summary>
+    /// Gets the overlay canvas that owns marker-specific pointer/touch targets.
+    /// </summary>
+    public Canvas MarkerInteractions => MarkerInteractionCanvas;
     
     /// <summary>
     /// Gets the source image for pre-rendering.
@@ -51,6 +56,7 @@ public partial class MapDisplayControl : UserControl
     public MapDisplayControl()
     {
         InitializeComponent();
+        RenderOptions.SetCachingHint(MapImage, CachingHint.Cache);
         SizeChanged += OnSizeChanged;
     }
 
@@ -95,12 +101,8 @@ public partial class MapDisplayControl : UserControl
             // Get the source rectangle to crop
             var sourceRect = viewport.GetSourceRect();
 
-            // Create cropped bitmap with NearestNeighbor for better performance
+            // The Image applies settled high-quality scaling to this viewport crop.
             var croppedBitmap = new CroppedBitmap(_sourceImage, sourceRect);
-            
-            // Set rendering options for better performance
-            RenderOptions.SetBitmapScalingMode(MapImage, BitmapScalingMode.NearestNeighbor);
-            RenderOptions.SetCachingHint(MapImage, CachingHint.Cache);
 
             // Display the cropped region
             MapImage.Source = croppedBitmap;

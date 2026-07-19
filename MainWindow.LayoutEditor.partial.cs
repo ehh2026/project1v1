@@ -36,7 +36,9 @@ namespace InteractiveWorldMap
 
         private string GenerateCurrentFullMapGroupKey()
         {
-            return LayoutKeyGenerator.GenerateFullMapGroupKey(MapDisplay.ActualWidth, MapDisplay.ActualHeight);
+            // Size-independent: marker positions re-project from source space, so the full-map
+            // layout is keyed by identity alone and survives window resizes.
+            return LayoutKeyGenerator.GenerateFullMapGroupKey();
         }
 
         private bool TrySetFullMapLayoutKey(bool editSession)
@@ -56,7 +58,7 @@ namespace InteractiveWorldMap
 
         private void UpdateEditLayoutButtonVisibility()
         {
-            if (!_visualConfig.ManualLayoutEditor.Enabled || _layoutEditor.IsEditMode)
+            if (!AreDeveloperToolsEnabled() || !_visualConfig.ManualLayoutEditor.Enabled || _layoutEditor.IsEditMode)
             {
                 EditLayoutButton.Visibility = Visibility.Collapsed;
                 return;
@@ -82,6 +84,14 @@ namespace InteractiveWorldMap
         {
             if (_layoutEditor.IsEditMode || !IsFullMapRootView())
                 return false;
+
+            // User unloaded the layout this session: keep markers auto-placed and do not re-apply.
+            if (_layoutEditor.IsManualLayoutSuppressed)
+            {
+                _layoutEditor.SetManualLayoutActive(false);
+                UpdateEditLayoutButtonVisibility();
+                return false;
+            }
 
             var key = GenerateCurrentFullMapGroupKey();
             _layoutEditor.SetLayoutKey(key);
@@ -126,7 +136,9 @@ namespace InteractiveWorldMap
             _layoutEditor.ManualLayoutActivityChanged += isActive =>
             {
                 ManualLayoutIndicator.Visibility =
-                    isActive && _visualConfig.ManualLayoutEditor.ShowLayoutIndicator
+                    isActive &&
+                    AreDeveloperToolsEnabled() &&
+                    _visualConfig.ManualLayoutEditor.ShowLayoutIndicator
                         ? Visibility.Visible
                         : Visibility.Collapsed;
             };
@@ -223,15 +235,27 @@ namespace InteractiveWorldMap
             if (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()) return null;
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null) return null;
+            var cw = MapDisplay.ActualWidth;
+            var ch = MapDisplay.ActualHeight;
             var markerData = _individualMarkers
                 .Where(m => m.Visibility == Visibility.Visible)
                 .Select(m =>
                 {
                     var center = GetMarkerEndpoint(m);
                     return (m.Location, MarkerCenter: center,
-                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
+                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, cw, ch));
                 });
-            return LayoutEditorController.BuildExtensions(markerData);
+            var extensions = LayoutEditorController.BuildExtensions(markerData);
+
+            // Persist the extended position in source-image space so the layout re-projects to the
+            // correct map position at any window size (size-independent persistence; see Phase 5c).
+            foreach (var ext in extensions)
+            {
+                var src = viewport.ScreenToSource(ext.ExtendedPosition.X, ext.ExtendedPosition.Y, cw, ch);
+                ext.SourceExtendedX = src.X;
+                ext.SourceExtendedY = src.Y;
+            }
+            return extensions;
         }
 
         /// <summary>
@@ -251,6 +275,24 @@ namespace InteractiveWorldMap
                     Canvas.GetTop(marker) + plan.HeadCenterLocal.Y);
             }
 
+            // Drawn roles expose their actual head connection point. Using the configured
+            // LocationMarkerSize center would introduce a small saved-angle drift.
+            if (marker.Content is ManualLayoutPinMarker manualPin)
+            {
+                var connection = manualPin.GetConnectionPoint();
+                return new Point(
+                    Canvas.GetLeft(marker) + connection.X,
+                    Canvas.GetTop(marker) + connection.Y);
+            }
+
+            if (marker.Content is AutoStubPinMarker autoStub)
+            {
+                var connection = autoStub.GetConnectionPoint();
+                return new Point(
+                    Canvas.GetLeft(marker) + connection.X,
+                    Canvas.GetTop(marker) + connection.Y);
+            }
+
             var markerSize = _visualConfig.LocationMarkerSize;
             return new Point(Canvas.GetLeft(marker) + markerSize / 2, Canvas.GetTop(marker) + markerSize / 2);
         }
@@ -261,6 +303,13 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnEditLayoutButtonClick(object sender, RoutedEventArgs e)
         {
+            if (!AreDeveloperToolsEnabled())
+            {
+                _logger.LogInfo("[EditLayout] Developer tools are disabled; ignored.");
+                EditLayoutButton.Visibility = Visibility.Collapsed;
+                return;
+            }
+
             if (_currentZoomedCluster == null)
             {
                 if (!TrySetFullMapLayoutKey(editSession: true))
@@ -279,8 +328,12 @@ namespace InteractiveWorldMap
             // If a manual layout is saved, restore those positions for draggable editing.
             // Phase 4: when composite rendering is active, skip RestoreBaseMarkerVisuals so
             // composite pins remain composite during editing.
+            // Load the saved layout when one is active OR was unloaded this session (so opening the
+            // editor reloads a layout the user previously unloaded). SetManualLayoutActive(true)
+            // below clears the suppression flag.
             bool loadedSaved = false;
-            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            if ((_layoutEditor.IsManualLayoutActive || _layoutEditor.IsManualLayoutSuppressed) &&
+                _layoutEditor.CurrentLayoutKey != null)
             {
                 var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
                 if (layout != null)
@@ -289,6 +342,7 @@ namespace InteractiveWorldMap
                         RestoreBaseMarkerVisuals();
                     _extensionLineRenderer.Clear();
                     ApplyManualLayout(layout);
+                    _layoutEditor.SetManualLayoutActive(true);
                     _logger.LogInfo($"[OnEditLayoutButtonClick] Restored saved layout for key={_layoutEditor.CurrentLayoutKey}");
                     loadedSaved = true;
                 }
@@ -455,6 +509,53 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
+        /// Handles Unload Layout button click - reverts to auto-placement for this session while
+        /// leaving the saved layout file on disk untouched (non-destructive counterpart to
+        /// Delete &amp; Recalculate). The layout returns on the next edit or app restart.
+        /// </summary>
+        private void OnUnloadLayoutButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (_layoutEditor.CurrentLayoutKey == null ||
+                (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
+            {
+                _logger.LogWarning("Cannot unload layout - no layout key or active layout session");
+                return;
+            }
+
+            try
+            {
+                var wasFullMapSession = IsFullMapLayoutSessionActive();
+
+                // Suppress for this session; the saved JSON stays on disk.
+                _layoutEditor.UnloadManualLayout();
+
+                // Drop pending in-session edits — nothing is lost, the file is untouched.
+                _overrideStore.ClearAll();
+                UpdateOverrideIndicator();
+
+                ExitEditMode();
+
+                // Revert to auto-placement. The auto-apply paths are now no-ops (suppressed), so
+                // markers stay auto-placed instead of reloading the saved layout.
+                if (wasFullMapSession)
+                {
+                    UpdateMarkerPositions();
+                    TryApplyFullMapManualLayout();
+                }
+                else if (_currentZoomedCluster != null)
+                {
+                    ShowZoomedView(_currentZoomedCluster);
+                }
+
+                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={_layoutEditor.CurrentLayoutKey}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Failed to unload layout: {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Handles Exit Edit Mode button click - exits edit mode without saving.
         /// </summary>
         private void OnExitEditModeButtonClick(object sender, RoutedEventArgs e)
@@ -513,7 +614,13 @@ namespace InteractiveWorldMap
             _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
 
             var groupKey = _layoutEditor.CurrentLayoutKey ?? layout.GroupKey;
-            _extensionLineRenderer.Clear();
+
+            // 2.1: on the zoom-animation hot path, keep the existing extension-line pairs and
+            // reposition them in place each frame (see the RequiresExtensionLine branch below)
+            // instead of clearing and re-creating every Line/Brush/Effect. The settle frame runs
+            // with IsAnimating == false, so it still does a clean rebuild.
+            if (!IsAnimating)
+                _extensionLineRenderer.Clear();
 
             var visibleMarkers = _individualMarkers
                 .Where(m => m.Visibility == Visibility.Visible)
@@ -534,6 +641,14 @@ namespace InteractiveWorldMap
                 AppDomain.CurrentDomain.BaseDirectory,
                 _visualConfig.PinParts.GeometryMetadataPath);
 
+            // Full-map reference viewport: source-space pin heads are projected at this fixed fit
+            // scale so the shaft keeps a constant screen length at any zoom (still resize-aware,
+            // since the fit scale tracks the window). Without it, a zoomed-in single-location pin's
+            // shaft stretched with the zoom factor.
+            var fullMapViewport = (cw > 0 && ch > 0)
+                ? ViewportState.CreateFullMapView(ImageWidth, ImageHeight, cw, ch)
+                : null;
+
             var applyPlan = _planApplicationService.BuildApplyInstructions(
                 layout,
                 applications,
@@ -544,7 +659,8 @@ namespace InteractiveWorldMap
                 _visualConfig.PinParts,
                 groupKey ?? string.Empty,
                 geometryPath,
-                CanUseCompositePins() && _pinPartGeometryHash != null);
+                CanUseCompositePins() && _pinPartGeometryHash != null,
+                fullMapViewport);
 
             foreach (var instruction in applyPlan.Instructions)
             {
@@ -586,12 +702,31 @@ namespace InteractiveWorldMap
                     continue;
                 }
 
-                var markerSize = _visualConfig.LocationMarkerSize;
-                Canvas.SetLeft(marker, instruction.ExtendedScreen.X - (markerSize / 2));
-                Canvas.SetTop(marker, instruction.ExtendedScreen.Y - (markerSize / 2));
-
                 if (instruction.RequiresExtensionLine)
-                    _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+                {
+                    SetDrawnPinRole(marker, DrawnPinRole.ManualLayout);
+                    // Drawn pin lifted off the map: the extension line is the shaft and the
+                    // head-only role sits on the endpoint.
+                    // 2.1: during animation reuse the existing line pair (reposition in place);
+                    // TryRepositionPinLine returns false on the first frame (none exists yet), so
+                    // we create it then and reuse it for the rest of the animation.
+                    if (!IsAnimating ||
+                        !_extensionLineRenderer.TryRepositionPinLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen))
+                    {
+                        _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+                    }
+                    _extensionLineRenderer.AnchorExtendedMarker(marker, instruction.ExtendedScreen);
+                }
+                else
+                {
+                    SetDrawnPinRole(marker, DrawnPinRole.AutoStub);
+                    if (marker.Content is AutoStubPinMarker autoStub)
+                    {
+                        var tip = autoStub.GetShaftTipPoint();
+                        Canvas.SetLeft(marker, instruction.OriginalScreen.X - tip.X);
+                        Canvas.SetTop(marker, instruction.OriginalScreen.Y - tip.Y);
+                    }
+                }
             }
 
             if (applyPlan.ShouldSaveToCache && !string.IsNullOrEmpty(groupKey))
@@ -607,6 +742,7 @@ namespace InteractiveWorldMap
                 ReapplyPendingOverrides();
 
             ApplyCompositePinDepthSort();
+            UpdatePinTipCaps();
         }
 
         private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)
@@ -614,153 +750,6 @@ namespace InteractiveWorldMap
             await Task.Delay(delayMs);
             EditModeStatusText.Text = "EDIT MODE ACTIVE";
             EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 215, 0));
-        }
-
-        /// <summary>
-        /// Handles marker drag start.
-        /// </summary>
-        private void OnMarkerDragStart(object sender, MouseButtonEventArgs e)
-        {
-            if (!_layoutEditor.IsEditMode || sender is not LocationMarker marker)
-                return;
-
-            _draggedMarker = marker;
-            _dragStartPosition = e.GetPosition(MapDisplay.Markers);
-            marker.CaptureMouse();
-            
-            // Highlight the dragged marker
-            marker.Opacity = 0.7;
-            
-            // Bring marker and its line to front
-            Panel.SetZIndex(marker, 2000);
-            _extensionLineRenderer.SetLineZIndex(marker, 1999);
-
-            e.Handled = true;
-        }
-
-        /// <summary>
-        /// Handles marker drag movement.
-        /// Phase 4: composite pins are rebuilt so the head follows the mouse while the tip stays fixed.
-        /// </summary>
-        private void OnMarkerDragMove(object sender, MouseEventArgs e)
-        {
-            if (!_layoutEditor.IsEditMode || _draggedMarker == null || sender != _draggedMarker)
-                return;
-
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                var currentPosition = e.GetPosition(MapDisplay.Markers);
-                var viewport = MapDisplay.CurrentViewport;
-                var cw = MapDisplay.ActualWidth;
-                var ch = MapDisplay.ActualHeight;
-
-                // Phase 4: composite pin drag — rebuild pin so head follows mouse, tip stays fixed
-                if (_draggedMarker.Content is CompositePinMarker)
-                {
-                    if (viewport == null) return;
-                    var originalPos = viewport.SourceToScreen(
-                        _draggedMarker.Location.PixelX,
-                        _draggedMarker.Location.PixelY,
-                        cw, ch);
-
-                    // Constrain to canvas bounds
-                    var boundsWidth = MapDisplay.Markers.ActualWidth;
-                    var boundsHeight = MapDisplay.Markers.ActualHeight;
-                    var mousePos = new Point(
-                        Math.Max(0, Math.Min(currentPosition.X, boundsWidth)),
-                        Math.Max(0, Math.Min(currentPosition.Y, boundsHeight)));
-
-                    // Rebuild composite pin with new target
-                    ApplyCompositePinToMarker(_draggedMarker, originalPos, mousePos);
-
-                    // Update extension line endpoint
-                    if (_extensionLineRenderer.HasLine(_draggedMarker))
-                    {
-                        _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, mousePos);
-                    }
-
-                    // Record the new endpoint for save
-                    _overrideStore.RecordEndpoints(_draggedMarker.Location.Name, originalPos, mousePos);
-
-                    LogDragDebug($"[DRAG] Composite pin '{_draggedMarker.Location.Name}' head moved to ({mousePos.X:F1}, {mousePos.Y:F1})");
-                    return;
-                }
-
-                // Legacy marker drag (existing behavior)
-                var markerSize = _visualConfig.LocationMarkerSize;
-                
-                LogDragDebug($"[DRAG] Mouse position: ({currentPosition.X:F1}, {currentPosition.Y:F1}), MarkerSize: {markerSize}");
-                
-                // Calculate new position (centered on cursor)
-                var newX = currentPosition.X - (markerSize / 2);
-                var newY = currentPosition.Y - (markerSize / 2);
-                
-                LogDragDebug($"[DRAG] Calculated position before bounds: ({newX:F1}, {newY:F1})");
-                
-                // Constrain to canvas bounds
-                var canvasWidth = MapDisplay.Markers.ActualWidth;
-                var canvasHeight = MapDisplay.Markers.ActualHeight;
-                newX = Math.Max(0, Math.Min(newX, canvasWidth - markerSize));
-                newY = Math.Max(0, Math.Min(newY, canvasHeight - markerSize));
-                
-                LogDragDebug($"[DRAG] Final position after bounds ({canvasWidth:F0}x{canvasHeight:F0}): ({newX:F1}, {newY:F1})");
-                
-                // Get current marker position for comparison
-                var currentMarkerX = Canvas.GetLeft(_draggedMarker);
-                var currentMarkerY = Canvas.GetTop(_draggedMarker);
-                LogDragDebug($"[DRAG] Current marker position: ({currentMarkerX:F1}, {currentMarkerY:F1})");
-                
-                // Update marker position
-                Canvas.SetLeft(_draggedMarker, newX);
-                Canvas.SetTop(_draggedMarker, newY);
-                
-                // Verify marker position was updated
-                var updatedMarkerX = Canvas.GetLeft(_draggedMarker);
-                var updatedMarkerY = Canvas.GetTop(_draggedMarker);
-                LogDragDebug($"[DRAG] Updated marker position: ({updatedMarkerX:F1}, {updatedMarkerY:F1})");
-                
-                // Update line if it exists
-                if (_extensionLineRenderer.HasLine(_draggedMarker))
-                {
-                    var markerCenterX = newX + (markerSize / 2);
-                    var markerCenterY = newY + (markerSize / 2);
-                    _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, new Point(markerCenterX, markerCenterY));
-                    LogDragDebug($"[DRAG] Recreated line for {_draggedMarker.Location.Name} to ({markerCenterX:F1}, {markerCenterY:F1})");
-                }
-                else
-                {
-                    LogDragDebug($"[OnMarkerDragMove] No line found for marker: {_draggedMarker.Location.Name}");
-                }
-            }
-        }
-
-        private void LogDragDebug(string message)
-        {
-            if (_visualConfig.Debug.LogRadialExtensionCalculation)
-            {
-                _logger.LogInfo(message);
-            }
-        }
-
-        /// <summary>
-        /// Handles marker drag end.
-        /// </summary>
-        private void OnMarkerDragEnd(object sender, MouseButtonEventArgs e)
-        {
-            if (!_layoutEditor.IsEditMode || _draggedMarker == null)
-                return;
-
-            _draggedMarker.ReleaseMouseCapture();
-            
-            // Restore marker appearance
-            _draggedMarker.Opacity = 1.0;
-            Panel.SetZIndex(_draggedMarker, 0);
-            _extensionLineRenderer.SetLineZIndex(_draggedMarker, 0);
-            ApplyCompositePinDepthSort();
-
-            _draggedMarker = null;
-            
-            e.Handled = true;
         }
 
         #endregion

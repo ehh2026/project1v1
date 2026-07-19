@@ -45,33 +45,19 @@
                           CenterX="20" CenterY="20"/>
         </Grid.RenderTransform>
         
-        <!-- Stamp image -->
-        <Image x:Name="StampImage"
-               RenderOptions.BitmapScalingMode="HighQuality"
-               Stretch="Uniform">
-            <Image.Effect>
-                <DropShadowEffect Color="Black" 
-                                Direction="270" 
-                                ShadowDepth="2" 
-                                BlurRadius="4" 
-                                Opacity="0.5"/>
-            </Image.Effect>
-        </Image>
+        <!-- Stamp image or fallback shape -->
+        <Grid x:Name="MarkerBodyHost">
+            <Image x:Name="StampImage"
+                   RenderOptions.BitmapScalingMode="HighQuality"
+                   Stretch="Uniform"/>
+        </Grid>
         
         <!-- Count badge background -->
         <Ellipse x:Name="BadgeEllipse"
                  Fill="White"
                  RenderOptions.EdgeMode="Aliased"
                  HorizontalAlignment="Center"
-                 VerticalAlignment="Center">
-            <Ellipse.Effect>
-                <DropShadowEffect Color="Black" 
-                                Direction="270" 
-                                ShadowDepth="1" 
-                                BlurRadius="2" 
-                                Opacity="0.3"/>
-            </Ellipse.Effect>
-        </Ellipse>
+                 VerticalAlignment="Center"/>
         
         <!-- Count text -->
         <TextBlock x:Name="CountText"

@@ -11,7 +11,7 @@
         ResizeMode="NoResize"
         ShowInTaskbar="False"
         Topmost="True">
-    <Border Background="#A61E1E1E"
+    <Border Background="#D91E1E1E"
             CornerRadius="12"
             Padding="16"
             BorderThickness="2"
@@ -31,8 +31,8 @@
             </Grid.RowDefinitions>
             
             <!-- Title -->
-            <TextBlock Grid.Row="0"
-                      Text="Information"
+            <TextBlock x:Name="HeadingText"
+                      Grid.Row="0"
                       FontSize="18"
                       FontWeight="SemiBold"
                       Foreground="#FFFFFFFF"

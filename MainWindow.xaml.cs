@@ -43,10 +43,16 @@ namespace InteractiveWorldMap
         // Radial extension support
         private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
         private IExtensionLineRenderer _extensionLineRenderer = null!;
+        private readonly Dictionary<LocationMarker, Vector> _animationOffsets = new();
+        // 2.2: visible-marker projections are constant across a single zoom animation, so they are
+        // cached here for its duration and rebuilt (and cleared) on the first non-animating pass.
+        private List<(Location Location, double PixelX, double PixelY)>? _animVisibleIndividuals;
+        private List<Point>? _animVisibleClusterCenters;
         private RadialExtensionCalculator? _extensionCalculator;
         private RadialExtensionAdjuster? _adjuster;
         private MarkerPlacementOrchestrator _placementOrchestrator = null!;
         private InteractionMode _mode = InteractionMode.Normal;
+        private Location? _autoOpenLocation = null;
         
         // Manual layout editor support
         private LayoutEditorController _layoutEditor = null!;
@@ -63,6 +69,9 @@ namespace InteractiveWorldMap
         
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
+        private DrawnPinMarkerFactory _drawnPinFactory = null!;
+        private readonly VisualConfigService _configService;
+        private readonly string _configPath;
         
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
         private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
@@ -111,6 +120,7 @@ namespace InteractiveWorldMap
         }
 
         private bool IsAnimating => _mode == InteractionMode.Animating;
+        private bool AreDeveloperToolsEnabled() => _visualConfig.EnableDeveloperTools;
 
         public MainWindow()
         {
@@ -120,15 +130,16 @@ namespace InteractiveWorldMap
 
                 // Initialize services
                 _logger = new FileLogger();
+                _configService = new VisualConfigService(message => _logger.LogWarning(message));
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
                 // Load visual configuration
-                var configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
-                var visualConfigService = new VisualConfigService();
-                _visualConfig = visualConfigService.Load(configPath);
-                _logger.LogInfo($"Visual config loaded from: {configPath}");
+                _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
+                _visualConfig = _configService.Load(_configPath);
+                _drawnPinFactory = new DrawnPinMarkerFactory(_visualConfig);
+                _logger.LogInfo($"Visual config loaded from: {_configPath}");
 
-                if (_visualConfig.Debug.WindowedMode)
+                if (AreDeveloperToolsEnabled() && _visualConfig.Debug.WindowedMode)
                 {
                     WindowStyle = WindowStyle.SingleBorderWindow;
                     WindowState = WindowState.Normal;
@@ -166,12 +177,10 @@ namespace InteractiveWorldMap
                 _extensionLineRenderer = new ExtensionLineRenderer(MapDisplay.Markers, _visualConfig, _logger.LogInfo, _logger.LogWarning);
 
                 var configuredLayoutPath = _visualConfig.ManualLayoutEditor.LayoutStoragePath;
-                var layoutFilePath = IOPath.IsPathRooted(configuredLayoutPath)
-                    ? configuredLayoutPath
-                    : IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+                var layoutFilePath = ResolveLayoutStoragePath(configuredLayoutPath);
 
                 // Initialize manual layout manager if enabled OR if we need to load layouts
-                if (_visualConfig.ManualLayoutEditor.Enabled)
+                if (AreDeveloperToolsEnabled() && _visualConfig.ManualLayoutEditor.Enabled)
                 {
                     _layoutManager = new ManualLayoutManager(layoutFilePath, _logger);
                     _logger.LogInfo($"ManualLayoutManager initialized (edit mode enabled) at: {layoutFilePath}");
@@ -196,7 +205,10 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("AnimationFrameCache created");
 
                 // Initialize zoomed region cache with the full-resolution source image.
-                _zoomedRegionCache = new ZoomedRegionCache(_logger, _contentLoader.GetFullResolutionWorldMapPath());
+                _zoomedRegionCache = new ZoomedRegionCache(
+                    _logger,
+                    _contentLoader.GetFullResolutionWorldMapPath(),
+                    _contentLoader.GetWorldMapPath());
                 _logger.LogInfo("ZoomedRegionCache created");
 
                 // Phase 4: composite render-plan disk cache
@@ -216,6 +228,8 @@ namespace InteractiveWorldMap
                 
                 SizeChanged += OnSizeChanged;
                 _logger.LogInfo("SizeChanged event wired");
+
+                SetupTuningPanel();
                 
                 _logger.LogInfo("=== MainWindow Constructor Completed ===");
             }
@@ -352,39 +366,15 @@ namespace InteractiveWorldMap
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
             CaptureBaseMarkerVisual(marker);
-            
-            // Add click handler
-            marker.MouseLeftButtonDown += (s, e) =>
+
+            if (!_visualConfig.UsePinMarkers)
             {
-                var action = MarkerMouseDownPolicy.GetIndividualMarkerAction(_layoutEditor.IsEditMode);
-                if (action == MarkerMouseDownAction.AllowEditDrag)
+                marker.MouseLeftButtonDown += (_, e) =>
                 {
-                    return;
-                }
-                
-                AnimateMarkerClick(marker);
-                
-                // If we're at full map view (not zoomed), zoom to this location
-                // Otherwise, show content
-                var viewport = MapDisplay.CurrentViewport;
-                if (viewport != null && viewport.ZoomLevel <= 1.0)
-                {
-                    // Create a single-location cluster and zoom to it
-                    var singleCluster = new LocationCluster
-                    {
-                        Locations = new List<Location> { location },
-                        CenterPoint = new Point(location.PixelX, location.PixelY)
-                    };
-                    OnClusterClicked(singleCluster);
-                }
-                else
-                {
-                    // Already zoomed, show content
-                    ShowContentForLocation(location);
-                }
-                
-                e.Handled = true;
-            };
+                    HandleIndividualMarkerPrimaryAction(marker);
+                    e.Handled = true;
+                };
+            }
             
             _individualMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
@@ -408,22 +398,6 @@ namespace InteractiveWorldMap
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
             
-            // Add click handler
-            marker.MouseLeftButtonDown += (s, e) =>
-            {
-                var action = MarkerMouseDownPolicy.GetClusterMarkerAction(_layoutEditor.IsEditMode);
-                if (action == MarkerMouseDownAction.BlockNavigation)
-                {
-                    ShowEditModeNavigationBlockedStatus();
-                    e.Handled = true;
-                    return;
-                }
-
-                marker.AnimateClick();
-                OnClusterClicked(cluster);
-                e.Handled = true;
-            };
-            
             _clusterMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
             
@@ -431,190 +405,42 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Updates all marker positions based on the current viewport.
-        /// Applies radial extensions for dense marker groups when enabled.
+        /// Resolves the read-write layout store path. A rooted configured path is honored as-is.
+        /// A relative path is treated as the bundled (app-folder) seed; user layouts then live in a
+        /// stable per-user location (<c>%AppData%/InteractiveWorldMap</c>) so that rebuilding or
+        /// cleaning the app output never discards saved layouts. The bundled seed is copied in once
+        /// when no user file exists yet. Falls back to the bundled path if the user location is
+        /// unavailable, so startup never fails over layout storage.
         /// </summary>
-        private void UpdateMarkerPositions()
+        private string ResolveLayoutStoragePath(string configuredLayoutPath)
         {
-            var viewport = MapDisplay.CurrentViewport;
-            if (viewport == null)
-                return;
+            if (IOPath.IsPathRooted(configuredLayoutPath))
+                return configuredLayoutPath;
 
-            var containerWidth = MapDisplay.ActualWidth;
-            var containerHeight = MapDisplay.ActualHeight;
+            var bundledPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+            var userDir = IOPath.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "InteractiveWorldMap");
+            var userPath = IOPath.Combine(userDir, "manual-layouts.json");
 
-            if (!IsAnimating)
-                _extensionLineRenderer.Clear();
-
-            PrepareMarkerVisualsForPlacementUpdate();
-
-            var visibleIndividuals = _individualMarkers
-                .Where(m => m.Visibility == Visibility.Visible)
-                .Select(m => (m.Location, m.Location.PixelX, m.Location.PixelY))
-                .ToList();
-
-            var visibleClusterCenters = _clusterMarkers
-                .Where(m => m.Visibility == Visibility.Visible && m.Cluster != null)
-                .Select(m => m.Cluster!.CenterPoint)
-                .ToList();
-
-            var plan = _placementOrchestrator.Compute(
-                viewport,
-                containerWidth,
-                containerHeight,
-                IsAnimating,
-                visibleIndividuals,
-                visibleClusterCenters);
-
-            _denseGroups = plan.ExtensionGroups.ToList();
-
-            if (plan.Mode == MarkerPlacementMode.WithExtensions)
+            try
             {
-                foreach (var group in plan.ExtensionGroups)
+                System.IO.Directory.CreateDirectory(userDir);
+                if (!System.IO.File.Exists(userPath) && System.IO.File.Exists(bundledPath))
                 {
-                    _extensionLineRenderer.Apply(
-                        group,
-                        viewport,
-                        containerWidth,
-                        containerHeight,
-                        _individualMarkers,
-                        (m, orig, ext) => TryApplyCompositePinMarker(m, orig, ext));
+                    System.IO.File.Copy(bundledPath, userPath);
+                    _logger.LogInfo($"Seeded user layout store from bundled layouts: {userPath}");
                 }
             }
-
-            ApplyIndividualPlacements(plan.IndividualPlacements);
-            ApplyClusterPlacements(plan.ClusterPlacements);
-            ApplyCompositePinsToNormalPlacements(plan.IndividualPlacements, viewport, containerWidth, containerHeight);
-            ApplyCompositePinDepthSort();
-        }
-
-        private void ApplyIndividualPlacements(IReadOnlyList<MarkerScreenPlacement> placements)
-        {
-            foreach (var placement in placements)
+            catch (Exception ex)
             {
-                var marker = _individualMarkers.FirstOrDefault(
-                    m => string.Equals(m.Location.Name, placement.LocationName, StringComparison.Ordinal));
-                if (marker == null)
-                    continue;
-
-                if (TryGetCompositeAnchoredPlacement(marker, placement, out var compositeTopLeft))
-                {
-                    Canvas.SetLeft(marker, compositeTopLeft.X);
-                    Canvas.SetTop(marker, compositeTopLeft.Y);
-                    continue;
-                }
-
-                Canvas.SetLeft(marker, placement.Left);
-                Canvas.SetTop(marker, placement.Top);
-            }
-        }
-
-        private void ApplyClusterPlacements(IReadOnlyList<ClusterScreenPlacement> placements)
-        {
-            var visibleClusters = _clusterMarkers
-                .Where(m => m.Visibility == Visibility.Visible)
-                .ToList();
-
-            for (int i = 0; i < placements.Count && i < visibleClusters.Count; i++)
-            {
-                var placement = placements[i];
-                var marker = visibleClusters[i];
-                Canvas.SetLeft(marker, placement.Left);
-                Canvas.SetTop(marker, placement.Top);
-            }
-        }
-
-        /// <summary>
-        /// Clears all markers from the canvas.
-        /// </summary>
-        private void ClearAllMarkers()
-        {
-            _logger.LogInfo($"[ClearAllMarkers] Clearing {_individualMarkers.Count} individual and {_clusterMarkers.Count} cluster markers");
-            
-            foreach (var marker in _individualMarkers)
-            {
-                MapDisplay.Markers.Children.Remove(marker);
-            }
-            _individualMarkers.Clear();
-            _baseMarkerVisuals.Clear();
-            
-            foreach (var marker in _clusterMarkers)
-            {
-                MapDisplay.Markers.Children.Remove(marker);
-            }
-            _clusterMarkers.Clear();
-        }
-
-        /// <summary>
-        /// Shows only cluster markers (hides individual markers).
-        /// </summary>
-        private void ShowOnlyClusterMarkers()
-        {
-            _logger.LogInfo("[ShowOnlyClusterMarkers]");
-            
-            // Show all individual markers that are single-location clusters
-            foreach (var marker in _individualMarkers)
-            {
-                // Check if this individual marker is from a single-location cluster
-                var isSingleCluster = _clusters.Any(c => c.IsSingleLocation && c.Locations[0] == marker.Location);
-                marker.Visibility = isSingleCluster ? Visibility.Visible : Visibility.Collapsed;
-            }
-            
-            // Show all cluster markers
-            foreach (var marker in _clusterMarkers)
-            {
-                marker.Visibility = Visibility.Visible;
+                _logger.LogWarning(
+                    $"Could not prepare user layout store ({ex.Message}); using bundled path {bundledPath}. " +
+                    "Layouts may not persist across a rebuild.");
+                return bundledPath;
             }
 
-            // Update positions for visible markers
-            UpdateMarkerPositions();
-        }
-
-        /// <summary>
-        /// Shows only individual markers for a specific cluster (hides cluster markers).
-        /// </summary>
-        private void ShowOnlyIndividualMarkers(LocationCluster cluster)
-        {
-            _logger.LogInfo($"[ShowOnlyIndividualMarkers] Showing markers for cluster with {cluster.Count} locations");
-            
-            // Hide all cluster markers
-            foreach (var marker in _clusterMarkers)
-            {
-                marker.Visibility = Visibility.Collapsed;
-            }
-            
-            // For each location in the cluster, ensure we have an individual marker
-            foreach (var location in cluster.Locations)
-            {
-                // Check if marker already exists
-                var existingMarker = _individualMarkers.FirstOrDefault(m => m.Location == location);
-                
-                if (existingMarker != null)
-                {
-                    // Show existing marker
-                    existingMarker.Visibility = Visibility.Visible;
-                    _logger.LogInfo($"  Showing existing marker: {location.Name}");
-                }
-                else
-                {
-                    // Create new individual marker for this location
-                    _logger.LogInfo($"  Creating new marker for: {location.Name}");
-                    var newMarker = AddIndividualMarker(location);
-                    newMarker.Visibility = Visibility.Visible;
-                }
-            }
-            
-            // Hide all other individual markers not in this cluster
-            foreach (var marker in _individualMarkers)
-            {
-                if (!cluster.Locations.Contains(marker.Location))
-                {
-                    marker.Visibility = Visibility.Collapsed;
-                }
-            }
-
-            // Update positions for visible markers
-            UpdateMarkerPositions();
+            return userPath;
         }
 
         /// <summary>
@@ -678,7 +504,7 @@ namespace InteractiveWorldMap
                 {
                     // Exit edit mode on Escape
                     ExitEditMode();
-                    if (_visualConfig.ManualLayoutEditor.Enabled)
+                    if (AreDeveloperToolsEnabled() && _visualConfig.ManualLayoutEditor.Enabled)
                     {
                         EditLayoutButton.Visibility = Visibility.Visible;
                     }
@@ -702,22 +528,14 @@ namespace InteractiveWorldMap
                     e.Handled = true;
                 }
             }
-        }
-
-        private void OnBackButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (_layoutEditor.IsEditMode)
+            else if (e.Key == Key.F12 && AreDeveloperToolsEnabled() && _visualConfig.Debug.EnableTuningPanel)
             {
-                ShowEditModeNavigationBlockedStatus();
-                return;
+                OnTuningPanelToggleClick(this, new RoutedEventArgs());
+                e.Handled = true;
             }
-
-            AnimateZoomOut();
         }
 
-        /// <summary>
-        /// Animates zooming out to the full map view using viewport-based rendering.
-        /// </summary>
+
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
