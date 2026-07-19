@@ -10,7 +10,7 @@
         ShowInTaskbar="False"
         Topmost="True">
     <Border x:Name="ContentBorder"
-            Background="#A61E1E1E"
+            Background="#B31E1E1E"
             CornerRadius="12"
             BorderThickness="2"
             BorderBrush="#FFFFFFFF">
@@ -98,7 +98,7 @@
                     Visibility="Collapsed"
                     Margin="0"
                     Padding="12,9"
-                    Background="#E6000000"
+                    Background="#D9000000"
                     BorderBrush="#66FFFFFF"
                     BorderThickness="0,1,0,0"
                     CornerRadius="0,0,10,10"
