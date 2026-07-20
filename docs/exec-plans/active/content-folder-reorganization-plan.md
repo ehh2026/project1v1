@@ -1,15 +1,17 @@
 # Content Folder Reorganization Plan
 
-> Status: **Ready for implementation.** Revised 2026-07-19 (third review:
-> `tmp/content-folder-reorg-assessment-20260719-151747.md`; prior reviews:
+> Status: **Ready for implementation.** Revised 2026-07-19 (fourth review:
+> `tmp/content-folder-reorg-assessment-20260719-161530.md`; prior reviews:
 > `tmp/content-folder-reorg-assessment-20260719.md`,
-> `tmp/content-folder-reorg-assessment-20260719-134709.md`). All blockers and open
+> `tmp/content-folder-reorg-assessment-20260719-134709.md`,
+> `tmp/content-folder-reorg-assessment-20260719-151747.md`). All blockers and open
 > design decisions landed: per-set AppData namespacing (§7), cluster cache namespacing
 > (§8), `git mv` order (§Migration), warn-vs-error contract (§3), new-tests file
 > location (§"Tests & harness"), stamp / asset routing (§3), geometry hash path fix
-> (§7, pre-existing bug), `PinPartVariantCatalog` routing (§9), `ContentSetResolver`
-> as non-static with structured result (§2), and `ActiveContentSetPath` contract (§3).
-> Awaiting final human sign-off before implementation.
+> (§7, pre-existing bug), `PinPartVariantCatalog` routing (§9, option b),
+> `ContentSetResolver` as non-static with structured result (§2), `ActiveContentSetPath`
+> contract (§3), and composition root wiring (§11). Awaiting final human sign-off
+> before implementation.
 
 ## Goal
 
@@ -159,6 +161,17 @@ mock it in tests (static classes with filesystem I/O are fragile to unit test):
 ```csharp
 public enum ContentSetKind { Production, Demo, Legacy }
 
+public static class ContentSetKindExtensions
+{
+    public static string ToSuffix(this ContentSetKind kind) => kind switch
+    {
+        ContentSetKind.Production => "production",
+        ContentSetKind.Demo => "demo",
+        ContentSetKind.Legacy => "legacy",
+        _ => throw new ArgumentOutOfRangeException(nameof(kind))
+    };
+}
+
 public record ContentSetResolution(string Path, ContentSetKind Kind);
 
 public interface IContentSetResolver
@@ -200,6 +213,23 @@ The structured `ContentSetResolution` result makes the set kind explicit so call
 suffix without re-parsing the path.
 
 ### 3. Asset resolution with legacy fallback — `Services/ContentLoader.cs`
+
+**Constructor change (fourth review):** add `IContentSetResolver` parameter and reorder
+so `ContentFolderPath` is set before `ClusterCache` (which needs the set suffix):
+
+```csharp
+public ContentLoader(ILogger logger, IContentSetResolver contentSetResolver)
+{
+    _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
+    _contentCache = new Dictionary<string, BitmapImage>();
+    _clusterer = new LocationClusterer();
+    ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ContentFileNames.ContentFolderName);
+    var activeSet = _contentSetResolver.ResolveActiveContentSet(ContentFolderPath);
+    _clusterCache = new ClusterCache(logger, activeSet.Kind.ToSuffix());
+    _logger.LogInfo($"ContentLoader initialized with path: {ContentFolderPath}, active set: {activeSet.Kind}");
+}
+```
 
 Asset resolvers check `Assets/` first, then bare `ContentFolderPath` (legacy fallback)
 so existing tests/harness keep working. The existing
@@ -248,6 +278,17 @@ public string ResolveContentFilePath(string fileName) => ResolveAssetPath(fileNa
 
 ### 4. `Services/StartupValidator.cs` (previously omitted)
 
+**Constructor change (fourth review):** add `IContentSetResolver` parameter:
+
+```csharp
+public StartupValidator(ILogger logger, string contentFolderPath, IContentSetResolver contentSetResolver)
+{
+    _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+    _contentFolderPath = contentFolderPath ?? throw new ArgumentNullException(nameof(contentFolderPath));
+    _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
+}
+```
+
 Use `ContentFileNames` + the shared resolver:
 
 | Line | Current | Change to |
@@ -295,9 +336,11 @@ Final value (no longer pending):
   working with a constant placeholder hash — it never invalidates on geometry changes.
   **Fix both paths as part of this reorg** (route through `_contentLoader.ResolvePinPartPath`
   or `_contentLoader.GetFullResolutionWorldMapPath`-style helper). After the fix, the
-  cache will start reading the real file and the geometry hash becomes meaningful —
-  a behavior change worth noting in CHANGELOG. The cached plans store absolute source
-  paths that will change root → **one-time re-render on first run after upgrade** (B3/D6).
+  geometry hash changes from the constant `"geometry-missing"` placeholder to a real
+  file hash, so cached plans keyed on it are invalidated once — **one-time re-render
+  on first run after upgrade** (B3/D6). Note: the cached plans store **relative** paths
+  (`Pins_v2/parts/...`), not absolute paths; the re-render is triggered by the hash
+  change, not a root change.
 - `MainWindow.ResolveLayoutStoragePath` (xaml.cs:418-444) — **per-set decision landed
   (C3)**: saved layouts are scoped per active content set. Concrete behavior:
   - Resolve the active set via `_contentSetResolver.ResolveActiveContentSet(...)` first
@@ -368,9 +411,11 @@ Final value (no longer pending):
   `ListVariants` (line 24) builds `Path.Combine(contentFolderPath, partsFolderPath, subfolderName)` =
   `Images&Content/Pins_v2/parts/shaft_variants`. After the reorg, `Pins_v2/parts` moves
   to `Assets/Pins_v2/parts`, so this path becomes stale and the Developer Tuning panel's
-  shaft/head variant dropdowns will show empty. **Fix:** route the variant catalog through
-  `ResolveAssetPath` / `ResolvePinPartPath` so it picks up the `Assets/` prefix, or pass
-  `ContentFolderPath + AssetsFolderName` as the root to `ListVariants`.
+  shaft/head variant dropdowns will show empty. **Fix (option b, fourth review):** change
+  the two call sites in `DeveloperTuning.partial.cs:31,37` to pass
+  `Path.Combine(_contentLoader.ContentFolderPath, ContentFileNames.AssetsFolderName)` as
+  the content-root argument. This leaves `PinPartVariantCatalog` and its tests untouched
+  (the catalog remains a pure path combiner).
 - **`Utilities/UpdateLocationsFromExcel.cs`** (third review): currently uses
   `AppDomain.CurrentDomain.BaseDirectory` for both the Excel read path (line 22) and
   the JSON write path (line 23). The fix should accept the target content-set path as
@@ -386,13 +431,34 @@ Surface this in the new `docs/guides/CONTENT_SETS.md` (E1) so operators know how
 flip sets without editing the binary. The `ValidateContentFolder` remediation message
 (B5) also names the workaround.
 
+### 11. Composition root wiring (fourth review)
+
+The `IContentSetResolver` must be instantiated once and injected into both `ContentLoader`
+and `StartupValidator`. Update the instantiation sites:
+
+- **`MainWindow.xaml.cs:166`** — `new ContentLoader(_logger)` becomes
+  `new ContentLoader(_logger, _contentSetResolver)`.
+- **`App.xaml.cs` or `MainWindow` constructor** — create the single resolver instance:
+  `var contentSetResolver = new ContentSetResolver();` and pass it to both `ContentLoader`
+  and `StartupValidator`.
+- **`StartupValidator` creation site** (search for `new StartupValidator`) — add the
+  resolver parameter.
+
+The resolver is stateless and thread-safe, so a single instance shared across the app
+is correct.
+
 ---
 
 ## Tests & harness
 
 - **No mass breakage** thanks to the asset legacy fallback (§3) and legacy-root content
   fallback (§2). Existing `ContentLoaderTests.CreateContentFolderWithMap()` and
-  `StartupValidationHarnessTests` keep working.
+  `StartupValidationHarnessTests` keep working. **However (fourth review):** the
+  constructor signature change (§3) means every `new ContentLoader(new MockLogger())`
+  call in tests must become `new ContentLoader(new MockLogger(), new ContentSetResolver())`.
+  This is a mechanical find-and-replace across `ContentLoaderTests`, `StartupValidationHarnessTests`,
+  and any other test that constructs a `ContentLoader`. The resolver is stateless so
+  `new ContentSetResolver()` is safe in every test context.
 - **`Tests/StartupValidationHarnessTests.cs:44,60`** exercises both the **source tree**
   (`RepoRoot\Images&Content`) and the **build output**
   (`RepoRoot\bin\Debug\net6.0-windows\Images&Content`). After reorg both should resolve
@@ -428,11 +494,9 @@ flip sets without editing the binary. The `ValidateContentFolder` remediation me
   legacy-fallback tests.
 - `Tests/Architecture/GoldenPrincipleTests.cs`: unaffected (Views still must not build
   `Images&Content` paths).
-- **`Tests/PinPartVariantCatalogTests.cs`** (third review): seven test methods pass
-  `tempDir` as the content folder and `Path.Combine("Pins_v2", "parts")` as the parts
-  path. After the reorg, the production calling convention changes (the root must include
-  `Assets/` or the parts path must be `Assets/Pins_v2/parts`). Update tests to match
-  whichever approach is chosen in §9's `PinPartVariantCatalog` fix.
+- **`Tests/PinPartVariantCatalogTests.cs`** (third review, updated fourth review): no
+  changes needed. The §9 fix (option b) changes only the call site in
+  `DeveloperTuning.partial.cs`, leaving `PinPartVariantCatalog` and its tests untouched.
 - **`Tests/CompositePinPlacementPolicyTests.cs:136,143`** (third review): two lines
   hardcode `"Images&Content/Pins_v2/parts/heads/pin_01.png"` as source paths. These are
   test fixture strings (not filesystem paths), but they encode the old layout assumption.
