@@ -66,12 +66,25 @@ namespace InteractiveWorldMap
             if (DeveloperTuningPanel.Visibility == Visibility.Visible &&
                 DeveloperTuningPanel.VisibleCategory == category)
             {
-                DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+                HideTuningPanel();
                 return;
             }
 
             DeveloperTuningPanel.ShowCategory(category);
             DeveloperTuningPanel.Visibility = Visibility.Visible;
+        }
+
+        private void HideTuningPanel()
+        {
+            DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private bool IsTuningPanelVisible =>
+            DeveloperTuningPanel.Visibility == Visibility.Visible;
+
+        private void OnTuningPanelCloseRequested(object? sender, EventArgs e)
+        {
+            HideTuningPanel();
         }
 
         private async void OnApplyTuning(object? sender, TuningPanelEventArgs e)

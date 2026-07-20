@@ -4,14 +4,13 @@ owner: agent
 started: 2026-06-23
 needs_review: false
 requirements_ref: drawn-pin-tip-cap
-reviewed_by: temp/review-drawn-pin-tip-cap-plan-2026-06-23.md
 parent_program: docs/exec-plans/active/composite-pins-program.md
 depends_on: docs/exec-plans/completed/drawn-pin-model-separation-plan.md
 ---
 
 # Drawn pin tip cap — design confirmed
 
-**Human-confirmed 2026-06-23.** Authored from a TO_DO bullet, revised in response to [temp/review-drawn-pin-tip-cap-plan-2026-06-23.md](../../../temp/review-drawn-pin-tip-cap-plan-2026-06-23.md), and the intent ("the cap makes the pin look stuck into the map") confirmed. Implementation may begin per the phasing below; **concave is still allowed to iterate** (Phase 4b) and horizontal may ship before concave is finalized.
+**Human-confirmed 2026-06-23.** Authored from a TO_DO bullet, revised after human review, and the intent ("the cap makes the pin look stuck into the map") confirmed. Implementation may begin per the phasing below; **concave is still allowed to iterate** (Phase 4b) and horizontal may ship before concave is finalized.
 
 | # | Decision | Confirmed |
 |---|----------|-----------|

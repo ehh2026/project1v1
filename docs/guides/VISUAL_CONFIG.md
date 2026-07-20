@@ -50,6 +50,11 @@ When `EnableDeveloperTools` is `false`:
 - Composite debug overlays and verbose debug logging are treated as off.
 - Debug-only windowed mode is ignored.
 
+When Runtime Tuning is enabled (`EnableDeveloperTools` and `Debug.EnableTuningPanel`):
+
+- Open a category from the **Tuning** button (or press **F12** to open the category menu).
+- Close the panel with the header **✕**, **Esc**, or **F12** again (toggle). Escape priority is: content popup → edit layout → tuning panel → zoom back → exit app.
+
 The repository's development `visual-config.json` may set this to `true`; production/gallery deployments should set it to `false`.
 
 ### Parameters

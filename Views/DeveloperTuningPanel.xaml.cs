@@ -25,6 +25,7 @@ public partial class DeveloperTuningPanel : UserControl
     public event EventHandler<TuningPanelEventArgs>? ApplyRequested;
     public event EventHandler? SaveRequested;
     public event EventHandler? ReloadRequested;
+    public event EventHandler? CloseRequested;
 
     public TuningCategory? VisibleCategory { get; private set; }
 
@@ -327,6 +328,11 @@ public partial class DeveloperTuningPanel : UserControl
     private void OnReloadClick(object sender, RoutedEventArgs e)
     {
         ReloadRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnCloseClick(object sender, RoutedEventArgs e)
+    {
+        CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void ValidateInputs()

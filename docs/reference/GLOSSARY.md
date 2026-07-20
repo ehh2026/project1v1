@@ -21,7 +21,7 @@ Shared vocabulary for docs, plans, tests, and code comments.
 - **Manual variant**: A user-authored layout variant with `Origin = Manual`. Manual variants must not be overwritten by seed regeneration.
 - **Imported variant**: A layout variant brought in from outside the normal in-app save flow, with `Origin = Imported`.
 - **Selected variant**: The explicit per-group user choice stored in `ManualLayoutCollection.SelectedVariants`. It takes precedence over origin-priority fallback.
-- **Layout key**: The generated string used to identify a layout group. Cluster layout keys come from `LayoutKeyGenerator.GenerateKey`; full-map layouts use the constant `fullmap`.
+- **Layout key**: The generated string used to identify a layout group. Cluster keys come from `LayoutKeyGenerator.GenerateKey` and hash **location names** (sorted), not coordinates, plus zoom/viewport/radial-config factors. Full-map layouts use the constant `fullmap` (legacy `fullmap_sWxH` keys still resolve as compatible). See [When a saved layout loads](../guides/MANUAL_LAYOUT_EDITOR.md#when-a-saved-layout-loads-and-when-it-does-not).
 - **Full-map layout**: A manual layout for the unzoomed whole-map view. Full-map layouts are size-independent and keyed as `fullmap`.
 
 ## Seeds

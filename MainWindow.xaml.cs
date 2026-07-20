@@ -516,25 +516,32 @@ namespace InteractiveWorldMap
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            // Handle Escape key to close subwindow, exit edit mode, go back, or exit application
+            // Escape: content subwindow → edit mode → tuning panel → zoom back → exit app
             if (e.Key == Key.Escape)
             {
                 if (_activeSubwindow != null)
                 {
                     CloseActiveSubwindow();
+                    e.Handled = true;
                 }
                 else if (_layoutEditor.IsEditMode)
                 {
-                    // Exit edit mode on Escape
                     ExitEditMode();
                     if (AreDeveloperToolsEnabled() && _visualConfig.ManualLayoutEditor.Enabled)
                     {
                         EditLayoutButton.Visibility = Visibility.Visible;
                     }
+                    e.Handled = true;
+                }
+                else if (IsTuningPanelVisible)
+                {
+                    HideTuningPanel();
+                    e.Handled = true;
                 }
                 else if (_navigationService.CanGoBack)
                 {
                     AnimateZoomOut();
+                    e.Handled = true;
                 }
                 else
                 {
@@ -553,7 +560,10 @@ namespace InteractiveWorldMap
             }
             else if (e.Key == Key.F12 && AreDeveloperToolsEnabled() && _visualConfig.Debug.EnableTuningPanel)
             {
-                OnTuningPanelToggleClick(this, new RoutedEventArgs());
+                if (IsTuningPanelVisible)
+                    HideTuningPanel();
+                else
+                    OnTuningPanelToggleClick(this, new RoutedEventArgs());
                 e.Handled = true;
             }
         }

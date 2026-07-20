@@ -49,6 +49,8 @@ Writable user layouts are stored under `%AppData%\InteractiveWorldMap\` and are 
 
 On first run after upgrade, an un-namespaced `%AppData%\InteractiveWorldMap\manual-layouts.json` is copied once to `manual-layouts.demo.json` when that namespaced file does not yet exist.
 
+Switching Demo ↔ Production therefore does **not** load the other set’s user layouts. Within one set, whether a saved layout applies still depends on **layout keys** (location **names**, viewport, radial config — not coordinates alone). Details: [MANUAL_LAYOUT_EDITOR.md — When a saved layout loads](MANUAL_LAYOUT_EDITOR.md#when-a-saved-layout-loads-and-when-it-does-not).
+
 Cluster cache files follow the same suffix rule under `%AppData%\InteractiveWorldMap\clusters\<suffix>.json`.
 
 Default config:

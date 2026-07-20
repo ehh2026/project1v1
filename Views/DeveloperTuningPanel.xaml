@@ -26,12 +26,30 @@
             Padding="12">
         <ScrollViewer MaxHeight="620" VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <TextBlock x:Name="CategoryTitleText"
-                           Text="Runtime Tuning"
-                           Foreground="White"
-                           FontSize="15"
-                           FontWeight="SemiBold"
-                           Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock x:Name="CategoryTitleText"
+                               Text="Runtime Tuning"
+                               Foreground="White"
+                               FontSize="15"
+                               FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <Button Grid.Column="1"
+                            Content="✕"
+                            Width="28"
+                            Height="28"
+                            Padding="0"
+                            Background="#444444"
+                            Foreground="White"
+                            BorderBrush="#888888"
+                            BorderThickness="1"
+                            Cursor="Hand"
+                            Click="OnCloseClick"
+                            ToolTip="Close Runtime Tuning (Esc or F12)"/>
+                </Grid>
 
                 <StackPanel x:Name="MapSection" Visibility="Collapsed">
                     <CheckBox x:Name="ChkAutoOpenSingleLocationContent"
