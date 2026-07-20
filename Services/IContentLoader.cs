@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Utilities;
 
 namespace InteractiveWorldMap.Services;
 
@@ -11,6 +12,8 @@ public interface IContentLoader
     string ContentFolderPath { get; set; }
     string? ExcelCoordinateFilePath { get; set; }
     bool IsInitialized { get; }
+    string ActiveContentSetPath { get; }
+    ContentSetKind ActiveContentSetKind { get; }
 
     string GetWorldMapPath();
     string GetFullResolutionWorldMapPath();

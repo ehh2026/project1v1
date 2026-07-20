@@ -1,6 +1,7 @@
 using System.IO;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
 using InteractiveWorldMap.Tests.TestHelpers;
 using Xunit;
 
@@ -47,7 +48,7 @@ public class StartupValidationHarnessTests
             return; // Covered by other test
         }
 
-        var validator = new StartupValidator(new MockLogger(), contentPath);
+        var validator = new StartupValidator(new MockLogger(), contentPath, new ContentSetResolver());
         var result = validator.ValidateEnvironment();
 
         // Harness reports status; map filename mismatch may cause errors (known debt TD-002)
@@ -64,7 +65,7 @@ public class StartupValidationHarnessTests
             return;
         }
 
-        var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = outputContent };
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = outputContent };
         loader.ValidateContentFolder();
     }
 }

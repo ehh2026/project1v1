@@ -8,7 +8,7 @@ namespace InteractiveWorldMap.Models
 
     /// <summary>
     /// Configuration for part-based composite pin rendering.
-    /// Paths are relative to the Images&Content folder unless absolute.
+    /// Paths are relative to the Assets/ subfolder of the content root unless absolute.
     /// </summary>
     public class PinPartConfig
     {

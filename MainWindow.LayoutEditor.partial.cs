@@ -637,9 +637,7 @@ namespace InteractiveWorldMap
                 StringComparer.Ordinal);
 
             var applications = _layoutEditor.CreateLayoutApplications(layout, visibleMarkers.Keys);
-            var geometryPath = IOPath.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                _visualConfig.PinParts.GeometryMetadataPath);
+            var geometryPath = _contentLoader.ResolvePinPartPath(_visualConfig.PinParts.GeometryMetadataPath);
 
             // Full-map reference viewport: source-space pin heads are projected at this fixed fit
             // scale so the shaft keeps a constant screen length at any zoom (still resize-aware,

@@ -133,14 +133,14 @@ public class CompositePinPlacementPolicyTests
     {
         var plan = new CompositePinRenderPlan
         {
-            HeadSourcePath = "Images&Content/Pins_v2/parts/heads/pin_01.png",
+            HeadSourcePath = "Images&Content/Assets/Pins_v2/parts/heads/pin_01.png",
             TargetAngleDeg = 0,
             TargetLengthPx = 24
         };
         var target = StubTarget(startX: 100, startY: 200, length: 24);
 
         Assert.False(CompositePinPlacementPolicy.ShouldRepositionOnly(
-            plan, target, preferredHeadSourcePath: "Images&Content/Pins_v2/parts/heads/pin_02.png"));
+            plan, target, preferredHeadSourcePath: "Images&Content/Assets/Pins_v2/parts/heads/pin_02.png"));
     }
 
     // ── M3: independent angle vs length tolerances ──

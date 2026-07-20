@@ -101,7 +101,8 @@
   "ManualLayoutEditor": {
     "Enabled": true,
     "ShowEditButton": true,
-    "LayoutStoragePath": "Images&Content/manual-layouts.json",
+    "LayoutStoragePath": "Images&Content/Demo-Content/manual-layouts.json",
+    "SetAwareStorage": true,
     "EnableSnapToGrid": false,
     "GridSize": 5.0,
     "ShowLayoutIndicator": true

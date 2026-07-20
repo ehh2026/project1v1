@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
 using InteractiveWorldMap.Tests.TestHelpers;
 using Xunit;
 
@@ -17,7 +18,7 @@ public class StartupValidatorTests
     {
         var logger = new MockLogger();
         var missingPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-        var validator = new StartupValidator(logger, missingPath);
+        var validator = new StartupValidator(logger, missingPath, new ContentSetResolver());
 
         var result = validator.ValidateEnvironment();
 
@@ -32,7 +33,7 @@ public class StartupValidatorTests
         try
         {
             var logger = new MockLogger();
-            var validator = new StartupValidator(logger, tempDir);
+            var validator = new StartupValidator(logger, tempDir, new ContentSetResolver());
 
             var result = validator.ValidateEnvironment();
 
@@ -53,7 +54,7 @@ public class StartupValidatorTests
         {
             File.WriteAllText(Path.Combine(tempDir, "locations.json"), "{ not valid json");
             var logger = new MockLogger();
-            var validator = new StartupValidator(logger, tempDir);
+            var validator = new StartupValidator(logger, tempDir, new ContentSetResolver());
 
             var result = validator.ValidateEnvironment();
 
@@ -73,7 +74,7 @@ public class StartupValidatorTests
         {
             File.WriteAllText(Path.Combine(tempDir, "locations.json"), "[]");
             var logger = new MockLogger();
-            var validator = new StartupValidator(logger, tempDir);
+            var validator = new StartupValidator(logger, tempDir, new ContentSetResolver());
 
             var result = validator.ValidateEnvironment();
 
@@ -89,14 +90,14 @@ public class StartupValidatorTests
     public void Constructor_NullLogger_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new StartupValidator(null!, Path.GetTempPath()));
+            new StartupValidator(null!, Path.GetTempPath(), new ContentSetResolver()));
     }
 
     [Fact]
     public void Constructor_NullContentPath_Throws()
     {
         Assert.Throws<ArgumentNullException>(() =>
-            new StartupValidator(new MockLogger(), null!));
+            new StartupValidator(new MockLogger(), null!, new ContentSetResolver()));
     }
 
     private static string CreateTempContentFolder(bool includeMap, bool includeLocations)

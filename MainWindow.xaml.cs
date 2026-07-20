@@ -26,6 +26,7 @@ namespace InteractiveWorldMap
     public partial class MainWindow : Window
     {
         private readonly IContentLoader _contentLoader;
+        private readonly IContentSetResolver _contentSetResolver;
         private readonly ILogger _logger;
         private readonly MapNavigationService _navigationService;
         private readonly ViewportCalculator _viewportCalculator;
@@ -163,7 +164,8 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  RadialExtension.ProximityThresholdPixels: {_visualConfig.RadialExtension.ProximityThresholdPixels}");
                 _logger.LogInfo($"  RadialExtension.ExtensionLineLength: {_visualConfig.RadialExtension.ExtensionLineLength}");
                 
-                _contentLoader = new ContentLoader(_logger);
+                _contentSetResolver = new ContentSetResolver();
+                _contentLoader = new ContentLoader(_logger, _contentSetResolver);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
                 _logger.LogInfo("ContentLoader created");
                 
@@ -261,7 +263,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("Step 1: Validating content folder");
                 if (!_contentLoader.ValidateContentFolder())
                 {
-                    var errorMsg = $"Content folder validation failed.\nExpected path: {_contentLoader.ContentFolderPath}\nPlease ensure the Images&Content folder exists with the required files.";
+                    var errorMsg = $"Content folder validation failed.\nExpected path: {_contentLoader.ContentFolderPath}\nPlease ensure Images&Content/Demo-Content (or Production-Content) exists with a coordinate source (locations.json or 'Coordinates for map.xlsx') and that Images&Content/Assets/ contains the world map image.";
                     _logger.LogError(errorMsg);
                     ShowError(errorMsg);
                     return;
@@ -420,15 +422,33 @@ namespace InteractiveWorldMap
             if (IOPath.IsPathRooted(configuredLayoutPath))
                 return configuredLayoutPath;
 
-            var bundledPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+            var activeSetPath = _contentLoader.ActiveContentSetPath;
+            var bundledPath = IOPath.Combine(activeSetPath, "manual-layouts.json");
             var userDir = IOPath.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "InteractiveWorldMap");
-            var userPath = IOPath.Combine(userDir, "manual-layouts.json");
+
+            var setSuffix = _contentLoader.ActiveContentSetKind.ToSuffix();
+            var userFileName = _visualConfig.ManualLayoutEditor.SetAwareStorage
+                ? $"manual-layouts.{setSuffix}.json"
+                : "manual-layouts.json";
+
+            var userPath = IOPath.Combine(userDir, userFileName);
 
             try
             {
                 System.IO.Directory.CreateDirectory(userDir);
+
+                if (_visualConfig.ManualLayoutEditor.SetAwareStorage && setSuffix == "demo")
+                {
+                    var oldUserPath = IOPath.Combine(userDir, "manual-layouts.json");
+                    if (System.IO.File.Exists(oldUserPath) && !System.IO.File.Exists(userPath))
+                    {
+                        System.IO.File.Copy(oldUserPath, userPath);
+                        _logger.LogInfo($"Migrated un-namespaced layout file to namespaced demo layout file: {userPath}");
+                    }
+                }
+
                 if (!System.IO.File.Exists(userPath) && System.IO.File.Exists(bundledPath))
                 {
                     System.IO.File.Copy(bundledPath, userPath);

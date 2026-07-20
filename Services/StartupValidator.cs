@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Utilities;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
@@ -15,11 +16,20 @@ public class StartupValidator
 {
     private readonly ILogger _logger;
     private readonly string _contentFolderPath;
+    private readonly IContentSetResolver _contentSetResolver;
 
-    public StartupValidator(ILogger logger, string contentFolderPath)
+    public StartupValidator(ILogger logger, string contentFolderPath, IContentSetResolver contentSetResolver)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentFolderPath = contentFolderPath ?? throw new ArgumentNullException(nameof(contentFolderPath));
+        _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
+    }
+
+    private string ResolveAssetPath(string fileName)
+    {
+        var underAssets = Path.Combine(_contentFolderPath, ContentFileNames.AssetsFolderName, fileName);
+        if (File.Exists(underAssets)) return underAssets;
+        return Path.Combine(_contentFolderPath, fileName); // legacy-root fallback
     }
 
     /// <summary>
@@ -47,7 +57,7 @@ public class StartupValidator
             _logger.LogInfo($"✓ Content folder found: {_contentFolderPath}");
 
             // Check for world map image
-            var mapPath = Path.Combine(_contentFolderPath, ContentFileNames.WorldMapFileName);
+            var mapPath = ResolveAssetPath(ContentFileNames.WorldMapFileName);
             if (!File.Exists(mapPath))
             {
                 result.Errors.Add($"World map image not found: {mapPath}");
@@ -58,29 +68,51 @@ public class StartupValidator
                 _logger.LogInfo($"✓ World map image found: {mapPath}");
             }
 
-            // Check for locations.json
-            var locationsPath = Path.Combine(_contentFolderPath, ContentFileNames.LocationsJsonFileName);
-            if (!File.Exists(locationsPath))
-            {
-                _logger.LogInfo($"locations.json not found at: {locationsPath}");
-                _logger.LogInfo("Will attempt to load from Excel file instead");
-            }
-            else
-            {
-                _logger.LogInfo($"✓ locations.json found: {locationsPath}");
-                // Validate locations.json format
-                ValidateLocationsJson(locationsPath, result);
-            }
+            var activeSet = _contentSetResolver.ResolveActiveContentSet(_contentFolderPath);
+            _logger.LogInfo($"Resolved active content set: {activeSet.Kind} at {activeSet.Path}");
 
-            // Check for Excel file
-            var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
-            if (File.Exists(excelPath))
+            // Ensure active set has a coordinate source
+            if (!_contentSetResolver.HasCoordinateSource(activeSet.Path))
             {
-                _logger.LogInfo($"✓ Excel file found: {excelPath}");
+                if (activeSet.Kind == ContentSetKind.Legacy)
+                {
+                    var errorMsg = "Validation error: Legacy content root is missing a coordinate source. " +
+                        "Please organize Images&Content into Demo-Content or Production-Content (or rename Production-Content.disabled to Production-Content to enable it). " +
+                        "Alternatively, place locations.json or 'Coordinates for map.xlsx' directly under Images&Content to run in developer legacy fallback mode.";
+                    result.Errors.Add(errorMsg);
+                    _logger.LogError(errorMsg);
+                }
+                else
+                {
+                    var errorMsg = $"Active content set '{activeSet.Path}' is missing a coordinate source (locations.json or Coordinates for map.xlsx).";
+                    result.Errors.Add(errorMsg);
+                    _logger.LogError(errorMsg);
+                }
             }
             else
             {
-                _logger.LogInfo($"Excel file not found at: {excelPath}");
+                // Validate locations.json if it's the chosen coordinate source
+                var locationsPath = Path.Combine(activeSet.Path, ContentFileNames.LocationsJsonFileName);
+                if (File.Exists(locationsPath))
+                {
+                    _logger.LogInfo($"✓ locations.json found: {locationsPath}");
+                    ValidateLocationsJson(locationsPath, result);
+                }
+                else
+                {
+                    _logger.LogInfo($"locations.json not found at: {locationsPath}, will load from Excel file.");
+                }
+
+                // Check for Excel file
+                var excelPath = Path.Combine(activeSet.Path, ContentFileNames.ExcelCoordinateFileName);
+                if (File.Exists(excelPath))
+                {
+                    _logger.LogInfo($"✓ Excel file found: {excelPath}");
+                }
+                else
+                {
+                    _logger.LogInfo($"Excel file not found at: {excelPath}");
+                }
             }
 
             // Log validation summary

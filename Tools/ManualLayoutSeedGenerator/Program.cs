@@ -102,9 +102,9 @@ internal static class Program
     private sealed record CliOptions
     {
         public string ConfigPath { get; private init; } = "visual-config.json";
-        public string ExcelPath { get; private init; } = "Coordinates for map.xlsx";
-        public string MapImagePath { get; private init; } = Path.Combine("Images&Content", "World Map Extra Large.jpg");
-        public string OutputPath { get; private init; } = Path.Combine("Images&Content", "manual-layouts.json");
+        public string ExcelPath { get; private init; } = Path.Combine("Images&Content", "Demo-Content", "Coordinates for map.xlsx");
+        public string MapImagePath { get; private init; } = Path.Combine("Images&Content", "Assets", "World Map Extra Large.jpg");
+        public string OutputPath { get; private init; } = Path.Combine("Images&Content", "Demo-Content", "manual-layouts.json");
 
         public static CliOptions Parse(string[] args)
         {

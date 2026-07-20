@@ -19,11 +19,27 @@ namespace InteractiveWorldMap.Services
         private readonly string _cachePath;
         private readonly ILogger _logger;
 
-        public ClusterCache(ILogger logger)
+        public ClusterCache(ILogger logger, string contentSetSuffix)
         {
             _logger = logger;
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _cachePath = Path.Combine(appData, "InteractiveWorldMap", "cluster_cache.json");
+            var oldPath = Path.Combine(appData, "InteractiveWorldMap", "cluster_cache.json");
+            _cachePath = Path.Combine(appData, "InteractiveWorldMap", "clusters", $"{contentSetSuffix}.json");
+
+            if (contentSetSuffix == "demo" && File.Exists(oldPath) && !File.Exists(_cachePath))
+            {
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(_cachePath)!);
+                    File.Copy(oldPath, _cachePath, overwrite: true);
+                    File.Delete(oldPath);
+                    _logger.LogInfo($"[ClusterCache] Migrated legacy cluster cache to {_cachePath}");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"[ClusterCache] Failed to migrate legacy cluster cache: {ex.Message}");
+                }
+            }
         }
 
         /// <summary>

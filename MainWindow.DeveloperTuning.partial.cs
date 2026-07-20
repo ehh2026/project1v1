@@ -28,13 +28,13 @@ namespace InteractiveWorldMap
         private void RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)
         {
             var shafts = _variantCatalog.ListVariants(
-                _contentLoader.ContentFolderPath,
+                System.IO.Path.Combine(_contentLoader.ContentFolderPath, ContentFileNames.AssetsFolderName),
                 _visualConfig.PinParts.PartsFolderPath,
                 "shaft_variants",
                 shaftToInclude);
 
             var heads = _variantCatalog.ListVariants(
-                _contentLoader.ContentFolderPath,
+                System.IO.Path.Combine(_contentLoader.ContentFolderPath, ContentFileNames.AssetsFolderName),
                 _visualConfig.PinParts.PartsFolderPath,
                 "head_variants",
                 headToInclude);

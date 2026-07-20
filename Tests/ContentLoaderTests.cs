@@ -5,6 +5,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
 using InteractiveWorldMap.Tests.TestHelpers;
 using Xunit;
 
@@ -18,7 +19,7 @@ public class ContentLoaderTests
     [Fact]
     public void ValidateContentFolder_MissingFolder_ReturnsFalse()
     {
-        var loader = new ContentLoader(new MockLogger())
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
         {
             ContentFolderPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"))
         };
@@ -27,12 +28,13 @@ public class ContentLoaderTests
     }
 
     [Fact]
-    public void ValidateContentFolder_WithMapFile_ReturnsTrue()
+    public void ValidateContentFolder_WithMapAndCoordinates_ReturnsTrue()
     {
         var tempDir = CreateContentFolderWithMap();
         try
         {
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            File.WriteAllText(Path.Combine(tempDir, ContentFileNames.LocationsJsonFileName), "[]");
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             Assert.True(loader.ValidateContentFolder());
         }
         finally
@@ -48,7 +50,7 @@ public class ContentLoaderTests
         Directory.CreateDirectory(tempDir);
         try
         {
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             Assert.False(loader.ValidateContentFolder());
         }
         finally
@@ -146,7 +148,7 @@ public class ContentLoaderTests
     [Fact]
     public async Task LoadLocationContentAsync_NullLocation_Throws()
     {
-        var loader = new ContentLoader(new MockLogger());
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver());
         await Assert.ThrowsAsync<ArgumentNullException>(() => loader.LoadLocationContentAsync(null!));
     }
 
@@ -156,7 +158,7 @@ public class ContentLoaderTests
         var tempDir = CreateContentFolderWithMap();
         try
         {
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Nonexistent", Id = "x" };
 
             var result = await loader.LoadLocationContentAsync(location);
@@ -204,7 +206,7 @@ public class ContentLoaderTests
                   }
                 }");
 
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
 
             var geometry = loader.LoadPinPartGeometry("Pins_v2\\parts\\pin_part_geometry.json");
 
@@ -226,7 +228,7 @@ public class ContentLoaderTests
     [Fact]
     public async Task LoadAllLocationImagesAsync_NullLocation_Throws()
     {
-        var loader = new ContentLoader(new MockLogger());
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver());
         await Assert.ThrowsAsync<ArgumentNullException>(() => loader.LoadAllLocationImagesAsync(null!));
     }
 
@@ -236,7 +238,7 @@ public class ContentLoaderTests
         var tempDir = CreateContentFolderWithMap();
         try
         {
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Nonexistent", Id = "x" };
 
             var result = await loader.LoadAllLocationImagesAsync(location);
@@ -259,7 +261,7 @@ public class ContentLoaderTests
             Directory.CreateDirectory(locationFolder);
             File.WriteAllText(Path.Combine(locationFolder, "notes.txt"), "just text");
 
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Paris", Id = "p" };
 
             var result = await loader.LoadAllLocationImagesAsync(location);
@@ -279,7 +281,7 @@ public class ContentLoaderTests
     [Fact]
     public async Task LoadAllLocationImagesWithTranslationsAsync_NullLocation_Throws()
     {
-        var loader = new ContentLoader(new MockLogger());
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver());
         await Assert.ThrowsAsync<ArgumentNullException>(
             () => loader.LoadAllLocationImagesWithTranslationsAsync(null!));
     }
@@ -290,7 +292,7 @@ public class ContentLoaderTests
         var tempDir = CreateContentFolderWithMap();
         try
         {
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Nowhere", Id = "n" };
 
             var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
@@ -313,7 +315,7 @@ public class ContentLoaderTests
             Directory.CreateDirectory(locationFolder);
             File.WriteAllText(Path.Combine(locationFolder, "readme.txt"), "no images here");
 
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Rome", Id = "r" };
 
             var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
@@ -340,7 +342,7 @@ public class ContentLoaderTests
                 Path.Combine(locationFolder, "1-letter-caption.txt"),
                 "Caption text about this letter.");
 
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Test", Id = "t" };
 
             var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
@@ -369,7 +371,7 @@ public class ContentLoaderTests
             Directory.CreateDirectory(locationFolder);
             File.WriteAllText(Path.Combine(locationFolder, "notes.txt"), "text only");
 
-            var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = tempDir };
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var location = new Location { Name = "Berlin", Id = "b" };
 
             var result = await loader.LoadLocationContentAsync(location);
@@ -387,7 +389,7 @@ public class ContentLoaderTests
     /// </summary>
     private static ContentLoader CreateLoaderForJsonTests(string contentFolderPath)
     {
-        return new ContentLoader(new MockLogger())
+        return new ContentLoader(new MockLogger(), new ContentSetResolver())
         {
             ContentFolderPath = contentFolderPath,
             ExcelCoordinateFilePath = Path.Combine(contentFolderPath, "no-excel-for-test.xlsx"),
@@ -399,6 +401,16 @@ public class ContentLoaderTests
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-cl-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         File.WriteAllText(Path.Combine(tempDir, ContentFileNames.WorldMapFileName), "fake-image-data");
+        return tempDir;
+    }
+
+    private static string CreateContentFolderWithAssets()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-assets-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var assetsDir = Path.Combine(tempDir, ContentFileNames.AssetsFolderName);
+        Directory.CreateDirectory(assetsDir);
+        File.WriteAllText(Path.Combine(assetsDir, ContentFileNames.WorldMapFileName), "fake-image-data");
         return tempDir;
     }
 
@@ -418,5 +430,113 @@ public class ContentLoaderTests
 
         using var stream = File.Create(path);
         encoder.Save(stream);
+    }
+
+    [Fact]
+    public void GetWorldMapPath_AssetsFolderPresent_ReturnsAssetsPath()
+    {
+        var tempDir = CreateContentFolderWithAssets();
+        try
+        {
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var mapPath = loader.GetWorldMapPath();
+            Assert.Equal(Path.Combine(tempDir, ContentFileNames.AssetsFolderName, ContentFileNames.WorldMapFileName), mapPath);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void GetWorldMapPath_AssetsFolderMissing_LegacyRootFallback()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var mapPath = loader.GetWorldMapPath();
+            Assert.Equal(Path.Combine(tempDir, ContentFileNames.WorldMapFileName), mapPath);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ResolvePinPartPath_RelativePath_RoutesThroughAssets()
+    {
+        var tempDir = CreateContentFolderWithAssets();
+        try
+        {
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var relativePath = "Pins_v2/parts/pin_part_geometry.json";
+            
+            // Write a dummy file under Assets/Pins_v2/parts
+            var fullPath = Path.Combine(tempDir, ContentFileNames.AssetsFolderName, relativePath);
+            Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
+            File.WriteAllText(fullPath, "dummy");
+
+            var resolved = loader.ResolvePinPartPath(relativePath);
+            Assert.Equal(fullPath, resolved);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ActiveContentSetPath_AfterFirstResolve_IsStableForSession()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-stable-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        
+        try
+        {
+            var demoDir = Path.Combine(tempDir, ContentFileNames.DemoContentFolderName);
+            Directory.CreateDirectory(demoDir);
+            File.WriteAllText(Path.Combine(demoDir, ContentFileNames.LocationsJsonFileName), "[]");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var resolvedPath1 = loader.ActiveContentSetPath;
+
+            // Delete the demo directory to simulate changes on disk
+            Directory.Delete(demoDir, recursive: true);
+
+            var resolvedPath2 = loader.ActiveContentSetPath;
+            Assert.Equal(resolvedPath1, resolvedPath2);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir))
+                Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ValidateContentFolder_MissingCoordinateSource_ReturnsFalse()
+    {
+        // Legacy root lacks coordinate source
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-empty-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        
+        try
+        {
+            // Include map under Assets
+            var assetsDir = Path.Combine(tempDir, ContentFileNames.AssetsFolderName);
+            Directory.CreateDirectory(assetsDir);
+            File.WriteAllText(Path.Combine(assetsDir, ContentFileNames.WorldMapFileName), "fake");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            
+            // Should fail validation because there is no locations.json or Excel in active set (resolved to Legacy here)
+            Assert.False(loader.ValidateContentFolder());
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
     }
 }
