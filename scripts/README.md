@@ -76,7 +76,7 @@ Generate ignored 1080p, 1440p, and 4K comparisons for the `SOUTH` label crop:
 
 ```powershell
 dotnet run --project Tools\MapResamplerComparison\MapResamplerComparison.csproj -- `
-  --source "Images&Content\World Map 1976.jpg" `
+  --source "Images&Content\Assets\World Map 1976.jpg" `
   --crop "5160,7390,358,202" `
   --output "temp\map-resampler-comparison"
 ```

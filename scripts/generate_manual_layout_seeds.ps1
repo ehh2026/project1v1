@@ -1,8 +1,8 @@
 param(
     [string]$ConfigPath = "visual-config.json",
-    [string]$ExcelPath = "Coordinates for map.xlsx",
-    [string]$MapImagePath = "Images&Content\World Map Extra Large.jpg",
-    [string]$OutputPath = "Images&Content\manual-layouts.json"
+    [string]$ExcelPath = "Images&Content\Demo-Content\Coordinates for map.xlsx",
+    [string]$MapImagePath = "Images&Content\Assets\World Map Extra Large.jpg",
+    [string]$OutputPath = "Images&Content\Demo-Content\manual-layouts.json"
 )
 
 Set-StrictMode -Version Latest

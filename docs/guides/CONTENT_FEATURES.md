@@ -26,12 +26,15 @@ When a location's content folder contains a file named `didactic.txt`, a didacti
 
 ```
 Images&Content/
-  Kevin/
-    1-letter-product-pic.jpg
-    2-another-image.jpg
-    3-final-image.jpg
-    didactic.txt
+  Demo-Content/
+    Kevin/
+      1-letter-product-pic.jpg
+      2-another-image.jpg
+      3-final-image.jpg
+      didactic.txt
 ```
+
+Location folders live under the **active content set** (`Demo-Content/` or `Production-Content/`). See [CONTENT_SETS.md](CONTENT_SETS.md) for how the app chooses the set.
 
 ### Features
 

@@ -30,4 +30,9 @@ Shared vocabulary for docs, plans, tests, and code comments.
 - **AutoSeed variant**: A generated seed layout variant with `Origin = AutoSeed`, usually `VariantId = seed-default`.
 - **Seed generator**: The headless tool at `Tools/ManualLayoutSeedGenerator` that generates AutoSeed variants by reusing runtime placement code.
 - **Seed regeneration**: Running `scripts/generate_manual_layout_seeds.ps1`, which delegates to the seed generator. Regeneration updates `seed-default` AutoSeed variants and must preserve Manual/Imported variants and `SelectedVariants`.
-- **Seed verification**: Running `scripts/verify_manual_layout_seeds.ps1`, which generates seeds to `temp/` and verifies the output without modifying the real `Images&Content/manual-layouts.json`.
+- **Seed verification**: Running `scripts/verify_manual_layout_seeds.ps1`, which generates seeds to `temp/` and verifies the output without modifying the real `Images&Content/Demo-Content/manual-layouts.json`.
+
+## Content Sets
+
+- **Content set**: A self-contained dataset under `Images&Content/` — typically `Demo-Content/` or `Production-Content/` — with its own coordinate source (`Coordinates for map.xlsx` and/or `locations.json`), location subfolders, and optional bundled `manual-layouts.json`. Static maps and pin art live separately under `Assets/`. See [CONTENT_SETS.md](../guides/CONTENT_SETS.md).
+- **Active content set**: The content set selected at startup (Production if it has a coordinate source, else Demo, else legacy flat root). Location content and Excel/JSON loading use this folder for the session.

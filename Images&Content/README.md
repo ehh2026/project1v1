@@ -9,4 +9,4 @@ This folder contains the world map images, pin assets, and location-specific con
 - **`Production-Content/`**: Production dataset directory. If present and populated with a coordinate source (`locations.json` or `Coordinates for map.xlsx`), the application will prioritize this set over `Demo-Content/`.
 - **`Extras/`**: Archival/legacy files not used by the active application logic.
 
-For details on how content sets are loaded and resolved, see the documentation in `docs/guides/CONTENT_SETS.md`.
+For details on how content sets are loaded and resolved, see [CONTENT_SETS.md](../docs/guides/CONTENT_SETS.md).

@@ -50,9 +50,8 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 | `Views/` | WPF UserControls and windows — Models only |
 | `Tests/` | xUnit tests including architecture structural tests |
 | `scripts/` | Verification, log query, Python tooling — see [scripts/README.md](scripts/README.md) |
-| `Images&Content/` | Map image, location folders, `locations.json` |
+| `Images&Content/` | `Assets/` (maps, pin parts), `Demo-Content/` / `Production-Content/` (Excel, `locations.json`, location folders), `Extras/` — see [CONTENT_SETS.md](docs/guides/CONTENT_SETS.md) |
 | `visual-config.json` | Machine-readable UI/debug config (deserialize to `Models/VisualConfig`) |
-| `Coordinates for map.xlsx` | Primary coordinate source at startup |
 
 ## Architecture Rules
 

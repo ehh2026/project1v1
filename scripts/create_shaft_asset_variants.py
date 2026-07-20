@@ -2,7 +2,7 @@
 Generate baked composite-pin shaft asset variants for improved contrast.
 
 Inputs:
-  - Source lit shaft PNGs under Images&Content/Pins_v2/parts/pin_XX_shaft_lit.png
+  - Source lit shaft PNGs under Images&Content/Assets/Pins_v2/parts/pin_XX_shaft_lit.png
   - Variant name selecting outline width and/or inner-edge darkening depth
 
 Outputs:
@@ -241,7 +241,7 @@ def generate(parts_dir: Path, variants: list[str]) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Generate composite pin shaft visibility asset variants.")
-    parser.add_argument("--parts-dir", default="Images&Content/Pins_v2/parts")
+    parser.add_argument("--parts-dir", default="Images&Content/Assets/Pins_v2/parts")
     parser.add_argument(
         "--variant",
         action="append",

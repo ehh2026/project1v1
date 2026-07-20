@@ -30,7 +30,7 @@ When the automatic radial extension algorithm produces intersecting lines, overl
 - "Save Layout" button appears in edit mode
 - Saves current marker positions to a JSON file
 - Layout is keyed by a unique identifier (see Configuration Key below)
-- Stored in: `Images&Content/manual-layouts.json` or similar
+- Stored in: the active content set’s `manual-layouts.json` (e.g. `Images&Content/Demo-Content/manual-layouts.json`), with user copies under `%AppData%\InteractiveWorldMap\` — see [CONTENT_SETS.md](CONTENT_SETS.md)
 
 ### 4. Delete and Recalculate
 - "Delete & Recalculate" button in edit mode
@@ -250,7 +250,8 @@ scripts/
   verify_manual_layout_seeds.ps1   - Non-destructive seed verification into temp/
 
 Images&Content/
-  manual-layouts.json          - Saved layouts file
+  Demo-Content/
+    manual-layouts.json        - Bundled Demo seed layouts (per content set)
 
 visual-config.json             - Add EnableManualLayoutEditor flag
 ```
@@ -263,7 +264,8 @@ Add to `visual-config.json`:
   "ManualLayoutEditor": {
     "Enabled": false,
     "ShowEditButton": true,
-    "LayoutStoragePath": "Images&Content/manual-layouts.json",
+    "LayoutStoragePath": "Images&Content/Demo-Content/manual-layouts.json",
+    "SetAwareStorage": true,
     "EnableSnapToGrid": false,
     "GridSize": 5.0,
     "ShowLayoutIndicator": true
