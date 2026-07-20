@@ -33,6 +33,7 @@ namespace InteractiveWorldMap
                 MaximizedBackgroundOpacity =
                     _visualConfig.MaximizedContentBackgroundOpacity
             };
+            window.ApplyStyle(_visualConfig.ContentWindows);
             window.PresentationModeChanged += OnContentPresentationModeChanged;
             return window;
         }
@@ -109,7 +110,8 @@ namespace InteractiveWorldMap
                 {
                     Owner = this
                 };
-                
+                _activeDidacticWindow.ApplyStyle(_visualConfig.ContentWindows);
+
                 _activeDidacticWindow.SetContent(didacticText, location.Name);
                 _activeDidacticWindow.PositionRelativeTo(_activeSubwindow);
                 _activeDidacticWindow.Show();
@@ -127,7 +129,8 @@ namespace InteractiveWorldMap
                 {
                     Owner = this
                 };
-                
+                _activeThumbnailBrowser.ApplyStyle(_visualConfig.ContentWindows);
+
                 _activeThumbnailBrowser.LoadThumbnails(images, index);
                 
                 // Position thumbnail browser to the right of content window

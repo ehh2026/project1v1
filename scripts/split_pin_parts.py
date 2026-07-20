@@ -10,14 +10,14 @@ Shaft is defined geometrically as "opaque pixels outside the fitted circle",
 so shaft pixels are never lost to the saturation filter.
 
 Inputs:
-    - Images&Content/Pins_v2/compare_C_aggressive/pin_NN.png
+    - Images&Content/Assets/Pins_v2/compare_C_aggressive/pin_NN.png
 
 Outputs:
-    - Images&Content/Pins_v2/parts/pin_NN_head.png
-    - Images&Content/Pins_v2/parts/pin_NN_shaft.png
-    - Images&Content/Pins_v2/parts/pin_parts_manifest.json
-    - Images&Content/Pins_v2/parts/preview_heads.png
-    - Images&Content/Pins_v2/parts/preview_shafts.png
+    - Images&Content/Assets/Pins_v2/parts/pin_NN_head.png
+    - Images&Content/Assets/Pins_v2/parts/pin_NN_shaft.png
+    - Images&Content/Assets/Pins_v2/parts/pin_parts_manifest.json
+    - Images&Content/Assets/Pins_v2/parts/preview_heads.png
+    - Images&Content/Assets/Pins_v2/parts/preview_shafts.png
 
 Usage:
     cd scripts/
@@ -39,9 +39,11 @@ from scipy import ndimage
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 INPUT_DIR = os.path.join(
-    SCRIPT_DIR, "..", "Images&Content", "Pins_v2", "compare_C_aggressive"
+    SCRIPT_DIR, "..", "Images&Content", "Assets", "Pins_v2", "compare_C_aggressive"
 )
-OUTPUT_DIR = os.path.join(SCRIPT_DIR, "..", "Images&Content", "Pins_v2", "parts")
+OUTPUT_DIR = os.path.join(
+    SCRIPT_DIR, "..", "Images&Content", "Assets", "Pins_v2", "parts"
+)
 
 NUM_PINS = 12
 

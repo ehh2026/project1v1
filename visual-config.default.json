@@ -21,6 +21,26 @@
   "ZoomedMapRendering": {
     "ResamplingMode": "Fant"
   },
+  "ContentWindows": {
+    "FontFamily": "Segoe UI",
+    "Popup": {
+      "BackgroundColor": "#1E1E1E",
+      "BackgroundOpacity": 0.70,
+      "BorderColor": "#FFFFFFFF",
+      "BorderThickness": 2.0,
+      "CornerRadius": 12.0,
+      "TextColor": "#FFFFFFFF",
+      "HeadingFontSize": 18.0,
+      "BodyFontSize": 14.0
+    },
+    "Caption": {
+      "BackgroundColor": "#000000",
+      "BackgroundOpacity": 0.85,
+      "TopBorderColor": "#66FFFFFF",
+      "TextColor": "#FFFFFFFF",
+      "FontSize": 13.0
+    }
+  },
   "PinParts": {
     "Enabled": true,
     "PartsFolderPath": "Pins_v2/parts",
@@ -81,7 +101,8 @@
   "ManualLayoutEditor": {
     "Enabled": true,
     "ShowEditButton": true,
-    "LayoutStoragePath": "Images&Content/manual-layouts.json",
+    "LayoutStoragePath": "Images&Content/Demo-Content/manual-layouts.json",
+    "SetAwareStorage": true,
     "EnableSnapToGrid": false,
     "GridSize": 5.0,
     "ShowLayoutIndicator": true

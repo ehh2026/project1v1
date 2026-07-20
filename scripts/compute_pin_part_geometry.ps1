@@ -1,5 +1,5 @@
 param(
-    [string]$PartsDir = "Images&Content\Pins_v2\parts",
+    [string]$PartsDir = "Images&Content\Assets\Pins_v2\parts",
     [string]$OutputPath = ""
 )
 

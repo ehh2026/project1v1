@@ -26,6 +26,7 @@ namespace InteractiveWorldMap
     public partial class MainWindow : Window
     {
         private readonly IContentLoader _contentLoader;
+        private readonly IContentSetResolver _contentSetResolver;
         private readonly ILogger _logger;
         private readonly MapNavigationService _navigationService;
         private readonly ViewportCalculator _viewportCalculator;
@@ -72,6 +73,7 @@ namespace InteractiveWorldMap
         private DrawnPinMarkerFactory _drawnPinFactory = null!;
         private readonly VisualConfigService _configService;
         private readonly string _configPath;
+        private readonly string _defaultConfigPath;
         
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
         private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
@@ -133,9 +135,11 @@ namespace InteractiveWorldMap
                 _configService = new VisualConfigService(message => _logger.LogWarning(message));
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
                 
-                // Load visual configuration
+                // Load visual configuration: user file overlaid on shipped defaults so local
+                // tuning survives updates (see docs/guides/VISUAL_CONFIG.md).
                 _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
-                _visualConfig = _configService.Load(_configPath);
+                _defaultConfigPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.default.json");
+                _visualConfig = _configService.Load(_configPath, _defaultConfigPath);
                 _drawnPinFactory = new DrawnPinMarkerFactory(_visualConfig);
                 _logger.LogInfo($"Visual config loaded from: {_configPath}");
 
@@ -160,7 +164,8 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  RadialExtension.ProximityThresholdPixels: {_visualConfig.RadialExtension.ProximityThresholdPixels}");
                 _logger.LogInfo($"  RadialExtension.ExtensionLineLength: {_visualConfig.RadialExtension.ExtensionLineLength}");
                 
-                _contentLoader = new ContentLoader(_logger);
+                _contentSetResolver = new ContentSetResolver();
+                _contentLoader = new ContentLoader(_logger, _contentSetResolver);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
                 _logger.LogInfo("ContentLoader created");
                 
@@ -258,7 +263,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("Step 1: Validating content folder");
                 if (!_contentLoader.ValidateContentFolder())
                 {
-                    var errorMsg = $"Content folder validation failed.\nExpected path: {_contentLoader.ContentFolderPath}\nPlease ensure the Images&Content folder exists with the required files.";
+                    var errorMsg = $"Content folder validation failed.\nExpected path: {_contentLoader.ContentFolderPath}\nPlease ensure Images&Content/Demo-Content (or Production-Content) exists with a coordinate source (locations.json or 'Coordinates for map.xlsx') and that Images&Content/Assets/ contains the world map image.";
                     _logger.LogError(errorMsg);
                     ShowError(errorMsg);
                     return;
@@ -417,15 +422,33 @@ namespace InteractiveWorldMap
             if (IOPath.IsPathRooted(configuredLayoutPath))
                 return configuredLayoutPath;
 
-            var bundledPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, configuredLayoutPath);
+            var activeSetPath = _contentLoader.ActiveContentSetPath;
+            var bundledPath = IOPath.Combine(activeSetPath, "manual-layouts.json");
             var userDir = IOPath.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "InteractiveWorldMap");
-            var userPath = IOPath.Combine(userDir, "manual-layouts.json");
+
+            var setSuffix = _contentLoader.ActiveContentSetKind.ToSuffix();
+            var userFileName = _visualConfig.ManualLayoutEditor.SetAwareStorage
+                ? $"manual-layouts.{setSuffix}.json"
+                : "manual-layouts.json";
+
+            var userPath = IOPath.Combine(userDir, userFileName);
 
             try
             {
                 System.IO.Directory.CreateDirectory(userDir);
+
+                if (_visualConfig.ManualLayoutEditor.SetAwareStorage && setSuffix == "demo")
+                {
+                    var oldUserPath = IOPath.Combine(userDir, "manual-layouts.json");
+                    if (System.IO.File.Exists(oldUserPath) && !System.IO.File.Exists(userPath))
+                    {
+                        System.IO.File.Copy(oldUserPath, userPath);
+                        _logger.LogInfo($"Migrated un-namespaced layout file to namespaced demo layout file: {userPath}");
+                    }
+                }
+
                 if (!System.IO.File.Exists(userPath) && System.IO.File.Exists(bundledPath))
                 {
                     System.IO.File.Copy(bundledPath, userPath);
@@ -493,25 +516,32 @@ namespace InteractiveWorldMap
 
         private void OnKeyDown(object sender, KeyEventArgs e)
         {
-            // Handle Escape key to close subwindow, exit edit mode, go back, or exit application
+            // Escape: content subwindow → edit mode → tuning panel → zoom back → exit app
             if (e.Key == Key.Escape)
             {
                 if (_activeSubwindow != null)
                 {
                     CloseActiveSubwindow();
+                    e.Handled = true;
                 }
                 else if (_layoutEditor.IsEditMode)
                 {
-                    // Exit edit mode on Escape
                     ExitEditMode();
                     if (AreDeveloperToolsEnabled() && _visualConfig.ManualLayoutEditor.Enabled)
                     {
                         EditLayoutButton.Visibility = Visibility.Visible;
                     }
+                    e.Handled = true;
+                }
+                else if (IsTuningPanelVisible)
+                {
+                    HideTuningPanel();
+                    e.Handled = true;
                 }
                 else if (_navigationService.CanGoBack)
                 {
                     AnimateZoomOut();
+                    e.Handled = true;
                 }
                 else
                 {
@@ -530,7 +560,10 @@ namespace InteractiveWorldMap
             }
             else if (e.Key == Key.F12 && AreDeveloperToolsEnabled() && _visualConfig.Debug.EnableTuningPanel)
             {
-                OnTuningPanelToggleClick(this, new RoutedEventArgs());
+                if (IsTuningPanelVisible)
+                    HideTuningPanel();
+                else
+                    OnTuningPanelToggleClick(this, new RoutedEventArgs());
                 e.Handled = true;
             }
         }

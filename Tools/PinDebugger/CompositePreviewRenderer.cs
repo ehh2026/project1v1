@@ -13,9 +13,13 @@ internal static class CompositePreviewRenderer
 
         double headRadiusPx     = 14.0;
         double shaftHalfWidthPx = 0.0;
-        if (File.Exists("visual-config.json"))
+        var configPath =
+            File.Exists("visual-config.json") ? "visual-config.json"
+            : File.Exists("visual-config.default.json") ? "visual-config.default.json"
+            : null;
+        if (configPath != null)
         {
-            using var vcDoc = JsonDocument.Parse(File.ReadAllText("visual-config.json"));
+            using var vcDoc = JsonDocument.Parse(File.ReadAllText(configPath));
             if (vcDoc.RootElement.TryGetProperty("PinParts", out var pp))
             {
                 if (pp.TryGetProperty("TargetHeadRadiusPx",     out var hr)) headRadiusPx     = hr.GetDouble();

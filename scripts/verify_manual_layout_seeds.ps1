@@ -14,8 +14,8 @@ if (Test-Path $outputPath) {
 
 dotnet run --project "Tools\ManualLayoutSeedGenerator\ManualLayoutSeedGenerator.csproj" -- `
     --config "visual-config.json" `
-    --excel "Coordinates for map.xlsx" `
-    --map-image "Images&Content\World Map Extra Large.jpg" `
+    --excel "Images&Content\Demo-Content\Coordinates for map.xlsx" `
+    --map-image "Images&Content\Assets\World Map Extra Large.jpg" `
     --output $outputPath
 
 if (-not (Test-Path $outputPath)) {

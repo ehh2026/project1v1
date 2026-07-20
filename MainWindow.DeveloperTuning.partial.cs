@@ -28,13 +28,13 @@ namespace InteractiveWorldMap
         private void RefreshTuningPanelVariantOptions(string? shaftToInclude = null, string? headToInclude = null)
         {
             var shafts = _variantCatalog.ListVariants(
-                _contentLoader.ContentFolderPath,
+                System.IO.Path.Combine(_contentLoader.ContentFolderPath, ContentFileNames.AssetsFolderName),
                 _visualConfig.PinParts.PartsFolderPath,
                 "shaft_variants",
                 shaftToInclude);
 
             var heads = _variantCatalog.ListVariants(
-                _contentLoader.ContentFolderPath,
+                System.IO.Path.Combine(_contentLoader.ContentFolderPath, ContentFileNames.AssetsFolderName),
                 _visualConfig.PinParts.PartsFolderPath,
                 "head_variants",
                 headToInclude);
@@ -66,12 +66,25 @@ namespace InteractiveWorldMap
             if (DeveloperTuningPanel.Visibility == Visibility.Visible &&
                 DeveloperTuningPanel.VisibleCategory == category)
             {
-                DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+                HideTuningPanel();
                 return;
             }
 
             DeveloperTuningPanel.ShowCategory(category);
             DeveloperTuningPanel.Visibility = Visibility.Visible;
+        }
+
+        private void HideTuningPanel()
+        {
+            DeveloperTuningPanel.Visibility = Visibility.Collapsed;
+        }
+
+        private bool IsTuningPanelVisible =>
+            DeveloperTuningPanel.Visibility == Visibility.Visible;
+
+        private void OnTuningPanelCloseRequested(object? sender, EventArgs e)
+        {
+            HideTuningPanel();
         }
 
         private async void OnApplyTuning(object? sender, TuningPanelEventArgs e)
@@ -121,7 +134,7 @@ namespace InteractiveWorldMap
 
             try
             {
-                var fresh = _configService.Load(_configPath);
+                var fresh = _configService.Load(_configPath, _defaultConfigPath);
                 var args = CreateTuningArgs(fresh);
                 if (!DeveloperTuningPanel.TryValidate(args, out var error))
                 {
@@ -272,6 +285,28 @@ namespace InteractiveWorldMap
                 cap.LineWeightPx = e.TipCapLineWeightPx;
                 cap.ArcDepthPx = e.TipCapArcDepthPx;
 
+                // Content popup/caption styling is popup-only (no marker rebuild). Update config,
+                // then live-restyle any currently open popups so changes are visible immediately;
+                // otherwise they apply on the next popup open.
+                var cw = _visualConfig.ContentWindows;
+                cw.FontFamily = e.ContentFontFamily;
+                cw.Popup.BackgroundColor = e.PopupBackgroundColor;
+                cw.Popup.BackgroundOpacity = e.PopupBackgroundOpacity;
+                cw.Popup.BorderColor = e.PopupBorderColor;
+                cw.Popup.BorderThickness = e.PopupBorderThickness;
+                cw.Popup.CornerRadius = e.PopupCornerRadius;
+                cw.Popup.TextColor = e.PopupTextColor;
+                cw.Popup.HeadingFontSize = e.PopupHeadingFontSize;
+                cw.Popup.BodyFontSize = e.PopupBodyFontSize;
+                cw.Caption.BackgroundColor = e.CaptionBackgroundColor;
+                cw.Caption.BackgroundOpacity = e.CaptionBackgroundOpacity;
+                cw.Caption.TopBorderColor = e.CaptionTopBorderColor;
+                cw.Caption.TextColor = e.CaptionTextColor;
+                cw.Caption.FontSize = e.CaptionFontSize;
+                _activeSubwindow?.ApplyStyle(cw);
+                _activeDidacticWindow?.ApplyStyle(cw);
+                _activeThumbnailBrowser?.ApplyStyle(cw);
+
                 if (assetVariantChanged)
                     _pinPartBitmapCache.Clear();
 
@@ -405,6 +440,7 @@ namespace InteractiveWorldMap
         {
             var pinConfig = config.PinMarkers ?? new PinMarkerConfig();
             var cap = pinConfig.DrawnPinTipCap ?? new DrawnPinTipCapConfig();
+            var content = config.ContentWindows ?? new ContentWindowConfig();
             double outlineWidth = Math.Max(pinConfig.ShaftWidth, 2.5) +
                                   (2.0 * Math.Max(pinConfig.ShaftOutlineThickness, 1.0));
             return new TuningPanelEventArgs
@@ -442,7 +478,21 @@ namespace InteractiveWorldMap
                 TipCapWidthPx = cap.ResolveWidthPx(outlineWidth),
                 TipCapLineWeightPx = cap.ResolveLineWeightPx(
                     pinConfig.ShaftOutlineThickness),
-                TipCapArcDepthPx = cap.ArcDepthPx
+                TipCapArcDepthPx = cap.ArcDepthPx,
+                ContentFontFamily = content.FontFamily,
+                PopupBackgroundColor = content.Popup.BackgroundColor,
+                PopupBackgroundOpacity = content.Popup.BackgroundOpacity,
+                PopupBorderColor = content.Popup.BorderColor,
+                PopupBorderThickness = content.Popup.BorderThickness,
+                PopupCornerRadius = content.Popup.CornerRadius,
+                PopupTextColor = content.Popup.TextColor,
+                PopupHeadingFontSize = content.Popup.HeadingFontSize,
+                PopupBodyFontSize = content.Popup.BodyFontSize,
+                CaptionBackgroundColor = content.Caption.BackgroundColor,
+                CaptionBackgroundOpacity = content.Caption.BackgroundOpacity,
+                CaptionTopBorderColor = content.Caption.TopBorderColor,
+                CaptionTextColor = content.Caption.TextColor,
+                CaptionFontSize = content.Caption.FontSize
             };
         }
 

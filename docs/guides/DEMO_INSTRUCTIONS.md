@@ -60,10 +60,11 @@ dotnet run --project InteractiveWorldMap.csproj
 1. Make sure you've built the project at least once: `dotnet build`
 2. Verify the `Images&Content` folder exists in `bin/Debug/net6.0-windows/`
 3. Check that all image files are present:
-   - World Map 1976.jpg
-   - letter-product-pic.jpg
-   - v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg
-   - locations.json
+   - `Assets/World Map Extra Large.jpg` (and `Assets/World Map 1976.jpg` for zoom)
+   - `Demo-Content/locations.json`
+   - `Demo-Content/Coordinates for map.xlsx`
+   - Location images under `Demo-Content/<location>/` (e.g. `Demo-Content/Kevin/1-letter-product-pic.jpg`)
+   - Optional sample at `Demo-Content/letter-product-pic.jpg`
 
 ### To view detailed logs:
 Check the log file at: `%APPDATA%\InteractiveWorldMap\logs\app.log`
@@ -114,10 +115,11 @@ To complete the full implementation:
 1. Make sure you've built the project at least once: `dotnet build`
 2. Verify the `Images&Content` folder exists in `bin/Debug/net6.0-windows/`
 3. Check that all image files are present:
-   - World Map 1976.jpg
-   - letter-product-pic.jpg
-   - v4-460px-Write-a-Friendly-Letter-Step-4-Version-6.jpg
-   - locations.json
+   - `Assets/World Map Extra Large.jpg` (and `Assets/World Map 1976.jpg` for zoom)
+   - `Demo-Content/locations.json`
+   - `Demo-Content/Coordinates for map.xlsx`
+   - Location images under `Demo-Content/<location>/` (e.g. `Demo-Content/Kevin/1-letter-product-pic.jpg`)
+   - Optional sample at `Demo-Content/letter-product-pic.jpg`
 
 ### To view detailed logs:
 Check the log file at: `%APPDATA%\InteractiveWorldMap\logs\app.log`
@@ -129,5 +131,5 @@ notepad %APPDATA%\InteractiveWorldMap\logs\app.log
 
 ### Common Issues:
 - **Black screen**: The map image may not have loaded. Check the logs.
-- **No markers visible**: Verify locations.json is valid JSON and in the correct format.
-- **Application crashes on startup**: Check that all required files are in the Images&Content folder.
+- **No markers visible**: Verify the active content set has a valid `locations.json` or Excel coordinate file (see [CONTENT_SETS.md](CONTENT_SETS.md)).
+- **Application crashes on startup**: Check that required files are under `Images&Content/Assets/` and the active content set folder.

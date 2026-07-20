@@ -20,4 +20,10 @@ public static class ContentFileNames
 
     /// <summary>Location coordinate JSON (optional if Excel is used).</summary>
     public const string LocationsJsonFileName = "locations.json";
+
+    public const string AssetsFolderName = "Assets";
+    public const string DemoContentFolderName = "Demo-Content";
+    public const string ProductionContentFolderName = "Production-Content";
+    public const string ExtrasFolderName = "Extras";
+    public const string ExcelCoordinateFileName = "Coordinates for map.xlsx";
 }

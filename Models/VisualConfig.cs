@@ -112,6 +112,11 @@ namespace InteractiveWorldMap.Models
 
         public ZoomedMapRenderConfig ZoomedMapRendering { get; set; } = new ZoomedMapRenderConfig();
 
+        /// <summary>
+        /// Appearance of the content popup windows (background/border colors, opacity, fonts).
+        /// </summary>
+        public ContentWindowConfig ContentWindows { get; set; } = new ContentWindowConfig();
+
     }
 }
 
@@ -133,7 +138,12 @@ namespace InteractiveWorldMap.Models
         /// <summary>
         /// Path to the file where manual layouts are stored.
         /// </summary>
-        public string LayoutStoragePath { get; set; } = "Images&Content/manual-layouts.json";
+        public string LayoutStoragePath { get; set; } = "Images&Content/Demo-Content/manual-layouts.json";
+
+        /// <summary>
+        /// When true, namespaces stored layouts in AppData per active content set.
+        /// </summary>
+        public bool SetAwareStorage { get; set; } = true;
 
         /// <summary>
         /// Whether to enable snap-to-grid when dragging markers.

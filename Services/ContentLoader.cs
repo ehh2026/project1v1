@@ -16,9 +16,14 @@ namespace InteractiveWorldMap.Services;
 public class ContentLoader : IContentLoader
 {
     private readonly ILogger _logger;
+    private readonly IContentSetResolver _contentSetResolver;
     private readonly Dictionary<string, BitmapImage> _contentCache;
     private readonly LocationClusterer _clusterer;
-    private readonly ClusterCache _clusterCache;
+    private ClusterCache _clusterCache = null!;
+    private Lazy<ContentSetResolution> _activeSetResolution = null!;
+
+    public string ActiveContentSetPath => _activeSetResolution.Value.Path;
+    public ContentSetKind ActiveContentSetKind => _activeSetResolution.Value.Kind;
 
     /// <summary>
     /// Gets or sets the distance threshold for clustering locations (in pixels).
@@ -30,10 +35,26 @@ public class ContentLoader : IContentLoader
         set => _clusterer.DistanceThreshold = value;
     }
 
+    private string _contentFolderPath = string.Empty;
+
     /// <summary>
     /// Gets or sets the path to the Content_Folder.
     /// </summary>
-    public string ContentFolderPath { get; set; }
+    public string ContentFolderPath
+    {
+        get => _contentFolderPath;
+        set
+        {
+            if (_contentFolderPath != value)
+            {
+                _contentFolderPath = value;
+                _activeSetResolution = new Lazy<ContentSetResolution>(() => _contentSetResolver.ResolveActiveContentSet(_contentFolderPath));
+                var activeSet = _activeSetResolution.Value;
+                _clusterCache = new ClusterCache(_logger, activeSet.Kind.ToSuffix());
+                _logger.LogInfo($"ContentLoader path set to: {_contentFolderPath}, active set: {activeSet.Kind}");
+            }
+        }
+    }
 
     /// <summary>
     /// Optional override for the Excel coordinate file path.
@@ -46,27 +67,33 @@ public class ContentLoader : IContentLoader
     /// </summary>
     public bool IsInitialized { get; private set; }
 
-    public ContentLoader(ILogger logger)
+    public ContentLoader(ILogger logger, IContentSetResolver contentSetResolver)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
         _contentCache = new Dictionary<string, BitmapImage>();
         _clusterer = new LocationClusterer();
-        _clusterCache = new ClusterCache(logger);
         ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ContentFileNames.ContentFolderName);
-        _logger.LogInfo($"ContentLoader initialized with path: {ContentFolderPath}");
+    }
+
+    private string ResolveAssetPath(string fileName)
+    {
+        var underAssets = Path.Combine(ContentFolderPath, ContentFileNames.AssetsFolderName, fileName);
+        if (File.Exists(underAssets)) return underAssets;
+        return Path.Combine(ContentFolderPath, fileName); // legacy-root fallback
     }
 
     /// <summary>Absolute path to the primary world map image.</summary>
-    public string GetWorldMapPath() => Path.Combine(ContentFolderPath, ContentFileNames.WorldMapFileName);
+    public string GetWorldMapPath() => ResolveAssetPath(ContentFileNames.WorldMapFileName);
 
     /// <summary>Absolute path to the full-resolution world map image used for zoomed crops.</summary>
-    public string GetFullResolutionWorldMapPath() => Path.Combine(ContentFolderPath, ContentFileNames.FullResolutionWorldMapFileName);
+    public string GetFullResolutionWorldMapPath() => ResolveAssetPath(ContentFileNames.FullResolutionWorldMapFileName);
 
     /// <summary>Resolves a file name under the content folder.</summary>
-    public string ResolveContentFilePath(string fileName) => Path.Combine(ContentFolderPath, fileName);
+    public string ResolveContentFilePath(string fileName) => ResolveAssetPath(fileName);
 
     /// <summary>Resolves a relative pin-part path under the content folder.</summary>
-    public string ResolvePinPartPath(string relativePath) => Path.Combine(ContentFolderPath, relativePath);
+    public string ResolvePinPartPath(string relativePath) => ResolveAssetPath(relativePath);
 
     /// <summary>
     /// Loads a bitmap from the content folder if present; returns null when missing or on error.
@@ -205,7 +232,7 @@ public class ContentLoader : IContentLoader
         {
             // Try to load from Excel file first
             var excelPath = ExcelCoordinateFilePath
-                ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
+                ?? Path.Combine(ActiveContentSetPath, ContentFileNames.ExcelCoordinateFileName);
             _logger.LogInfo($"Checking for Excel file at: {excelPath}");
             
             if (File.Exists(excelPath))
@@ -231,7 +258,7 @@ public class ContentLoader : IContentLoader
             }
 
             // Fall back to locations.json
-            var locationsPath = Path.Combine(ContentFolderPath, ContentFileNames.LocationsJsonFileName);
+            var locationsPath = Path.Combine(ActiveContentSetPath, ContentFileNames.LocationsJsonFileName);
             _logger.LogInfo($"Checking for locations.json at: {locationsPath}");
             
             if (!File.Exists(locationsPath))
@@ -289,7 +316,7 @@ public class ContentLoader : IContentLoader
             }
 
             var results = new (BitmapImage, string?, string?)[imageFiles.Length];
-            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
+            var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
             
             for (int i = 0; i < imageFiles.Length; i++)
             {
@@ -371,7 +398,7 @@ public class ContentLoader : IContentLoader
             }
 
             // Look for content in a subfolder named after the location
-            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
+            var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
             
             if (!Directory.Exists(locationFolder))
             {
@@ -410,6 +437,9 @@ public class ContentLoader : IContentLoader
     {
         try
         {
+            var activeSet = _activeSetResolution.Value;
+            _logger.LogInfo($"Validating content folder. Selected set: {activeSet.Kind} at {activeSet.Path}");
+
             if (!Directory.Exists(ContentFolderPath))
             {
                 _logger.LogError($"Content folder not found: {ContentFolderPath}");
@@ -423,11 +453,23 @@ public class ContentLoader : IContentLoader
                 return false;
             }
 
-            var locationsPath = Path.Combine(ContentFolderPath, ContentFileNames.LocationsJsonFileName);
-            if (!File.Exists(locationsPath))
+            if (activeSet.Kind == ContentSetKind.Production || activeSet.Kind == ContentSetKind.Demo)
             {
-                _logger.LogWarning($"Locations file not found: {locationsPath}");
-                // This is a warning, not a critical error
+                if (!_contentSetResolver.HasCoordinateSource(activeSet.Path))
+                {
+                    _logger.LogError($"Active content set folder '{activeSet.Path}' exists but is missing a coordinate source (locations.json or Coordinates for map.xlsx).");
+                    return false;
+                }
+            }
+            else if (activeSet.Kind == ContentSetKind.Legacy)
+            {
+                if (!_contentSetResolver.HasCoordinateSource(activeSet.Path))
+                {
+                    _logger.LogError("Validation error: Legacy content root is missing a coordinate source. " +
+                        "Please organize Images&Content into Demo-Content or Production-Content (or rename Production-Content.disabled to Production-Content to enable it). " +
+                        "Alternatively, place locations.json or 'Coordinates for map.xlsx' directly under Images&Content to run in developer legacy fallback mode.");
+                    return false;
+                }
             }
 
             _logger.LogInfo("Content folder validation passed");
@@ -501,7 +543,7 @@ public class ContentLoader : IContentLoader
                 .ToArray();
         }
 
-        var folder = Path.Combine(ContentFolderPath, location.Name);
+        var folder = Path.Combine(ActiveContentSetPath, location.Name);
         if (!Directory.Exists(folder))
             return Array.Empty<string>();
 
@@ -544,7 +586,7 @@ public class ContentLoader : IContentLoader
                 return location.DidacticText;
             }
 
-            var locationFolder = Path.Combine(ContentFolderPath, location.Name);
+            var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
             var didacticPath = Path.Combine(locationFolder, "didactic.txt");
 
             if (File.Exists(didacticPath))

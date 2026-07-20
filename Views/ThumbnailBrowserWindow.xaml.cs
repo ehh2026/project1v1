@@ -1,7 +1,9 @@
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views;
 
@@ -18,9 +20,23 @@ public partial class ThumbnailBrowserWindow : Window
     {
         InitializeComponent();
         ThumbnailList.ItemsSource = Thumbnails;
-        
+
         // Start with opacity 0 for animation
         Opacity = 0;
+    }
+
+    /// <summary>
+    /// Applies configured popup background, border, and corner radius. Call before showing.
+    /// </summary>
+    public void ApplyStyle(ContentWindowConfig style)
+    {
+        if (style == null) return;
+
+        RootBorder.Background = ContentWindowTheme.ToBrush(
+            style.Popup.BackgroundColor, style.Popup.BackgroundOpacity, Color.FromRgb(0x1E, 0x1E, 0x1E));
+        RootBorder.BorderBrush = ContentWindowTheme.ToBrush(style.Popup.BorderColor, Colors.White);
+        RootBorder.BorderThickness = new Thickness(style.Popup.BorderThickness);
+        RootBorder.CornerRadius = new CornerRadius(style.Popup.CornerRadius);
     }
 
     /// <summary>

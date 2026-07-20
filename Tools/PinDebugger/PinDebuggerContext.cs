@@ -24,7 +24,7 @@ internal sealed record PinDebuggerContext(
         bool useLitShafts     = args.Any(a => a == "--lit");
         var  posArgs          = args.Where(a => !a.StartsWith("--")).ToArray();
 
-        var partsDir   = posArgs.Length > 0 ? posArgs[0] : Path.Combine("Images&Content", "Pins_v2", "parts");
+        var partsDir   = posArgs.Length > 0 ? posArgs[0] : Path.Combine("Images&Content", "Assets", "Pins_v2", "parts");
         var cleanedDir = Path.Combine("Tools", "PinDebugger", "cleaned");
         var outputDir  = posArgs.Length > 1 ? posArgs[1]
             : cleanMode        ? cleanedDir

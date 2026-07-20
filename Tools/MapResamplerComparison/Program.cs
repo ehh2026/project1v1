@@ -9,7 +9,7 @@ using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 
 var root = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-var sourcePath = Path.Combine(root, "Images&Content", "World Map 1976.jpg");
+var sourcePath = Path.Combine(root, "Images&Content", "Assets", "World Map 1976.jpg");
 var outputPath = Path.Combine(root, "temp", "map-resampler-comparison");
 var crop = new Int32Rect(5160, 7390, 358, 202);
 

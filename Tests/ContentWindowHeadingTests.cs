@@ -63,7 +63,7 @@ public class ContentWindowHeadingTests
     }
 
     [Fact]
-    public void MainContentWindow_CaptionPaneSpansWholeBottomAndIsOpaque()
+    public void MainContentWindow_CaptionPaneSpansWholeBottom()
     {
         var document = LoadView("ContentSubwindow.xaml");
         var rootGrid = RootGrid(document);
@@ -73,7 +73,9 @@ public class ContentWindowHeadingTests
 
         Assert.Equal("2", (string?)captionPane.Attribute("Grid.Row"));
         Assert.Equal("0", (string?)captionPane.Attribute("Margin"));
-        Assert.Equal("#FF000000", (string?)captionPane.Attribute("Background"));
+        // Background/opacity are applied at runtime from ContentWindows config (see
+        // ContentWindowThemeTests / VisualConfigServiceTests); XAML only supplies a fallback.
+        Assert.NotNull((string?)captionPane.Attribute("Background"));
 
         var rootGridChildren = rootGrid.Elements().ToList();
         Assert.Contains(captionPane, rootGridChildren);
@@ -83,7 +85,7 @@ public class ContentWindowHeadingTests
     [InlineData("ContentSubwindow.xaml")]
     [InlineData("DidacticTextWindow.xaml")]
     [InlineData("ThumbnailBrowserWindow.xaml")]
-    public void PopupWindows_UseMoreOpaqueNormalBackgrounds(string fileName)
+    public void PopupWindows_HaveNamedRootBorderWithFallbackBackground(string fileName)
     {
         var document = LoadView(fileName);
         var popupBorder = document
@@ -91,7 +93,10 @@ public class ContentWindowHeadingTests
             .Elements()
             .First(element => element.Name.LocalName == "Border");
 
-        Assert.Equal("#D91E1E1E", (string?)popupBorder.Attribute("Background"));
+        // The border is named so ApplyStyle can theme it at runtime from ContentWindows config;
+        // the XAML Background is only a fallback if styling is never applied.
+        Assert.NotNull((string?)popupBorder.Attribute(Xaml + "Name"));
+        Assert.NotNull((string?)popupBorder.Attribute("Background"));
     }
 
     [Fact]

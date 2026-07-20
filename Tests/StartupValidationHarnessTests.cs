@@ -1,6 +1,7 @@
 using System.IO;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
 using InteractiveWorldMap.Tests.TestHelpers;
 using Xunit;
 
@@ -26,16 +27,16 @@ public class StartupValidationHarnessTests
     [Fact]
     public void Repo_VisualConfig_Deserializes()
     {
-        var configPath = Path.Combine(RepoRoot, "visual-config.json");
+        var configPath = Path.Combine(RepoRoot, "visual-config.default.json");
         Assert.True(File.Exists(configPath),
-            $"REMEDIATION: Add visual-config.json at repo root");
+            $"REMEDIATION: Add visual-config.default.json at repo root");
 
         var config = new VisualConfigService().Load(configPath);
         Assert.NotNull(config);
         Assert.True(config.ClusterDistanceThreshold > 0,
-            "REMEDIATION: Set valid ClusterDistanceThreshold in visual-config.json");
+            "REMEDIATION: Set valid ClusterDistanceThreshold in visual-config.default.json");
         Assert.False(config.Debug.ShowCompositePinDebugOverlay,
-            "REMEDIATION: Keep composite pin debug overlay disabled by default in visual-config.json");
+            "REMEDIATION: Keep composite pin debug overlay disabled by default in visual-config.default.json");
     }
 
     [Fact]
@@ -47,7 +48,7 @@ public class StartupValidationHarnessTests
             return; // Covered by other test
         }
 
-        var validator = new StartupValidator(new MockLogger(), contentPath);
+        var validator = new StartupValidator(new MockLogger(), contentPath, new ContentSetResolver());
         var result = validator.ValidateEnvironment();
 
         // Harness reports status; map filename mismatch may cause errors (known debt TD-002)
@@ -64,7 +65,7 @@ public class StartupValidationHarnessTests
             return;
         }
 
-        var loader = new ContentLoader(new MockLogger()) { ContentFolderPath = outputContent };
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = outputContent };
         loader.ValidateContentFolder();
     }
 }

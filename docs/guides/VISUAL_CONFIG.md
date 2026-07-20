@@ -4,7 +4,14 @@ The application now supports runtime configuration of visual parameters through 
 
 ## Configuration File
 
-The configuration is stored in `visual-config.json` in the application root directory. This file is automatically created with default values on first run if it doesn't exist.
+There are two files:
+
+- **`visual-config.default.json`** — tracked in git, ships the baseline defaults. Updates change this file. Do not store personal tweaks here.
+- **`visual-config.json`** — your local, gitignored copy. It is seeded from the default file on first run and is where your tuning (and the Runtime Tuning panel's Save) is written.
+
+On load, the app reads the default file as a baseline and overlays your `visual-config.json` on top (a deep merge): values you set win, while any settings newly added to a later `visual-config.default.json` still flow through to you. This means **your local tuning survives `git pull`/updates**, and you never hit a merge conflict on the tracked config.
+
+Both files live in the application root directory (and are copied to the build output). If `visual-config.json` is missing it is recreated from the default file.
 
 ## Available Settings
 
@@ -29,6 +36,7 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - `PinMarkers`
 - `RadialExtension`
 - `ManualLayoutEditor`
+- `ContentWindows`
 - `Debug`
 
 ## Developer Tools Master Gate
@@ -41,6 +49,11 @@ When `EnableDeveloperTools` is `false`:
 - Runtime Tuning and the F12 tuning toggle are disabled.
 - Composite debug overlays and verbose debug logging are treated as off.
 - Debug-only windowed mode is ignored.
+
+When Runtime Tuning is enabled (`EnableDeveloperTools` and `Debug.EnableTuningPanel`):
+
+- Open a category from the **Tuning** button (or press **F12** to open the category menu).
+- Close the panel with the header **✕**, **Esc**, or **F12** again (toggle). Escape priority is: content popup → edit layout → tuning panel → zoom back → exit app.
 
 The repository's development `visual-config.json` may set this to `true`; production/gallery deployments should set it to `false`.
 
@@ -111,7 +124,7 @@ The app has three marker visual modes:
    - Individual locations use the lightweight drawn `PinMarker`
 
 3. `UsePinMarkers = true`, `PinParts.Enabled = true`, and `PinParts.UseCompositeRendering = true`
-   - Visible individual markers use composite shaft/head rendering from `Pins_v2/parts` at all zoom levels
+   - Visible individual markers use composite shaft/head rendering from `Assets/Pins_v2/parts` at all zoom levels
    - Extended markers use the actual radial-extension start/end segment
    - Non-extended individual markers use the configured screen-up stub segment
    - Unzoomed cluster aggregate markers remain `ClusterMarker` blobs
@@ -194,8 +207,8 @@ Key fields:
 - `UsePrerasterizedRendering` — default `false`; when `true`, each composite pin flattens shaft/head layers to one bitmap inside `CompositePinMarker`
 - `DefaultStubLengthPixels` — stub shaft length (screen px) for non-extended individual markers when Option A rollout is active; `0` = head-only
 - `TargetHeadRadiusPx`, `TargetShaftHalfWidthPx`, `UseLitShafts`
-- `ShaftAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set (default: `outline_dark_7px`), composite pins load shafts from that baked variant folder while heads remain in the base parts folder. Generate variants with `scripts/create_shaft_asset_variants.py`.
-- `HeadAssetVariant` — optional folder under `Images&Content/Pins_v2/parts/head_variants/`; when empty, heads load from the base parts folder. Use `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, or `outline_black_14px` to load generated black-outline head assets. Generate variants with `scripts/create_head_asset_variants.py`.
+- `ShaftAssetVariant` — optional folder under `Images&Content/Assets/Pins_v2/parts/shaft_variants/`; when empty, shaft selection follows `UseLitShafts`; when set (default: `outline_dark_7px`), composite pins load shafts from that baked variant folder while heads remain in the base parts folder. Generate variants with `scripts/create_shaft_asset_variants.py`.
+- `HeadAssetVariant` — optional folder under `Images&Content/Assets/Pins_v2/parts/head_variants/`; when empty, heads load from the base parts folder. Use `outline_black_2px`, `outline_black_4px`, `outline_black_6px`, `outline_black_8px`, `outline_black_10px`, `outline_black_12px`, or `outline_black_14px` to load generated black-outline head assets. Generate variants with `scripts/create_head_asset_variants.py`.
 
   **Outer outline:** `outline_dark`, `outline_dark_bold`, `outline_dark_<N>px` (e.g. `outline_dark_6px`, `outline_dark_7px`) — dark halo grows **outside** the shaft alpha.
 
@@ -205,7 +218,7 @@ Key fields:
 
   **Combined + bright core:** `outline_dark_<O>px_in<I>px_bright` — lit-core / black-rim look. Outer **O** = 6–10px; inner **I** = 2–8px. Example: `outline_dark_8px_in5px_bright`, `outline_dark_10px_in7px_bright`.
 
-  Preview grids: `Images&Content/Pins_v2/parts/shaft_variants/<variant>/preview_shafts.png`.
+  Preview grids: `Images&Content/Assets/Pins_v2/parts/shaft_variants/<variant>/preview_shafts.png`.
 
 Important behavior:
 
@@ -247,9 +260,55 @@ When set to `true` and composite rendering is also enabled for the current marke
 
 This is intended for tuning and screenshot-based inspection only, and should normally remain `false`.
 
+## ContentWindows
+
+Appearance of the three content popups — the image/text subwindow, the didactic text window, and the thumbnail browser. One shared style block applies to all three. Colors use RGB hex with a **separate opacity** (0.0–1.0) for the two translucent surfaces, so hue and translucency can be tuned independently; border/text colors take an ARGB hex directly. Font family is global; font sizes are per-role.
+
+```json
+"ContentWindows": {
+  "FontFamily": "Segoe UI",
+  "Popup": {
+    "BackgroundColor": "#1E1E1E",
+    "BackgroundOpacity": 0.70,
+    "BorderColor": "#FFFFFFFF",
+    "BorderThickness": 2.0,
+    "CornerRadius": 12.0,
+    "TextColor": "#FFFFFFFF",
+    "HeadingFontSize": 18.0,
+    "BodyFontSize": 14.0
+  },
+  "Caption": {
+    "BackgroundColor": "#000000",
+    "BackgroundOpacity": 0.85,
+    "TopBorderColor": "#66FFFFFF",
+    "TextColor": "#FFFFFFFF",
+    "FontSize": 13.0
+  }
+}
+```
+
+| Field | Default | Purpose |
+|-------|---------|---------|
+| `FontFamily` | `Segoe UI` | Font family for all popup text |
+| `Popup.BackgroundColor` | `#1E1E1E` | Popup body fill (RGB; opacity applied separately) |
+| `Popup.BackgroundOpacity` | `0.70` | Popup body translucency (`0.0`–`1.0`) |
+| `Popup.BorderColor` | `#FFFFFFFF` | Popup border (ARGB) |
+| `Popup.BorderThickness` | `2.0` | Popup border width (px) |
+| `Popup.CornerRadius` | `12.0` | Popup corner radius (px) |
+| `Popup.TextColor` | `#FFFFFFFF` | Heading/body text color (ARGB) |
+| `Popup.HeadingFontSize` | `18.0` | Didactic heading font size |
+| `Popup.BodyFontSize` | `14.0` | Didactic body font size |
+| `Caption.BackgroundColor` | `#000000` | Caption pane fill (RGB) |
+| `Caption.BackgroundOpacity` | `0.85` | Caption pane translucency (`0.0`–`1.0`) |
+| `Caption.TopBorderColor` | `#66FFFFFF` | Caption top divider (ARGB) |
+| `Caption.TextColor` | `#FFFFFFFF` | Caption text color (ARGB) |
+| `Caption.FontSize` | `13.0` | Caption text font size |
+
+These are also editable at runtime under Runtime Tuning → **Content Windows**, where colors use a hex box with a live swatch and Apply restyles any open popup immediately.
+
 ## How to Use
 
-1. **Edit the config file**: Open `visual-config.json` in the project root directory
+1. **Edit the config file**: Open your local `visual-config.json` in the project root directory (created on first run). To change the shipped defaults for everyone, edit `visual-config.default.json` instead.
 2. **Modify values**: Change any of the numeric values to your preference
 3. **Save the file**: Save your changes
 4. **Rebuild the application**: Build the project to copy the config to the output directory
@@ -258,9 +317,9 @@ This is intended for tuning and screenshot-based inspection only, and should nor
 ### Quick Testing (Without Rebuild)
 
 If you want to test changes immediately without rebuilding:
-- Edit the config file in the build output directory: `bin\Debug\net6.0-windows\visual-config.json`
+- Edit the user config in the build output directory: `bin\Debug\net6.0-windows\visual-config.json`
 - Restart the application
-- Note: This file will be overwritten on next build if the source file is newer
+- Note: this output-dir user file is **not** overwritten by builds, so your edits persist. (The shipped `visual-config.default.json` is the one copied with `PreserveNewest`.)
 
 ## Example Configurations
 

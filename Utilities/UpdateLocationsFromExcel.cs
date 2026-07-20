@@ -15,12 +15,13 @@ public class UpdateLocationsFromExcel
     /// <summary>
     /// Reads locations from Excel and writes them to locations.json.
     /// </summary>
-    public static void UpdateJson(ILogger logger)
+    public static void UpdateJson(ILogger logger, string? contentSetPath = null)
     {
         try
         {
-            var excelPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Coordinates for map.xlsx");
-            var jsonPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images&Content", "locations.json");
+            var targetPath = contentSetPath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ContentFileNames.ContentFolderName, ContentFileNames.DemoContentFolderName);
+            var excelPath = Path.Combine(targetPath, ContentFileNames.ExcelCoordinateFileName);
+            var jsonPath = Path.Combine(targetPath, ContentFileNames.LocationsJsonFileName);
 
             logger.LogInfo($"Reading from Excel: {excelPath}");
             

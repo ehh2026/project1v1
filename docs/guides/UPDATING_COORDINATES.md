@@ -6,9 +6,10 @@ The application automatically reads location coordinates from the Excel spreadsh
 
 ## How It Works
 
-1. The application looks for `Coordinates for map.xlsx` in the application directory
-2. If found, it reads coordinates from the Excel file (takes priority)
-3. If not found, it falls back to `Images&Content/locations.json`
+1. The application resolves an active content set under `Images&Content/` (Production → Demo → legacy). See [CONTENT_SETS.md](CONTENT_SETS.md).
+2. It looks for `Coordinates for map.xlsx` inside that set (e.g. `Images&Content/Demo-Content/Coordinates for map.xlsx`)
+3. If found, it reads coordinates from the Excel file (takes priority)
+4. If not found, it falls back to `locations.json` in the same content-set folder
 
 ## Excel File Format
 
@@ -23,10 +24,10 @@ The first row is treated as a header and is skipped.
 
 ## Adding New Locations
 
-1. Open `Coordinates for map.xlsx`
+1. Open the Excel file under the active content set (usually `Images&Content/Demo-Content/Coordinates for map.xlsx`)
 2. Add a new row with the location information:
    - Name: The display name for the location
-   - Address: The folder name in `Images&Content/` (optional)
+   - Address: The folder name under the same content set (optional)
    - X coordinate: Horizontal pixel position on the map
    - Y coordinate: Vertical pixel position on the map
 3. Save the Excel file
@@ -66,7 +67,7 @@ If markers don't appear:
 
 ## Content Folders
 
-For each location, create a folder in `Images&Content/` with the same name as the location. The folder should contain:
+For each location, create a folder under the active content set (e.g. `Images&Content/Demo-Content/`) with the same name as the location. The folder should contain:
 - Numbered image files (e.g., `1-image.jpg`, `2-image.jpg`)
 - Optional `didactic.txt` file for informational text
 - Optional `.txt` files matching image names for translations

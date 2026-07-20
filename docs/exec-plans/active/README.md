@@ -30,6 +30,7 @@ started: YYYY-MM-DD
 
 ## Recently completed (moved to ../completed/)
 
+- `content-folder-reorganization-plan.md` — Reorganized content folder (Assets/, Demo-Content/, Production-Content/, Extras/) and updated loaders and validators — moved 2026-07-19
 - `drawn-pin-model-separation-plan.md` — Split drawn pins into explicit auto-stub and head-only manual-layout roles — moved 2026-06-28
 - `2026-06-23-2324-oversize-file-refactor.md` — Split marker placement and layout drag handlers into focused partials, restoring the 800-line taste gate — moved 2026-06-28
 - `single-location-zoom-click-plan.md` — Zoom in and auto-open content window on standalone marker click — moved 2026-06-23

@@ -47,13 +47,15 @@ Script catalog: [scripts/README.md](../../scripts/README.md).
 
 ## Content prerequisites
 
-1. **Excel File**: `Coordinates for map.xlsx` in the project root
+1. **Excel File**: `Images&Content/Demo-Content/Coordinates for map.xlsx` (or under `Production-Content/` when that set is active)
    - Column A: Name (person's name)
    - Column B: PixelX (X coordinate on map)
    - Column C: PixelY (Y coordinate on map)
    - Column D: Address (optional)
 
-2. **Map Image**: `Images&Content/World Map Extra Large.jpg` (canonical name in `Models/ContentFileNames.cs`)
+2. **Map Image**: `Images&Content/Assets/World Map Extra Large.jpg` (canonical name in `Models/ContentFileNames.cs`)
+
+Content-set selection (Demo vs Production vs legacy) is documented in [CONTENT_SETS.md](CONTENT_SETS.md).
 
 ## Folder Structure Setup
 
@@ -61,17 +63,22 @@ Create the following structure in `Images&Content/`:
 
 ```
 Images&Content/
-├── World Map Extra Large.jpg
-├── New York City/
-│   ├── photo1.jpg
-│   ├── photo2.jpg
-│   └── photo3.jpg
-├── London/
-│   ├── photo1.jpg
-│   └── photo2.jpg
-├── Tokyo/
-│   └── photo1.jpg
-└── ... (one folder per location)
+├── Assets/
+│   └── World Map Extra Large.jpg
+├── Demo-Content/
+│   ├── Coordinates for map.xlsx
+│   ├── locations.json
+│   ├── manual-layouts.json
+│   ├── New York City/
+│   │   ├── photo1.jpg
+│   │   ├── photo2.jpg
+│   │   └── photo3.jpg
+│   ├── London/
+│   │   ├── photo1.jpg
+│   │   └── photo2.jpg
+│   └── Tokyo/
+│       └── photo1.jpg
+└── ... (one location folder per Excel Name under the active content set)
 ```
 
 **Important**: 
@@ -81,7 +88,7 @@ Images&Content/
 
 ## Excel File Format
 
-Example `Coordinates for map.xlsx`:
+Example `Images&Content/Demo-Content/Coordinates for map.xlsx`:
 
 | Name | PixelX | PixelY | Address |
 |------|--------|--------|---------|
@@ -93,7 +100,7 @@ Example `Coordinates for map.xlsx`:
 
 ### No markers appear
 1. Check the log file: `%APPDATA%\InteractiveWorldMap\logs\app.log`
-2. Verify Excel file is in the project root
+2. Verify Excel file is under the active content set (`Demo-Content/` or `Production-Content/`)
 3. Verify folder names match Excel "Name" column exactly
 4. Ensure images exist in the location folders
 

@@ -30,7 +30,7 @@ When the automatic radial extension algorithm produces intersecting lines, overl
 - "Save Layout" button appears in edit mode
 - Saves current marker positions to a JSON file
 - Layout is keyed by a unique identifier (see Configuration Key below)
-- Stored in: `Images&Content/manual-layouts.json` or similar
+- Stored in: the active content set’s `manual-layouts.json` (e.g. `Images&Content/Demo-Content/manual-layouts.json`), with user copies under `%AppData%\InteractiveWorldMap\` — see [CONTENT_SETS.md](CONTENT_SETS.md)
 
 ### 4. Delete and Recalculate
 - "Delete & Recalculate" button in edit mode
@@ -46,26 +46,56 @@ When the automatic radial extension algorithm produces intersecting lines, overl
 ### 6. Full-Map Composite Stub Layouts
 - The editor is also available at the fully zoomed-out map when `EnableDeveloperTools` and `ManualLayoutEditor.Enabled` are both true.
 - Full-map edit targets are only visible single-location individual markers. Multi-location cluster markers and hidden dense-cluster members are not editable until the user zooms into that cluster.
-- Full-map layouts use `fullmap_s{W}x{H}` group keys based on rounded `MapDisplay.ActualWidth` and `MapDisplay.ActualHeight`, for example `fullmap_s1920x1080`.
-- Full-map keys are exact-match only. A saved `fullmap_s1920x1080` layout must not be reused for `fullmap_s1440x900`; resizing creates a separate layout group.
+- Full-map layouts use the size-independent group key `"fullmap"`. Legacy sized keys (`fullmap_s{W}x{H}`) still resolve via compatible-key matching when loading.
 - Saved full-map layouts replay after startup placement and after returning from a zoomed cluster. Visible locations missing from the saved variant keep their automatic stub placement.
 - Zoom/navigation is blocked while any edit mode is active. Exit edit mode before zooming into a marker/cluster or using Back.
+
+## When a saved layout loads (and when it does not)
+
+Authoritative implementation: `Services/LayoutKeyGenerator.cs`, `Services/ManualLayoutManager.cs`. Storage paths: [CONTENT_SETS.md](CONTENT_SETS.md).
+
+### Cluster layouts
+
+`LayoutKeyGenerator.GenerateKey` builds a key from:
+
+1. **Location-name hash** — sorted location **names** in the group (SHA256 prefix), **not** pixel coordinates
+2. Zoom level, viewport center, viewport size
+3. Radial-extension config (`MinLocationsForExtension`, proximity, line lengths)
+
+| Change | Does the saved layout still load? |
+|--------|-----------------------------------|
+| Demo → Production (or reverse) with `SetAwareStorage` | **No** — different AppData file (`manual-layouts.demo.json` vs `manual-layouts.production.json`) |
+| Add/remove locations in the cluster (names change) | **No** — name hash changes → different group key |
+| Move only Excel/pixel coordinates for the same names | **Yes (same key)** — coordinates are not in the key; endpoints apply by `LocationName` |
+| Small zoom drift / canvas resize | Often **yes** via `AreKeysCompatible` (same name hash + zoom within ~0.1); exact key still preferred |
+
+### Full-map layouts
+
+- Canonical key is `"fullmap"` (canvas size is not part of the key).
+- Legacy `fullmap_s{W}x{H}` groups on disk remain loadable as compatible full-map keys.
+- Markers still match by **location name**; names present in the layout but missing from the current map keep auto placement for those pins.
+
+### Practical guidance
+
+- Switching content sets will not replay the other set’s user layouts.
+- Repositioning pins in Excel without renaming them will **not** orphan a cluster layout key; re-save or delete the layout if the old endpoints no longer fit.
+- Renaming locations or changing who is in a dense cluster **does** orphan the old key (safe: auto placement / seeds take over until you save again).
 
 ## Configuration Key Design
 
 The layout must be uniquely identified by all factors that affect the radial extension calculation:
 
 ### Required Key Components:
-1. **Location Set Hash**: Hash of all location names in the cluster (sorted)
-   - Ensures same locations are present
+1. **Location Set Hash**: Hash of all location **names** in the cluster (sorted) — not coordinates
+   - Ensures the same named membership is present
    
 2. **Zoom Level**: Current zoom scale
    - Different zoom levels may need different layouts
    
-3. **View Center**: Centered coordinate (lat/lon or pixel position)
+3. **View Center**: Viewport center in map pixels
    - Different view centers affect marker positions
    
-4. **Canvas Size**: Width and height of the displayed area
+4. **Canvas Size**: Width and height of the displayed area (exact key component; compatible load may still succeed for clusters)
    - Window resizing changes available space
    
 5. **Configuration Parameters**:
@@ -77,13 +107,10 @@ The layout must be uniquely identified by all factors that affect the radial ext
 
 ### Key Generation Strategy:
 ```csharp
-string GenerateLayoutKey(DenseMarkerGroup group, ViewportState viewport, VisualConfig config)
-{
-    var locationNames = group.Locations.Select(l => l.Name).OrderBy(n => n).ToList();
-    var locationHash = ComputeHash(string.Join("|", locationNames));
-    
-    return $"{locationHash}_{viewport.ZoomLevel:F2}_{viewport.CenterX:F2}_{viewport.CenterY:F2}_{viewport.Width}x{viewport.Height}_{config.RadialExtension.MinLocationsForExtension}_{config.RadialExtension.ProximityThresholdPixels:F1}";
-}
+// Runtime: LayoutKeyGenerator.GenerateKey(locations, viewport, radialConfig)
+var locationNames = locations.Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+var locationHash = ComputeHash(string.Join("|", locationNames)); // names only
+return $"{locationHash}_z{zoom:F2}_c{centerX:F2}_{centerY:F2}_s{width:F0}x{height:F0}_m..._p..._l..._n...";
 ```
 
 ## Data Model
@@ -250,7 +277,8 @@ scripts/
   verify_manual_layout_seeds.ps1   - Non-destructive seed verification into temp/
 
 Images&Content/
-  manual-layouts.json          - Saved layouts file
+  Demo-Content/
+    manual-layouts.json        - Bundled Demo seed layouts (per content set)
 
 visual-config.json             - Add EnableManualLayoutEditor flag
 ```
@@ -263,7 +291,8 @@ Add to `visual-config.json`:
   "ManualLayoutEditor": {
     "Enabled": false,
     "ShowEditButton": true,
-    "LayoutStoragePath": "Images&Content/manual-layouts.json",
+    "LayoutStoragePath": "Images&Content/Demo-Content/manual-layouts.json",
+    "SetAwareStorage": true,
     "EnableSnapToGrid": false,
     "GridSize": 5.0,
     "ShowLayoutIndicator": true

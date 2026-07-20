@@ -437,7 +437,8 @@
                                     Margin="20,20,20,60"
                                     ApplyRequested="OnApplyTuning"
                                     SaveRequested="OnSaveTuningToDisk"
-                                    ReloadRequested="OnReloadTuningFromDisk"/>
+                                    ReloadRequested="OnReloadTuningFromDisk"
+                                    CloseRequested="OnTuningPanelCloseRequested"/>
 
         <Button x:Name="TuningPanelToggleBtn"
                 Content="Tuning"
@@ -456,6 +457,7 @@
                     <MenuItem Header="Drawn Pins" Tag="DrawnPins" Click="OnTuningCategoryClick"/>
                     <MenuItem Header="Hitboxes" Tag="Hitboxes" Click="OnTuningCategoryClick"/>
                     <MenuItem Header="Shadows" Tag="Shadows" Click="OnTuningCategoryClick"/>
+                    <MenuItem Header="Content Windows" Tag="ContentWindows" Click="OnTuningCategoryClick"/>
                 </ContextMenu>
             </Button.ContextMenu>
         </Button>

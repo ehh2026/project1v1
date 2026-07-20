@@ -57,6 +57,29 @@ public partial class ContentSubwindow : Window
     }
 
     /// <summary>
+    /// Applies configured colors, opacity, and fonts to the popup body and caption pane.
+    /// Call before the window is shown (and before presentation mode captures "normal" values).
+    /// </summary>
+    public void ApplyStyle(ContentWindowConfig style)
+    {
+        if (style == null) return;
+
+        FontFamily = new FontFamily(style.FontFamily);
+
+        ContentBorder.Background = ContentWindowTheme.ToBrush(
+            style.Popup.BackgroundColor, style.Popup.BackgroundOpacity, Color.FromRgb(0x1E, 0x1E, 0x1E));
+        ContentBorder.BorderBrush = ContentWindowTheme.ToBrush(style.Popup.BorderColor, Colors.White);
+        ContentBorder.BorderThickness = new Thickness(style.Popup.BorderThickness);
+        ContentBorder.CornerRadius = new CornerRadius(style.Popup.CornerRadius);
+
+        CaptionPane.Background = ContentWindowTheme.ToBrush(
+            style.Caption.BackgroundColor, style.Caption.BackgroundOpacity, Colors.Black);
+        CaptionPane.BorderBrush = ContentWindowTheme.ToBrush(style.Caption.TopBorderColor, Colors.White);
+        CaptionText.Foreground = ContentWindowTheme.ToBrush(style.Caption.TextColor, Colors.White);
+        CaptionText.FontSize = style.Caption.FontSize;
+    }
+
+    /// <summary>
     /// Shows content at the specified anchor position.
     /// </summary>
     /// <param name="content">The content to display (ImageSource or string)</param>

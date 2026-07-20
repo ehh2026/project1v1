@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using InteractiveWorldMap.Models;
 
 namespace InteractiveWorldMap.Views;
@@ -12,7 +13,8 @@ public enum TuningCategory
     CompositePins,
     DrawnPins,
     Hitboxes,
-    Shadows
+    Shadows,
+    ContentWindows
 }
 
 public partial class DeveloperTuningPanel : UserControl
@@ -23,6 +25,7 @@ public partial class DeveloperTuningPanel : UserControl
     public event EventHandler<TuningPanelEventArgs>? ApplyRequested;
     public event EventHandler? SaveRequested;
     public event EventHandler? ReloadRequested;
+    public event EventHandler? CloseRequested;
 
     public TuningCategory? VisibleCategory { get; private set; }
 
@@ -39,6 +42,7 @@ public partial class DeveloperTuningPanel : UserControl
         {
             TuningCategory.CompositePins => "Composite Pins",
             TuningCategory.DrawnPins => "Drawn Pins",
+            TuningCategory.ContentWindows => "Content Windows",
             _ => category.ToString()
         };
         MapSection.Visibility = category == TuningCategory.Map
@@ -50,6 +54,8 @@ public partial class DeveloperTuningPanel : UserControl
         HitboxesSection.Visibility = category == TuningCategory.Hitboxes
             ? Visibility.Visible : Visibility.Collapsed;
         ShadowsSection.Visibility = category == TuningCategory.Shadows
+            ? Visibility.Visible : Visibility.Collapsed;
+        ContentWindowsSection.Visibility = category == TuningCategory.ContentWindows
             ? Visibility.Visible : Visibility.Collapsed;
     }
 
@@ -222,6 +228,23 @@ public partial class DeveloperTuningPanel : UserControl
                 cap.ResolveLineWeightPx(pinConfig.ShaftOutlineThickness));
             TxtTipCapArcDepth.Text = Format(cap.ArcDepthPx);
 
+            var content = config.ContentWindows ?? new ContentWindowConfig();
+            TxtContentFontFamily.Text = content.FontFamily;
+            TxtPopupBackgroundColor.Text = content.Popup.BackgroundColor;
+            TxtPopupBackgroundOpacity.Text = Format(content.Popup.BackgroundOpacity);
+            TxtPopupBorderColor.Text = content.Popup.BorderColor;
+            TxtPopupBorderThickness.Text = Format(content.Popup.BorderThickness);
+            TxtPopupCornerRadius.Text = Format(content.Popup.CornerRadius);
+            TxtPopupTextColor.Text = content.Popup.TextColor;
+            TxtPopupHeadingFontSize.Text = Format(content.Popup.HeadingFontSize);
+            TxtPopupBodyFontSize.Text = Format(content.Popup.BodyFontSize);
+            TxtCaptionBackgroundColor.Text = content.Caption.BackgroundColor;
+            TxtCaptionBackgroundOpacity.Text = Format(content.Caption.BackgroundOpacity);
+            TxtCaptionTopBorderColor.Text = content.Caption.TopBorderColor;
+            TxtCaptionTextColor.Text = content.Caption.TextColor;
+            TxtCaptionFontSize.Text = Format(content.Caption.FontSize);
+            UpdateColorSwatches();
+
             SetStatus("Loaded current values.");
         }
         finally
@@ -244,7 +267,43 @@ public partial class DeveloperTuningPanel : UserControl
     private void OnPanelInputChanged(object sender, RoutedEventArgs e)
     {
         if (!_isLoading)
+        {
+            UpdateColorSwatches();
             ValidateInputs();
+        }
+    }
+
+    private static readonly Brush InvalidSwatchBrush = CreateInvalidSwatchBrush();
+
+    private static Brush CreateInvalidSwatchBrush()
+    {
+        var brush = new SolidColorBrush(Color.FromRgb(0x55, 0x55, 0x55));
+        brush.Freeze();
+        return brush;
+    }
+
+    private void UpdateColorSwatches()
+    {
+        SetSwatch(SwPopupBackgroundColor, TxtPopupBackgroundColor.Text);
+        SetSwatch(SwPopupBorderColor, TxtPopupBorderColor.Text);
+        SetSwatch(SwPopupTextColor, TxtPopupTextColor.Text);
+        SetSwatch(SwCaptionBackgroundColor, TxtCaptionBackgroundColor.Text);
+        SetSwatch(SwCaptionTopBorderColor, TxtCaptionTopBorderColor.Text);
+        SetSwatch(SwCaptionTextColor, TxtCaptionTextColor.Text);
+    }
+
+    private static void SetSwatch(Border swatch, string text)
+    {
+        if (ContentWindowTheme.TryParseColor(text, out var color))
+        {
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            swatch.Background = brush;
+        }
+        else
+        {
+            swatch.Background = InvalidSwatchBrush;
+        }
     }
 
     private void OnVariantSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -269,6 +328,11 @@ public partial class DeveloperTuningPanel : UserControl
     private void OnReloadClick(object sender, RoutedEventArgs e)
     {
         ReloadRequested?.Invoke(this, EventArgs.Empty);
+    }
+
+    private void OnCloseClick(object sender, RoutedEventArgs e)
+    {
+        CloseRequested?.Invoke(this, EventArgs.Empty);
     }
 
     private void ValidateInputs()
@@ -307,7 +371,21 @@ public partial class DeveloperTuningPanel : UserControl
             !TryReadPositive(TxtClusterHitDiameter.Text, "Cluster hitbox", out var clusterHitDiameter, out error) ||
             !TryReadPositive(TxtTipCapWidth.Text, "Cap width", out var tipCapWidth, out error) ||
             !TryReadPositive(TxtTipCapLineWeight.Text, "Line weight", out var tipCapLineWeight, out error) ||
-            !TryReadNonNegative(TxtTipCapArcDepth.Text, "Curvature", out var tipCapArcDepth, out error))
+            !TryReadNonNegative(TxtTipCapArcDepth.Text, "Curvature", out var tipCapArcDepth, out error) ||
+            !TryReadNonEmpty(TxtContentFontFamily.Text, "Font family", out var contentFontFamily, out error) ||
+            !TryReadColor(TxtPopupBackgroundColor.Text, "Popup background color", out var popupBg, out error) ||
+            !TryReadOpacity(TxtPopupBackgroundOpacity.Text, "Popup background opacity", out var popupBgOpacity, out error) ||
+            !TryReadColor(TxtPopupBorderColor.Text, "Popup border color", out var popupBorderColor, out error) ||
+            !TryReadNonNegative(TxtPopupBorderThickness.Text, "Popup border thickness", out var popupBorderThickness, out error) ||
+            !TryReadNonNegative(TxtPopupCornerRadius.Text, "Popup corner radius", out var popupCornerRadius, out error) ||
+            !TryReadColor(TxtPopupTextColor.Text, "Popup text color", out var popupTextColor, out error) ||
+            !TryReadPositive(TxtPopupHeadingFontSize.Text, "Popup heading size", out var popupHeadingSize, out error) ||
+            !TryReadPositive(TxtPopupBodyFontSize.Text, "Popup body size", out var popupBodySize, out error) ||
+            !TryReadColor(TxtCaptionBackgroundColor.Text, "Caption background color", out var captionBg, out error) ||
+            !TryReadOpacity(TxtCaptionBackgroundOpacity.Text, "Caption background opacity", out var captionBgOpacity, out error) ||
+            !TryReadColor(TxtCaptionTopBorderColor.Text, "Caption top border color", out var captionTopBorder, out error) ||
+            !TryReadColor(TxtCaptionTextColor.Text, "Caption text color", out var captionTextColor, out error) ||
+            !TryReadPositive(TxtCaptionFontSize.Text, "Caption text size", out var captionSize, out error))
         {
             return false;
         }
@@ -346,7 +424,21 @@ public partial class DeveloperTuningPanel : UserControl
             TipCapAlignment = GetTipCapAlignment(),
             TipCapWidthPx = tipCapWidth,
             TipCapLineWeightPx = tipCapLineWeight,
-            TipCapArcDepthPx = tipCapArcDepth
+            TipCapArcDepthPx = tipCapArcDepth,
+            ContentFontFamily = contentFontFamily,
+            PopupBackgroundColor = popupBg,
+            PopupBackgroundOpacity = popupBgOpacity,
+            PopupBorderColor = popupBorderColor,
+            PopupBorderThickness = popupBorderThickness,
+            PopupCornerRadius = popupCornerRadius,
+            PopupTextColor = popupTextColor,
+            PopupHeadingFontSize = popupHeadingSize,
+            PopupBodyFontSize = popupBodySize,
+            CaptionBackgroundColor = captionBg,
+            CaptionBackgroundOpacity = captionBgOpacity,
+            CaptionTopBorderColor = captionTopBorder,
+            CaptionTextColor = captionTextColor,
+            CaptionFontSize = captionSize
         };
         error = string.Empty;
         return true;
@@ -410,6 +502,32 @@ public partial class DeveloperTuningPanel : UserControl
             return false;
         }
 
+        return true;
+    }
+
+    private static bool TryReadColor(string text, string label, out string value, out string error)
+    {
+        value = (text ?? string.Empty).Trim();
+        if (!ContentWindowTheme.TryParseColor(value, out _))
+        {
+            error = $"{label} must be a valid hex color (e.g. #1E1E1E or #FF1E1E1E).";
+            return false;
+        }
+
+        error = string.Empty;
+        return true;
+    }
+
+    private static bool TryReadNonEmpty(string text, string label, out string value, out string error)
+    {
+        value = (text ?? string.Empty).Trim();
+        if (value.Length == 0)
+        {
+            error = $"{label} must not be empty.";
+            return false;
+        }
+
+        error = string.Empty;
         return true;
     }
 
@@ -482,6 +600,34 @@ public partial class DeveloperTuningPanel : UserControl
         { error = "Line weight must be > 0 and finite."; return false; }
         if (args.TipCapArcDepthPx < 0 || !double.IsFinite(args.TipCapArcDepthPx))
         { error = "Curvature must be >= 0 and finite."; return false; }
+        if (string.IsNullOrWhiteSpace(args.ContentFontFamily))
+        { error = "Font family must not be empty."; return false; }
+        if (!ContentWindowTheme.TryParseColor(args.PopupBackgroundColor, out _))
+        { error = "Popup background color must be a valid hex color."; return false; }
+        if (!IsValidOpacity(args.PopupBackgroundOpacity))
+        { error = "Popup background opacity must be between 0 and 1 and finite."; return false; }
+        if (!ContentWindowTheme.TryParseColor(args.PopupBorderColor, out _))
+        { error = "Popup border color must be a valid hex color."; return false; }
+        if (args.PopupBorderThickness < 0 || !double.IsFinite(args.PopupBorderThickness))
+        { error = "Popup border thickness must be >= 0 and finite."; return false; }
+        if (args.PopupCornerRadius < 0 || !double.IsFinite(args.PopupCornerRadius))
+        { error = "Popup corner radius must be >= 0 and finite."; return false; }
+        if (!ContentWindowTheme.TryParseColor(args.PopupTextColor, out _))
+        { error = "Popup text color must be a valid hex color."; return false; }
+        if (args.PopupHeadingFontSize <= 0 || !double.IsFinite(args.PopupHeadingFontSize))
+        { error = "Popup heading size must be > 0 and finite."; return false; }
+        if (args.PopupBodyFontSize <= 0 || !double.IsFinite(args.PopupBodyFontSize))
+        { error = "Popup body size must be > 0 and finite."; return false; }
+        if (!ContentWindowTheme.TryParseColor(args.CaptionBackgroundColor, out _))
+        { error = "Caption background color must be a valid hex color."; return false; }
+        if (!IsValidOpacity(args.CaptionBackgroundOpacity))
+        { error = "Caption background opacity must be between 0 and 1 and finite."; return false; }
+        if (!ContentWindowTheme.TryParseColor(args.CaptionTopBorderColor, out _))
+        { error = "Caption top border color must be a valid hex color."; return false; }
+        if (!ContentWindowTheme.TryParseColor(args.CaptionTextColor, out _))
+        { error = "Caption text color must be a valid hex color."; return false; }
+        if (args.CaptionFontSize <= 0 || !double.IsFinite(args.CaptionFontSize))
+        { error = "Caption text size must be > 0 and finite."; return false; }
 
         error = string.Empty;
         return true;

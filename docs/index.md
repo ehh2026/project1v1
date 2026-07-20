@@ -51,6 +51,8 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | Doc | Description |
 |-----|-------------|
 | [guides/](guides/) | Feature how-to, setup, demo, coordinates |
+| [guides/CONTENT_SETS.md](guides/CONTENT_SETS.md) | Demo vs Production content sets, Assets/, legacy fallback |
+| [../Images&Content/README.md](../Images&Content/README.md) | On-disk content folder layout |
 
 ## Archive
 
@@ -65,4 +67,3 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [../CLAUDE.md](../CLAUDE.md) | Agent quick start (auto-loaded by Claude Code) |
 | [../README.md](../README.md) | User-facing project overview |
 | [../CHANGELOG.md](../CHANGELOG.md) | Version history |
-| [../Images&Content/README.md](../Images&Content/README.md) | Content folder format |

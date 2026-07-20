@@ -50,9 +50,8 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 | `Views/` | WPF UserControls and windows — Models only |
 | `Tests/` | xUnit tests including architecture structural tests |
 | `scripts/` | Verification, log query, Python tooling — see [scripts/README.md](scripts/README.md) |
-| `Images&Content/` | Map image, location folders, `locations.json` |
+| `Images&Content/` | `Assets/` (maps, pin parts), `Demo-Content/` / `Production-Content/` (Excel, `locations.json`, location folders), `Extras/` — see [CONTENT_SETS.md](docs/guides/CONTENT_SETS.md) |
 | `visual-config.json` | Machine-readable UI/debug config (deserialize to `Models/VisualConfig`) |
-| `Coordinates for map.xlsx` | Primary coordinate source at startup |
 
 ## Architecture Rules
 
@@ -82,7 +81,8 @@ Violations are caught by `Tests/Architecture/LayerDependencyTests.cs`.
 | Tech debt | [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md) |
 | Doc maintenance rules | [docs/agent-workflows.md](docs/agent-workflows.md#documentation-maintenance) |
 | Formal spec | [.kiro/specs/interactive-world-map/](.kiro/specs/interactive-world-map/) |
-| Feature guides | [docs/guides/](docs/guides/) — `VISUAL_CONFIG`, `CONTENT_FEATURES`, `MANUAL_LAYOUT_EDITOR`, … |
+| Feature guides | [docs/guides/](docs/guides/) — `VISUAL_CONFIG`, `CONTENT_FEATURES`, `MANUAL_LAYOUT_EDITOR`, `CONTENT_SETS`, … |
+| Manual layout keying | [docs/guides/MANUAL_LAYOUT_EDITOR.md](docs/guides/MANUAL_LAYOUT_EDITOR.md#when-a-saved-layout-loads-and-when-it-does-not) — when saved layouts load/don’t; terms in [GLOSSARY.md](docs/reference/GLOSSARY.md) |
 | Demo checklist | [docs/guides/DEMO_INSTRUCTIONS.md](docs/guides/DEMO_INSTRUCTIONS.md) |
 | Changelog | [CHANGELOG.md](CHANGELOG.md) |
 

@@ -142,7 +142,7 @@ namespace InteractiveWorldMap
                 _pinPartGeometry = _contentLoader.LoadPinPartGeometry(_visualConfig.PinParts.GeometryMetadataPath);
                 // Phase 4: cache hash of geometry file for composite plan cache key
                 _pinPartGeometryHash = CompositePinLayoutContentHasher.ComputeGeometryHash(
-                    IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, _visualConfig.PinParts.GeometryMetadataPath));
+                    _contentLoader.ResolvePinPartPath(_visualConfig.PinParts.GeometryMetadataPath));
                 return _pinPartGeometry.Count > 0;
             }
             catch (Exception ex)

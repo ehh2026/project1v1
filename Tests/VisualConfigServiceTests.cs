@@ -209,7 +209,7 @@ public class VisualConfigServiceTests
     public void CheckedInVisualConfig_RunsFullscreenByDefault()
     {
         var config = new VisualConfigService().Load(
-            Path.Combine(RepoRoot, "visual-config.json"));
+            Path.Combine(RepoRoot, "visual-config.default.json"));
 
         Assert.False(config.Debug.WindowedMode);
     }
@@ -740,6 +740,99 @@ public class VisualConfigServiceTests
         {
             Directory.Delete(tempDir, recursive: true);
         }
+    }
+
+    [Fact]
+    public void Overlay_MissingUserFile_SeededFromDefault()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var userPath = Path.Combine(tempDir, "visual-config.json");
+            var defaultPath = Path.Combine(tempDir, "visual-config.default.json");
+            File.WriteAllText(defaultPath, "{ \"LocationMarkerSize\": 21.0 }");
+
+            var config = new VisualConfigService().Load(userPath, defaultPath);
+
+            Assert.True(File.Exists(userPath), "User file should be seeded from the default file.");
+            Assert.Equal(21.0, config.LocationMarkerSize);
+        }
+        finally { Directory.Delete(tempDir, true); }
+    }
+
+    [Fact]
+    public void Overlay_UserValue_WinsOverDefault()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var userPath = Path.Combine(tempDir, "visual-config.json");
+            var defaultPath = Path.Combine(tempDir, "visual-config.default.json");
+            File.WriteAllText(defaultPath, "{ \"LocationMarkerSize\": 12.0, \"ZoomScale\": 55.0 }");
+            File.WriteAllText(userPath, "{ \"LocationMarkerSize\": 30.0 }");
+
+            var config = new VisualConfigService().Load(userPath, defaultPath);
+
+            Assert.Equal(30.0, config.LocationMarkerSize); // user override wins
+            Assert.Equal(55.0, config.ZoomScale);          // untouched default flows through
+        }
+        finally { Directory.Delete(tempDir, true); }
+    }
+
+    [Fact]
+    public void Overlay_NewDefaultKey_ReachesExistingUser()
+    {
+        var tempDir = CreateTempDir();
+        try
+        {
+            var userPath = Path.Combine(tempDir, "visual-config.json");
+            var defaultPath = Path.Combine(tempDir, "visual-config.default.json");
+            // Existing user saved before a new key/section was added to the shipped default.
+            File.WriteAllText(userPath, "{ \"LocationMarkerSize\": 30.0 }");
+            File.WriteAllText(defaultPath,
+                "{ \"LocationMarkerSize\": 12.0, \"ContentWindows\": { \"FontFamily\": \"Georgia\" } }");
+
+            var config = new VisualConfigService().Load(userPath, defaultPath);
+
+            Assert.Equal(30.0, config.LocationMarkerSize);          // user override preserved
+            Assert.Equal("Georgia", config.ContentWindows.FontFamily); // new default key surfaced
+        }
+        finally { Directory.Delete(tempDir, true); }
+    }
+
+    [Fact]
+    public void ContentWindows_DefaultsMatchShippedAppearance()
+    {
+        var cw = new VisualConfig().ContentWindows;
+
+        Assert.Equal("Segoe UI", cw.FontFamily);
+        Assert.Equal(0.70, cw.Popup.BackgroundOpacity);
+        Assert.Equal(0.85, cw.Caption.BackgroundOpacity);
+        Assert.Equal(18.0, cw.Popup.HeadingFontSize);
+        Assert.Equal(14.0, cw.Popup.BodyFontSize);
+        Assert.Equal(13.0, cw.Caption.FontSize);
+    }
+
+    [Fact]
+    public void ContentWindows_RoundTrip()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            var service = new VisualConfigService();
+            var config = new VisualConfig();
+            config.ContentWindows.FontFamily = "Georgia";
+            config.ContentWindows.Popup.BackgroundOpacity = 0.42;
+            config.ContentWindows.Caption.FontSize = 17.0;
+
+            service.Save(config, path);
+            var reloaded = service.Load(path);
+
+            Assert.Equal("Georgia", reloaded.ContentWindows.FontFamily);
+            Assert.Equal(0.42, reloaded.ContentWindows.Popup.BackgroundOpacity);
+            Assert.Equal(17.0, reloaded.ContentWindows.Caption.FontSize);
+        }
+        finally { File.Delete(path); }
     }
 
     private static string CreateTempDir()

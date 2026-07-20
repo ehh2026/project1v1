@@ -2,7 +2,7 @@
 Generate baked composite-pin head asset variants with black outline strokes.
 
 Inputs:
-  - Base head PNGs under Images&Content/Pins_v2/parts/pin_XX_head.png
+  - Base head PNGs under Images&Content/Assets/Pins_v2/parts/pin_XX_head.png
 
 Outputs:
   - Per-head PNGs under parts/head_variants/<variant>/
@@ -120,7 +120,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate composite pin head black-outline asset variants."
     )
-    parser.add_argument("--parts-dir", default="Images&Content/Pins_v2/parts")
+    parser.add_argument("--parts-dir", default="Images&Content/Assets/Pins_v2/parts")
     parser.add_argument(
         "--variant",
         action="append",
