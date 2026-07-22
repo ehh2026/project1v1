@@ -315,7 +315,7 @@ public class ContentLoader : IContentLoader
                 return Array.Empty<(BitmapImage, string?, string?)>();
             }
 
-            var results = new (BitmapImage, string?, string?)[imageFiles.Length];
+            var results = new List<(BitmapImage Image, string? TranslationText, string? CaptionText)>();
             var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
             
             for (int i = 0; i < imageFiles.Length; i++)
@@ -332,26 +332,34 @@ public class ContentLoader : IContentLoader
                     continue;
                 }
                 
-                // Load image
-                var image = await Task.Run(() => LoadFrozenBitmap(imagePath));
+                BitmapImage image;
+                try
+                {
+                    image = await Task.Run(() => LoadFrozenBitmap(imagePath));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Failed to load image file for location {location.Name}: {imagePath} ({ex.Message})");
+                    continue;
+                }
 
                 var imageFileName = Path.GetFileName(imagePath);
-                var translationText = location.DidacticText ?? await TryReadSidecarTextAsync(
+                var translationText = await TryReadSidecarTextAsync(
                     locationFolder,
                     Path.GetFileNameWithoutExtension(imageFileName) + ".txt",
                     "translation",
-                    Path.GetFileNameWithoutExtension(imageFileName)) ?? await LoadDidacticTextAsync(location);
+                    Path.GetFileNameWithoutExtension(imageFileName));
                 var captionText = GetCaptionText(location, imageFileName) ?? await TryReadSidecarTextAsync(
                     locationFolder,
                     Path.GetFileNameWithoutExtension(imageFileName) + "-caption.txt",
                     "caption",
                     Path.GetFileNameWithoutExtension(imageFileName));
 
-                results[i] = (image, translationText, captionText);
+                results.Add((image, translationText, captionText));
             }
 
-            _logger.LogInfo($"Successfully loaded {results.Length} images with translations for location: {location.Name}");
-            return results;
+            _logger.LogInfo($"Successfully loaded {results.Count} images with translations for location: {location.Name}");
+            return results.ToArray();
         }
         catch (Exception ex)
         {

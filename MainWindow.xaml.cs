@@ -471,14 +471,12 @@ namespace InteractiveWorldMap
         /// </summary>
         public void HandleOutsideClick(Point clickPosition)
         {
-            if (_activeSubwindow != null)
-            {
-                var screenPoint = PointToScreen(clickPosition);
-                if (!_activeSubwindow.ContainsPoint(screenPoint))
-                {
-                    CloseActiveSubwindow();
-                }
-            }
+            if (!HasActiveContentWindows())
+                return;
+
+            var screenPoint = PointToScreen(clickPosition);
+            if (!IsInsideActiveContentWindow(screenPoint))
+                CloseActiveSubwindow();
         }
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
@@ -501,7 +499,7 @@ namespace InteractiveWorldMap
         private void OnMapMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             // Handle clicks on the map (for closing subwindow)
-            if (_activeSubwindow != null)
+            if (HasActiveContentWindows())
             {
                 var position = e.GetPosition(this);
                 HandleOutsideClick(position);
@@ -519,7 +517,7 @@ namespace InteractiveWorldMap
             // Escape: content subwindow → edit mode → tuning panel → zoom back → exit app
             if (e.Key == Key.Escape)
             {
-                if (_activeSubwindow != null)
+                if (HasActiveContentWindows())
                 {
                     CloseActiveSubwindow();
                     e.Handled = true;
@@ -572,28 +570,67 @@ namespace InteractiveWorldMap
 
         private void OnPreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // Only handle if there's an active subwindow
-            if (_activeSubwindow == null)
+            if (!HasActiveContentWindows())
                 return;
 
-            // Get the click position relative to the window
             var position = e.GetPosition(this);
             var screenPoint = PointToScreen(position);
 
-            // Check if click is outside the subwindow
-            if (!_activeSubwindow.ContainsPoint(screenPoint))
+            if (IsInsideActiveContentWindow(screenPoint))
+                return;
+
+            if (IsClickOnMarkerTarget(e))
+                return;
+
+            CloseActiveSubwindow();
+            e.Handled = true;
+        }
+
+        private bool HasActiveContentWindows() =>
+            _activeSubwindow != null ||
+            _activeThumbnailBrowser != null ||
+            _activeDidacticWindow != null;
+
+        private bool IsInsideActiveContentWindow(Point screenPoint) =>
+            IsPointInsideVisibleWindow(_activeSubwindow, screenPoint) ||
+            IsPointInsideVisibleWindow(_activeThumbnailBrowser, screenPoint) ||
+            IsPointInsideVisibleWindow(_activeDidacticWindow, screenPoint);
+
+        private static bool IsPointInsideVisibleWindow(Window? window, Point screenPoint)
+        {
+            if (window?.IsVisible != true)
+                return false;
+
+            var width = window.ActualWidth > 0 ? window.ActualWidth : window.Width;
+            var height = window.ActualHeight > 0 ? window.ActualHeight : window.Height;
+            if (!double.IsFinite(width) || !double.IsFinite(height) || width <= 0 || height <= 0)
+                return false;
+
+            return new Rect(window.Left, window.Top, width, height).Contains(screenPoint);
+        }
+
+        private bool IsClickOnMarkerTarget(MouseButtonEventArgs e)
+        {
+            var targetPosition = e.GetPosition(MapDisplay.MarkerInteractions);
+            if (VisualTreeHelper.HitTest(MapDisplay.MarkerInteractions, targetPosition) != null)
+                return true;
+
+            var markerPosition = e.GetPosition(MapDisplay.Markers);
+            var hitResult = VisualTreeHelper.HitTest(MapDisplay.Markers, markerPosition);
+            return IsMarkerVisual(hitResult?.VisualHit);
+        }
+
+        private static bool IsMarkerVisual(DependencyObject? visual)
+        {
+            while (visual != null)
             {
-                // Check if the click was on a marker (which will open a new subwindow)
-                var markerPosition = e.GetPosition(MapDisplay.Markers);
-                var hitResult = VisualTreeHelper.HitTest(MapDisplay.Markers, markerPosition);
-                
-                // Only close if not clicking on any marker
-                if (hitResult == null)
-                {
-                    CloseActiveSubwindow();
-                    e.Handled = true; // Prevent further processing
-                }
+                if (visual is LocationMarker or ClusterMarker)
+                    return true;
+
+                visual = VisualTreeHelper.GetParent(visual);
             }
+
+            return false;
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)

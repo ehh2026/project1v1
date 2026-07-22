@@ -40,6 +40,12 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Content presentation activation:** Marker clicks/taps that open a content popup no longer reuse the same input release to immediately toggle that popup into full-screen presentation mode.
+
+- **Content translations:** The main image Translate overlay now only uses same-basename image sidecar files (`photo.jpg` -> `photo.txt`); Excel/JSON bio text and folder-level `didactic.txt` remain didactic-window content only.
+
+- **Content popup lifecycle:** Clicking outside the main content, thumbnail, and didactic popup windows now closes the whole content window group unless the click is on an actual marker target, and thumbnail selection now ignores missing/invalid image slots instead of crashing with `ArgumentNullException`.
+
 - **Drawn-pin divot cap lifecycle and layering:** Manual-layout replay and edit-mode drag now refresh pooled cap paths after marker/line mutations, preventing stale caps from surviving at old coordinates. Eligible drawn-pin heads are explicitly kept above the cap layer, so a neighboring cap cannot paint across a stub or post-drag head.
 
 - **Full-map layouts survive window resize (persistence 5c):** Full-map manual layouts are now keyed by identity (`"fullmap"`) instead of canvas size, so a window resize no longer orphans them; legacy `fullmap_s{W}x{H}` keys still resolve via compatible-key matching. User saves now persist the extended position in source-image space (`SourceExtendedX/Y` on `RadialExtension` → `ManualLayoutMarker`, set in `MainWindow.CollectCurrentExtensions` via `viewport.ScreenToSource`), so saved positions re-project to the correct map location at any window size — matching the size-independence seeds already had. (`Services/LayoutKeyGenerator.cs`, `Models/RadialExtension.cs`, `Models/ManualLayoutMarker.cs`, `MainWindow.LayoutEditor.partial.cs`)

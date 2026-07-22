@@ -357,6 +357,93 @@ public class ContentLoaderTests
         }
     }
 
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_DoesNotUseDidacticTextAsTranslation()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "BioOnly");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1-photo.png"));
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location
+            {
+                Name = "BioOnly",
+                Id = "b",
+                DidacticText = "This biography belongs in the didactic window, not the Translate overlay."
+            };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.Null(image.TranslationText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_DoesNotUseDidacticFileAsTranslation()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "DidacticFile");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1-photo.png"));
+            File.WriteAllText(Path.Combine(locationFolder, "didactic.txt"), "Folder biography only.");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "DidacticFile", Id = "d" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.Null(image.TranslationText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_SkipsMissingListedImages()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "SkipMissing");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "2-present.png"));
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location
+            {
+                Name = "SkipMissing",
+                Id = "s",
+                ImageFileNames = { "1-missing.png", "2-present.png" }
+            };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.NotNull(image.Image);
+            Assert.Contains(
+                logger.WarningMessages,
+                message => message.Contains("Missing image file for location SkipMissing"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     // -------------------------------------------------------------------------
     // LoadLocationContentAsync — additional coverage
     // -------------------------------------------------------------------------
