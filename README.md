@@ -10,7 +10,7 @@ Name subfolders in Images&Content to match.
 
 Put content in there.
 
-Currently if an image and a txt file have the same name and are in the same folder, it will register as a translation. It respects line breaks in the txt file. Could probably enrich formatting if necessary.
+If an image and a `.txt` file have the same base name in the same folder, the `.txt` file registers as that image's translation. Bio text and `didactic.txt` are separate didactic-window content and do not show in the Translate overlay. Translation text respects line breaks. Could probably enrich formatting if necessary.
 
 Run run-demo.bat in main directory - eventually can make an exe file.
 

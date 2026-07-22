@@ -140,13 +140,28 @@ namespace InteractiveWorldMap
                 // Handle thumbnail selection
                 _activeThumbnailBrowser.ThumbnailSelected += (s, selectedIndex) =>
                 {
-                    if (_activeSubwindow != null)
+                    if (_activeSubwindow == null)
+                        return;
+
+                    if (selectedIndex < 0 ||
+                        selectedIndex >= allImagesWithTranslations.Length)
                     {
-                        var (selectedImage, selectedTranslation, selectedCaption) = allImagesWithTranslations[selectedIndex];
-                        var newMarkerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
-                        _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation, selectedCaption);
-                        _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
+                        _logger.LogWarning(
+                            $"Ignoring thumbnail selection outside loaded range for {location.Name}: {selectedIndex}");
+                        return;
                     }
+
+                    var (selectedImage, selectedTranslation, selectedCaption) = allImagesWithTranslations[selectedIndex];
+                    if (selectedImage == null)
+                    {
+                        _logger.LogWarning(
+                            $"Ignoring missing thumbnail image for {location.Name} at index {selectedIndex}");
+                        return;
+                    }
+
+                    var newMarkerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
+                    _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation, selectedCaption);
+                    _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
                 };
                 
                 _activeThumbnailBrowser.Show();

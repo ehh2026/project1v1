@@ -29,6 +29,38 @@ public class SingleLocationZoomClickTests
     }
 
     [Fact]
+    public void OutsideClick_ClosesOnlyWhenOutsideAllContentWindowsAndNotOnMarkerTarget()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.xaml.cs"));
+        var body = ExtractMethodBody(source, "private void OnPreviewMouseLeftButtonDown");
+
+        Assert.Contains("HasActiveContentWindows()", body);
+        Assert.Contains("IsInsideActiveContentWindow(screenPoint)", body);
+        Assert.Contains("IsClickOnMarkerTarget(e)", body);
+        Assert.Contains("CloseActiveSubwindow();", body);
+
+        var insideCheck = body.IndexOf("IsInsideActiveContentWindow(screenPoint)", StringComparison.Ordinal);
+        var markerCheck = body.IndexOf("IsClickOnMarkerTarget(e)", StringComparison.Ordinal);
+        var closeCall = body.IndexOf("CloseActiveSubwindow();", StringComparison.Ordinal);
+
+        Assert.True(insideCheck >= 0, "The click must be checked against all content windows.");
+        Assert.True(markerCheck > insideCheck, "Marker-hit pass-through must happen after popup-window bounds.");
+        Assert.True(closeCall > markerCheck, "Outside clicks should close only after excluding real marker targets.");
+    }
+
+    [Fact]
+    public void ThumbnailSelection_GuardsMissingSelectedImage()
+    {
+        var source = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.Content.partial.cs"));
+        var body = ExtractMethodBody(source, "_activeThumbnailBrowser.ThumbnailSelected += (s, selectedIndex) =>");
+
+        Assert.Contains("selectedIndex < 0", body);
+        Assert.Contains("selectedIndex >= allImagesWithTranslations.Length", body);
+        Assert.Contains("selectedImage == null", body);
+        Assert.Contains("return;", body);
+    }
+
+    [Fact]
     public void IndividualMarker_SetsAutoOpenLocation_And_GuardsAgainstDoubleClicks()
     {
         var source = File.ReadAllText(
