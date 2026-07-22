@@ -138,6 +138,25 @@ public class ContentPresentationModeTests
     }
 
     [Fact]
+    public void ContentSurface_ConsumesInitialActivationSuppressionBeforePresentationToggle()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "Views", "ContentSubwindow.xaml.cs"));
+        var body = ExtractMethodBody(source, "private void ContentSurface_MouseLeftButtonUp");
+
+        Assert.Contains("_suppressNextContentActivation", source);
+        Assert.Contains("public void SuppressNextContentActivation()", source);
+        Assert.Contains("TryConsumeSuppressedContentActivation()", body);
+        Assert.Contains("TryTogglePresentationMode(ownerBounds)", body);
+
+        var suppressCheck = body.IndexOf("TryConsumeSuppressedContentActivation()", StringComparison.Ordinal);
+        var toggleCall = body.IndexOf("TryTogglePresentationMode(ownerBounds)", StringComparison.Ordinal);
+
+        Assert.True(suppressCheck >= 0, "The content mouse-up handler must consume one-shot suppression.");
+        Assert.True(toggleCall > suppressCheck, "Suppression must run before presentation mode can toggle.");
+    }
+
+    [Fact]
     public void MainWindow_CoordinatesConfiguredContentAndCompanionVisibility()
     {
         var source = File.ReadAllText(
@@ -173,6 +192,30 @@ public class ContentPresentationModeTests
 
     private static Rect CurrentBounds(Window window) =>
         new(window.Left, window.Top, window.Width, window.Height);
+
+    private static string ExtractMethodBody(string source, string signature)
+    {
+        var methodStart = source.IndexOf(signature, StringComparison.Ordinal);
+        Assert.True(methodStart >= 0, $"Method not found: {signature}");
+
+        var openBrace = source.IndexOf('{', methodStart);
+        Assert.True(openBrace >= 0, $"Opening brace not found for: {signature}");
+
+        var depth = 0;
+        for (var i = openBrace; i < source.Length; i++)
+        {
+            if (source[i] == '{')
+                depth++;
+            else if (source[i] == '}')
+            {
+                depth--;
+                if (depth == 0)
+                    return source.Substring(openBrace, i - openBrace + 1);
+            }
+        }
+
+        throw new InvalidOperationException($"Closing brace not found for: {signature}");
+    }
 
     private static void RunOnStaThread(Action action)
     {

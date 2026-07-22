@@ -42,7 +42,7 @@ public partial class MainWindow
             return;
         }
 
-        ShowContentForLocation(location);
+        ShowContentForLocation(location, suppressNextContentActivation: true);
     }
 
     private void HandleClusterMarkerPrimaryAction(ClusterMarker marker)

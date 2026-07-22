@@ -40,6 +40,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ### Fixed
 
+- **Content presentation activation:** Marker clicks/taps that open a content popup no longer reuse the same input release to immediately toggle that popup into full-screen presentation mode.
+
 - **Content translations:** The main image Translate overlay now only uses same-basename image sidecar files (`photo.jpg` -> `photo.txt`); Excel/JSON bio text and folder-level `didactic.txt` remain didactic-window content only.
 
 - **Content popup lifecycle:** Clicking outside the main content, thumbnail, and didactic popup windows now closes the whole content window group unless the click is on an actual marker target, and thumbnail selection now ignores missing/invalid image slots instead of crashing with `ArgumentNullException`.

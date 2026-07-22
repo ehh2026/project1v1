@@ -40,6 +40,7 @@ public partial class ContentSubwindow : Window
     private Thickness _normalPadding;
     private CornerRadius _normalCornerRadius;
     private Effect? _normalEffect;
+    private bool _suppressNextContentActivation;
 
     public event EventHandler? PresentationModeChanged;
 
@@ -77,6 +78,11 @@ public partial class ContentSubwindow : Window
         CaptionPane.BorderBrush = ContentWindowTheme.ToBrush(style.Caption.TopBorderColor, Colors.White);
         CaptionText.Foreground = ContentWindowTheme.ToBrush(style.Caption.TextColor, Colors.White);
         CaptionText.FontSize = style.Caption.FontSize;
+    }
+
+    public void SuppressNextContentActivation()
+    {
+        _suppressNextContentActivation = true;
     }
 
     /// <summary>
@@ -227,6 +233,12 @@ public partial class ContentSubwindow : Window
         object sender,
         MouseButtonEventArgs e)
     {
+        if (TryConsumeSuppressedContentActivation())
+        {
+            e.Handled = true;
+            return;
+        }
+
         if (Owner is not Window owner)
             return;
 
@@ -240,6 +252,15 @@ public partial class ContentSubwindow : Window
 
         if (TryTogglePresentationMode(ownerBounds))
             e.Handled = true;
+    }
+
+    private bool TryConsumeSuppressedContentActivation()
+    {
+        if (!_suppressNextContentActivation)
+            return false;
+
+        _suppressNextContentActivation = false;
+        return true;
     }
 
     private void TranslateButton_Click(object sender, RoutedEventArgs e)

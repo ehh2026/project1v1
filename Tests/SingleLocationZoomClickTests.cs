@@ -61,6 +61,20 @@ public class SingleLocationZoomClickTests
     }
 
     [Fact]
+    public void DirectZoomedMarkerOpen_SuppressesInitialContentRelease()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(RepoRoot, "MainWindow.MarkerInteraction.partial.cs"));
+        var methodBody = ExtractMethodBody(
+            source,
+            "private void HandleIndividualMarkerPrimaryAction");
+
+        Assert.Contains(
+            "ShowContentForLocation(location, suppressNextContentActivation: true);",
+            methodBody);
+    }
+
+    [Fact]
     public void IndividualMarker_SetsAutoOpenLocation_And_GuardsAgainstDoubleClicks()
     {
         var source = File.ReadAllText(
@@ -143,6 +157,10 @@ public class SingleLocationZoomClickTests
         
         Assert.True(showZoomedIdx < showContentIdx, 
             "ShowContentForLocation must happen after ShowZoomedView so viewport updates finish.");
+        Assert.Contains("ShowContentForLocation(toOpen);", callbackBody);
+        Assert.DoesNotContain(
+            "ShowContentForLocation(toOpen, suppressNextContentActivation: true)",
+            callbackBody);
     }
 
     [Fact]
