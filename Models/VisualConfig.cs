@@ -12,6 +12,18 @@ namespace InteractiveWorldMap.Models
         /// </summary>
         public double ClusterDistanceThreshold { get; set; } = 300.0;
 
+        private int _maxCachedLocations;
+
+        /// <summary>
+        /// Maximum number of location content bitmaps kept in <c>ContentLoader</c>'s in-memory cache.
+        /// <c>0</c> (default) means unlimited. When greater than zero, least-recently-used entries are evicted.
+        /// </summary>
+        public int MaxCachedLocations
+        {
+            get => _maxCachedLocations;
+            set => _maxCachedLocations = value < 0 ? 0 : value;
+        }
+
         /// <summary>
         /// Configuration for radial extension lines.
         /// </summary>

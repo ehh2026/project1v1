@@ -19,7 +19,7 @@ Near-threshold watch (not in scope but related):
 |------|------:|------|
 | `scripts/generate_manual_layout_seeds.ps1` | 942 | Embedded C# duplicate of runtime math; replace via [manual-layout-seed-alignment-plan.md](../exec-plans/active/manual-layout-seed-alignment-plan.md) |
 
-Follow-through plan: [refactoring-assessment-followthrough-plan.md](../exec-plans/active/refactoring-assessment-followthrough-plan.md) · Prior assessment: [REFACTORING_ASSESSMENT.md](REFACTORING_ASSESSMENT.md)
+Follow-through plan: [refactoring-assessment-followthrough-plan.md](../exec-plans/completed/refactoring-assessment-followthrough-plan.md) · Prior assessment: [REFACTORING_ASSESSMENT.md](REFACTORING_ASSESSMENT.md)
 
 ---
 

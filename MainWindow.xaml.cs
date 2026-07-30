@@ -168,6 +168,7 @@ namespace InteractiveWorldMap
                 _contentSetResolver = new ContentSetResolver();
                 _contentLoader = new ContentLoader(_logger, _contentSetResolver);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
+                _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
                 _logger.LogInfo("ContentLoader created");
 
                 // Initialize radial extension calculator if enabled

@@ -4,6 +4,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **ContentLoader cache bounds (Phase 16):** `LoadLocationContentAsync` now keys by location Id, supports optional `MaxCachedLocations` LRU (default unlimited), and wires the setting from `VisualConfig`. TD-018 closed. Follow-through plan archived to `docs/exec-plans/completed/` (Phase 18b deferred — no file-size pressure).
 - **Excel streaming parse (Phase 15):** `ExcelCoordinateReader` now streams worksheet rows and shared strings with `XmlReader` (workbook/rels stay small DOM). Added shared-strings characterization coverage. TD-016 closed.
 - **Spatial clusterer (Phase 14):** Added `Utilities/SpatialGrid` and wired `LocationClusterer` neighbor search to a threshold-sized grid with 3×3 Moore neighborhood queries. Extended clusterer tests (membership, cell-boundary, n=250 timing) and added `SpatialGridTests`. TD-015 closed.
 - **ApplicationState removed (Phase 17):** Deleted unused orphan `Models/ApplicationState.cs` (no production references). TD-017 closed.

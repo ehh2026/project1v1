@@ -20,7 +20,6 @@ started: YYYY-MM-DD
 
 | Plan | Scope |
 |------|--------|
-| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining assessment debt — ContentLoader LRU (Phases 11, 14, 15, 17 done) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
@@ -30,6 +29,8 @@ started: YYYY-MM-DD
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
+
+- `refactoring-assessment-followthrough-plan.md` — Remaining assessment debt (map metadata, ApplicationState, spatial clusterer, Excel streaming, ContentLoader LRU); Phase 18b deferred — moved 2026-07-30
 
 - `content-auto-fullscreen-open-fix-plan.md` - Prevent marker-open mouse/touch release from immediately toggling content presentation mode - moved 2026-07-22
 

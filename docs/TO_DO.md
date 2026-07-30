@@ -31,10 +31,9 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 ## Refactoring & quality
 
-Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08)
+Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08). Refactoring assessment follow-through archived (2026-07-30) — [refactoring-assessment-followthrough-plan.md](exec-plans/completed/refactoring-assessment-followthrough-plan.md).
 
 - [ ] Finalize complexity/CI hooks plan archival after confirm `.\scripts\verify.ps1` is green - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
-- [ ] Refactoring assessment follow-through (next: Phase 16 ContentLoader cache; Phases 11, 14, 15, 17 done) — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
 ## Developer tooling

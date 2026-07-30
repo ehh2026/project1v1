@@ -320,6 +320,7 @@ namespace InteractiveWorldMap
             ClearAllMarkers();
 
             _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
+            _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
             _clusters = await _contentLoader.LoadClustersAsync();
             AddClustersToMap(_clusters);
         }
