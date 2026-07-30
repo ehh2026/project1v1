@@ -16,6 +16,7 @@ bld/
 [Ll]ogs/
 
 # Test run artifacts (coverage, TRX)
+TestResults/
 Tests/TestResults/
 
 # User-local visual config (seeded from visual-config.default.json on first run).
