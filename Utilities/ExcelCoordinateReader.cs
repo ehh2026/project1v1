@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
 using System.Xml;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
@@ -10,10 +11,18 @@ using InteractiveWorldMap.Services;
 namespace InteractiveWorldMap.Utilities;
 
 /// <summary>
-/// Reads location and content data from Excel files.
+/// Reads location and content data from Excel (.xlsx) workbooks using streaming XML parse.
 /// </summary>
 public class ExcelCoordinateReader
 {
+    private static readonly XmlReaderSettings ReaderSettings = new()
+    {
+        IgnoreComments = true,
+        IgnoreWhitespace = true,
+        DtdProcessing = DtdProcessing.Prohibit,
+        XmlResolver = null
+    };
+
     private readonly ILogger _logger;
 
     private sealed record WorkbookRows(
@@ -148,7 +157,10 @@ public class ExcelCoordinateReader
         }
     }
 
-    private List<string> ReadSharedStrings(ZipArchive zip)
+    /// <summary>
+    /// Streams <c>xl/sharedStrings.xml</c> into an indexable list (empty if the part is absent).
+    /// </summary>
+    private static List<string> ReadSharedStrings(ZipArchive zip)
     {
         var sharedStrings = new List<string>();
         var entry = zip.GetEntry("xl/sharedStrings.xml");
@@ -156,20 +168,36 @@ public class ExcelCoordinateReader
             return sharedStrings;
 
         using var stream = entry.Open();
-        var xml = new XmlDocument();
-        xml.Load(stream);
-
-        var ns = new XmlNamespaceManager(xml.NameTable);
-        ns.AddNamespace("x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-        foreach (XmlElement si in xml.SelectNodes("//x:si", ns)!)
+        using var reader = XmlReader.Create(stream, ReaderSettings);
+        while (reader.Read())
         {
-            sharedStrings.Add(string.Concat(si.SelectNodes(".//x:t", ns)!.Cast<XmlNode>().Select(node => node.InnerText)));
+            if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "si")
+                continue;
+
+            using var subtree = reader.ReadSubtree();
+            sharedStrings.Add(ReadSharedStringItem(subtree));
         }
 
         return sharedStrings;
     }
 
-    private List<string> ReadWorksheetPaths(ZipArchive zip)
+    /// <summary>
+    /// Reads one <c>si</c> subtree (possibly with multiple <c>t</c> runs) and returns concatenated text.
+    /// </summary>
+    private static string ReadSharedStringItem(XmlReader reader)
+    {
+        var text = new StringBuilder();
+        reader.MoveToContent();
+        while (reader.Read())
+        {
+            if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "t")
+                text.Append(reader.ReadElementContentAsString());
+        }
+
+        return text.ToString();
+    }
+
+    private static List<string> ReadWorksheetPaths(ZipArchive zip)
     {
         var paths = new List<string>();
         var workbookEntry = zip.GetEntry("xl/workbook.xml");
@@ -177,8 +205,9 @@ public class ExcelCoordinateReader
         if (workbookEntry == null || relsEntry == null)
             return paths;
 
-        var workbook = LoadXml(workbookEntry);
-        var rels = LoadXml(relsEntry);
+        // Workbook + rels are tiny; DOM keeps r:id / Relationship wiring reliable.
+        var workbook = LoadXmlDocument(workbookEntry);
+        var rels = LoadXmlDocument(relsEntry);
 
         var ns = new XmlNamespaceManager(workbook.NameTable);
         ns.AddNamespace("x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
@@ -198,13 +227,24 @@ public class ExcelCoordinateReader
             if (!relMap.TryGetValue(relId, out var target))
                 continue;
 
-            paths.Add("xl/" + target.Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar));
+            paths.Add("xl/" + target.Replace('\\', '/'));
         }
 
         return paths;
     }
 
-    private List<Dictionary<string, string>> ReadWorksheetRows(ZipArchive zip, string path, List<string> sharedStrings)
+    private static XmlDocument LoadXmlDocument(ZipArchiveEntry entry)
+    {
+        using var stream = entry.Open();
+        var xml = new XmlDocument();
+        xml.Load(stream);
+        return xml;
+    }
+
+    private static List<Dictionary<string, string>> ReadWorksheetRows(
+        ZipArchive zip,
+        string path,
+        List<string> sharedStrings)
     {
         var rows = new List<Dictionary<string, string>>();
         var normalized = path.Replace(Path.DirectorySeparatorChar, '/');
@@ -212,27 +252,76 @@ public class ExcelCoordinateReader
         if (entry == null)
             return rows;
 
-        var xml = LoadXml(entry);
-        var ns = new XmlNamespaceManager(xml.NameTable);
-        ns.AddNamespace("x", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-
-        foreach (XmlElement row in xml.SelectNodes("//x:sheetData/x:row", ns)!)
+        using var stream = entry.Open();
+        using var reader = XmlReader.Create(stream, ReaderSettings);
+        while (reader.Read())
         {
-            var cellValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (XmlElement cell in row.SelectNodes("x:c", ns)!)
-            {
-                var cellRef = cell.GetAttribute("r");
-                if (string.IsNullOrWhiteSpace(cellRef))
-                    continue;
+            if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "row")
+                continue;
 
-                var column = new string(cellRef.TakeWhile(char.IsLetter).ToArray());
-                cellValues[column] = GetCellValue(cell, sharedStrings, ns);
-            }
-
-            rows.Add(cellValues);
+            using var subtree = reader.ReadSubtree();
+            rows.Add(ReadWorksheetRow(subtree, sharedStrings));
         }
 
         return rows;
+    }
+
+    private static Dictionary<string, string> ReadWorksheetRow(XmlReader reader, List<string> sharedStrings)
+    {
+        var cellValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        reader.MoveToContent();
+        while (reader.Read())
+        {
+            if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "c")
+                continue;
+
+            var cellRef = reader.GetAttribute("r");
+            if (string.IsNullOrWhiteSpace(cellRef))
+            {
+                using var skipped = reader.ReadSubtree();
+                skipped.MoveToContent();
+                continue;
+            }
+
+            var column = new string(cellRef.TakeWhile(char.IsLetter).ToArray());
+            using var cellSubtree = reader.ReadSubtree();
+            cellValues[column] = ReadCellValue(cellSubtree, sharedStrings);
+        }
+
+        return cellValues;
+    }
+
+    private static string ReadCellValue(XmlReader reader, List<string> sharedStrings)
+    {
+        // Subtree readers start at Initial; MoveToContent lands on <c>.
+        reader.MoveToContent();
+        var cellType = reader.GetAttribute("t") ?? string.Empty;
+        var rawValue = string.Empty;
+        var inlineText = new StringBuilder();
+
+        while (reader.Read())
+        {
+            if (reader.NodeType != XmlNodeType.Element)
+                continue;
+
+            if (reader.LocalName == "v")
+                rawValue = reader.ReadElementContentAsString();
+            else if (reader.LocalName == "t")
+                inlineText.Append(reader.ReadElementContentAsString());
+        }
+
+        if (cellType == "inlineStr")
+            return inlineText.ToString();
+
+        if (cellType == "s"
+            && int.TryParse(rawValue, out var sharedIndex)
+            && sharedIndex >= 0
+            && sharedIndex < sharedStrings.Count)
+        {
+            return sharedStrings[sharedIndex];
+        }
+
+        return rawValue;
     }
 
     private Location? ParseLocationRow(Dictionary<string, string> cellValues, int locationIndex, IReadOnlyList<string> imageColumns)
@@ -275,32 +364,5 @@ public class ExcelCoordinateReader
     {
         value = default;
         return cellValues.TryGetValue(column, out var text) && double.TryParse(text, out value);
-    }
-
-    private string GetCellValue(XmlElement cell, List<string> sharedStrings, XmlNamespaceManager ns)
-    {
-        var cellType = cell.GetAttribute("t");
-        if (cellType == "inlineStr")
-        {
-            return string.Concat(cell.SelectNodes("x:is/x:t", ns)!.Cast<XmlNode>().Select(node => node.InnerText));
-        }
-
-        var valueNode = cell.SelectSingleNode("x:v", ns);
-        if (valueNode == null)
-            return string.Empty;
-
-        var rawValue = valueNode.InnerText;
-        if (cellType == "s" && int.TryParse(rawValue, out var sharedIndex) && sharedIndex >= 0 && sharedIndex < sharedStrings.Count)
-            return sharedStrings[sharedIndex];
-
-        return rawValue;
-    }
-
-    private static XmlDocument LoadXml(ZipArchiveEntry entry)
-    {
-        using var stream = entry.Open();
-        var xml = new XmlDocument();
-        xml.Load(stream);
-        return xml;
     }
 }

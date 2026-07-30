@@ -26,6 +26,7 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 | Phase 11 — Map dimensions single source of truth | `Models/MapMetadata`; MainWindow properties; display-space `StartupValidator` ceilings; TD-014 resolved |
 | Phase 17 — ApplicationState decision | Deleted orphan `Models/ApplicationState.cs`; TD-017 resolved |
 | Phase 14 — LocationClusterer spatial indexing | `SpatialGrid` + 3×3 neighbor query; TD-015 resolved |
+| Phase 15 — ExcelCoordinateReader streaming parse | `XmlReader` for shared strings + rows; workbook/rels DOM; TD-016 resolved |
 | Phase 12 — `MarkerLayerControl` positioning extraction | **Obsolete** — control removed; placement via `MarkerPlacementOrchestrator`, `ViewportState`, `MapDisplayControl` |
 | Phase 13 — nullable CS8602/CS8604 cleanup | Release build clean; Excel/cluster guards landed |
 | Phase 18 large-file slice | `MarkerPlacementOrchestrator`, composite apply service, MainWindow partials; primary `MainWindow.xaml.cs` ~554 lines; TD-001 resolved |
@@ -34,9 +35,8 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 
 | Priority | Phase | Item | Notes |
 |----------|-------|------|-------|
-| 1 | 15 | `ExcelCoordinateReader` streaming parse | `XmlReader` (Option A); no new NuGet |
-| 2 | 16 | `ContentLoader` cache bounds | Harden existing `_contentCache` only (see scope) |
-| 3 | 18b | Optional MainWindow extractions | Only if files approach 800 lines again |
+| 1 | 16 | `ContentLoader` cache bounds | Harden existing `_contentCache` only (see scope) |
+| 2 | 18b | Optional MainWindow extractions | Only if files approach 800 lines again |
 
 ### Explicitly deferred (tech debt / separate plans)
 
@@ -201,8 +201,8 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 ## Phase 15 — ExcelCoordinateReader streaming parse
 
 **Assessment:** §4  
-**Status:** ready (independent; follow streaming sketch in Decisions)  
-**TD:** TD-016
+**Status:** complete (2026-07-30)  
+**TD:** TD-016 (resolved)
 
 ### Decision gate
 
@@ -257,7 +257,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 1. ~~**Phase 11** — map metadata + validator ceiling fix~~ **done**
 2. ~~**Phase 17** — delete `ApplicationState`~~ **done**
 3. ~~**Phase 14** — spatial clusterer~~ **done**
-4. **Phase 15** — Excel streaming
+4. ~~**Phase 15** — Excel streaming~~ **done**
 5. **Phase 16** — ContentLoader LRU (narrow scope)
 6. **Phase 18b** — only as file-size pressure appears
 
@@ -279,7 +279,7 @@ Do **not** rewrite completed/archived plans or historical assessment bodies; lin
 - [x] Phase 11 complete
 - [x] Phase 17 complete (delete)
 - [x] Phase 14 complete
-- [ ] Phase 15 complete **or** deferred with TD entry
+- [x] Phase 15 complete **or** deferred with TD entry
 - [ ] Phase 16 complete **or** deferred with TD entry
 - [ ] Phase 18b triaged (done as needed, or explicitly deferred)
 - [ ] `.\scripts\verify.ps1` green

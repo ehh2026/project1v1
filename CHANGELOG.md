@@ -4,6 +4,7 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Excel streaming parse (Phase 15):** `ExcelCoordinateReader` now streams worksheet rows and shared strings with `XmlReader` (workbook/rels stay small DOM). Added shared-strings characterization coverage. TD-016 closed.
 - **Spatial clusterer (Phase 14):** Added `Utilities/SpatialGrid` and wired `LocationClusterer` neighbor search to a threshold-sized grid with 3×3 Moore neighborhood queries. Extended clusterer tests (membership, cell-boundary, n=250 timing) and added `SpatialGridTests`. TD-015 closed.
 - **ApplicationState removed (Phase 17):** Deleted unused orphan `Models/ApplicationState.cs` (no production references). TD-017 closed.
 - **Map metadata (Phase 11):** Introduced `Models/MapMetadata` as the display-space dimension source of truth (`CreateDefault` / `FromDisplayBitmap`). `MainWindow` no longer hard-codes map size; `StartupValidator` coordinate ceilings now use display bounds (not full-res), matching Excel half-size coordinates. Excluded `tmp/**` from the main project compile list so gitignored refactor backups cannot break the build.

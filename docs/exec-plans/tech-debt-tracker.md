@@ -19,7 +19,6 @@ Sources: [TO_DO.md](../TO_DO.md), [REFACTORING_ASSESSMENT.md](../assessments/REF
 |----|------|------------|--------|
 | TD-005 | Empty `ViewModels/` — MVVM incomplete | Project structure | Open |
 | TD-006 | Marker distortion at 50x+ zoom | [TO_DO.md](../TO_DO.md) | Open |
-| TD-016 | `ExcelCoordinateReader` `XmlDocument` DOM parse | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 15 | Open |
 | TD-018 | Unbounded `_contentCache` in `LoadLocationContentAsync` (UI gallery path uncached — separate) | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 16 | Open |
 | TD-008 | README staleness | README.md | Resolved (2026-06-04) |
 
@@ -41,6 +40,7 @@ Sources: [TO_DO.md](../TO_DO.md), [REFACTORING_ASSESSMENT.md](../assessments/REF
 | TD-014 | Hard-coded map dimensions / wrong validator ceilings | 2026-07-30 — `MapMetadata`; display-space `StartupValidator` ceilings |
 | TD-017 | Orphan `Models/ApplicationState` | 2026-07-30 — deleted unused type |
 | TD-015 | `LocationClusterer` O(n²) neighbor scan | 2026-07-30 — `SpatialGrid` + 3×3 neighbor query |
+| TD-016 | `ExcelCoordinateReader` `XmlDocument` DOM parse | 2026-07-30 — stream shared strings + worksheet rows via `XmlReader` |
 
 ## Promotion Rule
 
