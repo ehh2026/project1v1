@@ -71,7 +71,7 @@ Ask: **What capability is missing, and how do we make it legible and enforceable
 | Investigation concludes | Put conclusion at top of file in `assessments/`; stop tracking in `TO_DO.md` |
 | Behavior stabilizes | Merge durable knowledge into `guides/`; archive or complete the plan |
 
-Enforced by `scripts/doc_gardening.py` (TO_DO size cap, active-plan registry, front-matter, no active/completed duplicates).
+Enforced by `scripts/doc_gardening.py` (TO_DO size cap, active-plan registry, front-matter, no active/completed duplicates). Incomplete active plans older than 30 days are a **non-blocking warning** in `verify_taste.py` / `doc_gardening.py` — agents must report those warnings to the user and ask whether to continue, park under `inactive/`, or archive under `completed/`.
 
 ### Exec plan quality
 

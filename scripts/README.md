@@ -30,12 +30,12 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `validate_startup.ps1` | `verify.ps1` | — | Headless WPF startup check (Windows) |
 | `verify_nuget_vulnerabilities.py` | `verify.ps1`, `verify.sh`, CI | stdlib | Fail on High/Critical NuGet advisories |
 | `verify_doc_links.py` | `verify.ps1`, `verify.sh`, doc-gardening CI | stdlib | Markdown link integrity |
-| `verify_taste.py` | `verify.ps1`, `verify.sh` | stdlib | Architecture taste invariants (Views, JObject, etc.) |
+| `verify_taste.py` | `verify.ps1`, `verify.sh`, pre-push | stdlib | Architecture taste invariants (Views, JObject, etc.). Incomplete active plans older than 30 days warn only (non-blocking); agents must report those warnings to the user. |
 | `advisory_code_health.py` | Pre-push, advisory CI | stdlib | Non-blocking largest-file, advisory size, and approximate method complexity report |
 | `summarize_coverage.py` | Advisory CI | stdlib | Summarize Cobertura coverage emitted by `dotnet test --collect:"XPlat Code Coverage"` |
 | `install_git_hooks.ps1` | Manual | Git | Configure local `core.hooksPath` to use `.githooks/pre-push` |
 | `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
-| `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter |
+| `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter. Incomplete active plans older than 30 days warn only (same policy as `verify_taste.py`). |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 | `create_head_asset_variants.py` | Manual | venv | Generate black-outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |

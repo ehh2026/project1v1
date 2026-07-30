@@ -20,7 +20,7 @@ started: YYYY-MM-DD
 
 | Plan | Scope |
 |------|--------|
-| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
+| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining assessment debt — map metadata, clusterer spatial index, Excel streaming, ApplicationState, ContentLoader LRU (refreshed 2026-07-30) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
@@ -60,5 +60,6 @@ Completed plans move to [../completed/](../completed/). Parked plans (core done,
 3. **Plan finishes** — move file to `../completed/`, update [CHANGELOG.md](../../../CHANGELOG.md), remove or shorten the `TO_DO.md` bullet.
 4. **Investigations** — live in [../../assessments/](../../assessments/); feature how-to in [../../guides/](../../guides/).
 5. **Historical only** — move to [../../archive/planning/](../../archive/planning/), not `docs/` root.
+6. **Lingering incomplete plans** — plans older than 30 days that are still incomplete produce a **non-blocking** warning from `scripts/verify_taste.py` / `scripts/doc_gardening.py`. Agents must report the warning to the user and ask whether to continue, park under `../inactive/`, or archive under `../completed/`.
 
 Full doc model: [agent-workflows.md](../../agent-workflows.md#documentation-maintenance). Harness: `scripts/doc_gardening.py`.

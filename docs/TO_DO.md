@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** July 19, 2026
+**Last updated:** July 30, 2026
 
 ## Zoom & animation
 
@@ -33,9 +33,8 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08)
 
-- [ ] Finalize complexity/CI hooks plan archival after resolving the unrelated stale active-plan taste failure - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
-- [ ] Refactoring assessment follow-through — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
-- [ ] Resolve nullable reference warnings (CS8602/CS8604) — Phase 13 in follow-through plan
+- [ ] Finalize complexity/CI hooks plan archival after confirm `.\scripts\verify.ps1` is green - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
+- [ ] Refactoring assessment follow-through (next: Phase 11 map metadata) — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
 ## Developer tooling

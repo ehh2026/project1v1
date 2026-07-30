@@ -19,6 +19,11 @@ Sources: [TO_DO.md](../TO_DO.md), [REFACTORING_ASSESSMENT.md](../assessments/REF
 |----|------|------------|--------|
 | TD-005 | Empty `ViewModels/` — MVVM incomplete | Project structure | Open |
 | TD-006 | Marker distortion at 50x+ zoom | [TO_DO.md](../TO_DO.md) | Open |
+| TD-014 | Hard-coded map dimensions (`8198×5542` / validator `16397×11085`) | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 11 | Open |
+| TD-015 | `LocationClusterer` O(n²) neighbor scan | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 14 | Open |
+| TD-016 | `ExcelCoordinateReader` `XmlDocument` DOM parse | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 15 | Open |
+| TD-017 | Orphan `Models/ApplicationState` | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 17 | Open |
+| TD-018 | Unbounded `ContentLoader` image cache | [refactoring-assessment-followthrough-plan.md](active/refactoring-assessment-followthrough-plan.md) Phase 16 | Open |
 | TD-008 | README staleness | README.md | Resolved (2026-06-04) |
 
 ## Low Priority / Features
