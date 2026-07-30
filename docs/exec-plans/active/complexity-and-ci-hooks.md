@@ -1,3 +1,9 @@
+---
+status: active
+owner: agent
+started: 2026-07-29
+---
+
 # Exec Plan: Complexity Refactoring + Hooks/CI
 
 > **Branch:** `complexity-and-ci-hooks`
@@ -9,13 +15,24 @@
 
 Add Roslyn analyzers, pre-commit formatting enforcement, coverage gating, Lizard complexity CI, and refactor the 10 worst cyclomatic-complexity offenders.
 
+## Recommended Split
+
+This plan is broad enough that it should be implemented as four PR-sized tracks, in order:
+
+1. **Formatting baseline + `.runsettings` only**: mechanical formatting, coverage configuration, and no logic changes.
+2. **Refactoring + tests only**: preparatory coverage for risky methods, then one extraction commit per target method.
+3. **Blocking gates only**: `Directory.Build.props`, coverage threshold CLI, hooks, verify scripts, and CI workflow enforcement.
+4. **Documentation/bookkeeping only**: `CHANGELOG.md`, `scripts/README.md`, `AGENTS.md`, active-plan registry, and `TO_DO.md`.
+
+Do not combine formatting with refactoring or gate wiring. If a later track fails, revert that track without disturbing earlier formatting or extraction commits.
+
 ## Current State
 
 - .NET 6 SDK pinned (`global.json` 6.0.400, `latestPatch` roll-forward)
 - No `Directory.Build.props`, no Roslyn analyzers, no `.runsettings`
 - Pre-push hook only (opt-in). No pre-commit hook.
 - `dotnet format` never enforced anywhere
-- Test coverage: 41.5% line / 36.4% branch (677 tests pass) — gates at 42%/37%
+- Test coverage snapshot: 41.5% line / 36.4% branch (677 tests pass) before `.runsettings` exclusions. Recompute the baseline after Phase 0b; gates remain 42% line / 37% branch unless the recomputed baseline proves they are impossible without padding.
 - Lizard results: 10 methods with CCN > 15 (worst: `TryValidate` CCN 58)
 - CI: 4 GitHub Actions workflows (build/test, secrets, advisory health, doc gardening)
 - Language version: C# 10.0 (no C# 11+ features)
@@ -39,7 +56,28 @@ git add -A
 git commit -m "style: format entire codebase for dotnet format enforcement"
 ```
 
-### 0b. Pre-Promotion Advisory Audit
+### 0b. Coverage Configuration (`.runsettings`)
+
+Create `.runsettings` at the repo root **before** Phase 1 so coverage baselines use the same exclusion settings as the Phase 2 gate:
+
+```xml
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Exclude>[InteractiveWorldMap.Tests]*,[ManualLayoutSeedGenerator]*,[ThumbnailTouchSmoke]*</Exclude>
+          <Include>[InteractiveWorldMap]*</Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
+```
+
+*Note: Coverlet's VSTest integration ignores threshold config in `.runsettings`. Threshold gating is handled by `summarize_coverage.py`.*
+
+### 0c. Pre-Promotion Advisory Audit
 
 Run the current `advisory-code-health.yml` workflow on the main branch prior to making changes to identify any pre-existing failures before promoting it to blocking.
 
@@ -60,6 +98,27 @@ After Phase 0 commits land, launch a subagent to verify:
 
 The 10 target methods must be refactored to reduce CCN below 15 **before** blocking hooks and CI gates are installed. Each refactoring = 1 commit. Run `dotnet test` after each commit.
 
+### Pre-Refactoring Test Gap Assessment
+
+Audit existing test coverage for each target before any extraction begins. Two targets have dangerously low pre-existing coverage, creating high risk of undetected behavioral changes during refactoring:
+
+| # | Target (CCN) | Current Tests | Risk | Required Action |
+|---|---|---|---|---|
+| 2 | `TryBuildEventArgs` (35) | **0 tests** | High — args builder with 30+ sequential validation calls, untested | **Blocking: add tests before extraction** |
+| 8 | `ReadLocationsFromExcel` (16) | **1 test** (happy-path only) | Medium — all error paths (missing file, malformed XLSX, missing columns) uncovered | **Should add: error-path tests before extraction** |
+| 4 | `FixLineIntersections` (20) | Partial (via `AdjustExtensions`) | Low — 0/5 rotation strategies individually tested | Optional post-extraction |
+| 6 | `BuildApplyInstructions` (17) | 3 tests (no cache-hit path) | Low — cache-hit path untested | Optional post-extraction |
+| 7 | `ValidateLocationsJson` (17) | Partial (JSON format only) | Low — field-level validation untested | Optional post-extraction |
+| 1, 3, 5, 9, 10 | Remaining targets | Partial but core paths exercised | Low | No pre-refactoring tests needed |
+
+**Execution order:**
+
+1. **Before behavior-changing refactoring:** Add tests for Target 2 (`TryBuildEventArgs`). The current method is private and UI-control-bound, so first make a no-behavior-change extraction into `internal` category parsers inside `Views/DeveloperTuningPanel.xaml.cs` (or a `Views/DeveloperTuningPanel.Parsing.partial.cs` partial if the file-size gate needs it), expose internals to `InteractiveWorldMap.Tests` if needed, then test those parsers directly. Keep the helpers in `Views`; do not move them to `Services` or `Utilities`.
+2. **Before extracting Target 8:** Add error-path tests for `ReadLocationsFromExcel` — missing file, empty workbook, malformed worksheet XML, missing column headers, missing required cells.
+3. **Proceed with extraction refactoring** for all targets using the Coverage Comparison Protocol below.
+
+Add these tests in a single preparatory commit before any extraction commits so the coverage baseline captures them.
+
 ### Coverage Comparison Protocol
 
 Before starting refactoring, capture a coverage baseline:
@@ -69,11 +128,11 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --settings .runsettings --col
 # Record the line/branch rates from TestResults/ as the pre-refactoring baseline
 ```
 
-After each refactoring commit, run coverage again and compare. If line or branch coverage drops by more than 0.5%, investigate whether the refactoring shifted branch attribution. If degradation is real, adjust the refactoring to preserve coverage.
+After each refactoring commit, run coverage again and compare. Use a fresh results directory or delete stale `TestResults/` output before collecting coverage so the comparison does not read an older Cobertura file. If line or branch coverage drops by more than 0.5%, investigate whether the refactoring shifted branch attribution. If degradation is real, adjust the refactoring to preserve coverage.
 
 ### Coverage Bridging
 
-If after completing all 10 refactors the combined coverage is still below 42% line / 37% branch, add targeted tests to close the gap before Phase 2. Focus on:
+If after completing all 10 refactors the combined coverage is still below 42% line / 37% branch, add targeted tests to close the gap before Phase 2. (Note: Required pre-refactoring tests for Targets 2 and 8 are handled in the Pre-Refactoring Test Gap Assessment above — this section covers only post-refactoring gaps.) Focus on:
 
 1. **Uncovered branches in refactored helpers** — extraction often reveals conditional paths that existing tests never exercised
 2. **Newly extracted methods** — each helper (e.g., `AdjustAnglePair`, `HasIntersectionOrClosePass`, `BuildBioDictionary`) is a testable unit
@@ -102,7 +161,7 @@ Estimated gap: ~0.5% line = roughly 3-5 new test cases. Do not write broad integ
 
 ### Target 1 Spike
 
-`TryValidate` has CCN 58 — the table-driven approach may not get it below 15 if validation rules have complex interdependencies. **Prototype Target 1 as a spike commit first.** If CCN stays above 15 after extraction, document the limit and adjust the acceptance criteria ("as close as feasible").
+`TryValidate` has CCN 58 — the table-driven approach may not get it below 15 if validation rules have complex interdependencies. **Prototype Target 1 as a spike commit first.** If CCN stays above 15 after extraction, document the limit and adjust the acceptance criteria. Set a concrete fallback floor: **if post-refactoring CCN exceeds 20, file a tech-debt ticket** to revisit; if CCN is 15–20, proceed with a note in the method doc comment.
 
 ### Target Methods & Refactoring Approaches
 
@@ -127,11 +186,13 @@ Estimated gap: ~0.5% line = roughly 3-5 new test cases. Do not write broad integ
 
 After Phase 1 commits land, launch a subagent to verify:
 
-1. Lizard reports no methods with CCN > 20: `lizard -C 20 -x "./Tests/*" -x "./Tools/*" -x "./bin/*" -x "./obj/*" -x "./scripts/venv/*" -x "./TestResults/*" .`
+1. Lizard reports no methods with CCN > 20: `lizard -C 20 -x "./Tests" -x "./Tools" -x "./bin" -x "./obj" -x "./scripts/venv" -x "./TestResults" .`
 2. `dotnet test` passes with no regressions
 3. Coverage at or above 42% line / 37% branch (run with `--settings .runsettings --collect:"XPlat Code Coverage"`)
 4. Each RadialExtensionAdjuster target's helpers are independent (no cross-calls between targets 3, 4, 9, 10)
 5. No C# 11+ features in any refactored code
+6. Pre-refactoring tests for Target 2 (`TryBuildEventArgs`) exist and pass — verify at least one test per category block (map tuning, pin appearance, hitbox, content window, popup style)
+7. Pre-refactoring error-path tests for Target 8 (`ReadLocationsFromExcel`) exist and pass — verify at least: missing file, empty workbook, missing column headers
 
 ---
 
@@ -146,8 +207,10 @@ Force LF line endings on hook scripts and tooling to prevent CRLF shebang breaks
 ```gitattributes
 *.sh text eol=lf
 *.ps1 text eol=lf
-scripts/*.py text eol=lf
 .githooks/* text eol=lf
+# Narrow to hook-support scripts only (not asset tooling Python files):
+scripts/verify_*.py text eol=lf
+scripts/summarize_coverage.py text eol=lf
 ```
 
 ### 2b. `Directory.Build.props` (new file, repo root)
@@ -163,81 +226,75 @@ scripts/*.py text eol=lf
 </Project>
 ```
 
-**Rollback plan:** If `latestRecommended` causes build failures that can't be quickly resolved, temporarily set `<AnalysisLevel>5.0</AnalysisLevel>` (the exact version for .NET 6 SDK) and address warnings incrementally.
+**Rollback plan:** If `latestRecommended` causes build failures that can't be quickly resolved, temporarily set `<AnalysisLevel>6.0</AnalysisLevel>` (the exact version for .NET 6 SDK) and address warnings incrementally.
 
 **Verification:** Run `dotnet build` immediately after creating this file. If `EnforceCodeStyleInBuild` causes failures from pre-existing violations, run `dotnet format` again and commit the fixes before proceeding.
 
-### 2c. `.runsettings` (new file, repo root)
+### 2c. Coverage Threshold Gating
 
-```xml
-<RunSettings>
-  <DataCollectionRunSettings>
-    <DataCollectors>
-      <DataCollector friendlyName="XPlat Code Coverage">
-        <Configuration>
-          <Exclude>[Tests]*,[ManualLayoutSeedGenerator]*,[ThumbnailTouchSmoke]*</Exclude>
-          <Include>[InteractiveWorldMap]*</Include>
-        </Configuration>
-      </DataCollector>
-    </DataCollectors>
-  </DataCollectionRunSettings>
-</RunSettings>
-```
-
-*Note: Coverlet's VSTest integration ignores threshold config in `.runsettings`. Threshold gating is handled by `summarize_coverage.py`.*
-
-### 2d. Coverage Threshold Gating
-
-Extend `scripts/summarize_coverage.py` to support `--min-line-coverage` and `--min-branch-coverage` arguments. The existing `parse_args()` has a positional `path` argument — extend it with optional threshold arguments while keeping backward compatibility.
+Extend `scripts/summarize_coverage.py` to support threshold arguments while keeping backward compatibility with the existing optional positional `path`. Also add `--results-directory` as an alias for callers that are clearer with named arguments; reject callers that pass both a positional path and `--results-directory`.
 
 ```python
 # Integration with existing parse_args():
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize Cobertura coverage output.")
     parser.add_argument("path", nargs="?", type=Path, default=REPO_ROOT / "TestResults")
+    parser.add_argument("--results-directory", type=Path, default=None)
     parser.add_argument("--min-line-coverage", type=float, default=None)
     parser.add_argument("--min-branch-coverage", type=float, default=None)
-    return parser.parse_args(argv)
+    args = parser.parse_args(argv)
+    if args.results_directory is not None and args.path != REPO_ROOT / "TestResults":
+        parser.error("pass either positional path or --results-directory, not both")
+    if args.results_directory is not None:
+        args.path = args.results_directory
+    return args
 
-# In main(), after building summary:
-def check_thresholds(args, summary: str) -> int:
-    """Parse line/branch rates from summary text and compare against thresholds."""
-    # Extract rates from the markdown summary or re-parse Cobertura XML
-    # Exit 1 if any threshold is breached
-    ...
+# In main(), after locating coverage files:
+def check_thresholds(args, paths: list[Path]) -> int:
+    """Re-parse the newest Cobertura XML and compare decimal rates to percentage thresholds."""
+    # If thresholds are supplied and no coverage file exists, exit 1.
+    # Pick the newest file by mtime so stale files from older test runs are not silently preferred.
+    # Convert XML line-rate/branch-rate from 0..1 decimals to percentages before comparing.
 ```
 
-Gate: exit code `1` if line coverage < 42% or branch coverage < 37%.
+Gate: exit code `1` if line coverage < 42% or branch coverage < 37%, or if either threshold is supplied and no Cobertura file exists.
 
-### 2e. `.githooks/pre-commit` (new file)
+### 2d. `.githooks/pre-commit` (new file)
 
 ```sh
 #!/bin/sh
 set -e
+command -v dotnet >/dev/null 2>&1 || { echo "dotnet not on PATH — skipping format check"; exit 0; }
 dotnet format InteractiveWorldMap.sln --verify-no-changes
 ```
 
-This enforces formatting only. Roslyn analyzer violations are caught by CI and by the pre-push build check (2f).
+*Note: `set -e` causes exit on any error. The `command -v` guard prevents a 127 (command not found) from being indistinguishable from a formatting violation. `exit 0` from the guard means the commit proceeds when tooling is unavailable.*
 
-### 2f. Pre-push Hook Update
+This enforces formatting only. Roslyn analyzer violations are caught by CI and by the pre-push build check (2e).
 
-Add a build check to the existing `.githooks/pre-push` hook (alongside the existing doc-link, taste, and advisory-code-health steps). This catches analyzer warnings locally without slowing down every commit:
+### 2e. Pre-push Hook Update
+
+Add `dotnet restore` + build check to the existing `.githooks/pre-push` hook (alongside the existing doc-link, taste, and advisory-code-health steps). This catches analyzer warnings locally without slowing down every commit:
 
 ```sh
 echo "Running build check..."
-dotnet build InteractiveWorldMap.sln --configuration Release --no-restore --no-incremental 2>&1
+dotnet restore InteractiveWorldMap.sln
+dotnet build InteractiveWorldMap.sln --configuration Release --no-restore --force 2>&1
 if [ $? -ne 0 ]; then
   echo "Build failed. Fix compilation errors before pushing."
   exit 1
 fi
 ```
 
-### 2g. `install_git_hooks.ps1` Update
+### 2f. `install_git_hooks.ps1` Update
 
 Keep the script focused. Add only: verify `.githooks/pre-commit` exists, verify `core.hooksPath` is set, print status. Do **not** add Git Bash `/usr/bin/sh` accessibility checks — that's a system-level concern outside this script's scope.
 
 ```powershell
 # Add after the existing core.hooksPath setup:
+if (-not (Test-Path (Join-Path $repoRoot ".githooks"))) {
+    Write-Warning ".githooks/ directory not found — hooks directory must exist"
+}
 $hooks = @("pre-push", "pre-commit")
 foreach ($hook in $hooks) {
     $path = Join-Path $repoRoot ".githooks/$hook"
@@ -255,66 +312,175 @@ if ($currentHooksPath -eq ".githooks") {
 }
 ```
 
-### 2h. CI Workflow Updates
+### 2g. CI Workflow Updates
 
 **`ci.yml`:**
 - Add `dotnet format InteractiveWorldMap.sln --verify-no-changes` step after build.
-- Add `--settings .runsettings` to `dotnet test` step.
-- Add Lizard warning + fail steps:
+- Add `--settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\ci-coverage` to the `dotnet test` step.
+- Add blocking coverage enforcement after the test step:
+  ```yaml
+  - name: Enforce coverage threshold
+    shell: pwsh
+    run: python scripts/summarize_coverage.py --results-directory TestResults/ci-coverage --min-line-coverage 42 --min-branch-coverage 37
+  ```
+- Add Lizard warning + fail steps in `ci.yml` (this is the blocking workflow):
   ```yaml
   - name: Install Lizard
-    run: pip3 install lizard
+    run: python -m pip install lizard
   - name: Lizard complexity warning
-    run: lizard -C 15 -x "./Tests/*" -x "./Tools/*" -x "./bin/*" -x "./obj/*" -x "./scripts/venv/*" -x "./TestResults/*" .
+    run: lizard -C 15 -x "./Tests" -x "./Tools" -x "./bin" -x "./obj" -x "./scripts/venv" -x "./TestResults" .
     continue-on-error: true
   - name: Lizard complexity fail
-    run: lizard -C 20 -x "./Tests/*" -x "./Tools/*" -x "./bin/*" -x "./obj/*" -x "./scripts/venv/*" -x "./TestResults/*" .
+    run: lizard -C 20 -x "./Tests" -x "./Tools" -x "./bin" -x "./obj" -x "./scripts/venv" -x "./TestResults" .
   ```
-  *Note: Lizard's `-x` uses Python `fnmatch`. `*` does **not** match `/`. `./Tests/*` only excludes files directly in `./Tests/`, not subdirectories. Use multiple `-x` entries or verify with `lizard --help` on the CI runner. If subdirectory exclusion is needed, add explicit patterns like `-x "./Tests/Architecture/*" -x "./Tests/Services/*"`.*
+  *Note: Lizard's `-x` uses Python `fnmatch`. `*` does **not** match `/`. Use directory names without trailing `/*` to exclude entire directory trees (e.g., `-x "./Tests"` excludes `./Tests/` and all subdirectories).*
 
 **`advisory-code-health.yml`:**
 - Keep job-level `continue-on-error: true` (advisory report + summary remain non-blocking).
-- Add Lizard warning step with `continue-on-error: true`.
-- Add Lizard fail step with `continue-on-error: false` (blocking).
-- Add coverage threshold enforcement with `continue-on-error: false` (blocking):
+- Use `python` (same convention as other CI workflows) instead of `python3` for consistency.
+- Add a Lizard warning step with `continue-on-error: true`.
+- Add a coverage threshold preview step with `continue-on-error: true`. This advisory job must not be described as blocking while `continue-on-error: true` remains at the job level. The real blocking coverage/Lizard gates live in `ci.yml`.
   ```yaml
-  - name: Enforce coverage threshold
-    run: python3 scripts/summarize_coverage.py --min-line-coverage 42 --min-branch-coverage 37
+  - name: Preview coverage threshold
+    run: python scripts/summarize_coverage.py --results-directory TestResults/coverage-advisory --min-line-coverage 42 --min-branch-coverage 37
+    continue-on-error: true
   ```
+### 2h. Verify Scripts Updates
 
-### 2i. Verify Scripts Updates
+**Prerequisite:** Phase 0b (create `.runsettings`) must be complete before this section's changes are applied — verify scripts reference `--settings .runsettings` and the coverage gate depends on the data collector defined there.
 
-Add new steps to the existing verify scripts. The scripts are restructured to accommodate the new steps.
+**Prerequisite:** Update `Invoke-HarnessPython` in `verify.ps1` to accept a separate `$ScriptArgs` parameter. The current function treats the entire string as a script path and cannot pass arguments.
 
-**PowerShell (`verify.ps1`)** — add after step [4/8]:
+Use PowerShell splatting for script arguments so the helper does not collapse multiple Python arguments into one string.
 
 ```powershell
-Write-Host "[4b/10] code formatting check"
+function Invoke-HarnessPython {
+    param(
+        [string]$RelativeScript,
+        [string]$ScriptArgs = ""
+    )
+    $script = Join-Path $Root $RelativeScript
+    $argList = if ($ScriptArgs) { $ScriptArgs -split ' ' } else { @() }
+    $hasPython = $null -ne (Get-Command python -ErrorAction SilentlyContinue)
+    $hasPyLauncher = $null -ne (Get-Command py -ErrorAction SilentlyContinue)
+
+    if ($hasPyLauncher) {
+        & py -3 $script @argList
+        if ($LASTEXITCODE -eq 0) { return }
+    }
+
+    if ($hasPython) {
+        & python $script @argList
+        if ($LASTEXITCODE -eq 0) { return }
+    }
+
+    if (-not $hasPython -and -not $hasPyLauncher) {
+        Write-Error "Python 3 not found. REMEDIATION: Install Python 3 or use Windows py launcher (py -3)."
+        exit 2
+    }
+
+    exit $LASTEXITCODE
+}
+```
+
+All existing call sites (`verify_nuget_vulnerabilities.py`, `verify_doc_links.py`, `verify_taste.py`) pass only a script path — the new `$ScriptArgs` parameter defaults to empty, so no breakage.
+
+**Full renumbered `verify.ps1`:**
+
+```powershell
+Write-Host "[1/10] dotnet restore"
+dotnet restore InteractiveWorldMap.sln
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[2/10] NuGet vulnerability check"
+Invoke-HarnessPython "scripts/verify_nuget_vulnerabilities.py"
+
+Write-Host "[3/10] dotnet build"
+dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[4/10] dotnet test"
+dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\verify-coverage
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[5/10] manual layout seed verification"
+& "$PSScriptRoot\verify_manual_layout_seeds.ps1"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[6/10] doc link check"
+Invoke-HarnessPython "scripts/verify_doc_links.py"
+
+Write-Host "[7/10] taste checks"
+Invoke-HarnessPython "scripts/verify_taste.py"
+
+Write-Host "[8/10] headless startup validation"
+& "$PSScriptRoot\validate_startup.ps1"
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "[9/10] code formatting check"
 dotnet format InteractiveWorldMap.sln --verify-no-changes
 if ($LASTEXITCODE -ne 0) { Write-Error "Formatting verification failed."; exit 1 }
 
-Write-Host "[4c/10] coverage threshold gate"
-Invoke-HarnessPython "scripts/summarize_coverage.py --min-line-coverage 42 --min-branch-coverage 37"
+Write-Host "[10/10] coverage threshold gate"
+Invoke-HarnessPython "scripts/summarize_coverage.py" "--results-directory TestResults\verify-coverage --min-line-coverage 42 --min-branch-coverage 37"
 if ($LASTEXITCODE -ne 0) { Write-Error "Coverage gates failed."; exit 1 }
+
+Write-Host "=== Verification PASSED ==="
 ```
 
-*Note: Steps renumber from [5/8] to [5/10] through [10/10] for the remaining steps.*
-
-**Bash (`verify.sh`)** — add conditional coverage gate (harness-only mode skips if no coverage file):
+**`verify.sh`** — correct step numbering (6 existing + 2 new = 8 total) and fix coverage file detection. Note: `verify.sh` intentionally omits the manual layout seed verification step that `verify.ps1` includes (step 5). This is the existing asymmetry — the plan preserves it without change.
 
 ```bash
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[4b/8] code formatting check"
+  echo "[1/8] dotnet restore"
+  if ! dotnet restore InteractiveWorldMap.sln; then
+    RUN_DOTNET=false
+  fi
+fi
+
+if [[ "$RUN_DOTNET" == true ]]; then
+  echo "[2/8] NuGet vulnerability check"
+  python3 scripts/verify_nuget_vulnerabilities.py
+fi
+
+if [[ "$RUN_DOTNET" == true ]]; then
+  echo "[3/8] dotnet build"
+  if ! dotnet build InteractiveWorldMap.sln --configuration Release --no-restore 2>&1; then
+    echo "WARN: dotnet build failed — WPF requires Windows Desktop SDK (windows-latest CI)." >&2
+    RUN_DOTNET=false
+  fi
+fi
+
+if [[ "$RUN_DOTNET" == true ]]; then
+  echo "[4/8] dotnet test"
+  dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults/verify-coverage
+fi
+
+if [[ "$RUN_DOTNET" == true ]]; then
+  echo "[5/8] code formatting check"
   dotnet format InteractiveWorldMap.sln --verify-no-changes
   [ $? -eq 0 ] || { echo "Formatting verification failed."; exit 1; }
 
-  echo "[4c/8] coverage threshold gate"
-  if [ -f "TestResults/coverage.cobertura.xml" ]; then
-    python3 scripts/summarize_coverage.py --min-line-coverage 42 --min-branch-coverage 37
+  echo "[6/8] coverage threshold gate"
+  COVERAGE_FILE=$(find TestResults -name "coverage.cobertura.xml" -type f 2>/dev/null | sort | tail -1)
+  if [ -n "$COVERAGE_FILE" ]; then
+    python3 scripts/summarize_coverage.py --results-directory TestResults/verify-coverage --min-line-coverage 42 --min-branch-coverage 37
     [ $? -eq 0 ] || { echo "Coverage gates failed."; exit 1; }
   else
     echo "SKIP: No coverage file found (harness-only mode)."
   fi
+fi
+
+echo "[7/8] doc link check"
+python3 scripts/verify_doc_links.py
+
+echo "[8/8] taste checks"
+python3 scripts/verify_taste.py
+
+if [[ "$RUN_DOTNET" == true ]]; then
+  echo "=== Verification PASSED (full) ==="
+else
+  echo "=== Verification PASSED (harness-only; dotnet build/test skipped) ==="
 fi
 ```
 
@@ -324,21 +490,28 @@ fi
 
 After Phase 2 commits land, launch a subagent to verify:
 
-1. `.\scripts\verify.ps1` passes on Windows (full mode with coverage)
-2. `./scripts/verify.sh` passes in harness-only mode (no coverage gate failure)
+1. `.\scripts\verify.ps1` passes on Windows (10-step version with coverage gate)
+2. `./scripts/verify.sh` passes in harness-only mode (8-step version, no coverage gate failure)
 3. `dotnet format --verify-no-changes` passes
 4. `.githooks/pre-commit` and `.githooks/pre-push` exist and are executable
 5. `git config core.hooksPath` returns `.githooks`
-6. `Directory.Build.props` exists with correct properties
+6. `Directory.Build.props` exists with `LangVersion=10.0`, `AnalysisLevel=latestRecommended`
 7. `.runsettings` exists with correct exclusion patterns
-8. CI workflows are syntactically valid YAML
+8. `Invoke-HarnessPython` accepts `$ScriptArgs` parameter
+9. Lizard patterns use directory names without `/*` (e.g., `-x "./Tests"` not `-x "./Tests/*"`)
+10. Pre-push hook includes `dotnet restore` before `dotnet build --force`
+11. `.githooks/pre-commit` has `command -v dotnet` guard (doesn't fail on missing tooling)
+12. `install_git_hooks.ps1` checks `.githooks/` directory exists before iterating hooks
+13. `verify.ps1` and `verify.sh` collect coverage during their test step and pass `--results-directory TestResults\verify-coverage` or `TestResults/verify-coverage` to the threshold gate
+14. `advisory-code-health.yml` threshold preview remains advisory (`continue-on-error: true`), and blocking coverage/Lizard enforcement is in `ci.yml`
+15. CI workflows are syntactically valid YAML
 
 ---
 
 ## Phase 3: Documentation
 
 - `CHANGELOG.md` — `[Unreleased]` entry for format enforcement, analyzers, coverage gate, Lizard CI, and complexity refactoring.
-- `scripts/README.md` — document new `summarize_coverage.py` arguments (`--min-line-coverage`, `--min-branch-coverage`, `--coverage-file`) and the updated `install_git_hooks.ps1` behavior.
+- `scripts/README.md` — document new `summarize_coverage.py` arguments (`--min-line-coverage`, `--min-branch-coverage`) and the updated `install_git_hooks.ps1` behavior.
 - `AGENTS.md` — update quick commands:
   ```markdown
   # Build and test (run before claiming work is done)
@@ -357,7 +530,7 @@ After Phase 2 commits land, launch a subagent to verify:
   dotnet format InteractiveWorldMap.sln --verify-no-changes
 
   # Coverage threshold gate
-  python3 scripts/summarize_coverage.py --min-line-coverage 42 --min-branch-coverage 37
+  python3 scripts/summarize_coverage.py --results-directory TestResults/verify-coverage --min-line-coverage 42 --min-branch-coverage 37
   ```
 
 ---
@@ -377,16 +550,19 @@ After Phase 3 commits land, launch a subagent to verify:
 
 - [ ] `dotnet format` run on entire codebase (committed before hook wiring)
 - [ ] `.\scripts\verify.ps1` passes (includes format verification and coverage thresholds)
-- [ ] `./scripts/verify.sh` passes in harness-only mode (no coverage gate failure)
+- [ ] `./scripts/verify.sh` passes in full mode when coverage is at or above threshold and skips the coverage gate only in harness-only mode where no coverage file can be generated
+- [ ] Coverage threshold failure path is proven by running `scripts/summarize_coverage.py` against a real coverage directory with thresholds above the current measured rates and confirming exit code `1`
 - [ ] `dotnet format --verify-no-changes` passes
 - [ ] `dotnet test` passes with 42%+ line / 37%+ branch coverage
 - [ ] Lizard: no methods with CCN > 20 (gated in CI/verify scripts)
 - [ ] Pre-commit hook blocks commits with formatting violations
 - [ ] Pre-push hook includes build check (catches analyzer warnings locally)
 - [ ] CI enforces: format, coverage threshold, analyzers, Lizard (warn >15, fail >20)
+- [ ] Pre-refactoring tests added for Target 2 (`TryBuildEventArgs`) — at least one test per category block
+- [ ] Pre-refactoring error-path tests added for Target 8 (`ReadLocationsFromExcel`) — missing file, empty workbook, missing columns
 - [ ] All 10 target methods reduced below CCN 15 (or as close as feasible — Target 1 spike may set limit)
 - [ ] RadialExtensionAdjuster extractions are independent (no cross-target helper calls)
-- [ ] `Directory.Build.props` with `LangVersion>10.0` and `AnalysisLevel>latestRecommended`
+- [ ] `Directory.Build.props` with `<LangVersion>10.0</LangVersion>` and `<AnalysisLevel>latestRecommended</AnalysisLevel>`
 - [ ] `.gitattributes` forces LF endings on hook scripts and tooling
 - [ ] CHANGELOG updated
 - [ ] `scripts/README.md` documents new arguments
