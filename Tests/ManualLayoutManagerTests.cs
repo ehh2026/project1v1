@@ -286,7 +286,7 @@ public class ManualLayoutManagerTests
 
             Assert.NotNull(loaded);
             var marker = Assert.Single(loaded!.Markers);
-            Assert.Equal("pin_07",                     marker.PairId);
+            Assert.Equal("pin_07", marker.PairId);
             Assert.Equal("Pins_v2/parts/pin_03_head.png", marker.HeadSourcePath);
         }
         finally

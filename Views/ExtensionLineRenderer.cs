@@ -19,15 +19,15 @@ namespace InteractiveWorldMap.Views
     /// </summary>
     public sealed class ExtensionLineRenderer : IExtensionLineRenderer
     {
-        private readonly Panel          _canvas;
-        private readonly VisualConfig   _visualConfig;
+        private readonly Panel _canvas;
+        private readonly VisualConfig _visualConfig;
         private readonly Action<string> _logInfo;
         private readonly Action<string> _logWarning;
 
-        private readonly List<Line>                       _lines            = new();
-        private readonly Dictionary<LocationMarker, Line> _markerToLine     = new();
+        private readonly List<Line> _lines = new();
+        private readonly Dictionary<LocationMarker, Line> _markerToLine = new();
         private readonly Dictionary<LocationMarker, PinExtensionLines> _markerToPinLines = new();
-        private readonly Dictionary<Line, LineStyle>      _lineStyles       = new();
+        private readonly Dictionary<Line, LineStyle> _lineStyles = new();
 
         private sealed class PinExtensionLines
         {
@@ -45,18 +45,18 @@ namespace InteractiveWorldMap.Views
         public ExtensionLineRenderer(Panel canvas, VisualConfig visualConfig,
             Action<string> logInfo, Action<string> logWarning)
         {
-            _canvas     = canvas       ?? throw new ArgumentNullException(nameof(canvas));
+            _canvas = canvas ?? throw new ArgumentNullException(nameof(canvas));
             _visualConfig = visualConfig ?? throw new ArgumentNullException(nameof(visualConfig));
-            _logInfo    = logInfo      ?? throw new ArgumentNullException(nameof(logInfo));
-            _logWarning = logWarning   ?? throw new ArgumentNullException(nameof(logWarning));
+            _logInfo = logInfo ?? throw new ArgumentNullException(nameof(logInfo));
+            _logWarning = logWarning ?? throw new ArgumentNullException(nameof(logWarning));
         }
 
         // -------------------------------------------------------------------------
         // State queries
         // -------------------------------------------------------------------------
 
-        public int  LineCount          => _lines.Count;
-        public int  MarkerMappingCount => _markerToLine.Count;
+        public int LineCount => _lines.Count;
+        public int MarkerMappingCount => _markerToLine.Count;
         public bool HasLine(LocationMarker marker) => _markerToLine.ContainsKey(marker);
 
         // -------------------------------------------------------------------------
@@ -79,15 +79,15 @@ namespace InteractiveWorldMap.Views
         // -------------------------------------------------------------------------
 
         public void Apply(
-            DenseMarkerGroup              group,
-            ViewportState                 viewport,
-            double                        containerWidth,
-            double                        containerHeight,
+            DenseMarkerGroup group,
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight,
             IReadOnlyList<LocationMarker> markers,
             Func<LocationMarker, Point, Point, bool> tryCompositePinApplier)
         {
-            bool log           = _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionCalculation;
-            int  linesBefore   = _lines.Count;
+            bool log = _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionCalculation;
+            int linesBefore = _lines.Count;
 
             if (log)
             {
@@ -115,9 +115,9 @@ namespace InteractiveWorldMap.Views
 
                 if (log)
                 {
-                    double dx           = extendedScreenPos.X - originalScreenPos.X;
-                    double dy           = extendedScreenPos.Y - originalScreenPos.Y;
-                    double length       = Math.Sqrt(dx * dx + dy * dy);
+                    double dx = extendedScreenPos.X - originalScreenPos.X;
+                    double dy = extendedScreenPos.Y - originalScreenPos.Y;
+                    double length = Math.Sqrt(dx * dx + dy * dy);
                     double angleDegrees = Math.Atan2(dx, -dy) * (180.0 / Math.PI);
                     if (angleDegrees < 0) angleDegrees += 360.0;
 
@@ -181,13 +181,13 @@ namespace InteractiveWorldMap.Views
             {
                 var connection = manualPin.GetConnectionPoint();
                 Canvas.SetLeft(marker, extendedScreenPos.X - connection.X);
-                Canvas.SetTop(marker,  extendedScreenPos.Y - connection.Y);
+                Canvas.SetTop(marker, extendedScreenPos.Y - connection.Y);
                 return;
             }
 
             // Other marker types stay center-anchored on the extension endpoint.
             Canvas.SetLeft(marker, extendedScreenPos.X - marker.Width / 2);
-            Canvas.SetTop(marker,  extendedScreenPos.Y - marker.Height / 2);
+            Canvas.SetTop(marker, extendedScreenPos.Y - marker.Height / 2);
         }
 
         // -------------------------------------------------------------------------
@@ -283,11 +283,11 @@ namespace InteractiveWorldMap.Views
 
             var newLine = new Line
             {
-                X1              = oldLine.X1,
-                Y1              = oldLine.Y1,
-                X2              = newEndpoint.X,
-                Y2              = newEndpoint.Y,
-                Stroke          = oldLine.Stroke,
+                X1 = oldLine.X1,
+                Y1 = oldLine.Y1,
+                X2 = newEndpoint.X,
+                Y2 = newEndpoint.Y,
+                Stroke = oldLine.Stroke,
                 StrokeThickness = oldLine.StrokeThickness
             };
 
@@ -390,7 +390,7 @@ namespace InteractiveWorldMap.Views
             }
 
             line.StrokeThickness = resting.StrokeThickness;
-            line.Stroke          = resting.Stroke;
+            line.Stroke = resting.Stroke;
             Panel.SetZIndex(line, resting.ZIndex);
         }
 
@@ -420,25 +420,25 @@ namespace InteractiveWorldMap.Views
 
             var outline = new Line
             {
-                X1               = start.X,
-                Y1               = start.Y,
-                X2               = end.X,
-                Y2               = end.Y,
-                Stroke           = new SolidColorBrush(outlineColor),
-                StrokeThickness  = coreWidth + (2 * outlineExtra),
-                Opacity          = 1.0,
+                X1 = start.X,
+                Y1 = start.Y,
+                X2 = end.X,
+                Y2 = end.Y,
+                Stroke = new SolidColorBrush(outlineColor),
+                StrokeThickness = coreWidth + (2 * outlineExtra),
+                Opacity = 1.0,
                 IsHitTestVisible = false
             };
 
             var core = new Line
             {
-                X1               = start.X,
-                Y1               = start.Y,
-                X2               = end.X,
-                Y2               = end.Y,
-                Stroke           = new SolidColorBrush(shaftColor),
-                StrokeThickness  = coreWidth,
-                Opacity          = 1.0,
+                X1 = start.X,
+                Y1 = start.Y,
+                X2 = end.X,
+                Y2 = end.Y,
+                Stroke = new SolidColorBrush(shaftColor),
+                StrokeThickness = coreWidth,
+                Opacity = 1.0,
                 IsHitTestVisible = false
             };
 
@@ -446,11 +446,11 @@ namespace InteractiveWorldMap.Views
             {
                 var shadow = new DropShadowEffect
                 {
-                    Color       = Colors.Black,
-                    Direction   = 270,
+                    Color = Colors.Black,
+                    Direction = 270,
                     ShadowDepth = 1,
-                    BlurRadius  = 2,
-                    Opacity     = pinConfig.ShadowOpacity
+                    BlurRadius = 2,
+                    Opacity = pinConfig.ShadowOpacity
                 };
                 outline.Effect = shadow;
                 core.Effect = shadow;
@@ -477,23 +477,23 @@ namespace InteractiveWorldMap.Views
         {
             var line = new Line
             {
-                X1              = start.X,
-                Y1              = start.Y,
-                X2              = end.X,
-                Y2              = end.Y,
-                Stroke          = new SolidColorBrush(Colors.Red),
+                X1 = start.X,
+                Y1 = start.Y,
+                X2 = end.X,
+                Y2 = end.Y,
+                Stroke = new SolidColorBrush(Colors.Red),
                 StrokeThickness = 3.0,
-                Opacity         = 1.0,
+                Opacity = 1.0,
                 IsHitTestVisible = false
             };
 
             line.Effect = new DropShadowEffect
             {
-                Color       = Colors.Black,
-                Direction   = 270,
+                Color = Colors.Black,
+                Direction = 270,
                 ShadowDepth = 1,
-                BlurRadius  = 2,
-                Opacity     = 0.3
+                BlurRadius = 2,
+                Opacity = 0.3
             };
 
             Panel.SetZIndex(line, 1000);
@@ -505,9 +505,9 @@ namespace InteractiveWorldMap.Views
         {
             _lineStyles[line] = new LineStyle
             {
-                Stroke          = line.Stroke,
+                Stroke = line.Stroke,
                 StrokeThickness = line.StrokeThickness,
-                ZIndex          = Panel.GetZIndex(line)
+                ZIndex = Panel.GetZIndex(line)
             };
         }
 
@@ -523,11 +523,11 @@ namespace InteractiveWorldMap.Views
         private void Animate(List<Line> lines)
         {
             var duration = TimeSpan.FromMilliseconds(_visualConfig.RadialExtension.ExtensionAnimationMs);
-            var easing   = new QuadraticEase { EasingMode = EasingMode.EaseOut };
+            var easing = new QuadraticEase { EasingMode = EasingMode.EaseOut };
 
             for (int i = 0; i < lines.Count; i++)
             {
-                var line    = lines[i];
+                var line = lines[i];
                 var finalX2 = line.X2;
                 var finalY2 = line.Y2;
 
@@ -538,19 +538,19 @@ namespace InteractiveWorldMap.Views
 
                 var animX2 = new DoubleAnimation
                 {
-                    From          = line.X1,
-                    To            = finalX2,
-                    Duration      = duration,
+                    From = line.X1,
+                    To = finalX2,
+                    Duration = duration,
                     EasingFunction = easing,
-                    BeginTime     = delay
+                    BeginTime = delay
                 };
                 var animY2 = new DoubleAnimation
                 {
-                    From          = line.Y1,
-                    To            = finalY2,
-                    Duration      = duration,
+                    From = line.Y1,
+                    To = finalY2,
+                    Duration = duration,
                     EasingFunction = easing,
-                    BeginTime     = delay
+                    BeginTime = delay
                 };
 
                 line.BeginAnimation(Line.X2Property, animX2);

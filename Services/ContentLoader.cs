@@ -159,7 +159,7 @@ public class ContentLoader : IContentLoader
         try
         {
             var mapPath = GetWorldMapPath();
-            
+
             if (!File.Exists(mapPath))
             {
                 _logger.LogError($"World map image not found at: {mapPath}");
@@ -189,9 +189,9 @@ public class ContentLoader : IContentLoader
         try
         {
             _logger.LogInfo("Loading and clustering locations");
-            
+
             var locations = await LoadLocationsAsync();
-            
+
             if (!locations.Any())
             {
                 _logger.LogWarning("No locations to cluster");
@@ -206,13 +206,13 @@ public class ContentLoader : IContentLoader
             // Compute clusters and save to cache
             var clusters = _clusterer.ClusterLocations(locations);
             var stats = _clusterer.GetClusteringStats(clusters);
-            
+
             _logger.LogInfo($"Clustering complete: {stats.TotalClusters} clusters " +
                           $"({stats.SingleLocationClusters} single, {stats.MultiLocationClusters} multi) " +
                           $"from {stats.TotalLocations} locations");
 
             _clusterCache.Save(locations, clusters, ClusterDistanceThreshold);
-            
+
             return clusters;
         }
         catch (Exception ex)
@@ -234,13 +234,13 @@ public class ContentLoader : IContentLoader
             var excelPath = ExcelCoordinateFilePath
                 ?? Path.Combine(ActiveContentSetPath, ContentFileNames.ExcelCoordinateFileName);
             _logger.LogInfo($"Checking for Excel file at: {excelPath}");
-            
+
             if (File.Exists(excelPath))
             {
                 _logger.LogInfo("Excel file found, attempting to load locations from Excel");
                 var reader = new ExcelCoordinateReader(_logger);
                 var locationsFromExcel = reader.ReadLocationsFromExcel(excelPath);
-                
+
                 if (locationsFromExcel.Any())
                 {
                     _logger.LogInfo($"Successfully loaded {locationsFromExcel.Count} locations from Excel");
@@ -260,7 +260,7 @@ public class ContentLoader : IContentLoader
             // Fall back to locations.json
             var locationsPath = Path.Combine(ActiveContentSetPath, ContentFileNames.LocationsJsonFileName);
             _logger.LogInfo($"Checking for locations.json at: {locationsPath}");
-            
+
             if (!File.Exists(locationsPath))
             {
                 _logger.LogWarning($"Neither Excel file nor locations.json found");
@@ -270,7 +270,7 @@ public class ContentLoader : IContentLoader
             _logger.LogInfo("Loading locations from locations.json");
             var json = await File.ReadAllTextAsync(locationsPath);
             var locations = JsonConvert.DeserializeObject<List<Location>>(json);
-            
+
             if (locations == null || !locations.Any())
             {
                 _logger.LogWarning("No locations found in locations.json");
@@ -317,7 +317,7 @@ public class ContentLoader : IContentLoader
 
             var results = new List<(BitmapImage Image, string? TranslationText, string? CaptionText)>();
             var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
-            
+
             for (int i = 0; i < imageFiles.Length; i++)
             {
                 var imagePath = imageFiles[i];
@@ -331,7 +331,7 @@ public class ContentLoader : IContentLoader
                     _logger.LogWarning($"Missing image file for location {location.Name}: {imagePath}");
                     continue;
                 }
-                
+
                 BitmapImage image;
                 try
                 {
@@ -407,7 +407,7 @@ public class ContentLoader : IContentLoader
 
             // Look for content in a subfolder named after the location
             var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
-            
+
             if (!Directory.Exists(locationFolder))
             {
                 _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");

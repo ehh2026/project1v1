@@ -13,7 +13,7 @@ public partial class DidacticTextWindow : Window
     public DidacticTextWindow()
     {
         InitializeComponent();
-        
+
         // Start with opacity 0 for animation
         Opacity = 0;
     }
@@ -62,17 +62,17 @@ public partial class DidacticTextWindow : Window
         // Position to the left of the content window
         Left = contentWindow.Left - Width - 10;
         Top = contentWindow.Top;
-        
+
         // Ensure it stays on screen
         if (Left < 0)
         {
             // If it doesn't fit on the left, put it on the right of the main window
             Left = contentWindow.Left + contentWindow.Width + 10;
         }
-        
+
         // Ensure minimum left position
         Left = Math.Max(0, Left);
-        
+
         // Ensure the window doesn't go off the bottom of the screen
         var screenHeight = SystemParameters.PrimaryScreenHeight;
         if (Top + Height > screenHeight)
@@ -108,13 +108,13 @@ public partial class DidacticTextWindow : Window
             To = 0,
             Duration = duration
         };
-        
+
         fadeOut.Completed += (s, e) =>
         {
             Close();
             onComplete?.Invoke();
         };
-        
+
         BeginAnimation(OpacityProperty, fadeOut);
     }
 }

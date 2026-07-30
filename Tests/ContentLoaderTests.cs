@@ -559,7 +559,7 @@ public class ContentLoaderTests
         {
             var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var relativePath = "Pins_v2/parts/pin_part_geometry.json";
-            
+
             // Write a dummy file under Assets/Pins_v2/parts
             var fullPath = Path.Combine(tempDir, ContentFileNames.AssetsFolderName, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
@@ -579,7 +579,7 @@ public class ContentLoaderTests
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-stable-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
-        
+
         try
         {
             var demoDir = Path.Combine(tempDir, ContentFileNames.DemoContentFolderName);
@@ -608,7 +608,7 @@ public class ContentLoaderTests
         // Legacy root lacks coordinate source
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-empty-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
-        
+
         try
         {
             // Include map under Assets
@@ -617,7 +617,7 @@ public class ContentLoaderTests
             File.WriteAllText(Path.Combine(assetsDir, ContentFileNames.WorldMapFileName), "fake");
 
             var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
-            
+
             // Should fail validation because there is no locations.json or Excel in active set (resolved to Legacy here)
             Assert.False(loader.ValidateContentFolder());
         }

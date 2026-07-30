@@ -20,13 +20,13 @@ public class AnimationFrameCache
     public AnimationFrameCache(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        
+
         // Store cache in AppData
         var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         _cacheDirectory = Path.Combine(appDataPath, "InteractiveWorldMap", "frame_cache");
-        
+
         Directory.CreateDirectory(_cacheDirectory);
-        
+
         // Check cache version and clear if outdated
         ValidateCacheVersion();
     }
@@ -37,7 +37,7 @@ public class AnimationFrameCache
     private void ValidateCacheVersion()
     {
         var versionFile = Path.Combine(_cacheDirectory, "cache_version.txt");
-        
+
         try
         {
             if (File.Exists(versionFile))
@@ -55,7 +55,7 @@ public class AnimationFrameCache
                 _logger.LogInfo("First run with cache versioning. Cleaning up old cache files.");
                 CleanupOldCacheFiles();
             }
-            
+
             // Write current version
             File.WriteAllText(versionFile, CacheVersion.ToString());
         }
@@ -110,7 +110,7 @@ public class AnimationFrameCache
         var key = $"v{CacheVersion}_{startX:F1}_{startY:F1}_{startW:F1}_{startH:F1}_" +
                   $"{endX:F1}_{endY:F1}_{endW:F1}_{endH:F1}_" +
                   $"{displayWidth}x{displayHeight}_f{frameIndex}";
-        
+
         // Hash to keep filename reasonable
         using var sha = SHA256.Create();
         var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(key));

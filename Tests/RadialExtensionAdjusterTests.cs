@@ -27,9 +27,9 @@ public class RadialExtensionAdjusterTests
         Point origin, double length) =>
         new()
         {
-            Location         = new Location { Name = name },
-            Angle            = angle,
-            GroupId          = groupId,
+            Location = new Location { Name = name },
+            Angle = angle,
+            GroupId = groupId,
             OriginalPosition = origin,
             ExtendedPosition = new Point(
                 origin.X + length * Math.Sin(angle * Math.PI / 180.0),
@@ -76,7 +76,7 @@ public class RadialExtensionAdjusterTests
     {
         var ext = MakeExt("A", 45.0, 1, new Point(500, 500), 40.0);
         double originalAngle = ext.Angle;
-        Point  originalPos   = ext.ExtendedPosition;
+        Point originalPos = ext.ExtendedPosition;
 
         NewAdjuster().AdjustExtensions(new List<RadialExtension> { ext }, 12.0);
 
@@ -92,8 +92,8 @@ public class RadialExtensionAdjusterTests
     public void AdjustExtensions_SameGroupIdenticalAngles_AnglesGetSeparated()
     {
         var origin = new Point(500, 500);
-        var ext1   = MakeExt("A", 45.0, 1, origin, 40.0);
-        var ext2   = MakeExt("B", 45.0, 1, origin, 40.0);
+        var ext1 = MakeExt("A", 45.0, 1, origin, 40.0);
+        var ext2 = MakeExt("B", 45.0, 1, origin, 40.0);
 
         NewAdjuster().AdjustExtensions(new List<RadialExtension> { ext1, ext2 }, 12.0);
 
@@ -107,12 +107,12 @@ public class RadialExtensionAdjusterTests
     {
         var origin = new Point(500, 500);
         // 90° gap — far above AngleNudgeThreshold (2°)
-        var ext1 = MakeExt("A",  0.0, 1, origin, 40.0);
+        var ext1 = MakeExt("A", 0.0, 1, origin, 40.0);
         var ext2 = MakeExt("B", 90.0, 1, origin, 40.0);
 
         NewAdjuster().AdjustExtensions(new List<RadialExtension> { ext1, ext2 }, 12.0);
 
-        Assert.Equal( 0.0, ext1.Angle, 6);
+        Assert.Equal(0.0, ext1.Angle, 6);
         Assert.Equal(90.0, ext2.Angle, 6);
     }
 
@@ -120,10 +120,10 @@ public class RadialExtensionAdjusterTests
     public void AdjustExtensions_SameGroupThreeIdenticalAngles_AllAnglesDiffer()
     {
         var origin = new Point(500, 500);
-        var ext1   = MakeExt("A", 0.0, 1, origin, 40.0);
-        var ext2   = MakeExt("B", 0.0, 1, origin, 40.0);
-        var ext3   = MakeExt("C", 0.0, 1, origin, 40.0);
-        var list   = new List<RadialExtension> { ext1, ext2, ext3 };
+        var ext1 = MakeExt("A", 0.0, 1, origin, 40.0);
+        var ext2 = MakeExt("B", 0.0, 1, origin, 40.0);
+        var ext3 = MakeExt("C", 0.0, 1, origin, 40.0);
+        var list = new List<RadialExtension> { ext1, ext2, ext3 };
 
         NewAdjuster().AdjustExtensions(list, 12.0);
 
@@ -146,19 +146,21 @@ public class RadialExtensionAdjusterTests
         // The lines are collinear, so no intersection or proximity issues are triggered;
         // only AdjustPositionsAcrossExtensions fires and separates the tips.
         double markerSize = 12.0;
-        double minGap     = markerSize * 2.5; // 30 px
+        double minGap = markerSize * 2.5; // 30 px
 
         var ext1 = new RadialExtension
         {
-            Location         = new Location { Name = "A" }, GroupId = 1,
-            Angle            = 90.0,
+            Location = new Location { Name = "A" },
+            GroupId = 1,
+            Angle = 90.0,
             OriginalPosition = new Point(100, 500),
             ExtendedPosition = new Point(300, 500)  // 200 px east of origin
         };
         var ext2 = new RadialExtension
         {
-            Location         = new Location { Name = "B" }, GroupId = 2,
-            Angle            = 270.0,
+            Location = new Location { Name = "B" },
+            GroupId = 2,
+            Angle = 270.0,
             OriginalPosition = new Point(500, 500),
             ExtendedPosition = new Point(300, 500)  // 200 px west of origin — same tip
         };
@@ -196,15 +198,17 @@ public class RadialExtensionAdjusterTests
         // ext1: (490,500)→(520,470), ext2: (510,500)→(480,470)
         var ext1 = new RadialExtension
         {
-            Location         = new Location { Name = "A" }, GroupId = 1,
-            Angle            = 45.0,
+            Location = new Location { Name = "A" },
+            GroupId = 1,
+            Angle = 45.0,
             OriginalPosition = new Point(490, 500),
             ExtendedPosition = new Point(520, 470)
         };
         var ext2 = new RadialExtension
         {
-            Location         = new Location { Name = "B" }, GroupId = 2,
-            Angle            = 315.0,
+            Location = new Location { Name = "B" },
+            GroupId = 2,
+            Angle = 315.0,
             OriginalPosition = new Point(510, 500),
             ExtendedPosition = new Point(480, 470)
         };
@@ -241,24 +245,24 @@ public class RadialExtensionAdjusterTests
     {
         var origin = new Point(500, 500);
         // Opposite angles — well separated, no intersections possible
-        var ext1 = MakeExt("A",   0.0, 1, origin, 40.0);
+        var ext1 = MakeExt("A", 0.0, 1, origin, 40.0);
         var ext2 = MakeExt("B", 180.0, 1, origin, 40.0);
-        var list  = new List<RadialExtension> { ext1, ext2 };
+        var list = new List<RadialExtension> { ext1, ext2 };
 
         var adjuster = NewAdjuster();
         adjuster.AdjustExtensions(list, 12.0);
 
         double angle1After = ext1.Angle;
         double angle2After = ext2.Angle;
-        Point  pos1After   = ext1.ExtendedPosition;
-        Point  pos2After   = ext2.ExtendedPosition;
+        Point pos1After = ext1.ExtendedPosition;
+        Point pos2After = ext2.ExtendedPosition;
 
         adjuster.AdjustExtensions(list, 12.0);
 
         Assert.Equal(angle1After, ext1.Angle, 6);
         Assert.Equal(angle2After, ext2.Angle, 6);
-        Assert.Equal(pos1After,   ext1.ExtendedPosition);
-        Assert.Equal(pos2After,   ext2.ExtendedPosition);
+        Assert.Equal(pos1After, ext1.ExtendedPosition);
+        Assert.Equal(pos2After, ext2.ExtendedPosition);
     }
 
     // -------------------------------------------------------------------------
@@ -268,7 +272,7 @@ public class RadialExtensionAdjusterTests
     [Fact]
     public void AdjustExtensions_Always_LogsIterationProgress()
     {
-        var logger  = NewLogger();
+        var logger = NewLogger();
         var adjuster = new RadialExtensionAdjuster(logger, MakeConfig());
         var ext = MakeExt("A", 0.0, 1, new Point(500, 500), 40.0);
 

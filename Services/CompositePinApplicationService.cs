@@ -23,7 +23,7 @@ namespace InteractiveWorldMap.Services
             CompositePinPlanCache planCache,
             CompositePinPlanningService planningService)
         {
-            _planCache       = planCache;
+            _planCache = planCache;
             _planningService = planningService;
         }
 
@@ -44,9 +44,9 @@ namespace InteractiveWorldMap.Services
             string absoluteGeometryPath,
             out string cacheKey)
         {
-            var layoutHash   = CompositePinLayoutContentHasher.ComputeLayoutContentHash(layout.Markers);
+            var layoutHash = CompositePinLayoutContentHasher.ComputeLayoutContentHash(layout.Markers);
             var geometryHash = CompositePinLayoutContentHasher.ComputeGeometryHash(absoluteGeometryPath);
-            var configHash   = CompositePinLayoutContentHasher.ComputeConfigHash(config);
+            var configHash = CompositePinLayoutContentHasher.ComputeConfigHash(config);
 
             cacheKey = _planCache.ComputeCacheKey(groupKey, layout.VariantId, layoutHash, geometryHash, configHash);
 
@@ -118,70 +118,147 @@ namespace InteractiveWorldMap.Services
 
             foreach (var application in applications)
             {
-                (double PixelX, double PixelY) source = default;
-                bool haveSource = hasViewport
-                    && markerSourceCoords.TryGetValue(application.LocationName, out source);
-
-                Point originalPos = haveSource
-                    ? viewport!.SourceToScreen(
-                        source.PixelX, source.PixelY, containerWidth, containerHeight)
-                    : application.OriginalPosition;
-
-                Point extendedPos;
-                if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue && haveSource)
-                {
-                    // The tip (originalPos) tracks the map at the current zoom, but the shaft must keep a
-                    // constant screen-space length. Projecting the source-space head through the current
-                    // (zoomed) viewport made the tip→head gap grow with the zoom factor. Instead, measure
-                    // the head offset at the full-map reference scale: this is zoom-invariant yet still
-                    // resize-aware (the full-map viewport's fit scale tracks the window). Falls back to the
-                    // current viewport when no full-map reference is supplied.
-                    var refViewport = fullMapViewport ?? viewport!;
-                    var refAnchor = refViewport.SourceToScreen(
-                        source.PixelX, source.PixelY, containerWidth, containerHeight);
-                    var refHead = refViewport.SourceToScreen(
-                        application.SourceExtendedX.Value,
-                        application.SourceExtendedY.Value,
-                        containerWidth,
-                        containerHeight);
-                    extendedPos = new Point(
-                        originalPos.X + (refHead.X - refAnchor.X),
-                        originalPos.Y + (refHead.Y - refAnchor.Y));
-                }
-                else
-                {
-                    var rad = application.Angle * Math.PI / 180.0;
-                    extendedPos = new Point(
-                        originalPos.X + application.LineLength * Math.Sin(rad),
-                        originalPos.Y - application.LineLength * Math.Cos(rad));
-                }
-
-                CompositePinRenderPlan? cachedPlan = null;
-                if (cachedPlans != null
-                    && cachedPlans.TryGetValue(application.LocationName, out var plan))
-                {
-                    cachedPlan = plan;
-                }
-
-                var requiresExtensionLine =
-                    ManualLayoutPlacementPolicy.RequiresExtensionLine(originalPos, extendedPos);
-
-                instructions.Add(new ManualLayoutApplyInstruction(
-                    application.LocationName,
-                    originalPos,
-                    extendedPos,
-                    requiresExtensionLine,
-                    application.PairId,
-                    application.HeadSourcePath,
-                    cachedPlan));
+                instructions.Add(BuildInstruction(
+                    application,
+                    markerSourceCoords,
+                    viewport,
+                    fullMapViewport,
+                    containerWidth,
+                    containerHeight,
+                    hasViewport,
+                    cachedPlans));
             }
 
             return new ManualLayoutApplyResult
             {
-                Instructions      = instructions,
-                CacheKey          = cacheKey,
+                Instructions = instructions,
+                CacheKey = cacheKey,
                 ShouldSaveToCache = cacheAttempted && cachedPlans == null && !string.IsNullOrEmpty(cacheKey)
             };
+        }
+
+        private static ManualLayoutApplyInstruction BuildInstruction(
+            LayoutEditorController.LayoutMarkerApplication application,
+            IReadOnlyDictionary<string, (double PixelX, double PixelY)> markerSourceCoords,
+            ViewportState? viewport,
+            ViewportState? fullMapViewport,
+            double containerWidth,
+            double containerHeight,
+            bool hasViewport,
+            IReadOnlyDictionary<string, CompositePinRenderPlan>? cachedPlans)
+        {
+            (double PixelX, double PixelY) source = default;
+            bool haveSource = hasViewport
+                && markerSourceCoords.TryGetValue(application.LocationName, out source);
+
+            var originalPos = ResolveOriginalPosition(
+                application,
+                viewport,
+                containerWidth,
+                containerHeight,
+                haveSource,
+                source);
+            var extendedPos = ResolveExtendedPosition(
+                application,
+                viewport,
+                fullMapViewport,
+                containerWidth,
+                containerHeight,
+                haveSource,
+                source,
+                originalPos);
+            var requiresExtensionLine =
+                ManualLayoutPlacementPolicy.RequiresExtensionLine(originalPos, extendedPos);
+
+            return new ManualLayoutApplyInstruction(
+                application.LocationName,
+                originalPos,
+                extendedPos,
+                requiresExtensionLine,
+                application.PairId,
+                application.HeadSourcePath,
+                ResolveCachedPlan(cachedPlans, application.LocationName));
+        }
+
+        private static Point ResolveOriginalPosition(
+            LayoutEditorController.LayoutMarkerApplication application,
+            ViewportState? viewport,
+            double containerWidth,
+            double containerHeight,
+            bool haveSource,
+            (double PixelX, double PixelY) source)
+        {
+            return haveSource
+                ? viewport!.SourceToScreen(source.PixelX, source.PixelY, containerWidth, containerHeight)
+                : application.OriginalPosition;
+        }
+
+        private static Point ResolveExtendedPosition(
+            LayoutEditorController.LayoutMarkerApplication application,
+            ViewportState? viewport,
+            ViewportState? fullMapViewport,
+            double containerWidth,
+            double containerHeight,
+            bool haveSource,
+            (double PixelX, double PixelY) source,
+            Point originalPos)
+        {
+            if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue && haveSource)
+            {
+                return ProjectSourceExtendedPosition(
+                    application,
+                    viewport,
+                    fullMapViewport,
+                    containerWidth,
+                    containerHeight,
+                    source,
+                    originalPos);
+            }
+
+            return ProjectAngledExtendedPosition(application, originalPos);
+        }
+
+        private static Point ProjectSourceExtendedPosition(
+            LayoutEditorController.LayoutMarkerApplication application,
+            ViewportState? viewport,
+            ViewportState? fullMapViewport,
+            double containerWidth,
+            double containerHeight,
+            (double PixelX, double PixelY) source,
+            Point originalPos)
+        {
+            // Keep the head offset at the full-map reference scale so zoom replay preserves screen length.
+            var refViewport = fullMapViewport ?? viewport!;
+            var refAnchor = refViewport.SourceToScreen(
+                source.PixelX, source.PixelY, containerWidth, containerHeight);
+            var refHead = refViewport.SourceToScreen(
+                application.SourceExtendedX!.Value,
+                application.SourceExtendedY!.Value,
+                containerWidth,
+                containerHeight);
+
+            return new Point(
+                originalPos.X + (refHead.X - refAnchor.X),
+                originalPos.Y + (refHead.Y - refAnchor.Y));
+        }
+
+        private static Point ProjectAngledExtendedPosition(
+            LayoutEditorController.LayoutMarkerApplication application,
+            Point originalPos)
+        {
+            var rad = application.Angle * Math.PI / 180.0;
+            return new Point(
+                originalPos.X + application.LineLength * Math.Sin(rad),
+                originalPos.Y - application.LineLength * Math.Cos(rad));
+        }
+
+        private static CompositePinRenderPlan? ResolveCachedPlan(
+            IReadOnlyDictionary<string, CompositePinRenderPlan>? cachedPlans,
+            string locationName)
+        {
+            return cachedPlans != null && cachedPlans.TryGetValue(locationName, out var plan)
+                ? plan
+                : null;
         }
     }
 }

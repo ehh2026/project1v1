@@ -49,10 +49,10 @@ public partial class LocationMarker : UserControl
         if (markerConfiguration == null) throw new ArgumentNullException(nameof(markerConfiguration));
 
         InitializeComponent();
-        
+
         Width = markerConfiguration.LocationMarkerSize;
         Height = markerConfiguration.LocationMarkerSize;
-        
+
         // Wire up mouse events
         MouseEnter += (s, e) => IsHovered = true;
         MouseLeave += (s, e) => IsHovered = false;
@@ -111,7 +111,7 @@ public partial class LocationMarker : UserControl
 
         Storyboard.SetTarget(scaleUpX, MarkerScale);
         Storyboard.SetTargetProperty(scaleUpX, new PropertyPath(System.Windows.Media.ScaleTransform.ScaleXProperty));
-        
+
         Storyboard.SetTarget(scaleUpY, MarkerScale);
         Storyboard.SetTargetProperty(scaleUpY, new PropertyPath(System.Windows.Media.ScaleTransform.ScaleYProperty));
 

@@ -70,7 +70,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void ListVariants_ReturnsAllVariantsWithCorrectFields()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -93,7 +93,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void SaveVariant_SaveAsNewName_CreatesDistinctVariant()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -119,7 +119,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void SetSelectedVariantId_SelectVariantB_LoadLayoutReturnsVariantB()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -145,7 +145,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void SelectedVariant_PersistsAcrossManagerInstances()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -172,7 +172,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void LoadLayout_StaleSelectedVariantId_FallsBackToPreferred()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -226,7 +226,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void DeleteVariant_DeletesSelectedVariant_SelectionMovesToNextPreferred()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -255,7 +255,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void DeleteVariant_LastVariantInGroup_ReturnsFalse()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -278,7 +278,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void SaveVariant_AutoSeedDoesNotOverwriteManualVariantWithSameId()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
@@ -309,12 +309,12 @@ public class ManualLayoutVariantTests
     [Fact]
     public void SaveVariant_WithAssignments_AssignmentFieldsRoundTrip()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try
         {
-            var mgr         = CreateManager(path);
+            var mgr = CreateManager(path);
             var assignments = new Dictionary<string, (string PairId, string HeadSourcePath)>
             {
                 ["Alpha"] = ("pin_07", "Pins_v2/parts/pin_03_head.png")
@@ -325,7 +325,7 @@ public class ManualLayoutVariantTests
 
             var loaded = mgr.LoadVariant(GroupKey, "v-assign");
             Assert.NotNull(loaded);
-            Assert.Equal("pin_07",                        loaded!.Markers[0].PairId);
+            Assert.Equal("pin_07", loaded!.Markers[0].PairId);
             Assert.Equal("Pins_v2/parts/pin_03_head.png", loaded.Markers[0].HeadSourcePath);
         }
         finally { if (Directory.Exists(dir)) Directory.Delete(dir, true); }
@@ -336,7 +336,7 @@ public class ManualLayoutVariantTests
     [Fact]
     public void SaveVariant_ExceedsManualCap_ReturnsFalse()
     {
-        var dir  = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
+        var dir = Path.Combine(Path.GetTempPath(), "iwm-v-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, "ml.json");
         try

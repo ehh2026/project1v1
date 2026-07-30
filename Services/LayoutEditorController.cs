@@ -16,14 +16,14 @@ namespace InteractiveWorldMap.Services;
 public sealed class LayoutEditorController
 {
     private readonly IManualLayoutManager _layoutManager;
-    private readonly VisualConfig        _visualConfig;
-    private readonly ILogger             _logger;
+    private readonly VisualConfig _visualConfig;
+    private readonly ILogger _logger;
 
     // ─── Observable state ────────────────────────────────────────────────────
 
-    public bool    IsEditMode           { get; private set; }
-    public bool    IsManualLayoutActive { get; private set; }
-    public string? CurrentLayoutKey     { get; private set; }
+    public bool IsEditMode { get; private set; }
+    public bool IsManualLayoutActive { get; private set; }
+    public string? CurrentLayoutKey { get; private set; }
 
     /// <summary>
     /// True when the user has unloaded the saved layout for this session (see
@@ -31,14 +31,14 @@ public sealed class LayoutEditorController
     /// pins stay at their auto-placed positions. Session-scoped: cleared whenever a layout next
     /// becomes active (re-edit) and not persisted, so a restart restores normal auto-apply.
     /// </summary>
-    public bool    IsManualLayoutSuppressed { get; private set; }
+    public bool IsManualLayoutSuppressed { get; private set; }
 
     /// <summary>VariantId of the variant that is currently loaded into the editor.</summary>
-    public string?             ActiveVariantId      { get; private set; }
+    public string? ActiveVariantId { get; private set; }
     /// <summary>Origin of the currently-active variant (null when no variant is loaded).</summary>
-    public ManualLayoutOrigin? ActiveVariantOrigin  { get; private set; }
+    public ManualLayoutOrigin? ActiveVariantOrigin { get; private set; }
     /// <summary>Display name of the currently-active variant.</summary>
-    public string?             ActiveVariantDisplayName { get; private set; }
+    public string? ActiveVariantDisplayName { get; private set; }
 
     public sealed record LayoutMarkerApplication(
         string LocationName,
@@ -76,12 +76,12 @@ public sealed class LayoutEditorController
 
     public LayoutEditorController(
         IManualLayoutManager layoutManager,
-        VisualConfig        visualConfig,
-        ILogger             logger)
+        VisualConfig visualConfig,
+        ILogger logger)
     {
         _layoutManager = layoutManager ?? throw new ArgumentNullException(nameof(layoutManager));
-        _visualConfig  = visualConfig  ?? throw new ArgumentNullException(nameof(visualConfig));
-        _logger        = logger        ?? throw new ArgumentNullException(nameof(logger));
+        _visualConfig = visualConfig ?? throw new ArgumentNullException(nameof(visualConfig));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 
     // ─── State transitions ───────────────────────────────────────────────────
@@ -103,8 +103,8 @@ public sealed class LayoutEditorController
         CurrentLayoutKey = key;
         if (key == null)
         {
-            ActiveVariantId          = null;
-            ActiveVariantOrigin      = null;
+            ActiveVariantId = null;
+            ActiveVariantOrigin = null;
             ActiveVariantDisplayName = null;
         }
     }
@@ -140,8 +140,8 @@ public sealed class LayoutEditorController
         var layout = _layoutManager.LoadLayout(key);
         if (layout != null)
         {
-            ActiveVariantId          = layout.VariantId;
-            ActiveVariantOrigin      = layout.Origin;
+            ActiveVariantId = layout.VariantId;
+            ActiveVariantOrigin = layout.Origin;
             ActiveVariantDisplayName = layout.DisplayName;
         }
         return layout;
@@ -157,8 +157,8 @@ public sealed class LayoutEditorController
         var layout = _layoutManager.LoadVariant(CurrentLayoutKey, variantId);
         if (layout == null) return null;
         _layoutManager.SetSelectedVariantId(CurrentLayoutKey, variantId);
-        ActiveVariantId          = variantId;
-        ActiveVariantOrigin      = layout.Origin;
+        ActiveVariantId = variantId;
+        ActiveVariantOrigin = layout.Origin;
         ActiveVariantDisplayName = layout.DisplayName;
         return layout;
     }
@@ -207,10 +207,10 @@ public sealed class LayoutEditorController
             {
                 SourceExtendedX = layoutMarker.SourceExtendedX,
                 SourceExtendedY = layoutMarker.SourceExtendedY,
-                Angle           = layoutMarker.Angle,
-                LineLength      = layoutMarker.LineLength,
-                PairId          = layoutMarker.PairId,
-                HeadSourcePath  = layoutMarker.HeadSourcePath
+                Angle = layoutMarker.Angle,
+                LineLength = layoutMarker.LineLength,
+                PairId = layoutMarker.PairId,
+                HeadSourcePath = layoutMarker.HeadSourcePath
             });
 
             _logger.LogInfo($"  Applied layout for: {layoutMarker.LocationName}");
@@ -231,16 +231,16 @@ public sealed class LayoutEditorController
         var extensions = new List<RadialExtension>();
         foreach (var (location, markerCenter, originalScreen) in markerData)
         {
-            double dx    = markerCenter.X - originalScreen.X;
-            double dy    = markerCenter.Y - originalScreen.Y;
+            double dx = markerCenter.X - originalScreen.X;
+            double dy = markerCenter.Y - originalScreen.Y;
             double angle = Math.Atan2(dx, -dy) * (180.0 / Math.PI);
             extensions.Add(new RadialExtension
             {
-                Location         = location,
+                Location = location,
                 OriginalPosition = originalScreen,
                 ExtendedPosition = markerCenter,
-                Angle            = angle,
-                GroupId          = 0
+                Angle = angle,
+                GroupId = 0
             });
         }
         return extensions;
@@ -254,7 +254,7 @@ public sealed class LayoutEditorController
     {
         if (extensions == null) throw new ArgumentNullException(nameof(extensions));
 
-        var issues       = new List<string>();
+        var issues = new List<string>();
         var markerRadius = _visualConfig.LocationMarkerSize / 2.0;
 
         for (int i = 0; i < extensions.Count; i++)
@@ -279,8 +279,8 @@ public sealed class LayoutEditorController
                         e1.ExtendedPosition, markerRadius))
                     issues.Add($"Line too close to marker: {e2.Location.Name} → {e1.Location.Name}");
 
-                double dx       = e1.ExtendedPosition.X - e2.ExtendedPosition.X;
-                double dy       = e1.ExtendedPosition.Y - e2.ExtendedPosition.Y;
+                double dx = e1.ExtendedPosition.X - e2.ExtendedPosition.X;
+                double dy = e1.ExtendedPosition.Y - e2.ExtendedPosition.Y;
                 double distance = Math.Sqrt(dx * dx + dy * dy);
                 if (distance < _visualConfig.LocationMarkerSize)
                     issues.Add($"Markers overlap: {e1.Location.Name} ↔ {e2.Location.Name} ({distance:F1}px apart)");
@@ -305,15 +305,15 @@ public sealed class LayoutEditorController
             return false;
         }
 
-        string targetVariantId   = "manual-default";
+        string targetVariantId = "manual-default";
         string targetDisplayName = "Manual Layout";
-        bool   setAsDefault      = true;
+        bool setAsDefault = true;
 
         if (!string.IsNullOrEmpty(ActiveVariantId) && ActiveVariantOrigin == ManualLayoutOrigin.Manual)
         {
-            targetVariantId   = ActiveVariantId;
+            targetVariantId = ActiveVariantId;
             targetDisplayName = ActiveVariantDisplayName ?? "Manual Layout";
-            setAsDefault      = targetVariantId == "manual-default";
+            setAsDefault = targetVariantId == "manual-default";
         }
 
         bool ok = _layoutManager.SaveVariant(CurrentLayoutKey, targetVariantId, targetDisplayName,
@@ -321,8 +321,8 @@ public sealed class LayoutEditorController
             setAsDefault: setAsDefault, setAsSelected: true);
         if (ok)
         {
-            ActiveVariantId          = targetVariantId;
-            ActiveVariantOrigin      = ManualLayoutOrigin.Manual;
+            ActiveVariantId = targetVariantId;
+            ActiveVariantOrigin = ManualLayoutOrigin.Manual;
             ActiveVariantDisplayName = targetDisplayName;
             SetManualLayoutActive(true);
             NotifyVariantsChanged();
@@ -347,16 +347,16 @@ public sealed class LayoutEditorController
         }
         if (string.IsNullOrWhiteSpace(displayName)) return false;
 
-        var variantId    = MakeVariantId(displayName);
-        var basedOnId    = ActiveVariantId;
+        var variantId = MakeVariantId(displayName);
+        var basedOnId = ActiveVariantId;
 
         bool ok = _layoutManager.SaveVariant(CurrentLayoutKey, variantId, displayName,
             ManualLayoutOrigin.Manual, extensions, assignments,
             setAsDefault: false, setAsSelected: true, basedOnVariantId: basedOnId);
         if (ok)
         {
-            ActiveVariantId          = variantId;
-            ActiveVariantOrigin      = ManualLayoutOrigin.Manual;
+            ActiveVariantId = variantId;
+            ActiveVariantOrigin = ManualLayoutOrigin.Manual;
             ActiveVariantDisplayName = displayName;
             SetManualLayoutActive(true);
             NotifyVariantsChanged();
@@ -384,8 +384,8 @@ public sealed class LayoutEditorController
             var remaining = _layoutManager.ListVariants(CurrentLayoutKey);
             var next = remaining.FirstOrDefault(s => s.Origin == ManualLayoutOrigin.Manual)
                     ?? remaining.FirstOrDefault();
-            ActiveVariantId          = next?.VariantId;
-            ActiveVariantOrigin      = next?.Origin;
+            ActiveVariantId = next?.VariantId;
+            ActiveVariantOrigin = next?.Origin;
             ActiveVariantDisplayName = next?.DisplayName;
             bool hasManual = remaining.Any(s => s.Origin == ManualLayoutOrigin.Manual);
             SetManualLayoutActive(hasManual);
@@ -410,8 +410,8 @@ public sealed class LayoutEditorController
         bool ok = _layoutManager.DeleteLayout(CurrentLayoutKey);
         if (ok)
         {
-            ActiveVariantId          = null;
-            ActiveVariantOrigin      = null;
+            ActiveVariantId = null;
+            ActiveVariantOrigin = null;
             ActiveVariantDisplayName = null;
             SetManualLayoutActive(false);
             NotifyVariantsChanged();

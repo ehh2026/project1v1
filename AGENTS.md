@@ -26,10 +26,15 @@ Every agent must keep completion state current before handing work back:
 
 # Manual steps
 dotnet build InteractiveWorldMap.sln
-dotnet test Tests/InteractiveWorldMap.Tests.csproj
+dotnet test Tests/InteractiveWorldMap.Tests.csproj --settings .runsettings
 dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 .\run-demo.bat                                    # Windows: build + launch
 .\scripts\validate_startup.ps1                  # Headless startup check (Windows)
+
+# Local quality gates
+dotnet format InteractiveWorldMap.sln --verify-no-changes
+py -3 scripts\summarize_coverage.py --results-directory TestResults\verify-coverage --min-line-coverage 42 --min-branch-coverage 37
+py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
 ```
 
 **Platform note:** WPF requires Windows for UI. macOS can build and run unit tests only.
@@ -38,7 +43,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 **Merge gate:** GitHub Actions on `windows-latest` runs build, test, NuGet vulnerability scan, doc links, taste checks, and headless startup validation; **Gitleaks** runs separately on Ubuntu. Local Windows gate: `.\scripts\verify.ps1`. macOS `verify.sh` may pass in harness-only mode — not sufficient alone before merge.
 
-**Python (optional tooling):** Harness scripts use stdlib only. On Windows use `py -3 scripts\...`; `verify.ps1` prefers `py -3` before bare `python` because local pyenv shims may exist without a selected version. On macOS/Linux use `python3 scripts/...`. Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
+**Python (optional tooling):** Harness scripts use stdlib only. On Windows use `py -3 scripts\...`; `verify.ps1` prefers `py -3` before bare `python` because local pyenv shims may exist without a selected version. On macOS/Linux use `python3 scripts/...`. The complexity gate needs **Lizard** (`py -3 -m pip install lizard` or `python3 -m pip install lizard`). Pin-extraction scripts need **Pillow, numpy, scipy**; use the local venv at `scripts/venv/` (gitignored, not committed). Fresh setup: `py -3 -m venv scripts\venv` then `pip install -r scripts\requirements.txt`. See [docs/guides/SETUP_GUIDE.md](docs/guides/SETUP_GUIDE.md) and [scripts/README.md](scripts/README.md).
 
 ## Repository Layout
 

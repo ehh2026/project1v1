@@ -24,17 +24,17 @@ public partial class MapDisplayControl : UserControl
     /// Gets the overlay canvas that owns marker-specific pointer/touch targets.
     /// </summary>
     public Canvas MarkerInteractions => MarkerInteractionCanvas;
-    
+
     /// <summary>
     /// Gets the source image for pre-rendering.
     /// </summary>
     public BitmapSource? SourceImage => _sourceImage;
-    
+
     /// <summary>
     /// Gets the MapImage control for direct access during pre-rendered animations.
     /// </summary>
     public Image DisplayImage => MapImage;
-    
+
     /// <summary>
     /// Sets the current viewport state without rendering (for pre-rendered frames).
     /// </summary>

@@ -35,9 +35,9 @@ namespace InteractiveWorldMap
                 logger.LogInfo($"Timestamp: {DateTime.Now}");
                 logger.LogInfo($"Base Directory: {AppDomain.CurrentDomain.BaseDirectory}");
                 logger.LogInfo("========================================");
-                
+
                 base.OnStartup(e);
-                
+
                 logger.LogInfo("Base.OnStartup completed");
             }
             catch (Exception ex)

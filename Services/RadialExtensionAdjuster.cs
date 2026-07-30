@@ -32,102 +32,122 @@ public class RadialExtensionAdjuster
     public void AdjustExtensions(List<RadialExtension> allExtensions, double markerSize)
     {
         const int maxIterations = 5;
-        int iteration = 0;
-        bool needsAdjustment = true;
-
-        var pairAdjustmentCount = new Dictionary<string, int>();
-        double nudgeMultiplier = 1.0;
-        var protectedFromOverlapAdjustment = new HashSet<string>();
+        var state = new IterativeAdjustmentState();
 
         _logger.LogInfo($"[IterativeAdjustment] Starting iterative adjustment for {allExtensions.Count} extensions");
 
-        while (needsAdjustment && iteration < maxIterations)
+        while (state.NeedsAdjustment && state.Iteration < maxIterations)
         {
-            iteration++;
-            needsAdjustment = false;
-
-            _logger.LogInfo($"[IterativeAdjustment] === Iteration {iteration} (nudge multiplier: {nudgeMultiplier:F2}) ===");
-
-            bool hadOverlaps = AdjustForMarkerOverlaps(allExtensions, markerSize, protectedFromOverlapAdjustment);
-            if (hadOverlaps)
-            {
-                needsAdjustment = true;
-                _logger.LogInfo("[IterativeAdjustment] Overlaps were adjusted");
-            }
-
-            var intersectingPairs = new List<string>();
-            bool hadIntersections = FixLineIntersections(allExtensions, intersectingPairs, nudgeMultiplier);
-            if (hadIntersections)
-            {
-                needsAdjustment = true;
-                _logger.LogInfo("[IterativeAdjustment] Intersections were fixed");
-
-                foreach (var pair in intersectingPairs)
-                {
-                    if (!pairAdjustmentCount.ContainsKey(pair))
-                        pairAdjustmentCount[pair] = 0;
-                    pairAdjustmentCount[pair]++;
-
-                    var names = pair.Split('-');
-                    protectedFromOverlapAdjustment.Add(names[0]);
-                    protectedFromOverlapAdjustment.Add(names[1]);
-                }
-            }
-
-            int maxAdjustments = pairAdjustmentCount.Values.Any() ? pairAdjustmentCount.Values.Max() : 0;
-            if (maxAdjustments >= 3)
-            {
-                nudgeMultiplier *= 0.5;
-                _logger.LogInfo($"[IterativeAdjustment] OSCILLATION DETECTED (max adjustments: {maxAdjustments}), reducing nudge multiplier to {nudgeMultiplier:F2}");
-
-                foreach (var kvp in pairAdjustmentCount.Where(x => x.Value >= 3))
-                {
-                    _logger.LogInfo($"  Problematic pair: {kvp.Key} (adjusted {kvp.Value} times) - applying length separation");
-
-                    var names = kvp.Key.Split('-');
-                    var ext1 = allExtensions.FirstOrDefault(e => e.Location.Name == names[0]);
-                    var ext2 = allExtensions.FirstOrDefault(e => e.Location.Name == names[1]);
-
-                    if (ext1 != null && ext2 != null)
-                    {
-                        double dx1 = ext1.ExtendedPosition.X - ext1.OriginalPosition.X;
-                        double dy1 = ext1.ExtendedPosition.Y - ext1.OriginalPosition.Y;
-                        double length1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
-
-                        double dx2 = ext2.ExtendedPosition.X - ext2.OriginalPosition.X;
-                        double dy2 = ext2.ExtendedPosition.Y - ext2.OriginalPosition.Y;
-                        double length2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
-
-                        double minLength = _visualConfig.RadialExtension.MinimumLineLength;
-                        double maxLength = _visualConfig.RadialExtension.ExtensionLineLength * 1.5;
-
-                        double newLength1 = Math.Max(minLength, Math.Min(maxLength, length1 * 0.8));
-                        double newLength2 = Math.Max(minLength, Math.Min(maxLength, length2 * 1.2));
-
-                        double angle1Rad = ext1.Angle * (Math.PI / 180.0);
-                        double angle2Rad = ext2.Angle * (Math.PI / 180.0);
-
-                        ext1.ExtendedPosition = new Point(
-                            ext1.OriginalPosition.X + newLength1 * Math.Sin(angle1Rad),
-                            ext1.OriginalPosition.Y - newLength1 * Math.Cos(angle1Rad));
-
-                        ext2.ExtendedPosition = new Point(
-                            ext2.OriginalPosition.X + newLength2 * Math.Sin(angle2Rad),
-                            ext2.OriginalPosition.Y - newLength2 * Math.Cos(angle2Rad));
-
-                        _logger.LogInfo($"    Moderate length separation: {names[0]} {length1:F1}→{newLength1:F1}px, {names[1]} {length2:F1}→{newLength2:F1}px");
-                    }
-                }
-            }
-
-            if (!needsAdjustment)
-                _logger.LogInfo($"[IterativeAdjustment] System stabilized after {iteration} iterations");
+            RunAdjustmentIteration(allExtensions, markerSize, state);
         }
 
-        if (iteration >= maxIterations)
+        if (state.Iteration >= maxIterations)
             _logger.LogInfo($"[IterativeAdjustment] Reached max iterations ({maxIterations}), accepting current state");
 
-        // Log minimum distances between all line pairs
+        LogFinalLineSeparation(allExtensions);
+    }
+
+    private void RunAdjustmentIteration(
+        List<RadialExtension> allExtensions,
+        double markerSize,
+        IterativeAdjustmentState state)
+    {
+        state.Iteration++;
+        state.NeedsAdjustment = false;
+
+        _logger.LogInfo($"[IterativeAdjustment] === Iteration {state.Iteration} (nudge multiplier: {state.NudgeMultiplier:F2}) ===");
+
+        if (AdjustForMarkerOverlaps(allExtensions, markerSize, state.ProtectedFromOverlapAdjustment))
+        {
+            state.NeedsAdjustment = true;
+            _logger.LogInfo("[IterativeAdjustment] Overlaps were adjusted");
+        }
+
+        var intersectingPairs = new List<string>();
+        if (FixLineIntersections(allExtensions, intersectingPairs, state.NudgeMultiplier))
+        {
+            state.NeedsAdjustment = true;
+            _logger.LogInfo("[IterativeAdjustment] Intersections were fixed");
+            TrackIntersectingPairs(intersectingPairs, state);
+        }
+
+        ApplyOscillationLengthSeparation(allExtensions, state);
+
+        if (!state.NeedsAdjustment)
+            _logger.LogInfo($"[IterativeAdjustment] System stabilized after {state.Iteration} iterations");
+    }
+
+    private static void TrackIntersectingPairs(
+        IEnumerable<string> intersectingPairs,
+        IterativeAdjustmentState state)
+    {
+        foreach (var pair in intersectingPairs)
+        {
+            state.PairAdjustmentCount[pair] = state.PairAdjustmentCount.TryGetValue(pair, out var count)
+                ? count + 1
+                : 1;
+
+            var names = pair.Split('-');
+            state.ProtectedFromOverlapAdjustment.Add(names[0]);
+            state.ProtectedFromOverlapAdjustment.Add(names[1]);
+        }
+    }
+
+    private void ApplyOscillationLengthSeparation(
+        List<RadialExtension> allExtensions,
+        IterativeAdjustmentState state)
+    {
+        int maxAdjustments = state.PairAdjustmentCount.Values.Any()
+            ? state.PairAdjustmentCount.Values.Max()
+            : 0;
+        if (maxAdjustments < 3)
+            return;
+
+        state.NudgeMultiplier *= 0.5;
+        _logger.LogInfo($"[IterativeAdjustment] OSCILLATION DETECTED (max adjustments: {maxAdjustments}), reducing nudge multiplier to {state.NudgeMultiplier:F2}");
+
+        foreach (var kvp in state.PairAdjustmentCount.Where(x => x.Value >= 3))
+        {
+            ApplyLengthSeparationForPair(allExtensions, kvp.Key, kvp.Value);
+        }
+    }
+
+    private void ApplyLengthSeparationForPair(
+        List<RadialExtension> allExtensions,
+        string pairKey,
+        int adjustmentCount)
+    {
+        _logger.LogInfo($"  Problematic pair: {pairKey} (adjusted {adjustmentCount} times) - applying length separation");
+
+        var names = pairKey.Split('-');
+        var ext1 = allExtensions.FirstOrDefault(e => e.Location.Name == names[0]);
+        var ext2 = allExtensions.FirstOrDefault(e => e.Location.Name == names[1]);
+
+        if (ext1 == null || ext2 == null)
+            return;
+
+        double length1 = CalculateCurrentLength(ext1);
+        double length2 = CalculateCurrentLength(ext2);
+        double minLength = _visualConfig.RadialExtension.MinimumLineLength;
+        double maxLength = _visualConfig.RadialExtension.ExtensionLineLength * 1.5;
+        double newLength1 = Math.Max(minLength, Math.Min(maxLength, length1 * 0.8));
+        double newLength2 = Math.Max(minLength, Math.Min(maxLength, length2 * 1.2));
+
+        SetLengthPreservingAngle(ext1, newLength1);
+        SetLengthPreservingAngle(ext2, newLength2);
+        _logger.LogInfo($"    Moderate length separation: {names[0]} {length1:F1}->{newLength1:F1}px, {names[1]} {length2:F1}->{newLength2:F1}px");
+    }
+
+    private static void SetLengthPreservingAngle(RadialExtension extension, double length)
+    {
+        double angleRad = extension.Angle * (Math.PI / 180.0);
+        extension.ExtendedPosition = new Point(
+            extension.OriginalPosition.X + length * Math.Sin(angleRad),
+            extension.OriginalPosition.Y - length * Math.Cos(angleRad));
+    }
+
+    private void LogFinalLineSeparation(List<RadialExtension> allExtensions)
+    {
         _logger.LogInfo("[IterativeAdjustment] === Final Line Separation Analysis ===");
         double globalMinDistance = double.MaxValue;
         string closestPair = "";
@@ -136,21 +156,15 @@ public class RadialExtensionAdjuster
         {
             for (int j = i + 1; j < allExtensions.Count; j++)
             {
-                var ext1 = allExtensions[i];
-                var ext2 = allExtensions[j];
-
-                double distance = GeometryMath.CalculateMinimumDistanceBetweenLines(
-                    ext1.OriginalPosition, ext1.ExtendedPosition,
-                    ext2.OriginalPosition, ext2.ExtendedPosition);
-
-                if (distance < globalMinDistance)
+                var separation = MeasureLineSeparation(allExtensions[i], allExtensions[j]);
+                if (separation.Distance < globalMinDistance)
                 {
-                    globalMinDistance = distance;
-                    closestPair = $"{ext1.Location.Name} - {ext2.Location.Name}";
+                    globalMinDistance = separation.Distance;
+                    closestPair = separation.PairName;
                 }
 
-                if (distance < _visualConfig.LocationMarkerSize)
-                    _logger.LogInfo($"  Close pair: {ext1.Location.Name} - {ext2.Location.Name}: {distance:F1}px");
+                if (separation.Distance < _visualConfig.LocationMarkerSize)
+                    _logger.LogInfo($"  Close pair: {separation.PairName}: {separation.Distance:F1}px");
             }
         }
 
@@ -158,6 +172,24 @@ public class RadialExtensionAdjuster
         _logger.LogInfo($"[IterativeAdjustment] Marker size: {_visualConfig.LocationMarkerSize:F1}px (radius: {_visualConfig.LocationMarkerSize / 2.0:F1}px)");
     }
 
+    private static LineSeparation MeasureLineSeparation(RadialExtension ext1, RadialExtension ext2)
+    {
+        double distance = GeometryMath.CalculateMinimumDistanceBetweenLines(
+            ext1.OriginalPosition, ext1.ExtendedPosition,
+            ext2.OriginalPosition, ext2.ExtendedPosition);
+        return new LineSeparation(distance, $"{ext1.Location.Name} - {ext2.Location.Name}");
+    }
+
+    private sealed class IterativeAdjustmentState
+    {
+        public int Iteration { get; set; }
+        public bool NeedsAdjustment { get; set; } = true;
+        public double NudgeMultiplier { get; set; } = 1.0;
+        public Dictionary<string, int> PairAdjustmentCount { get; } = new();
+        public HashSet<string> ProtectedFromOverlapAdjustment { get; } = new();
+    }
+
+    private readonly record struct LineSeparation(double Distance, string PairName);
     // -------------------------------------------------------------------------
     // Overlap adjustment
     // -------------------------------------------------------------------------
@@ -171,47 +203,107 @@ public class RadialExtensionAdjuster
         double markerSize,
         HashSet<string>? protectedLocations = null)
     {
-        double minGap      = markerSize * 2.5;
-        double minAngleDiff = _visualConfig.RadialExtension.AngleNudgeThreshold;
-        double angleNudge  = _visualConfig.RadialExtension.AngleNudgeAmount;
         const int maxPasses = 5;
-        int pass = 0;
-        bool hadAdjustments;
-
-        bool logAngles  = _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionAngles;
-        bool logOverlaps = _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionOverlaps;
-
-        if (protectedLocations != null && protectedLocations.Count > 0 && logOverlaps)
-            _logger.LogInfo($"[AdjustForMarkerOverlaps] Protected locations (won't adjust angles): {string.Join(", ", protectedLocations)}");
-
-        if (logOverlaps)
-            _logger.LogInfo($"[AdjustForMarkerOverlaps] Checking {allExtensions.Count} extensions for overlaps (minGap={minGap:F1}px, minAngle={minAngleDiff:F1}°)");
-
-        if (logAngles)
-            LogInitialAngles(allExtensions);
+        var context = CreateOverlapContext(markerSize, protectedLocations);
+        LogOverlapStart(allExtensions, context);
 
         do
         {
-            pass++;
-            hadAdjustments = false;
+            context.Pass++;
+            context.HadAdjustments = RunOverlapAdjustmentPass(allExtensions, protectedLocations, context);
+            LogOverlapPass(context, maxPasses);
+        } while (context.HadAdjustments && context.Pass < maxPasses);
 
-            hadAdjustments |= AdjustAnglesWithinGroups(allExtensions, minAngleDiff, angleNudge, protectedLocations, pass, logAngles);
-            hadAdjustments |= AdjustPositionsAcrossExtensions(allExtensions, minGap, pass, logOverlaps);
-
-            if (hadAdjustments && pass < maxPasses && logOverlaps)
-                _logger.LogInfo($"  Pass {pass} complete, running another pass...");
-
-        } while (hadAdjustments && pass < maxPasses);
-
-        if (pass > 1 && logOverlaps)
-            _logger.LogInfo($"[AdjustForMarkerOverlaps] Completed {pass} passes");
-
-        if (logAngles)
-            LogFinalAngles(allExtensions);
-
-        return pass > 1;
+        LogOverlapCompletion(allExtensions, context);
+        return context.Pass > 1;
     }
 
+    private OverlapAdjustmentContext CreateOverlapContext(
+        double markerSize,
+        HashSet<string>? protectedLocations) =>
+        new(
+            markerSize * 2.5,
+            _visualConfig.RadialExtension.AngleNudgeThreshold,
+            _visualConfig.RadialExtension.AngleNudgeAmount,
+            _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionAngles,
+            _visualConfig.EnableDeveloperTools && _visualConfig.Debug.LogRadialExtensionOverlaps,
+            protectedLocations);
+
+    private void LogOverlapStart(
+        List<RadialExtension> allExtensions,
+        OverlapAdjustmentContext context)
+    {
+        if (context.ProtectedLocations is { Count: > 0 } && context.LogOverlaps)
+            _logger.LogInfo($"[AdjustForMarkerOverlaps] Protected locations (won't adjust angles): {string.Join(", ", context.ProtectedLocations)}");
+
+        if (context.LogOverlaps)
+            _logger.LogInfo($"[AdjustForMarkerOverlaps] Checking {allExtensions.Count} extensions for overlaps (minGap={context.MinGap:F1}px, minAngle={context.MinAngleDiff:F1}deg)");
+
+        if (context.LogAngles)
+            LogInitialAngles(allExtensions);
+    }
+
+    private bool RunOverlapAdjustmentPass(
+        List<RadialExtension> allExtensions,
+        HashSet<string>? protectedLocations,
+        OverlapAdjustmentContext context) =>
+        AdjustAnglesWithinGroups(
+            allExtensions,
+            context.MinAngleDiff,
+            context.AngleNudge,
+            protectedLocations,
+            context.Pass,
+            context.LogAngles) |
+        AdjustPositionsAcrossExtensions(
+            allExtensions,
+            context.MinGap,
+            context.Pass,
+            context.LogOverlaps);
+
+    private void LogOverlapPass(OverlapAdjustmentContext context, int maxPasses)
+    {
+        if (context.HadAdjustments && context.Pass < maxPasses && context.LogOverlaps)
+            _logger.LogInfo($"  Pass {context.Pass} complete, running another pass...");
+    }
+
+    private void LogOverlapCompletion(
+        List<RadialExtension> allExtensions,
+        OverlapAdjustmentContext context)
+    {
+        if (context.Pass > 1 && context.LogOverlaps)
+            _logger.LogInfo($"[AdjustForMarkerOverlaps] Completed {context.Pass} passes");
+
+        if (context.LogAngles)
+            LogFinalAngles(allExtensions);
+    }
+
+    private sealed class OverlapAdjustmentContext
+    {
+        public OverlapAdjustmentContext(
+            double minGap,
+            double minAngleDiff,
+            double angleNudge,
+            bool logAngles,
+            bool logOverlaps,
+            HashSet<string>? protectedLocations)
+        {
+            MinGap = minGap;
+            MinAngleDiff = minAngleDiff;
+            AngleNudge = angleNudge;
+            LogAngles = logAngles;
+            LogOverlaps = logOverlaps;
+            ProtectedLocations = protectedLocations;
+        }
+
+        public double MinGap { get; }
+        public double MinAngleDiff { get; }
+        public double AngleNudge { get; }
+        public bool LogAngles { get; }
+        public bool LogOverlaps { get; }
+        public HashSet<string>? ProtectedLocations { get; }
+        public int Pass { get; set; }
+        public bool HadAdjustments { get; set; }
+    }
     /// <summary>
     /// Nudges angles apart within each group when pairs are too close angularly.
     /// Returns true if any angle was changed.
@@ -224,85 +316,163 @@ public class RadialExtensionAdjuster
         int pass,
         bool logAngles)
     {
-        bool hadAdjustments = false;
-
         var groupedExtensions = allExtensions.GroupBy(e => e.GroupId).ToList();
+        return groupedExtensions.Any(group => AdjustAnglesWithinGroup(
+            group.OrderBy(e => e.Angle).ToList(),
+            minAngleDiff,
+            angleNudge,
+            protectedLocations,
+            pass,
+            logAngles));
+    }
 
-        foreach (var group in groupedExtensions)
+    private bool AdjustAnglesWithinGroup(
+        IReadOnlyList<RadialExtension> groupExtensions,
+        double minAngleDiff,
+        double angleNudge,
+        HashSet<string>? protectedLocations,
+        int pass,
+        bool logAngles)
+    {
+        var hadAdjustments = false;
+        for (int i = 0; i < groupExtensions.Count; i++)
         {
-            var groupExtensions = group.OrderBy(e => e.Angle).ToList();
-
-            for (int i = 0; i < groupExtensions.Count; i++)
+            for (int j = i + 1; j < groupExtensions.Count; j++)
             {
-                for (int j = i + 1; j < groupExtensions.Count; j++)
-                {
-                    var ext1 = groupExtensions[i];
-                    var ext2 = groupExtensions[j];
-
-                    double angleDiff = ext2.Angle - ext1.Angle;
-                    if (angleDiff < 0) angleDiff += 360.0;
-
-                    if (angleDiff >= minAngleDiff) continue;
-
-                    bool ext1Protected = protectedLocations != null && protectedLocations.Contains(ext1.Location.Name);
-                    bool ext2Protected = protectedLocations != null && protectedLocations.Contains(ext2.Location.Name);
-
-                    if (ext1Protected && ext2Protected)
-                    {
-                        if (pass == 1 && logAngles)
-                            _logger.LogInfo($"  Group {ext1.GroupId}: SKIPPING angle adjustment (both protected): {ext1.Location.Name} and {ext2.Location.Name}");
-                        continue;
-                    }
-
-                    if (pass == 1 && logAngles)
-                        _logger.LogInfo($"  Group {ext1.GroupId}: Close angles: {ext1.Location.Name} ({ext1.Angle:F1}°) and {ext2.Location.Name} ({ext2.Angle:F1}°), diff={angleDiff:F1}°");
-
-                    hadAdjustments = true;
-                    double nudge = (angleDiff < 0.01) ? angleNudge : (angleNudge / 2.0);
-
-                    if (ext1Protected)
-                    {
-                        ext2.Angle += nudge * 2.0;
-                        if (pass == 1 && logAngles)
-                            _logger.LogInfo($"    {ext1.Location.Name} protected, only nudging {ext2.Location.Name}");
-                    }
-                    else if (ext2Protected)
-                    {
-                        ext1.Angle -= nudge * 2.0;
-                        if (pass == 1 && logAngles)
-                            _logger.LogInfo($"    {ext2.Location.Name} protected, only nudging {ext1.Location.Name}");
-                    }
-                    else
-                    {
-                        ext1.Angle -= nudge;
-                        ext2.Angle += nudge;
-                    }
-
-                    double length1 = CalculateCurrentLength(ext1);
-                    double length2 = CalculateCurrentLength(ext2);
-
-                    double angle1Rad = ext1.Angle * (Math.PI / 180.0);
-                    double angle2Rad = ext2.Angle * (Math.PI / 180.0);
-
-                    if (!ext1Protected)
-                        ext1.ExtendedPosition = new Point(
-                            ext1.OriginalPosition.X + length1 * Math.Sin(angle1Rad),
-                            ext1.OriginalPosition.Y - length1 * Math.Cos(angle1Rad));
-
-                    if (!ext2Protected)
-                        ext2.ExtendedPosition = new Point(
-                            ext2.OriginalPosition.X + length2 * Math.Sin(angle2Rad),
-                            ext2.OriginalPosition.Y - length2 * Math.Cos(angle2Rad));
-
-                    if (pass == 1 && logAngles)
-                        _logger.LogInfo($"    Nudged angles: {ext1.Location.Name}={ext1.Angle:F1}°, {ext2.Location.Name}={ext2.Angle:F1}°");
-                }
+                hadAdjustments |= TryAdjustAnglePair(
+                    groupExtensions[i],
+                    groupExtensions[j],
+                    minAngleDiff,
+                    angleNudge,
+                    protectedLocations,
+                    pass,
+                    logAngles);
             }
         }
-
         return hadAdjustments;
     }
 
+    private bool TryAdjustAnglePair(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        double minAngleDiff,
+        double angleNudge,
+        HashSet<string>? protectedLocations,
+        int pass,
+        bool logAngles)
+    {
+        double angleDiff = NormalizeAngleDiff(ext1.Angle, ext2.Angle);
+        if (angleDiff >= minAngleDiff)
+            return false;
+
+        bool ext1Protected = IsProtected(ext1, protectedLocations);
+        bool ext2Protected = IsProtected(ext2, protectedLocations);
+        if (ext1Protected && ext2Protected)
+        {
+            LogBothProtected(ext1, ext2, pass, logAngles);
+            return false;
+        }
+
+        LogCloseAngles(ext1, ext2, angleDiff, pass, logAngles);
+        ApplyAngleNudge(ext1, ext2, angleDiff, angleNudge, ext1Protected, ext2Protected, pass, logAngles);
+        ReprojectAfterAngleNudge(ext1, ext1Protected);
+        ReprojectAfterAngleNudge(ext2, ext2Protected);
+        LogNudgedAngles(ext1, ext2, pass, logAngles);
+        return true;
+    }
+
+    private static double NormalizeAngleDiff(double angle1, double angle2)
+    {
+        double angleDiff = angle2 - angle1;
+        return angleDiff < 0 ? angleDiff + 360.0 : angleDiff;
+    }
+
+    private static bool IsProtected(
+        RadialExtension extension,
+        HashSet<string>? protectedLocations) =>
+        protectedLocations != null && protectedLocations.Contains(extension.Location.Name);
+
+    private void LogBothProtected(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        int pass,
+        bool logAngles)
+    {
+        if (pass == 1 && logAngles)
+            _logger.LogInfo($"  Group {ext1.GroupId}: SKIPPING angle adjustment (both protected): {ext1.Location.Name} and {ext2.Location.Name}");
+    }
+
+    private void LogCloseAngles(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        double angleDiff,
+        int pass,
+        bool logAngles)
+    {
+        if (pass == 1 && logAngles)
+            _logger.LogInfo($"  Group {ext1.GroupId}: Close angles: {ext1.Location.Name} ({ext1.Angle:F1}deg) and {ext2.Location.Name} ({ext2.Angle:F1}deg), diff={angleDiff:F1}deg");
+    }
+
+    private void ApplyAngleNudge(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        double angleDiff,
+        double angleNudge,
+        bool ext1Protected,
+        bool ext2Protected,
+        int pass,
+        bool logAngles)
+    {
+        double nudge = angleDiff < 0.01 ? angleNudge : angleNudge / 2.0;
+
+        if (ext1Protected)
+        {
+            ext2.Angle += nudge * 2.0;
+            LogProtectedNudge(ext1, ext2, pass, logAngles);
+        }
+        else if (ext2Protected)
+        {
+            ext1.Angle -= nudge * 2.0;
+            LogProtectedNudge(ext2, ext1, pass, logAngles);
+        }
+        else
+        {
+            ext1.Angle -= nudge;
+            ext2.Angle += nudge;
+        }
+    }
+
+    private void LogProtectedNudge(
+        RadialExtension protectedExtension,
+        RadialExtension nudgedExtension,
+        int pass,
+        bool logAngles)
+    {
+        if (pass == 1 && logAngles)
+            _logger.LogInfo($"    {protectedExtension.Location.Name} protected, only nudging {nudgedExtension.Location.Name}");
+    }
+
+    private static void ReprojectAfterAngleNudge(RadialExtension extension, bool isProtected)
+    {
+        if (isProtected)
+            return;
+
+        double length = CalculateCurrentLength(extension);
+        double angleRad = extension.Angle * (Math.PI / 180.0);
+        extension.ExtendedPosition = new Point(
+            extension.OriginalPosition.X + length * Math.Sin(angleRad),
+            extension.OriginalPosition.Y - length * Math.Cos(angleRad));
+    }
+
+    private void LogNudgedAngles(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        int pass,
+        bool logAngles)
+    {
+        if (pass == 1 && logAngles)
+            _logger.LogInfo($"    Nudged angles: {ext1.Location.Name}={ext1.Angle:F1}deg, {ext2.Location.Name}={ext2.Angle:F1}deg");
+    }
     /// <summary>
     /// Adjusts line lengths to resolve position overlaps between extended markers.
     /// Returns true if any lengths were changed.
@@ -393,128 +563,185 @@ public class RadialExtensionAdjuster
         List<string> intersectingPairs,
         double nudgeMultiplier)
     {
-        bool foundAny = false;
-        int totalFixed = 0;
+        var totalFixed = 0;
         double markerRadius = _visualConfig.LocationMarkerSize / 2.0;
 
         for (int i = 0; i < allExtensions.Count; i++)
         {
-            var ext1 = allExtensions[i];
-
             for (int j = i + 1; j < allExtensions.Count; j++)
             {
-                var ext2 = allExtensions[j];
-
-                bool hasIssue = false;
-                string issueType = "";
-
-                if (GeometryMath.DoLineSegmentsIntersect(
-                        ext1.OriginalPosition, ext1.ExtendedPosition,
-                        ext2.OriginalPosition, ext2.ExtendedPosition))
+                if (TryFixLineIssue(
+                        allExtensions[i],
+                        allExtensions[j],
+                        allExtensions,
+                        intersectingPairs,
+                        nudgeMultiplier,
+                        markerRadius,
+                        ref totalFixed))
                 {
-                    hasIssue = true; issueType = "INTERSECTION";
+                    continue;
                 }
-                else if (GeometryMath.DoesLinePassTooCloseToMarker(
-                        ext1.OriginalPosition, ext1.ExtendedPosition,
-                        ext2.ExtendedPosition, markerRadius))
-                {
-                    hasIssue = true; issueType = "LINE→MARKER";
-                }
-                else if (GeometryMath.DoesLinePassTooCloseToMarker(
-                        ext2.OriginalPosition, ext2.ExtendedPosition,
-                        ext1.ExtendedPosition, markerRadius))
-                {
-                    hasIssue = true; issueType = "MARKER←LINE";
-                }
-
-                if (!hasIssue) continue;
-
-                foundAny = true;
-                totalFixed++;
-
-                string pairKey = string.Compare(ext1.Location.Name, ext2.Location.Name) < 0
-                    ? $"{ext1.Location.Name}-{ext2.Location.Name}"
-                    : $"{ext2.Location.Name}-{ext1.Location.Name}";
-                intersectingPairs.Add(pairKey);
-
-                _logger.LogInfo($"  [{issueType} #{totalFixed}] {ext1.Location.Name} ({ext1.Angle:F1}°) and {ext2.Location.Name} ({ext2.Angle:F1}°)");
-
-                double maxTestRotation = 30.0;
-                double safeRotation1CW  = GeometryMath.FindSafeAngleRotation(ext1, allExtensions, clockwise: true,  maxTestRotation, markerRadius);
-                double safeRotation1CCW = GeometryMath.FindSafeAngleRotation(ext1, allExtensions, clockwise: false, maxTestRotation, markerRadius);
-                double safeRotation2CW  = GeometryMath.FindSafeAngleRotation(ext2, allExtensions, clockwise: true,  maxTestRotation, markerRadius);
-                double safeRotation2CCW = GeometryMath.FindSafeAngleRotation(ext2, allExtensions, clockwise: false, maxTestRotation, markerRadius);
-
-                _logger.LogInfo($"    Safe rotations - {ext1.Location.Name}: CW={safeRotation1CW:F1}° CCW={safeRotation1CCW:F1}°, {ext2.Location.Name}: CW={safeRotation2CW:F1}° CCW={safeRotation2CCW:F1}°");
-
-                double baseNudge = 3.0 * nudgeMultiplier;
-                bool rotationApplied = false;
-
-                if (safeRotation1CW > 5.0 && safeRotation1CW > safeRotation1CCW && safeRotation1CW > safeRotation2CW && safeRotation1CW > safeRotation2CCW)
-                {
-                    double nudge = Math.Min(baseNudge * 4, safeRotation1CW * 0.8);
-                    ext1.Angle += nudge;
-                    _logger.LogInfo($"    Strategy: Rotate {ext1.Location.Name} CW by {nudge:F1}° (safe space: {safeRotation1CW:F1}°)");
-                    rotationApplied = true;
-                }
-                else if (safeRotation1CCW > 5.0 && safeRotation1CCW > safeRotation2CW && safeRotation1CCW > safeRotation2CCW)
-                {
-                    double nudge = Math.Min(baseNudge * 4, safeRotation1CCW * 0.8);
-                    ext1.Angle -= nudge;
-                    _logger.LogInfo($"    Strategy: Rotate {ext1.Location.Name} CCW by {nudge:F1}° (safe space: {safeRotation1CCW:F1}°)");
-                    rotationApplied = true;
-                }
-                else if (safeRotation2CW > 5.0 && safeRotation2CW > safeRotation2CCW)
-                {
-                    double nudge = Math.Min(baseNudge * 4, safeRotation2CW * 0.8);
-                    ext2.Angle += nudge;
-                    _logger.LogInfo($"    Strategy: Rotate {ext2.Location.Name} CW by {nudge:F1}° (safe space: {safeRotation2CW:F1}°)");
-                    rotationApplied = true;
-                }
-                else if (safeRotation2CCW > 5.0)
-                {
-                    double nudge = Math.Min(baseNudge * 4, safeRotation2CCW * 0.8);
-                    ext2.Angle -= nudge;
-                    _logger.LogInfo($"    Strategy: Rotate {ext2.Location.Name} CCW by {nudge:F1}° (safe space: {safeRotation2CCW:F1}°)");
-                    rotationApplied = true;
-                }
-
-                if (!rotationApplied)
-                {
-                    ext1.Angle -= baseNudge * 0.5;
-                    ext2.Angle += baseNudge * 0.5;
-                    _logger.LogInfo("    Strategy: Minimal nudge apart (no safe rotation space found)");
-                }
-
-                double angle1Rad = ext1.Angle * (Math.PI / 180.0);
-                double angle2Rad = ext2.Angle * (Math.PI / 180.0);
-
-                double dx1 = ext1.ExtendedPosition.X - ext1.OriginalPosition.X;
-                double dy1 = ext1.ExtendedPosition.Y - ext1.OriginalPosition.Y;
-                double length1 = Math.Sqrt(dx1 * dx1 + dy1 * dy1);
-
-                double dx2 = ext2.ExtendedPosition.X - ext2.OriginalPosition.X;
-                double dy2 = ext2.ExtendedPosition.Y - ext2.OriginalPosition.Y;
-                double length2 = Math.Sqrt(dx2 * dx2 + dy2 * dy2);
-
-                ext1.ExtendedPosition = new Point(
-                    ext1.OriginalPosition.X + length1 * Math.Sin(angle1Rad),
-                    ext1.OriginalPosition.Y - length1 * Math.Cos(angle1Rad));
-
-                ext2.ExtendedPosition = new Point(
-                    ext2.OriginalPosition.X + length2 * Math.Sin(angle2Rad),
-                    ext2.OriginalPosition.Y - length2 * Math.Cos(angle2Rad));
-
-                _logger.LogInfo($"    Result: {ext1.Location.Name} now at {ext1.Angle:F1}°, {ext2.Location.Name} now at {ext2.Angle:F1}°");
             }
         }
 
-        if (foundAny)
+        if (totalFixed > 0)
             _logger.LogInfo($"  Fixed {totalFixed} intersections");
 
-        return foundAny;
+        return totalFixed > 0;
     }
 
+    private bool TryFixLineIssue(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        List<RadialExtension> allExtensions,
+        List<string> intersectingPairs,
+        double nudgeMultiplier,
+        double markerRadius,
+        ref int totalFixed)
+    {
+        if (!TryDetectLineIssue(ext1, ext2, markerRadius, out var issueType))
+            return false;
+
+        totalFixed++;
+        intersectingPairs.Add(BuildPairKey(ext1, ext2));
+        _logger.LogInfo($"  [{issueType} #{totalFixed}] {ext1.Location.Name} ({ext1.Angle:F1}deg) and {ext2.Location.Name} ({ext2.Angle:F1}deg)");
+
+        var rotations = FindSafeRotations(ext1, ext2, allExtensions, markerRadius);
+        LogSafeRotations(ext1, ext2, rotations);
+        ApplyRotationStrategy(ext1, ext2, rotations, 3.0 * nudgeMultiplier);
+        ReprojectPair(ext1, ext2);
+        _logger.LogInfo($"    Result: {ext1.Location.Name} now at {ext1.Angle:F1}deg, {ext2.Location.Name} now at {ext2.Angle:F1}deg");
+        return true;
+    }
+
+    private static bool TryDetectLineIssue(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        double markerRadius,
+        out string issueType)
+    {
+        if (GeometryMath.DoLineSegmentsIntersect(
+                ext1.OriginalPosition, ext1.ExtendedPosition,
+                ext2.OriginalPosition, ext2.ExtendedPosition))
+        {
+            issueType = "INTERSECTION";
+            return true;
+        }
+
+        if (GeometryMath.DoesLinePassTooCloseToMarker(
+                ext1.OriginalPosition, ext1.ExtendedPosition,
+                ext2.ExtendedPosition, markerRadius))
+        {
+            issueType = "LINE->MARKER";
+            return true;
+        }
+
+        if (GeometryMath.DoesLinePassTooCloseToMarker(
+                ext2.OriginalPosition, ext2.ExtendedPosition,
+                ext1.ExtendedPosition, markerRadius))
+        {
+            issueType = "MARKER<-LINE";
+            return true;
+        }
+
+        issueType = string.Empty;
+        return false;
+    }
+
+    private static string BuildPairKey(RadialExtension ext1, RadialExtension ext2) =>
+        string.Compare(ext1.Location.Name, ext2.Location.Name, StringComparison.Ordinal) < 0
+            ? $"{ext1.Location.Name}-{ext2.Location.Name}"
+            : $"{ext2.Location.Name}-{ext1.Location.Name}";
+
+    private static SafeRotations FindSafeRotations(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        List<RadialExtension> allExtensions,
+        double markerRadius)
+    {
+        const double maxTestRotation = 30.0;
+        return new SafeRotations(
+            GeometryMath.FindSafeAngleRotation(ext1, allExtensions, clockwise: true, maxTestRotation, markerRadius),
+            GeometryMath.FindSafeAngleRotation(ext1, allExtensions, clockwise: false, maxTestRotation, markerRadius),
+            GeometryMath.FindSafeAngleRotation(ext2, allExtensions, clockwise: true, maxTestRotation, markerRadius),
+            GeometryMath.FindSafeAngleRotation(ext2, allExtensions, clockwise: false, maxTestRotation, markerRadius));
+    }
+
+    private void LogSafeRotations(RadialExtension ext1, RadialExtension ext2, SafeRotations rotations)
+    {
+        _logger.LogInfo($"    Safe rotations - {ext1.Location.Name}: CW={rotations.Ext1Clockwise:F1}deg CCW={rotations.Ext1CounterClockwise:F1}deg, {ext2.Location.Name}: CW={rotations.Ext2Clockwise:F1}deg CCW={rotations.Ext2CounterClockwise:F1}deg");
+    }
+
+    private void ApplyRotationStrategy(
+        RadialExtension ext1,
+        RadialExtension ext2,
+        SafeRotations rotations,
+        double baseNudge)
+    {
+        if (TryApplyPreferredRotation(ext1, rotations.Ext1Clockwise, baseNudge, clockwise: true, rotations.Ext1CounterClockwise, rotations.Ext2Clockwise, rotations.Ext2CounterClockwise))
+            return;
+        if (TryApplyPreferredRotation(ext1, rotations.Ext1CounterClockwise, baseNudge, clockwise: false, rotations.Ext2Clockwise, rotations.Ext2CounterClockwise))
+            return;
+        if (TryApplyPreferredRotation(ext2, rotations.Ext2Clockwise, baseNudge, clockwise: true, rotations.Ext2CounterClockwise))
+            return;
+        if (TryApplyFallbackRotation(ext2, rotations.Ext2CounterClockwise, baseNudge))
+            return;
+
+        ext1.Angle -= baseNudge * 0.5;
+        ext2.Angle += baseNudge * 0.5;
+        _logger.LogInfo("    Strategy: Minimal nudge apart (no safe rotation space found)");
+    }
+
+    private bool TryApplyPreferredRotation(
+        RadialExtension extension,
+        double safeRotation,
+        double baseNudge,
+        bool clockwise,
+        params double[] competingRotations)
+    {
+        if (safeRotation <= 5.0 || competingRotations.Any(rotation => safeRotation <= rotation))
+            return false;
+
+        double nudge = Math.Min(baseNudge * 4, safeRotation * 0.8);
+        extension.Angle += clockwise ? nudge : -nudge;
+        _logger.LogInfo($"    Strategy: Rotate {extension.Location.Name} {(clockwise ? "CW" : "CCW")} by {nudge:F1}deg (safe space: {safeRotation:F1}deg)");
+        return true;
+    }
+
+    private bool TryApplyFallbackRotation(
+        RadialExtension extension,
+        double safeRotation,
+        double baseNudge)
+    {
+        if (safeRotation <= 5.0)
+            return false;
+
+        double nudge = Math.Min(baseNudge * 4, safeRotation * 0.8);
+        extension.Angle -= nudge;
+        _logger.LogInfo($"    Strategy: Rotate {extension.Location.Name} CCW by {nudge:F1}deg (safe space: {safeRotation:F1}deg)");
+        return true;
+    }
+
+    private static void ReprojectPair(RadialExtension ext1, RadialExtension ext2)
+    {
+        ReprojectCurrentLength(ext1);
+        ReprojectCurrentLength(ext2);
+    }
+
+    private static void ReprojectCurrentLength(RadialExtension extension)
+    {
+        double angleRad = extension.Angle * (Math.PI / 180.0);
+        double length = CalculateCurrentLength(extension);
+        extension.ExtendedPosition = new Point(
+            extension.OriginalPosition.X + length * Math.Sin(angleRad),
+            extension.OriginalPosition.Y - length * Math.Cos(angleRad));
+    }
+
+    private readonly record struct SafeRotations(
+        double Ext1Clockwise,
+        double Ext1CounterClockwise,
+        double Ext2Clockwise,
+        double Ext2CounterClockwise);
     // -------------------------------------------------------------------------
     // Helpers
     // -------------------------------------------------------------------------

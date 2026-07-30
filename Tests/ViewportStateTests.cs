@@ -172,7 +172,7 @@ public class ViewportStateTests
     {
         var vp = FullMapWideContainer();
         var screen = vp.SourceToScreen(sx, sy, 1920, 1080);
-        var back   = vp.ScreenToSource(screen.X, screen.Y, 1920, 1080);
+        var back = vp.ScreenToSource(screen.X, screen.Y, 1920, 1080);
         Assert.Equal(sx, back.X, 0); // within 1 source pixel (int rounding in GetSourceRect)
         Assert.Equal(sy, back.Y, 0);
     }
@@ -185,7 +185,7 @@ public class ViewportStateTests
     {
         var vp = FullMapWideContainer();
         var source = vp.ScreenToSource(scrX, scrY, 1920, 1080);
-        var back   = vp.SourceToScreen(source.X, source.Y, 1920, 1080);
+        var back = vp.SourceToScreen(source.X, source.Y, 1920, 1080);
         Assert.Equal(scrX, back.X, 0);
         Assert.Equal(scrY, back.Y, 0);
     }

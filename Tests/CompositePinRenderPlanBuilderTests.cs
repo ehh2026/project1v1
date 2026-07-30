@@ -243,10 +243,11 @@ public class CompositePinRenderPlanBuilderTests
     [Fact]
     public void BuildPlan_NullTarget_ThrowsArgumentNullException()
     {
-        var builder   = new CompositePinRenderPlanBuilder();
+        var builder = new CompositePinRenderPlanBuilder();
         var placement = new PinPartPlacementResult
         {
-            PairId = "x", PairGeometry = CreateVerticalGeometry(),
+            PairId = "x",
+            PairGeometry = CreateVerticalGeometry(),
             TargetLengthPx = 220.0
         };
         Assert.Throws<ArgumentNullException>(() =>
@@ -257,9 +258,10 @@ public class CompositePinRenderPlanBuilderTests
     public void BuildPlan_NullPlacement_ThrowsArgumentNullException()
     {
         var builder = new CompositePinRenderPlanBuilder();
-        var target  = new PinPlacementTarget
+        var target = new PinPlacementTarget
         {
-            StartScreen = new Point(100, 320), EndScreen = new Point(100, 100)
+            StartScreen = new Point(100, 320),
+            EndScreen = new Point(100, 100)
         };
         Assert.Throws<ArgumentNullException>(() =>
             builder.BuildPlan(target, null!, new PinPartConfig()));
@@ -268,14 +270,17 @@ public class CompositePinRenderPlanBuilderTests
     [Fact]
     public void BuildPlan_NullPairGeometry_ThrowsArgumentException()
     {
-        var builder   = new CompositePinRenderPlanBuilder();
-        var target    = new PinPlacementTarget
+        var builder = new CompositePinRenderPlanBuilder();
+        var target = new PinPlacementTarget
         {
-            StartScreen = new Point(100, 320), EndScreen = new Point(100, 100)
+            StartScreen = new Point(100, 320),
+            EndScreen = new Point(100, 100)
         };
         var placement = new PinPartPlacementResult
         {
-            PairId = "x", PairGeometry = null!, TargetLengthPx = 220.0
+            PairId = "x",
+            PairGeometry = null!,
+            TargetLengthPx = 220.0
         };
         Assert.Throws<ArgumentException>(() =>
             builder.BuildPlan(target, placement, new PinPartConfig()));
@@ -284,14 +289,17 @@ public class CompositePinRenderPlanBuilderTests
     [Fact]
     public void BuildPlan_NullConfig_ThrowsArgumentNullException()
     {
-        var builder   = new CompositePinRenderPlanBuilder();
-        var target    = new PinPlacementTarget
+        var builder = new CompositePinRenderPlanBuilder();
+        var target = new PinPlacementTarget
         {
-            StartScreen = new Point(100, 320), EndScreen = new Point(100, 100)
+            StartScreen = new Point(100, 320),
+            EndScreen = new Point(100, 100)
         };
         var placement = new PinPartPlacementResult
         {
-            PairId = "x", PairGeometry = CreateVerticalGeometry(), TargetLengthPx = 220.0
+            PairId = "x",
+            PairGeometry = CreateVerticalGeometry(),
+            TargetLengthPx = 220.0
         };
         Assert.Throws<ArgumentNullException>(() =>
             builder.BuildPlan(target, placement, null!));
@@ -302,14 +310,17 @@ public class CompositePinRenderPlanBuilderTests
     {
         // TipCapLength(30) + HeadCapLength(30) = 60 px caps.
         // A zero-distance target (StartScreen == EndScreen) → targetBodyLength = -60 → throws.
-        var builder   = new CompositePinRenderPlanBuilder();
-        var target    = new PinPlacementTarget
+        var builder = new CompositePinRenderPlanBuilder();
+        var target = new PinPlacementTarget
         {
-            StartScreen = new Point(100, 100), EndScreen = new Point(100, 100)
+            StartScreen = new Point(100, 100),
+            EndScreen = new Point(100, 100)
         };
         var placement = new PinPartPlacementResult
         {
-            PairId = "x", PairGeometry = CreateVerticalGeometry(), TargetLengthPx = 0.0
+            PairId = "x",
+            PairGeometry = CreateVerticalGeometry(),
+            TargetLengthPx = 0.0
         };
         Assert.Throws<InvalidOperationException>(() =>
             builder.BuildPlan(target, placement, new PinPartConfig()));
@@ -318,22 +329,23 @@ public class CompositePinRenderPlanBuilderTests
     [Fact]
     public void BuildPlan_ValidInput_CanvasDimensionsArePositive()
     {
-        var builder   = new CompositePinRenderPlanBuilder();
-        var target    = new PinPlacementTarget
+        var builder = new CompositePinRenderPlanBuilder();
+        var target = new PinPlacementTarget
         {
-            StartScreen = new Point(100, 320), EndScreen = new Point(100, 100)
+            StartScreen = new Point(100, 320),
+            EndScreen = new Point(100, 100)
         };
         var placement = new PinPartPlacementResult
         {
-            PairId         = "pin_a",
-            PairGeometry   = CreateVerticalGeometry(),
+            PairId = "pin_a",
+            PairGeometry = CreateVerticalGeometry(),
             TargetAngleDeg = 0.0,
             TargetLengthPx = 220.0
         };
 
         var plan = builder.BuildPlan(target, placement, new PinPartConfig());
 
-        Assert.True(plan.Width  > 0, "Canvas width must be positive");
+        Assert.True(plan.Width > 0, "Canvas width must be positive");
         Assert.True(plan.Height > 0, "Canvas height must be positive");
     }
 

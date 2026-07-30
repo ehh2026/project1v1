@@ -111,10 +111,10 @@ namespace InteractiveWorldMap.Services
 
                 var file = new CacheFile
                 {
-                    Version   = CacheVersion,
-                    GroupKey  = groupKey,
+                    Version = CacheVersion,
+                    GroupKey = groupKey,
                     VariantId = variantId,
-                    Entries   = entries
+                    Entries = entries
                         .Select(e => new CacheFileEntry { LocationId = e.LocationId, Plan = e.Plan })
                         .ToList()
                 };
@@ -207,16 +207,16 @@ namespace InteractiveWorldMap.Services
 
         private sealed class CacheFile
         {
-            public int    Version   { get; set; }
-            public string GroupKey  { get; set; } = string.Empty;
+            public int Version { get; set; }
+            public string GroupKey { get; set; } = string.Empty;
             public string VariantId { get; set; } = string.Empty;
             public List<CacheFileEntry> Entries { get; set; } = new();
         }
 
         private sealed class CacheFileEntry
         {
-            public string             LocationId { get; set; } = string.Empty;
-            public CompositePinRenderPlan Plan    { get; set; } = new();
+            public string LocationId { get; set; } = string.Empty;
+            public CompositePinRenderPlan Plan { get; set; } = new();
         }
 
         // ─── JSON converters for WPF geometry types ──────────────────────────
@@ -272,13 +272,13 @@ namespace InteractiveWorldMap.Services
                     reader.Read();
                     switch (prop)
                     {
-                        case "M11":     m11 = reader.GetDouble(); break;
-                        case "M12":     m12 = reader.GetDouble(); break;
-                        case "M21":     m21 = reader.GetDouble(); break;
-                        case "M22":     m22 = reader.GetDouble(); break;
-                        case "OffsetX": ox  = reader.GetDouble(); break;
-                        case "OffsetY": oy  = reader.GetDouble(); break;
-                        default:        reader.Skip();             break;
+                        case "M11": m11 = reader.GetDouble(); break;
+                        case "M12": m12 = reader.GetDouble(); break;
+                        case "M21": m21 = reader.GetDouble(); break;
+                        case "M22": m22 = reader.GetDouble(); break;
+                        case "OffsetX": ox = reader.GetDouble(); break;
+                        case "OffsetY": oy = reader.GetDouble(); break;
+                        default: reader.Skip(); break;
                     }
                 }
                 return new System.Windows.Media.Matrix(m11, m12, m21, m22, ox, oy);
@@ -288,10 +288,10 @@ namespace InteractiveWorldMap.Services
                 Utf8JsonWriter writer, System.Windows.Media.Matrix value, JsonSerializerOptions options)
             {
                 writer.WriteStartObject();
-                writer.WriteNumber("M11",     value.M11);
-                writer.WriteNumber("M12",     value.M12);
-                writer.WriteNumber("M21",     value.M21);
-                writer.WriteNumber("M22",     value.M22);
+                writer.WriteNumber("M11", value.M11);
+                writer.WriteNumber("M12", value.M12);
+                writer.WriteNumber("M21", value.M21);
+                writer.WriteNumber("M22", value.M22);
                 writer.WriteNumber("OffsetX", value.OffsetX);
                 writer.WriteNumber("OffsetY", value.OffsetY);
                 writer.WriteEndObject();

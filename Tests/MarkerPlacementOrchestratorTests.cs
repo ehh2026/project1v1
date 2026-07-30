@@ -16,13 +16,13 @@ public class MarkerPlacementOrchestratorTests
     private static VisualConfig TestConfig() => new()
     {
         LocationMarkerSize = 20,
-        ClusterMarkerSize  = 30,
+        ClusterMarkerSize = 30,
         RadialExtension = new RadialExtensionConfig
         {
-            Enabled                  = true,
+            Enabled = true,
             ProximityThresholdPixels = 50,
             MinLocationsForExtension = 2,
-            ExtensionLineLength      = 100,
+            ExtensionLineLength = 100,
             ZoomThresholdForExtensions = 10.0
         }
     };
@@ -30,13 +30,13 @@ public class MarkerPlacementOrchestratorTests
     private static ViewportState TestViewport(double zoom = 55.0) =>
         new()
         {
-            SourceImageWidth  = 8198,
+            SourceImageWidth = 8198,
             SourceImageHeight = 5542,
-            ViewportX         = 1000,
-            ViewportY         = 800,
-            ViewportWidth     = 500,
-            ViewportHeight    = 400,
-            ZoomLevel         = zoom
+            ViewportX = 1000,
+            ViewportY = 800,
+            ViewportWidth = 500,
+            ViewportHeight = 400,
+            ZoomLevel = zoom
         };
 
     private static MarkerPlacementOrchestrator CreateOrchestrator(VisualConfig? config = null)

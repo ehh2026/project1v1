@@ -24,7 +24,7 @@ public class UpdateLocationsFromExcel
             var jsonPath = Path.Combine(targetPath, ContentFileNames.LocationsJsonFileName);
 
             logger.LogInfo($"Reading from Excel: {excelPath}");
-            
+
             if (!File.Exists(excelPath))
             {
                 logger.LogError($"Excel file not found: {excelPath}");
@@ -52,7 +52,7 @@ public class UpdateLocationsFromExcel
             File.WriteAllText(jsonPath, json);
 
             logger.LogInfo($"Successfully updated {jsonPath} with {locations.Count} locations");
-            
+
             // Log the locations for verification
             foreach (var loc in locations)
             {

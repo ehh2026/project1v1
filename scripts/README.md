@@ -42,15 +42,16 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 
 ## Advisory hooks and health checks
 
-Install the repo-local pre-push hook:
+Install the repo-local pre-commit and pre-push hooks:
 
 ```powershell
 .\scripts\install_git_hooks.ps1
 ```
 
-The hook runs doc links, taste checks, and the advisory code-health report before push.
-It is intentionally lightweight and does not replace the merge gate; run `.\scripts\verify.ps1`
-before merge-ready pushes. In emergencies, bypass the hook with `git push --no-verify`.
+The pre-commit hook verifies formatting with `dotnet format --verify-no-changes`.
+The pre-push hook runs restore/build, doc links, taste checks, and the advisory code-health report before push.
+These hooks do not replace the merge gate; run `.\scripts\verify.ps1` before merge-ready pushes.
+In emergencies, bypass hooks with `git commit --no-verify` or `git push --no-verify`.
 
 Generate the advisory report directly:
 
@@ -61,8 +62,16 @@ py -3 scripts\advisory_code_health.py
 Generate local coverage and summarize it:
 
 ```powershell
-dotnet test Tests\InteractiveWorldMap.Tests.csproj --collect:"XPlat Code Coverage" --results-directory TestResults\coverage-advisory
-py -3 scripts\summarize_coverage.py TestResults\coverage-advisory
+dotnet test Tests\InteractiveWorldMap.Tests.csproj --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\coverage-advisory
+py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory
+py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory --min-line-coverage 42 --min-branch-coverage 37
+```
+
+Run the local complexity gate directly:
+
+```powershell
+py -3 -m pip install lizard
+py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
 ```
 
 ## Related docs

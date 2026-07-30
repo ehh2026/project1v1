@@ -106,7 +106,7 @@ public class GeometryMathTests
     {
         var point = new Point(5, 0);
         var start = new Point(0, 0);
-        var end   = new Point(10, 0);
+        var end = new Point(10, 0);
 
         double dist = GeometryMath.PointToLineSegmentDistance(point, start, end);
 
@@ -118,7 +118,7 @@ public class GeometryMathTests
     {
         var point = new Point(5, 3);
         var start = new Point(0, 0);
-        var end   = new Point(10, 0);
+        var end = new Point(10, 0);
 
         double dist = GeometryMath.PointToLineSegmentDistance(point, start, end);
 
@@ -130,7 +130,7 @@ public class GeometryMathTests
     {
         var point = new Point(-3, 0);
         var start = new Point(0, 0);
-        var end   = new Point(10, 0);
+        var end = new Point(10, 0);
 
         double dist = GeometryMath.PointToLineSegmentDistance(point, start, end);
 
@@ -142,7 +142,7 @@ public class GeometryMathTests
     {
         var point = new Point(14, 0);
         var start = new Point(0, 0);
-        var end   = new Point(10, 0);
+        var end = new Point(10, 0);
 
         double dist = GeometryMath.PointToLineSegmentDistance(point, start, end);
 
@@ -156,10 +156,10 @@ public class GeometryMathTests
     [Fact]
     public void DoesLinePassTooCloseToMarker_FarAway_ReturnsFalse()
     {
-        var lineStart  = new Point(0, 0);
-        var lineEnd    = new Point(100, 0);
-        var markerPos  = new Point(50, 50); // 50 px above — far
-        double radius  = 10;
+        var lineStart = new Point(0, 0);
+        var lineEnd = new Point(100, 0);
+        var markerPos = new Point(50, 50); // 50 px above — far
+        double radius = 10;
 
         Assert.False(GeometryMath.DoesLinePassTooCloseToMarker(lineStart, lineEnd, markerPos, radius));
     }
@@ -167,10 +167,10 @@ public class GeometryMathTests
     [Fact]
     public void DoesLinePassTooCloseToMarker_WithinThreshold_ReturnsTrue()
     {
-        var lineStart  = new Point(0, 0);
-        var lineEnd    = new Point(100, 0);
-        var markerPos  = new Point(50, 5); // 5 px above
-        double radius  = 10; // threshold = 10 + 2 = 12 — 5 < 12
+        var lineStart = new Point(0, 0);
+        var lineEnd = new Point(100, 0);
+        var markerPos = new Point(50, 5); // 5 px above
+        double radius = 10; // threshold = 10 + 2 = 12 — 5 < 12
 
         Assert.True(GeometryMath.DoesLinePassTooCloseToMarker(lineStart, lineEnd, markerPos, radius));
     }
@@ -179,10 +179,10 @@ public class GeometryMathTests
     public void DoesLinePassTooCloseToMarker_ExactlyAtThreshold_ReturnsFalse()
     {
         // distance == markerRadius + 2.0 exactly → not strictly less than → false
-        var lineStart  = new Point(0, 0);
-        var lineEnd    = new Point(100, 0);
-        var markerPos  = new Point(50, 12); // exactly 12 = 10 + 2
-        double radius  = 10;
+        var lineStart = new Point(0, 0);
+        var lineEnd = new Point(100, 0);
+        var markerPos = new Point(50, 12); // exactly 12 = 10 + 2
+        double radius = 10;
 
         Assert.False(GeometryMath.DoesLinePassTooCloseToMarker(lineStart, lineEnd, markerPos, radius));
     }
@@ -191,10 +191,10 @@ public class GeometryMathTests
     public void DoesLinePassTooCloseToMarker_InsideTwoPixelBuffer_ReturnsTrue()
     {
         // Marker is beyond radius but inside the 2 px buffer
-        var lineStart  = new Point(0, 0);
-        var lineEnd    = new Point(100, 0);
-        var markerPos  = new Point(50, 11); // 11 px — between radius(10) and threshold(12)
-        double radius  = 10;
+        var lineStart = new Point(0, 0);
+        var lineEnd = new Point(100, 0);
+        var markerPos = new Point(50, 11); // 11 px — between radius(10) and threshold(12)
+        double radius = 10;
 
         Assert.True(GeometryMath.DoesLinePassTooCloseToMarker(lineStart, lineEnd, markerPos, radius));
     }
@@ -209,14 +209,14 @@ public class GeometryMathTests
     [Fact]
     public void CalculateAngularSpace_SingleExtension_Returns360()
     {
-        var ext  = MakeExt("A", 0);
+        var ext = MakeExt("A", 0);
         var list = new List<RadialExtension> { ext };
 
         // Only one element — next and prev both wrap to itself
-        double cwSpace  = GeometryMath.CalculateAngularSpace(ext, list, clockwise: true);
+        double cwSpace = GeometryMath.CalculateAngularSpace(ext, list, clockwise: true);
         double ccwSpace = GeometryMath.CalculateAngularSpace(ext, list, clockwise: false);
 
-        Assert.Equal(0.0, cwSpace,  6);  // (0 - 0 + 360) % 360 = 0 (wraps to self)
+        Assert.Equal(0.0, cwSpace, 6);  // (0 - 0 + 360) % 360 = 0 (wraps to self)
         Assert.Equal(0.0, ccwSpace, 6);
     }
 
@@ -261,9 +261,9 @@ public class GeometryMathTests
     [Fact]
     public void CalculateAngularSpace_ExtensionNotInList_Returns30Default()
     {
-        var ext     = MakeExt("X", 45);
-        var other   = MakeExt("Y", 90);
-        var list    = new List<RadialExtension> { other }; // "X" not in list
+        var ext = MakeExt("X", 45);
+        var other = MakeExt("Y", 90);
+        var list = new List<RadialExtension> { other }; // "X" not in list
 
         double space = GeometryMath.CalculateAngularSpace(ext, list, clockwise: true);
 
@@ -279,8 +279,8 @@ public class GeometryMathTests
         Point origin, Point extended) =>
         new()
         {
-            Location         = new Location { Name = name },
-            Angle            = angle,
+            Location = new Location { Name = name },
+            Angle = angle,
             OriginalPosition = origin,
             ExtendedPosition = extended
         };
@@ -289,7 +289,7 @@ public class GeometryMathTests
     public void FindSafeAngleRotation_NoConflicts_ReturnsMaxRotation()
     {
         // A single extension with no neighbours — safe to rotate the full max
-        var ext  = MakeExtWithPositions("A", 0, new Point(500, 500), new Point(500, 400));
+        var ext = MakeExtWithPositions("A", 0, new Point(500, 500), new Point(500, 400));
         var list = new List<RadialExtension> { ext };
 
         double safe = GeometryMath.FindSafeAngleRotation(ext, list, clockwise: true, maxRotation: 30, markerRadius: 8);
@@ -302,9 +302,9 @@ public class GeometryMathTests
     {
         // ext points north; other points NNE — rotating ext CW will collide quickly
         var origin = new Point(500, 500);
-        var ext    = MakeExtWithPositions("A", 0,   origin, new Point(500, 400));
-        var other  = MakeExtWithPositions("B", 5,   origin, new Point(504, 400)); // 5° away
-        var list   = new List<RadialExtension> { ext, other };
+        var ext = MakeExtWithPositions("A", 0, origin, new Point(500, 400));
+        var other = MakeExtWithPositions("B", 5, origin, new Point(504, 400)); // 5° away
+        var list = new List<RadialExtension> { ext, other };
 
         double safe = GeometryMath.FindSafeAngleRotation(ext, list, clockwise: true, maxRotation: 30, markerRadius: 8);
 
@@ -317,10 +317,10 @@ public class GeometryMathTests
     {
         // ext and other already overlap — even 1° more would intersect
         var origin = new Point(500, 500);
-        var ext    = MakeExtWithPositions("A", 0,   origin, new Point(500, 400));
+        var ext = MakeExtWithPositions("A", 0, origin, new Point(500, 400));
         // Place another extension directly adjacent so any rotation causes proximity hit
-        var other  = MakeExtWithPositions("B", 1,   origin, new Point(501, 400));
-        var list   = new List<RadialExtension> { ext, other };
+        var other = MakeExtWithPositions("B", 1, origin, new Point(501, 400));
+        var list = new List<RadialExtension> { ext, other };
 
         double safe = GeometryMath.FindSafeAngleRotation(ext, list, clockwise: true, maxRotation: 30, markerRadius: 20);
 

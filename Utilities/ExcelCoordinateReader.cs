@@ -16,6 +16,17 @@ public class ExcelCoordinateReader
 {
     private readonly ILogger _logger;
 
+    private sealed record WorkbookRows(
+        List<Dictionary<string, string>> LocationRows,
+        List<Dictionary<string, string>> BioRows,
+        List<Dictionary<string, string>> CaptionRows)
+    {
+        public static WorkbookRows Empty { get; } = new(
+            new List<Dictionary<string, string>>(),
+            new List<Dictionary<string, string>>(),
+            new List<Dictionary<string, string>>());
+    }
+
     public ExcelCoordinateReader(ILogger logger)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -33,69 +44,26 @@ public class ExcelCoordinateReader
                 return locations;
             }
 
-            using var zip = ZipFile.OpenRead(excelPath);
-            var sharedStrings = ReadSharedStrings(zip);
-            var sheetPaths = ReadWorksheetPaths(zip);
-
-            if (sheetPaths.Count == 0)
+            var workbook = ReadWorkbookData(excelPath);
+            if (workbook.LocationRows.Count == 0)
             {
                 _logger.LogWarning("No worksheets were found in the Excel file");
                 return locations;
             }
 
-            var locationRows = ReadWorksheetRows(zip, sheetPaths[0], sharedStrings);
-            var bioRows = sheetPaths.Count > 1
-                ? ReadWorksheetRows(zip, sheetPaths[1], sharedStrings)
-                : new List<Dictionary<string, string>>();
-            var captionRows = sheetPaths.Count > 2
-                ? ReadWorksheetRows(zip, sheetPaths[2], sharedStrings)
-                : new List<Dictionary<string, string>>();
-
-            var locationHeaderRow = locationRows.FirstOrDefault() ?? new Dictionary<string, string>();
-            var imageColumns = locationHeaderRow
-                .Where(pair => pair.Value.StartsWith("Image ", StringComparison.OrdinalIgnoreCase))
-                .Select(pair => pair.Key)
-                .OrderBy(column => column, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            var bioByName = bioRows
-                .Where(row => row.TryGetValue("A", out var name) && !string.IsNullOrWhiteSpace(name))
-                .ToDictionary(
-                    row => row["A"],
-                    row => row.TryGetValue("B", out var text) ? text : string.Empty,
-                    StringComparer.OrdinalIgnoreCase);
-
-            var captionsByName = captionRows
-                .Where(row => row.TryGetValue("A", out var name) && !string.IsNullOrWhiteSpace(name))
-                .GroupBy(row => row["A"], StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    group => group.Key,
-                    group => group
-                        .Where(row => row.TryGetValue("B", out var imageName) && !string.IsNullOrWhiteSpace(imageName))
-                        .ToDictionary(
-                            row => row["B"],
-                            row => row.TryGetValue("C", out var caption) ? caption : string.Empty,
-                            StringComparer.OrdinalIgnoreCase),
-                    StringComparer.OrdinalIgnoreCase);
+            var imageColumns = GetImageColumns(workbook.LocationRows);
+            var bioByName = BuildBioDictionary(workbook.BioRows);
+            var captionsByName = BuildCaptionsByName(workbook.CaptionRows);
 
             var locationIndex = 0;
-            foreach (var row in locationRows.Skip(1))
+            foreach (var row in workbook.LocationRows.Skip(1))
             {
                 locationIndex++;
                 var location = ParseLocationRow(row, locationIndex, imageColumns);
                 if (location == null)
                     continue;
 
-                if (bioByName.TryGetValue(location.Name, out var bioText) && !string.IsNullOrWhiteSpace(bioText))
-                {
-                    location.DidacticText = bioText;
-                }
-
-                if (captionsByName.TryGetValue(location.Name, out var captions))
-                {
-                    location.CaptionsByImageFileName = captions;
-                }
-
+                AddLocationContent(location, bioByName, captionsByName);
                 locations.Add(location);
                 _logger.LogInfo($"Parsed location: {location.Name} at ({location.PixelX}, {location.PixelY})");
             }
@@ -107,6 +75,76 @@ public class ExcelCoordinateReader
         {
             _logger.LogError($"Error reading Excel file: {ex.Message}\n{ex.StackTrace}");
             return locations;
+        }
+    }
+
+    private WorkbookRows ReadWorkbookData(string excelPath)
+    {
+        using var zip = ZipFile.OpenRead(excelPath);
+        var sharedStrings = ReadSharedStrings(zip);
+        var sheetPaths = ReadWorksheetPaths(zip);
+
+        if (sheetPaths.Count == 0)
+            return WorkbookRows.Empty;
+
+        return new WorkbookRows(
+            ReadWorksheetRows(zip, sheetPaths[0], sharedStrings),
+            sheetPaths.Count > 1
+                ? ReadWorksheetRows(zip, sheetPaths[1], sharedStrings)
+                : new List<Dictionary<string, string>>(),
+            sheetPaths.Count > 2
+                ? ReadWorksheetRows(zip, sheetPaths[2], sharedStrings)
+                : new List<Dictionary<string, string>>());
+    }
+
+    private static IReadOnlyList<string> GetImageColumns(
+        IReadOnlyList<Dictionary<string, string>> locationRows)
+    {
+        var locationHeaderRow = locationRows.FirstOrDefault() ?? new Dictionary<string, string>();
+        return locationHeaderRow
+            .Where(pair => pair.Value.StartsWith("Image ", StringComparison.OrdinalIgnoreCase))
+            .Select(pair => pair.Key)
+            .OrderBy(column => column, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static Dictionary<string, string> BuildBioDictionary(
+        IEnumerable<Dictionary<string, string>> bioRows) =>
+        bioRows
+            .Where(row => row.TryGetValue("A", out var name) && !string.IsNullOrWhiteSpace(name))
+            .ToDictionary(
+                row => row["A"],
+                row => row.TryGetValue("B", out var text) ? text : string.Empty,
+                StringComparer.OrdinalIgnoreCase);
+
+    private static Dictionary<string, Dictionary<string, string>> BuildCaptionsByName(
+        IEnumerable<Dictionary<string, string>> captionRows) =>
+        captionRows
+            .Where(row => row.TryGetValue("A", out var name) && !string.IsNullOrWhiteSpace(name))
+            .GroupBy(row => row["A"], StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .Where(row => row.TryGetValue("B", out var imageName) && !string.IsNullOrWhiteSpace(imageName))
+                    .ToDictionary(
+                        row => row["B"],
+                        row => row.TryGetValue("C", out var caption) ? caption : string.Empty,
+                        StringComparer.OrdinalIgnoreCase),
+                StringComparer.OrdinalIgnoreCase);
+
+    private static void AddLocationContent(
+        Location location,
+        IReadOnlyDictionary<string, string> bioByName,
+        IReadOnlyDictionary<string, Dictionary<string, string>> captionsByName)
+    {
+        if (bioByName.TryGetValue(location.Name, out var bioText) && !string.IsNullOrWhiteSpace(bioText))
+        {
+            location.DidacticText = bioText;
+        }
+
+        if (captionsByName.TryGetValue(location.Name, out var captions))
+        {
+            location.CaptionsByImageFileName = captions;
         }
     }
 

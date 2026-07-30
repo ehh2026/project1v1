@@ -114,13 +114,13 @@ namespace InteractiveWorldMap.Views
 
         private static DropShadowEffect CreateShadow(
             double depth, double blur, double opacity) => new()
-        {
-            Color = Colors.Black,
-            Direction = 270,
-            ShadowDepth = depth,
-            BlurRadius = blur,
-            Opacity = opacity
-        };
+            {
+                Color = Colors.Black,
+                Direction = 270,
+                ShadowDepth = depth,
+                BlurRadius = blur,
+                Opacity = opacity
+            };
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {

@@ -1,0 +1,12 @@
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat Code Coverage">
+        <Configuration>
+          <Exclude>[InteractiveWorldMap.Tests]*,[ManualLayoutSeedGenerator]*,[ThumbnailTouchSmoke]*</Exclude>
+          <Include>[InteractiveWorldMap]*</Include>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>

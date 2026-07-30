@@ -19,13 +19,13 @@ public class LayoutEditorControllerTests
     private static (LayoutEditorController Controller, ManualLayoutManager Manager, MockLogger Logger, string TempDir)
         Make()
     {
-        var tempDir     = Path.Combine(Path.GetTempPath(), "iwm-lec-" + Guid.NewGuid().ToString("N"));
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-lec-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
-        var layoutPath  = Path.Combine(tempDir, "layouts.json");
-        var logger      = new MockLogger();
-        var manager     = new ManualLayoutManager(layoutPath, logger);
-        var config      = new VisualConfig();
-        var controller  = new LayoutEditorController(manager, config, logger);
+        var layoutPath = Path.Combine(tempDir, "layouts.json");
+        var logger = new MockLogger();
+        var manager = new ManualLayoutManager(layoutPath, logger);
+        var config = new VisualConfig();
+        var controller = new LayoutEditorController(manager, config, logger);
         return (controller, manager, logger, tempDir);
     }
 
@@ -36,7 +36,7 @@ public class LayoutEditorControllerTests
     [Fact]
     public void Constructor_NullLayoutManager_Throws()
     {
-        var log    = new MockLogger();
+        var log = new MockLogger();
         var config = new VisualConfig();
         Assert.Throws<ArgumentNullException>(() =>
             new LayoutEditorController(null!, config, log));
@@ -212,7 +212,7 @@ public class LayoutEditorControllerTests
     [Fact]
     public void BuildExtensions_SingleMarker_ReturnsOneExtension()
     {
-        var loc    = Loc("a");
+        var loc = Loc("a");
         var center = new Point(110, 200);
         var origin = new Point(100, 190);
 
@@ -220,7 +220,7 @@ public class LayoutEditorControllerTests
             new[] { (loc, center, origin) });
 
         Assert.Single(result);
-        Assert.Equal(loc,    result[0].Location);
+        Assert.Equal(loc, result[0].Location);
         Assert.Equal(origin, result[0].OriginalPosition);
         Assert.Equal(center, result[0].ExtendedPosition);
     }
@@ -228,7 +228,7 @@ public class LayoutEditorControllerTests
     [Fact]
     public void BuildExtensions_AngleCalculatedFromDelta()
     {
-        var loc    = Loc("b");
+        var loc = Loc("b");
         var origin = new Point(0, 0);
         var center = new Point(1, 0);   // dx=1, dy=0 → north-up: East = 90°
 
@@ -244,7 +244,7 @@ public class LayoutEditorControllerTests
     {
         // Verify BuildExtensions angle + length can reconstruct extendedPos via the
         // same sin/cos formula used in ApplyManualLayout.
-        var loc    = Loc("c");
+        var loc = Loc("c");
         var origin = new Point(100, 100);
         var center = new Point(100, 50); // dx=0, dy=-50 → north-up: North = 0°
 

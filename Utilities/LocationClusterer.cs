@@ -39,7 +39,7 @@ namespace InteractiveWorldMap.Utilities
 
                 // Find all locations within threshold distance
                 var nearbyLocations = FindNearbyLocations(location, locations, processed);
-                
+
                 // Create cluster
                 var cluster = new LocationCluster
                 {
@@ -67,8 +67,8 @@ namespace InteractiveWorldMap.Utilities
         /// Uses recursive search to find all connected locations.
         /// </summary>
         private List<Location> FindNearbyLocations(
-            Location seedLocation, 
-            List<Location> allLocations, 
+            Location seedLocation,
+            List<Location> allLocations,
             HashSet<string> processed)
         {
             var cluster = new List<Location> { seedLocation };
@@ -87,7 +87,7 @@ namespace InteractiveWorldMap.Utilities
                         continue;
 
                     double distance = CalculateDistance(current, location);
-                    
+
                     if (distance <= DistanceThreshold)
                     {
                         cluster.Add(location);

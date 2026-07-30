@@ -217,16 +217,16 @@ namespace InteractiveWorldMap
             {
                 _logger.LogInfo("=== ShowZoomedView START ===");
                 _logger.LogInfo($"  Cluster has {cluster.Count} locations");
-                
+
                 // Track current cluster for edit mode
                 ClearFullMapLayoutSession();
                 _currentZoomedCluster = cluster;
-                
+
                 var viewport = MapDisplay.CurrentViewport;
                 if (viewport != null)
                 {
                     _logger.LogInfo($"  Current viewport: ({viewport.ViewportX:F2}, {viewport.ViewportY:F2}) {viewport.ViewportWidth:F2}x{viewport.ViewportHeight:F2}, zoom={viewport.ZoomLevel:F2}");
-                    
+
                     // Generate layout key and try to load saved layout
                     if (_layoutManager != null && _visualConfig.RadialExtension.Enabled)
                     {
@@ -268,13 +268,13 @@ namespace InteractiveWorldMap
                             }
                         }
                     }
-                    
+
                     // Load or generate high-quality zoomed region
                     var centerX = cluster.CenterPoint.X;
                     var centerY = cluster.CenterPoint.Y;
                     var request = TryCreateZoomedRegionRenderRequest(viewport, centerX, centerY);
                     var cachedRegion = request == null ? null : _zoomedRegionCache.TryLoadRegion(request);
-                    
+
                     if (cachedRegion != null)
                     {
                         _logger.LogInfo("  Loaded high-quality zoomed region from cache");
@@ -284,7 +284,7 @@ namespace InteractiveWorldMap
                     {
                         _logger.LogInfo("  Generating high-quality zoomed region...");
                         var sourceImage = MapDisplay.SourceImage;
-                        
+
                         if (sourceImage != null && request != null)
                         {
                             var highQualityRegion = _zoomedRegionCache.GenerateAndCacheRegion(sourceImage, request);
@@ -319,9 +319,9 @@ namespace InteractiveWorldMap
                         _savedLayoutToApply = null; // Drop any stale/suppressed staged layout.
                     }
                 }
-                
+
                 UpdateEditLayoutButtonVisibility();
-                
+
                 _logger.LogInfo($"=== ShowZoomedView COMPLETE ===");
             }
             catch (Exception ex)
@@ -540,39 +540,39 @@ namespace InteractiveWorldMap
         /// <summary>
         /// Pre-renders animation keyframes with caching support.
         /// </summary>
-        private WriteableBitmap[] PreRenderKeyframes(ViewportState startViewport, ViewportState targetViewport, 
+        private WriteableBitmap[] PreRenderKeyframes(ViewportState startViewport, ViewportState targetViewport,
                                                       int keyframeCount, out double[] keyframeProgress)
         {
             var prerenderedFrames = new WriteableBitmap[keyframeCount];
             keyframeProgress = new double[keyframeCount];
-            
+
             _logger.LogInfo($"  Pre-rendering {keyframeCount} keyframes...");
             var sourceImage = MapDisplay.SourceImage;
-            
+
             if (sourceImage == null)
             {
                 _logger.LogError("Source image is null, cannot pre-render");
                 return prerenderedFrames;
             }
-            
+
             int displayWidth = (int)MapDisplay.ActualWidth;
             int displayHeight = (int)MapDisplay.ActualHeight;
             int cachedCount = 0;
-            
+
             for (int i = 0; i < keyframeCount; i++)
             {
                 // Linear interpolation - no easing for smooth consistent motion
                 keyframeProgress[i] = i / (double)(keyframeCount - 1);
-                
+
                 var viewport = _viewportCalculator.Interpolate(startViewport, targetViewport, keyframeProgress[i]);
                 var sourceRect = viewport.GetSourceRect();
-                
+
                 // Try to load from cache first
                 var cachedFrame = _frameCache.TryLoadFrame(
                     startViewport.ViewportX, startViewport.ViewportY, startViewport.ViewportWidth, startViewport.ViewportHeight,
                     targetViewport.ViewportX, targetViewport.ViewportY, targetViewport.ViewportWidth, targetViewport.ViewportHeight,
                     displayWidth, displayHeight, i);
-                
+
                 if (cachedFrame != null)
                 {
                     prerenderedFrames[i] = new WriteableBitmap(cachedFrame);
@@ -586,10 +586,10 @@ namespace InteractiveWorldMap
                     var scaledBitmap = new TransformedBitmap(croppedBitmap,
                         new ScaleTransform(displayWidth / (double)sourceRect.Width, displayHeight / (double)sourceRect.Height));
                     RenderOptions.SetBitmapScalingMode(scaledBitmap, BitmapScalingMode.Linear);
-                    
+
                     prerenderedFrames[i] = new WriteableBitmap(scaledBitmap);
                     prerenderedFrames[i].Freeze();
-                    
+
                     // Save to cache for next time
                     _frameCache.SaveFrame(prerenderedFrames[i],
                         startViewport.ViewportX, startViewport.ViewportY, startViewport.ViewportWidth, startViewport.ViewportHeight,
@@ -598,7 +598,7 @@ namespace InteractiveWorldMap
                 }
             }
             _logger.LogInfo($"  Pre-rendering complete ({cachedCount}/{keyframeCount} from cache)");
-            
+
             return prerenderedFrames;
         }
 

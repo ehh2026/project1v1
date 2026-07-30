@@ -45,7 +45,98 @@ public class ExcelCoordinateReaderTests
         }
     }
 
-    private static void WriteWorkbook(string excelPath)
+    [Fact]
+    public void ReadLocationsFromExcel_MissingFile_ReturnsEmptyAndLogsError()
+    {
+        var logger = new MockLogger();
+        var reader = new ExcelCoordinateReader(logger);
+        var missingPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.xlsx");
+
+        var locations = reader.ReadLocationsFromExcel(missingPath);
+
+        Assert.Empty(locations);
+        Assert.Contains(logger.ErrorMessages, message => message.Contains("Excel file not found"));
+    }
+
+    [Fact]
+    public void ReadLocationsFromExcel_EmptyWorkbook_ReturnsEmptyAndLogsWarning()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-excel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var excelPath = Path.Combine(tempDir, "empty.xlsx");
+
+        try
+        {
+            using (ZipFile.Open(excelPath, ZipArchiveMode.Create))
+            {
+            }
+
+            var logger = new MockLogger();
+            var reader = new ExcelCoordinateReader(logger);
+
+            var locations = reader.ReadLocationsFromExcel(excelPath);
+
+            Assert.Empty(locations);
+            Assert.Contains(logger.WarningMessages, message => message.Contains("No worksheets"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ReadLocationsFromExcel_MalformedWorksheetXml_ReturnsEmptyAndLogsError()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-excel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var excelPath = Path.Combine(tempDir, "malformed.xlsx");
+
+        try
+        {
+            WriteWorkbook(excelPath, malformedLocationsSheet: true);
+            var logger = new MockLogger();
+            var reader = new ExcelCoordinateReader(logger);
+
+            var locations = reader.ReadLocationsFromExcel(excelPath);
+
+            Assert.Empty(locations);
+            Assert.Contains(logger.ErrorMessages, message => message.Contains("Error reading Excel file"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void ReadLocationsFromExcel_MissingRequiredCoordinateCells_SkipsRow()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-excel-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        var excelPath = Path.Combine(tempDir, "missing-columns.xlsx");
+
+        try
+        {
+            WriteWorkbook(excelPath, omitCoordinateCells: true);
+            var logger = new MockLogger();
+            var reader = new ExcelCoordinateReader(logger);
+
+            var locations = reader.ReadLocationsFromExcel(excelPath);
+
+            Assert.Empty(locations);
+            Assert.Contains(logger.InfoMessages, message => message.Contains("Successfully read 0 locations"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    private static void WriteWorkbook(
+        string excelPath,
+        bool malformedLocationsSheet = false,
+        bool omitCoordinateCells = false)
     {
         using var zip = ZipFile.Open(excelPath, ZipArchiveMode.Create);
 
@@ -96,8 +187,21 @@ public class ExcelCoordinateReaderTests
   <cellXfs count=""1""><xf numFmtId=""0"" fontId=""0"" fillId=""0"" borderId=""0"" xfId=""0""/></cellXfs>
 </styleSheet>");
 
-        WriteEntry(zip, "xl/worksheets/sheet1.xml",
-            @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+        var locationsSheet = malformedLocationsSheet
+            ? @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?><worksheet>"
+            : omitCoordinateCells
+                ? @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
+<worksheet xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"">
+  <sheetData>
+    <row r=""1"">
+      <c r=""A1"" t=""inlineStr""><is><t>Name</t></is></c>
+    </row>
+    <row r=""2"">
+      <c r=""A2"" t=""inlineStr""><is><t>Kevin</t></is></c>
+    </row>
+  </sheetData>
+</worksheet>"
+                : @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>
 <worksheet xmlns=""http://schemas.openxmlformats.org/spreadsheetml/2006/main"">
   <sheetData>
     <row r=""1"">
@@ -126,7 +230,9 @@ public class ExcelCoordinateReaderTests
       <c r=""F3""><v>2933</v></c>
     </row>
   </sheetData>
-</worksheet>");
+</worksheet>";
+
+        WriteEntry(zip, "xl/worksheets/sheet1.xml", locationsSheet);
 
         WriteEntry(zip, "xl/worksheets/sheet2.xml",
             @"<?xml version=""1.0"" encoding=""UTF-8"" standalone=""yes""?>

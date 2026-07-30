@@ -51,13 +51,13 @@ namespace InteractiveWorldMap
                 {
                     await CloseActiveSubwindowAsync();
                 }
-                
+
                 if (_activeThumbnailBrowser != null)
                 {
                     _activeThumbnailBrowser.Close();
                     _activeThumbnailBrowser = null;
                 }
-                
+
                 if (_activeDidacticWindow != null)
                 {
                     _activeDidacticWindow.Close();
@@ -66,16 +66,16 @@ namespace InteractiveWorldMap
 
                 // Load all images with translations for this location
                 var allImagesWithTranslations = await _contentLoader.LoadAllLocationImagesWithTranslationsAsync(location);
-                
+
                 if (allImagesWithTranslations.Length == 0)
                 {
                     // Show text message if no content available
                     var content = $"Content not available for {location.Name}";
-                    
+
                     _activeSubwindow = CreateContentSubwindow(location);
                     if (suppressNextContentActivation)
                         _activeSubwindow.SuppressNextContentActivation();
-                    
+
                     var markerPosition = MapDisplay.GetMapPosition(location.PixelX, location.PixelY, ImageWidth, ImageHeight);
                     _activeSubwindow.ShowContent(content, location.Name, markerPosition);
                 }
@@ -107,7 +107,7 @@ namespace InteractiveWorldMap
             bool suppressNextContentActivation = false)
         {
             var (image, translationText, captionText) = allImagesWithTranslations[index];
-            
+
             // Create and show content subwindow
             _activeSubwindow = CreateContentSubwindow(location);
             if (suppressNextContentActivation)
@@ -130,7 +130,7 @@ namespace InteractiveWorldMap
                 _activeDidacticWindow.PositionRelativeTo(_activeSubwindow);
                 _activeDidacticWindow.Show();
                 _activeDidacticWindow.AnimateOpen();
-                
+
                 _logger.LogInfo($"Didactic text window opened for location: {location.Name}");
             }
 
@@ -138,7 +138,7 @@ namespace InteractiveWorldMap
             if (allImagesWithTranslations.Length > 1)
             {
                 var images = allImagesWithTranslations.Select(x => x.Image).ToArray();
-                
+
                 _activeThumbnailBrowser = new ThumbnailBrowserWindow
                 {
                     Owner = this
@@ -146,11 +146,11 @@ namespace InteractiveWorldMap
                 _activeThumbnailBrowser.ApplyStyle(_visualConfig.ContentWindows);
 
                 _activeThumbnailBrowser.LoadThumbnails(images, index);
-                
+
                 // Position thumbnail browser to the right of content window
                 // If didactic window exists, it's already on the left
                 _activeThumbnailBrowser.PositionRelativeTo(_activeSubwindow);
-                
+
                 // Handle thumbnail selection
                 _activeThumbnailBrowser.ThumbnailSelected += (s, selectedIndex) =>
                 {
@@ -177,10 +177,10 @@ namespace InteractiveWorldMap
                     _activeSubwindow.ShowContent(selectedImage, location.Name, newMarkerPosition, selectedTranslation, selectedCaption);
                     _activeThumbnailBrowser?.SetSelectedIndex(selectedIndex);
                 };
-                
+
                 _activeThumbnailBrowser.Show();
                 _activeThumbnailBrowser.AnimateOpen();
-                
+
                 _logger.LogInfo($"Thumbnail browser opened with {allImagesWithTranslations.Length} images");
             }
         }
@@ -195,20 +195,20 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("Closing active subwindow");
                 var windowToClose = _activeSubwindow;
                 _activeSubwindow = null;
-                
+
                 windowToClose.AnimateClose(() =>
                 {
                     Focus(); // Return focus to main window
                 });
             }
-            
+
             // Also close thumbnail browser
             if (_activeThumbnailBrowser != null)
             {
                 _activeThumbnailBrowser.Close();
                 _activeThumbnailBrowser = null;
             }
-            
+
             // Also close didactic window
             if (_activeDidacticWindow != null)
             {
@@ -231,7 +231,7 @@ namespace InteractiveWorldMap
             }
 
             _logger.LogInfo("Closing active subwindow (async)");
-            
+
             var tcs = new TaskCompletionSource<bool>();
             var windowToClose = _activeSubwindow;
             _activeSubwindow = null;
@@ -242,7 +242,7 @@ namespace InteractiveWorldMap
                 _activeThumbnailBrowser.Close();
                 _activeThumbnailBrowser = null;
             }
-            
+
             // Close didactic window immediately
             if (_activeDidacticWindow != null)
             {

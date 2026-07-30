@@ -31,7 +31,7 @@ namespace InteractiveWorldMap.Views
             // Highlight line for metallic effect (slightly offset)
             double offsetX = (end.Y - start.Y) * 0.1; // Perpendicular offset
             double offsetY = (start.X - end.X) * 0.1;
-            
+
             HighlightLine.X1 = start.X + offsetX;
             HighlightLine.Y1 = start.Y + offsetY;
             HighlightLine.X2 = end.X + offsetX;

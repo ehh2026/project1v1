@@ -48,50 +48,130 @@ namespace InteractiveWorldMap.Services
             IReadOnlyList<Point> visibleClusterCenters)
         {
             var locationMarkerSize = _visualConfig.LocationMarkerSize;
-            var clusterMarkerSize  = _visualConfig.ClusterMarkerSize;
 
             var clusterPlacements = BuildClusterPlacements(
-                viewport, containerWidth, containerHeight, visibleClusterCenters, clusterMarkerSize);
+                viewport, containerWidth, containerHeight, visibleClusterCenters, _visualConfig.ClusterMarkerSize);
 
             if (isAnimating)
             {
-                var animatingIndividuals = BuildIndividualPlacements(
-                    viewport, containerWidth, containerHeight, visibleIndividuals, locationMarkerSize);
-                return new MarkerPlacementResult(
+                return BuildFallbackResult(
                     MarkerPlacementMode.AnimatingFallback,
-                    animatingIndividuals,
+                    viewport,
+                    containerWidth,
+                    containerHeight,
+                    visibleIndividuals,
                     clusterPlacements,
-                    Array.Empty<DenseMarkerGroup>(),
                     shouldApplyExtensions: false);
             }
 
-            bool shouldApplyExtensions = _visualConfig.RadialExtension.Enabled &&
-                                         _extensionCalculator != null &&
-                                         viewport.ZoomLevel >= _visualConfig.RadialExtension.ZoomThresholdForExtensions;
-            var logRadialExtensionCalculation =
-                _visualConfig.EnableDeveloperTools &&
-                _visualConfig.Debug.LogRadialExtensionCalculation;
-
-            if (logRadialExtensionCalculation)
-            {
-                _logger.LogInfo(
-                    $"[MarkerPlacement] ZoomLevel={viewport.ZoomLevel:F2}, " +
-                    $"Threshold={_visualConfig.RadialExtension.ZoomThresholdForExtensions}, " +
-                    $"ShouldApply={shouldApplyExtensions}");
-            }
+            bool shouldApplyExtensions = ShouldApplyExtensions(viewport);
+            var logRadialExtensionCalculation = ShouldLogRadialExtensionCalculation();
+            LogExtensionDecision(viewport, shouldApplyExtensions, logRadialExtensionCalculation);
 
             if (!shouldApplyExtensions)
             {
-                var normalIndividuals = BuildIndividualPlacements(
-                    viewport, containerWidth, containerHeight, visibleIndividuals, locationMarkerSize);
-                return new MarkerPlacementResult(
+                return BuildFallbackResult(
                     MarkerPlacementMode.NormalOnly,
-                    normalIndividuals,
+                    viewport,
+                    containerWidth,
+                    containerHeight,
+                    visibleIndividuals,
                     clusterPlacements,
-                    Array.Empty<DenseMarkerGroup>(),
                     shouldApplyExtensions: false);
             }
 
+            var extensionPlan = BuildExtensionPlan(
+                viewport,
+                containerWidth,
+                containerHeight,
+                visibleIndividuals,
+                locationMarkerSize,
+                logRadialExtensionCalculation);
+
+            if (!extensionPlan.DenseGroups.Any())
+            {
+                return BuildFallbackResult(
+                    MarkerPlacementMode.NormalOnly,
+                    viewport,
+                    containerWidth,
+                    containerHeight,
+                    visibleIndividuals,
+                    clusterPlacements,
+                    shouldApplyExtensions: true);
+            }
+
+            var combinedIndividuals = BuildNonExtensionPlacements(
+                viewport,
+                containerWidth,
+                containerHeight,
+                visibleIndividuals,
+                extensionPlan.MarkersInGroups,
+                extensionPlan.DenseGroups,
+                locationMarkerSize);
+
+            return new MarkerPlacementResult(
+                MarkerPlacementMode.WithExtensions,
+                combinedIndividuals,
+                clusterPlacements,
+                extensionPlan.ExtensionGroups,
+                shouldApplyExtensions: true);
+        }
+
+        private bool ShouldApplyExtensions(ViewportState viewport) =>
+            _visualConfig.RadialExtension.Enabled &&
+            _extensionCalculator != null &&
+            viewport.ZoomLevel >= _visualConfig.RadialExtension.ZoomThresholdForExtensions;
+
+        private bool ShouldLogRadialExtensionCalculation() =>
+            _visualConfig.EnableDeveloperTools &&
+            _visualConfig.Debug.LogRadialExtensionCalculation;
+
+        private void LogExtensionDecision(
+            ViewportState viewport,
+            bool shouldApplyExtensions,
+            bool logRadialExtensionCalculation)
+        {
+            if (!logRadialExtensionCalculation)
+                return;
+
+            _logger.LogInfo(
+                $"[MarkerPlacement] ZoomLevel={viewport.ZoomLevel:F2}, " +
+                $"Threshold={_visualConfig.RadialExtension.ZoomThresholdForExtensions}, " +
+                $"ShouldApply={shouldApplyExtensions}");
+        }
+
+        private MarkerPlacementResult BuildFallbackResult(
+            MarkerPlacementMode mode,
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight,
+            IReadOnlyList<(Location Location, double PixelX, double PixelY)> visibleIndividuals,
+            IReadOnlyList<ClusterScreenPlacement> clusterPlacements,
+            bool shouldApplyExtensions)
+        {
+            var individuals = BuildIndividualPlacements(
+                viewport,
+                containerWidth,
+                containerHeight,
+                visibleIndividuals,
+                _visualConfig.LocationMarkerSize);
+
+            return new MarkerPlacementResult(
+                mode,
+                individuals,
+                clusterPlacements,
+                Array.Empty<DenseMarkerGroup>(),
+                shouldApplyExtensions);
+        }
+
+        private ExtensionPlacementPlan BuildExtensionPlan(
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight,
+            IReadOnlyList<(Location Location, double PixelX, double PixelY)> visibleIndividuals,
+            double locationMarkerSize,
+            bool logRadialExtensionCalculation)
+        {
             var markerSourcePositions = visibleIndividuals.ToDictionary(
                 t => t.Location,
                 t => new Point(t.PixelX, t.PixelY));
@@ -112,19 +192,11 @@ namespace InteractiveWorldMap.Services
             {
                 if (logRadialExtensionCalculation)
                     _logger.LogInfo("[MarkerPlacement] No dense groups detected, using normal positioning");
-
-                var normalIndividuals = BuildIndividualPlacements(
-                    viewport, containerWidth, containerHeight, visibleIndividuals, locationMarkerSize);
-                return new MarkerPlacementResult(
-                    MarkerPlacementMode.NormalOnly,
-                    normalIndividuals,
-                    clusterPlacements,
-                    Array.Empty<DenseMarkerGroup>(),
-                    shouldApplyExtensions: true);
+                return new ExtensionPlacementPlan(denseGroups);
             }
 
             var markersInGroups = new HashSet<Location>();
-            var allExtensions   = new List<RadialExtension>();
+            var allExtensions = new List<RadialExtension>();
             int groupId = 0;
 
             foreach (var group in denseGroups)
@@ -179,6 +251,18 @@ namespace InteractiveWorldMap.Services
                 .Where(g => g.Extensions.Any())
                 .ToList();
 
+            return new ExtensionPlacementPlan(denseGroups, extensionGroups, markersInGroups);
+        }
+
+        private IReadOnlyList<MarkerScreenPlacement> BuildNonExtensionPlacements(
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight,
+            IReadOnlyList<(Location Location, double PixelX, double PixelY)> visibleIndividuals,
+            IReadOnlySet<Location> markersInGroups,
+            IReadOnlyList<DenseMarkerGroup> denseGroups,
+            double locationMarkerSize)
+        {
             var outsideGroupIndividuals = visibleIndividuals
                 .Where(t => !markersInGroups.Contains(t.Location))
                 .ToList();
@@ -204,13 +288,24 @@ namespace InteractiveWorldMap.Services
             var combinedIndividuals = normalForOutside
                 .Concat(fallbackNormals)
                 .ToList();
+            return combinedIndividuals;
+        }
 
-            return new MarkerPlacementResult(
-                MarkerPlacementMode.WithExtensions,
-                combinedIndividuals,
-                clusterPlacements,
-                extensionGroups,
-                shouldApplyExtensions: true);
+        private sealed class ExtensionPlacementPlan
+        {
+            public ExtensionPlacementPlan(
+                IReadOnlyList<DenseMarkerGroup> denseGroups,
+                IReadOnlyList<DenseMarkerGroup>? extensionGroups = null,
+                IReadOnlySet<Location>? markersInGroups = null)
+            {
+                DenseGroups = denseGroups;
+                ExtensionGroups = extensionGroups ?? Array.Empty<DenseMarkerGroup>();
+                MarkersInGroups = markersInGroups ?? new HashSet<Location>();
+            }
+
+            public IReadOnlyList<DenseMarkerGroup> DenseGroups { get; }
+            public IReadOnlyList<DenseMarkerGroup> ExtensionGroups { get; }
+            public IReadOnlySet<Location> MarkersInGroups { get; }
         }
 
         private static IReadOnlyList<MarkerScreenPlacement> BuildIndividualPlacements(

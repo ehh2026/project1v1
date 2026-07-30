@@ -33,7 +33,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08)
 
-- [ ] Implement complexity refactoring and blocking format/analyzer/coverage/Lizard gates - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
+- [ ] Finalize complexity/CI hooks plan archival after resolving the unrelated stale active-plan taste failure - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
 - [ ] Refactoring assessment follow-through — [refactoring-assessment-followthrough-plan.md](exec-plans/active/refactoring-assessment-followthrough-plan.md)
 - [ ] Resolve nullable reference warnings (CS8602/CS8604) — Phase 13 in follow-through plan
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)

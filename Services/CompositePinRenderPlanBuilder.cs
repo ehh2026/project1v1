@@ -17,27 +17,27 @@ namespace InteractiveWorldMap.Services
         // -------------------------------------------------------------------------
 
         private sealed record ValidatedInputs(
-            PinPartGeometryEntry     Geometry,    // shaft geometry
-            PinPartGeometryEntry     HeadEntry,   // head geometry (may differ from Geometry)
-            PinPartImageSize         ShaftSize,
-            PinPartImageSize         HeadSize,
+            PinPartGeometryEntry Geometry,    // shaft geometry
+            PinPartGeometryEntry HeadEntry,   // head geometry (may differ from Geometry)
+            PinPartImageSize ShaftSize,
+            PinPartImageSize HeadSize,
             PinPartShaftSegmentation Segmentation,
-            PinPartPoint             HeadAnchor); // local_center — the visual ball center used as placement anchor
+            PinPartPoint HeadAnchor); // local_center — the visual ball center used as placement anchor
 
         private sealed record PreparedGeometry(
-            double        TargetLength,
-            double        TargetAngle,
-            double        TargetBodyLength,
-            double        BodyStretch,
-            double        OverallScale,
-            Vector        TargetDirection,
-            Vector        TargetNormal,
-            Point         NativeTip,
-            Vector        NativeAxisUnit,
-            Vector        NativeNormal,
-            Rect          NativeBounds,
-            List<Point>   ShaftRectCorners,
-            List<Point>   HeadRectCorners);
+            double TargetLength,
+            double TargetAngle,
+            double TargetBodyLength,
+            double BodyStretch,
+            double OverallScale,
+            Vector TargetDirection,
+            Vector TargetNormal,
+            Point NativeTip,
+            Vector NativeAxisUnit,
+            Vector NativeNormal,
+            Rect NativeBounds,
+            List<Point> ShaftRectCorners,
+            List<Point> HeadRectCorners);
 
         private sealed record ComputedTransforms(
             Matrix TipTransform,
@@ -51,10 +51,10 @@ namespace InteractiveWorldMap.Services
             Matrix BodyTransform,
             Matrix HeadCapTransform,
             Matrix HeadTransform,
-            Point  TipAnchor,
-            Point  JoinAnchor,
-            Point  StretchStart,
-            Point  StretchEnd,
+            Point TipAnchor,
+            Point JoinAnchor,
+            Point StretchStart,
+            Point StretchEnd,
             double CanvasWidth,
             double CanvasHeight);
 
@@ -63,15 +63,15 @@ namespace InteractiveWorldMap.Services
         // -------------------------------------------------------------------------
 
         public CompositePinRenderPlan BuildPlan(
-            PinPlacementTarget     target,
+            PinPlacementTarget target,
             PinPartPlacementResult placement,
-            PinPartConfig          config,
-            PinPartGeometryEntry?  headGeometryOverride = null)
+            PinPartConfig config,
+            PinPartGeometryEntry? headGeometryOverride = null)
         {
-            var validated  = ValidateInputs(target, placement, config, headGeometryOverride);
-            var geo        = PrepareGeometry(target, validated);
+            var validated = ValidateInputs(target, placement, config, headGeometryOverride);
+            var geo = PrepareGeometry(target, validated);
             var transforms = CalculateTransforms(geo, validated, config);
-            var shifted    = CalculateBoundsAndShift(geo, transforms, validated.Segmentation);
+            var shifted = CalculateBoundsAndShift(geo, transforms, validated.Segmentation);
             return AssembleResult(placement, config, validated, geo, transforms, shifted);
         }
 
@@ -80,10 +80,10 @@ namespace InteractiveWorldMap.Services
         // -------------------------------------------------------------------------
 
         private static ValidatedInputs ValidateInputs(
-            PinPlacementTarget     target,
+            PinPlacementTarget target,
             PinPartPlacementResult placement,
-            PinPartConfig          config,
-            PinPartGeometryEntry?  headGeometryOverride)
+            PinPartConfig config,
+            PinPartGeometryEntry? headGeometryOverride)
         {
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
@@ -94,7 +94,7 @@ namespace InteractiveWorldMap.Services
             if (config == null)
                 throw new ArgumentNullException(nameof(config));
 
-            var geometry  = placement.PairGeometry;
+            var geometry = placement.PairGeometry;
             var headEntry = headGeometryOverride ?? geometry;
 
             var shaftSize = geometry.Shaft.ImageSize
@@ -114,30 +114,30 @@ namespace InteractiveWorldMap.Services
 
         private static PreparedGeometry PrepareGeometry(
             PinPlacementTarget target,
-            ValidatedInputs    v)
+            ValidatedInputs v)
         {
-            var targetLength    = GetDistance(target.StartScreen, target.EndScreen);
-            var targetAngle     = GetAngleDegrees(target.StartScreen, target.EndScreen);
+            var targetLength = GetDistance(target.StartScreen, target.EndScreen);
+            var targetAngle = GetAngleDegrees(target.StartScreen, target.EndScreen);
             var targetDirection = Normalize(target.EndScreen - target.StartScreen);
-            var targetNormal    = new Vector(-targetDirection.Y, targetDirection.X);
+            var targetNormal = new Vector(-targetDirection.Y, targetDirection.X);
 
-            var nativeTip        = ToPoint(v.Geometry.Shaft.LocalTip);
-            var nativeJoin       = ToPoint(v.Geometry.Shaft.LocalJoin);
-            var nativeAxis       = nativeJoin - nativeTip;
+            var nativeTip = ToPoint(v.Geometry.Shaft.LocalTip);
+            var nativeJoin = ToPoint(v.Geometry.Shaft.LocalJoin);
+            var nativeAxis = nativeJoin - nativeTip;
             var nativeAxisLength = nativeAxis.Length;
             if (nativeAxisLength <= 0.0)
                 throw new InvalidOperationException("Shaft native axis length must be greater than zero.");
 
             var nativeAxisUnit = Normalize(nativeAxis);
-            var nativeNormal   = new Vector(-nativeAxisUnit.Y, nativeAxisUnit.X);
+            var nativeNormal = new Vector(-nativeAxisUnit.Y, nativeAxisUnit.X);
 
             // Overall scale maps source image pixels → screen pixels uniformly.
             // Cap lengths are in source pixels so must be scaled before subtracting from the
             // screen-pixel targetLength — otherwise targetBodyLength is incorrectly negative
             // when the source images are larger than the target screen distance.
-            var overallScale     = targetLength / nativeAxisLength;
-            var scaledTipCap     = v.Segmentation.TipCapLength  * overallScale;
-            var scaledHeadCap    = v.Segmentation.HeadCapLength * overallScale;
+            var overallScale = targetLength / nativeAxisLength;
+            var scaledTipCap = v.Segmentation.TipCapLength * overallScale;
+            var scaledHeadCap = v.Segmentation.HeadCapLength * overallScale;
             var targetBodyLength = targetLength - scaledTipCap - scaledHeadCap;
             if (targetBodyLength <= 0.0)
             {
@@ -153,8 +153,8 @@ namespace InteractiveWorldMap.Services
             var bodyStretch = targetBodyLength / v.Segmentation.StretchableLength;
 
             var shaftRectCorners = GetRectangleCorners(v.ShaftSize.Width, v.ShaftSize.Height);
-            var headRectCorners  = GetRectangleCorners(v.HeadSize.Width, v.HeadSize.Height);
-            var nativeBounds     = new Rect(0, 0, v.ShaftSize.Width, v.ShaftSize.Height);
+            var headRectCorners = GetRectangleCorners(v.HeadSize.Width, v.HeadSize.Height);
+            var nativeBounds = new Rect(0, 0, v.ShaftSize.Width, v.ShaftSize.Height);
 
             return new PreparedGeometry(
                 targetLength, targetAngle, targetBodyLength, bodyStretch, overallScale,
@@ -165,10 +165,10 @@ namespace InteractiveWorldMap.Services
 
         private static ComputedTransforms CalculateTransforms(
             PreparedGeometry geo,
-            ValidatedInputs  v,
-            PinPartConfig    config)
+            ValidatedInputs v,
+            PinPartConfig config)
         {
-            var S   = geo.OverallScale;
+            var S = geo.OverallScale;
             var seg = v.Segmentation;
 
             // Scaled cap lengths (screen pixels) — the same values computed in PrepareGeometry.
@@ -203,7 +203,7 @@ namespace InteractiveWorldMap.Services
                 scaledTipCap + geo.TargetBodyLength - seg.StretchEndDistance * S);
 
             var nativeAttachToCenterAngle = Normalize360(v.HeadEntry.Head.StubDirectionDeg + 180.0);
-            var headRotationDeg           = NormalizeSignedAngle(geo.TargetAngle - nativeAttachToCenterAngle);
+            var headRotationDeg = NormalizeSignedAngle(geo.TargetAngle - nativeAttachToCenterAngle);
 
             // Always scale to TargetHeadRadiusPx so all pin heads render at a consistent
             // screen radius regardless of native shaft length.  Fall back to S only when
@@ -214,7 +214,7 @@ namespace InteractiveWorldMap.Services
                 : S;
 
             // Anchor is local_center: the ball's visual centre maps to the shaft endpoint.
-            var headTransform             = CreateHeadTransform(
+            var headTransform = CreateHeadTransform(
                 v.HeadAnchor,
                 new Point(geo.TargetDirection.X * geo.TargetLength, geo.TargetDirection.Y * geo.TargetLength),
                 headRotationDeg,
@@ -224,8 +224,8 @@ namespace InteractiveWorldMap.Services
         }
 
         private static ShiftedGeometry CalculateBoundsAndShift(
-            PreparedGeometry         geo,
-            ComputedTransforms       t,
+            PreparedGeometry geo,
+            ComputedTransforms t,
             PinPartShaftSegmentation seg)
         {
             var allBounds = new List<Rect>
@@ -241,12 +241,12 @@ namespace InteractiveWorldMap.Services
             var shiftY = -unionBounds.Top;
 
             // Matrix is a value type — copying to locals before translating preserves the originals
-            var tipT     = t.TipTransform;     tipT.Translate(shiftX, shiftY);
-            var bodyT    = t.BodyTransform;    bodyT.Translate(shiftX, shiftY);
+            var tipT = t.TipTransform; tipT.Translate(shiftX, shiftY);
+            var bodyT = t.BodyTransform; bodyT.Translate(shiftX, shiftY);
             var headCapT = t.HeadCapTransform; headCapT.Translate(shiftX, shiftY);
-            var headT    = t.HeadTransform;    headT.Translate(shiftX, shiftY);
+            var headT = t.HeadTransform; headT.Translate(shiftX, shiftY);
 
-            var tipAnchor  = new Point(shiftX, shiftY);
+            var tipAnchor = new Point(shiftX, shiftY);
             var joinAnchor = new Point(
                 (geo.TargetDirection.X * geo.TargetLength) + shiftX,
                 (geo.TargetDirection.Y * geo.TargetLength) + shiftY);
@@ -266,16 +266,16 @@ namespace InteractiveWorldMap.Services
 
         private static CompositePinRenderPlan AssembleResult(
             PinPartPlacementResult placement,
-            PinPartConfig          config,
-            ValidatedInputs        v,
-            PreparedGeometry       geo,
-            ComputedTransforms     t,
-            ShiftedGeometry        s)
+            PinPartConfig config,
+            ValidatedInputs v,
+            PreparedGeometry geo,
+            ComputedTransforms t,
+            ShiftedGeometry s)
         {
-            var geometry  = v.Geometry;
-            var seg       = v.Segmentation;
+            var geometry = v.Geometry;
+            var seg = v.Segmentation;
             var shaftPath = ResolveShaftPath(config, geometry);
-            var headPath  = ResolveHeadPath(config, v.HeadEntry);
+            var headPath = ResolveHeadPath(config, v.HeadEntry);
 
             // Each adjacent clip band shares an exact boundary in source pixel space.
             // Different RenderTransforms on the three shaft layers can map that same boundary
@@ -288,62 +288,62 @@ namespace InteractiveWorldMap.Services
 
             return new CompositePinRenderPlan
             {
-                PairId              = placement.PairId,
-                ShaftSourcePath     = shaftPath,
-                HeadSourcePath      = headPath,
-                Width               = Math.Round(s.CanvasWidth,       1),
-                Height              = Math.Round(s.CanvasHeight,      1),
-                TargetAngleDeg      = Math.Round(geo.TargetAngle,     1),
-                TargetLengthPx      = Math.Round(geo.TargetLength,    1),
-                HeadRotationDeg     = Math.Round(t.HeadRotationDeg,   1),
-                BodyStretchFactor   = Math.Round(geo.BodyStretch,     3),
+                PairId = placement.PairId,
+                ShaftSourcePath = shaftPath,
+                HeadSourcePath = headPath,
+                Width = Math.Round(s.CanvasWidth, 1),
+                Height = Math.Round(s.CanvasHeight, 1),
+                TargetAngleDeg = Math.Round(geo.TargetAngle, 1),
+                TargetLengthPx = Math.Round(geo.TargetLength, 1),
+                HeadRotationDeg = Math.Round(t.HeadRotationDeg, 1),
+                BodyStretchFactor = Math.Round(geo.BodyStretch, 3),
                 StretchBodyLengthPx = Math.Round(geo.TargetBodyLength, 1),
-                TipAnchorLocal      = s.TipAnchor,
-                JoinAnchorLocal     = s.JoinAnchor,
-                StretchStartLocal   = s.StretchStart,
-                StretchEndLocal     = s.StretchEnd,
-                HeadAttachLocal     = s.JoinAnchor,
-                HeadCenterLocal     = TransformPoint(ToPoint(v.HeadEntry.Head.LocalCenter), s.HeadTransform),
-                HeadDiameterPx      = 2.0 * v.HeadEntry.Head.LocalRadius *
+                TipAnchorLocal = s.TipAnchor,
+                JoinAnchorLocal = s.JoinAnchor,
+                StretchStartLocal = s.StretchStart,
+                StretchEndLocal = s.StretchEnd,
+                HeadAttachLocal = s.JoinAnchor,
+                HeadCenterLocal = TransformPoint(ToPoint(v.HeadEntry.Head.LocalCenter), s.HeadTransform),
+                HeadDiameterPx = 2.0 * v.HeadEntry.Head.LocalRadius *
                     (config.TargetHeadRadiusPx > 0.0 && v.HeadEntry.Head.LocalRadius > 0.0
                         ? config.TargetHeadRadiusPx / v.HeadEntry.Head.LocalRadius
                         : geo.OverallScale),
                 ShaftTipCapLayer = new CompositePinLayerPlan
                 {
-                    SourcePath   = shaftPath,
-                    SourceWidth  = v.ShaftSize.Width,
+                    SourcePath = shaftPath,
+                    SourceWidth = v.ShaftSize.Width,
                     SourceHeight = v.ShaftSize.Height,
-                    ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
+                    ClipPolygon = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
                                             0.0, seg.TipCapLength + SeamOverlapPx),
-                    Transform    = s.TipTransform
+                    Transform = s.TipTransform
                 },
                 ShaftBodyLayer = new CompositePinLayerPlan
                 {
-                    SourcePath   = shaftPath,
-                    SourceWidth  = v.ShaftSize.Width,
+                    SourcePath = shaftPath,
+                    SourceWidth = v.ShaftSize.Width,
                     SourceHeight = v.ShaftSize.Height,
-                    ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
+                    ClipPolygon = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
                                             Math.Max(0.0, seg.StretchStartDistance - SeamOverlapPx),
                                             seg.StretchEndDistance + SeamOverlapPx),
-                    Transform    = s.BodyTransform
+                    Transform = s.BodyTransform
                 },
                 ShaftHeadCapLayer = new CompositePinLayerPlan
                 {
-                    SourcePath   = shaftPath,
-                    SourceWidth  = v.ShaftSize.Width,
+                    SourcePath = shaftPath,
+                    SourceWidth = v.ShaftSize.Width,
                     SourceHeight = v.ShaftSize.Height,
-                    ClipPolygon  = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
+                    ClipPolygon = ClipBand(geo.NativeBounds, geo.NativeTip, geo.NativeAxisUnit,
                                             Math.Max(0.0, seg.StretchEndDistance - SeamOverlapPx),
                                             geometry.Shaft.NativeLength),
-                    Transform    = s.HeadCapTransform
+                    Transform = s.HeadCapTransform
                 },
                 HeadLayer = new CompositePinLayerPlan
                 {
-                    SourcePath   = headPath,
-                    SourceWidth  = v.HeadSize.Width,
+                    SourcePath = headPath,
+                    SourceWidth = v.HeadSize.Width,
                     SourceHeight = v.HeadSize.Height,
-                    ClipPolygon  = new List<Point>(geo.HeadRectCorners),
-                    Transform    = s.HeadTransform
+                    ClipPolygon = new List<Point>(geo.HeadRectCorners),
+                    Transform = s.HeadTransform
                 }
             };
         }
@@ -409,12 +409,12 @@ namespace InteractiveWorldMap.Services
         }
 
         private static Matrix CreateLayerTransform(
-            Point  nativeTip,
+            Point nativeTip,
             Vector nativeAxisUnit,
             Vector nativeNormal,
             Vector targetAxisUnit,
             Vector targetNormal,
-            Point  targetTip,
+            Point targetTip,
             double axialScale,
             double axialOffset,
             double normalScale = 1.0)
@@ -502,12 +502,12 @@ namespace InteractiveWorldMap.Services
         }
 
         private static List<Point> ClipAgainstHalfPlane(
-            List<Point>     polygon,
+            List<Point> polygon,
             Func<Point, bool> isInside,
-            double          boundaryDistance,
-            Point           tip,
-            Vector          axisUnit,
-            bool            keepLessThanOrEqual = false)
+            double boundaryDistance,
+            Point tip,
+            Vector axisUnit,
+            bool keepLessThanOrEqual = false)
         {
             var output = new List<Point>();
             if (polygon.Count == 0)
@@ -544,9 +544,9 @@ namespace InteractiveWorldMap.Services
         private static Point GetBoundaryIntersection(Point start, Point end, double boundaryDistance, Point tip, Vector axisUnit)
         {
             var startDistance = GetAxisDistance(tip, axisUnit, start);
-            var endDistance   = GetAxisDistance(tip, axisUnit, end);
-            var delta         = endDistance - startDistance;
-            var t             = Math.Abs(delta) < 0.0001 ? 0.0 : (boundaryDistance - startDistance) / delta;
+            var endDistance = GetAxisDistance(tip, axisUnit, end);
+            var delta = endDistance - startDistance;
+            var t = Math.Abs(delta) < 0.0001 ? 0.0 : (boundaryDistance - startDistance) / delta;
 
             return new Point(
                 start.X + ((end.X - start.X) * t),
