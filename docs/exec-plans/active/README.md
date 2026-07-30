@@ -20,7 +20,7 @@ started: YYYY-MM-DD
 
 | Plan | Scope |
 |------|--------|
-| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining assessment debt — map metadata, clusterer spatial index, Excel streaming, ApplicationState, ContentLoader LRU (refreshed 2026-07-30) |
+| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining assessment debt — Excel streaming, ContentLoader LRU (Phases 11, 14, 17 done) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |

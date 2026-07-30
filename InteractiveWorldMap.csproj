@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <Compile Remove="backups\**" />
+    <Compile Remove="tmp\**" />
     <Compile Remove="Tests\**" />
     <Compile Remove="Tools\**" />
     <EmbeddedResource Remove="Tests\**" />

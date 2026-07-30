@@ -12,7 +12,7 @@ tracker: ../completed/refactoring-plan.md
 
 Close remaining items from [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) that were not finished in [refactoring-plan.md](../completed/refactoring-plan.md) (Phases 1–10).
 
-> **2026-07-30 refresh:** Rebased against current code. Phase 12 (MarkerLayerControl) is obsolete; Phase 13 (nullable) and the Phase 18 large-file slice are done. Remaining work is reordered for implementation below. Historical assessments/completed plans are left unchanged.
+> **2026-07-30 refresh:** Rebased against current code. Phase 12 (MarkerLayerControl) is obsolete; Phase 13 (nullable) and the Phase 18 large-file slice are done. Open questions resolved below; remaining work ordered for implementation. Historical assessments/completed plans are left unchanged.
 
 TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 
@@ -23,6 +23,9 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 | Item | Evidence |
 |------|----------|
 | Phases 1–10 (original refactoring plan) | [refactoring-plan.md](../completed/refactoring-plan.md) |
+| Phase 11 — Map dimensions single source of truth | `Models/MapMetadata`; MainWindow properties; display-space `StartupValidator` ceilings; TD-014 resolved |
+| Phase 17 — ApplicationState decision | Deleted orphan `Models/ApplicationState.cs`; TD-017 resolved |
+| Phase 14 — LocationClusterer spatial indexing | `SpatialGrid` + 3×3 neighbor query; TD-015 resolved |
 | Phase 12 — `MarkerLayerControl` positioning extraction | **Obsolete** — control removed; placement via `MarkerPlacementOrchestrator`, `ViewportState`, `MapDisplayControl` |
 | Phase 13 — nullable CS8602/CS8604 cleanup | Release build clean; Excel/cluster guards landed |
 | Phase 18 large-file slice | `MarkerPlacementOrchestrator`, composite apply service, MainWindow partials; primary `MainWindow.xaml.cs` ~554 lines; TD-001 resolved |
@@ -31,12 +34,9 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 
 | Priority | Phase | Item | Notes |
 |----------|-------|------|-------|
-| 1 | 11 | Map dimensions single source of truth | Runtime still uses `MainWindow` constants `8198×5542`; validator ceilings still `16397×11085` |
-| 2 | 14 | `LocationClusterer` spatial indexing | Still nested O(n²) neighbor scan; no `SpatialGrid` |
-| 3 | 15 | `ExcelCoordinateReader` streaming parse | Still `XmlDocument`; prefer `XmlReader` (no new NuGet) |
-| 4 | 17 | `ApplicationState` decision | Class exists; **zero** other `.cs` references — delete or wire |
-| 5 | 16 | `ContentLoader` cache bounds | Unbounded `Dictionary` keyed by location name |
-| 6 | 18b | Optional MainWindow extractions | Only if files approach 800 lines again |
+| 1 | 15 | `ExcelCoordinateReader` streaming parse | `XmlReader` (Option A); no new NuGet |
+| 2 | 16 | `ContentLoader` cache bounds | Harden existing `_contentCache` only (see scope) |
+| 3 | 18b | Optional MainWindow extractions | Only if files approach 800 lines again |
 
 ### Explicitly deferred (tech debt / separate plans)
 
@@ -47,6 +47,62 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 | Coordinate value types (`PixelCoordinate`, etc.) | High churn — new plan if pursued |
 | `ContentSubwindow` DPI sizing | Low / cosmetic |
 | Full UI automation suite | TD-004 |
+| Assessment §6 excessive logging cleanup | Out of scope here — use existing `DebugConfig` / levels; no dedicated phase |
+| Gallery multi-image cache (`LoadAllLocationImages*`) | Not Phase 16 — UI path bypasses `_contentCache`; new TD if memory becomes an issue |
+
+## Decisions (resolved 2026-07-30)
+
+These close the readiness gaps. Implementers should treat them as constraints, not reopen them without evidence.
+
+### Phase 11 — map dimensions
+
+| Question | Decision |
+|----------|----------|
+| Coordinate / placement space | **Display** space only. Excel columns E/F are half-size; docs and `MainWindow` constants (`8198×5542`) match `World Map Extra Large.jpg`. |
+| Full-res (`16397×11085`) role | Crop / high-quality zoom source only (`ZoomedRegionCache` already scales from actual bitmap sizes). Not used for marker placement or Excel validation. |
+| Validator ceilings | **Bug fix:** change `StartupValidator` from full-res ceilings to **display** max X/Y. Coords above display size are invalid for current content. |
+| Type shape | `Models/MapMetadata` with required `DisplayWidth` / `DisplayHeight` and optional `FullResWidth` / `FullResHeight` (defaults / probes for docs and sanity checks — not placement). |
+| Source of truth | `MapMetadata.CreateDefault()` documents asset defaults (`8198×5542`, `16397×11085`). After the display map loads, prefer `MapMetadata.FromDisplayBitmap(bitmap)` (PixelWidth/Height) with default fallback if load failed. **Do not** add map size fields to `visual-config.json` in this phase (avoids config/Excel/bitmap drift). |
+| Owner | Construct once at app/MainWindow init after display map load; pass into navigation / placement / validator. Do not re-read literals in partials. |
+| `ZoomedRegionCache` | Leave as-is (measures bitmaps). No requirement to inject `MapMetadata` into crop scale math. |
+| Docs / tools | Living guide [UPDATING_COORDINATES.md](../../guides/UPDATING_COORDINATES.md) already matches display space — add a one-line pointer to `MapMetadata` if useful. `Tools/ManualLayoutSeedGenerator` CLI dims stay optional overrides; out of scope unless a tiny default-from-`CreateDefault()` is free. |
+
+### Phase 14 — spatial grid
+
+| Question | Decision |
+|----------|----------|
+| Dependency on Phase 11 | **None** — independent; may ship in parallel or after 17. |
+| Correctness | Cell size = `DistanceThreshold`. Neighbor query checks the seed cell and its **3×3** Moore neighborhood so Euclidean radius ≤ threshold is preserved. |
+| Behavior lock | Same clusters as today for existing fixtures (membership + centers within current float tolerance). Input list order still defines seed order. |
+| Timing comparison | Add a test marked with `Trait("Performance")` **or** `Skip` documenting n≥200 improvement. **Not** included in default `dotnet test` / verify filter. |
+| `ClusterCache` | Identical outputs ⇒ existing cache keys remain valid; no migration. |
+
+### Phase 15 — Excel streaming
+
+| Question | Decision |
+|----------|----------|
+| Library | **Option A:** `XmlReader` only. Option B (ClosedXML/EPPlus) needs security review — do not start without explicit approval. |
+| Approach | (1) Stream `xl/sharedStrings.xml` into `List<string>`. (2) Workbook + rels are tiny — stream or keep a small DOM load for sheet path discovery only. (3) Stream each worksheet `sheetData` row-by-row into the existing `Dictionary<string,string>` row shape. (4) Keep `ParseLocationRow` / public `ReadLocationsFromExcel` API stable. |
+| CCN | Reuse helper splits; stay under Lizard gate. Prefer extracting stream helpers over growing one method. |
+
+### Phase 16 — ContentLoader cache
+
+| Question | Decision |
+|----------|----------|
+| Hot path | UI opens content via `LoadAllLocationImagesWithTranslationsAsync`, which **does not** use `_contentCache`. Only `LoadLocationContentAsync` uses it (tests / legacy interface). |
+| Phase scope | Harden that existing cache only: key by **`location.Id`**, optional `MaxCachedLocations` on `VisualConfig` (default `0` = unlimited), LRU eviction + Info log when limit > 0. |
+| Out of scope | Caching / bounding for `LoadAllLocationImages*` — separate TD if needed. |
+| Eviction | Remove dictionary entry on LRU drop; frozen `BitmapImage`s become unreachable for GC. No explicit `Freeze` undo required. |
+
+### Phase 17 — ApplicationState
+
+| Question | Decision |
+|----------|----------|
+| Choice | **Delete** `Models/ApplicationState.cs`. Confirmed zero `.cs` references outside its own file. |
+| Docs | Update living AGENTS/ARCHITECTURE only if they mention it. Do **not** rewrite `.kiro` historical specs. |
+| Wire alternative | Rejected unless a concrete consumer appears in the same PR (none today). |
+
+---
 
 ## Goal
 
@@ -66,42 +122,63 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 ## Phase 11 — Map dimensions single source of truth
 
 **Assessment:** §3  
-**Status:** ready to implement
+**Status:** complete (2026-07-30)  
+**TD:** TD-014 (resolved)
 
 ### Reality check
 
 - Display / placement space: `MainWindow` `ImageWidth = 8198`, `ImageHeight = 5542` (half of full-res map).
-- Full-res map (`16397×11085`) is still relevant for zoomed-region / high-quality crop paths and `StartupValidator` coordinate ceilings.
+- Full-res map (`16397×11085`) is still relevant for zoomed-region / high-quality crop paths; **`ZoomedRegionCache` already uses bitmap pixel sizes**.
+- `StartupValidator` currently warns against full-res ceilings — **incorrect for display-space coords**; fix as part of this phase.
 - There is no `MapMetadata` / `IMapMetadata` type yet.
 
 ### Files
 
 | Action | Path |
 |--------|------|
-| Create | `Models/MapMetadata.cs` (display size + optional full-res ceilings) |
-| Modify | `MainWindow.xaml.cs` (remove local constants; inject/load once) |
+| Create | `Models/MapMetadata.cs` (`CreateDefault`, `FromDisplayBitmap`, display + optional full-res) |
+| Modify | `MainWindow.xaml.cs` (remove local constants; hold one `MapMetadata`) |
 | Modify | Call sites that pass `ImageWidth`/`ImageHeight` (Navigation, Content, LayoutEditor partials) |
-| Modify | `Services/StartupValidator.cs` (use metadata ceilings, not literals) |
+| Modify | `Services/StartupValidator.cs` (display ceilings from metadata, not `16397`/`11085` literals) |
 | Create | `Tests/MapMetadataTests.cs` |
+| Optional | Pointer in [UPDATING_COORDINATES.md](../../guides/UPDATING_COORDINATES.md) |
 
 ### Tasks
 
-1. Introduce `MapMetadata` with display width/height (required) and optional full-res max X/Y for validation.
-2. Load once at startup from image metadata and/or `visual-config.json` — single owner (`ContentLoader` or app init).
-3. Replace `MainWindow` constants and validator literals with that metadata.
+1. Introduce `MapMetadata` per Decisions.
+2. Construct once after display map load; fall back to `CreateDefault()`.
+3. Replace `MainWindow` constants and validator literals; validator max = display size.
 4. Regression: known fixture coordinate round-trip unchanged; seed generator / orchestrator tests still pass.
 
 **Acceptance:**
-- No hard-coded `8198`/`5542`/`16397`/`11085` in production `.cs` outside tests/fixtures and documented config defaults.
-- `MapMetadataTests` cover construction and ceiling behavior.
+- No hard-coded `8198`/`5542`/`16397`/`11085` in production `.cs` outside tests/fixtures and `MapMetadata.CreateDefault()` (documented defaults).
+- Coordinate validation uses **display** ceilings.
+- `MapMetadataTests` cover construction, `FromDisplayBitmap`, and ceiling behavior.
 - `.\scripts\verify.ps1` green.
+
+---
+
+## Phase 17 — ApplicationState decision
+
+**Assessment:** §10  
+**Status:** complete (2026-07-30) — deleted orphan type  
+**TD:** TD-017 (resolved)
+
+### Tasks
+
+1. Reconfirm zero production usages of `Models/ApplicationState.cs`.
+2. Delete the orphan; grep living docs (`AGENTS.md`, `ARCHITECTURE.md`) and fix only if mentioned.
+3. Do not edit archived assessments or `.kiro` specs.
+
+**Acceptance:** Type gone; living architecture docs match reality; verify green.
 
 ---
 
 ## Phase 14 — LocationClusterer spatial indexing
 
 **Assessment:** §7  
-**Status:** ready after Phase 11 (independent; can run in parallel if preferred)
+**Status:** complete (2026-07-30)  
+**TD:** TD-015 (resolved)
 
 ### Files
 
@@ -109,22 +186,23 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 |--------|------|
 | Create | `Utilities/SpatialGrid.cs` |
 | Modify | `Utilities/LocationClusterer.cs` |
-| Create | `Tests/SpatialGridTests.cs`; extend clusterer tests |
+| Create | `Tests/SpatialGridTests.cs`; extend `Tests/LocationClustererTests.cs` |
 
 ### Tasks
 
-1. Grid-based neighbor query for `FindNearbyLocations` (cell size = cluster threshold).
+1. Grid-based neighbor query for `FindNearbyLocations` (cell size = cluster threshold; **3×3** cell scan).
 2. Preserve identical cluster output for existing fixtures (behavior lock).
-3. Add a synthetic n≥200 timing comparison documenting improvement (not a flaky CI gate).
+3. Add Trait/Skip timing comparison for n≥200 (not a verify gate).
 
-**Acceptance:** Fixture clusters unchanged; spatial tests pass; verify green.
+**Acceptance:** Fixture clusters unchanged; spatial tests pass; verify green; `ClusterCache` needs no migration.
 
 ---
 
 ## Phase 15 — ExcelCoordinateReader streaming parse
 
 **Assessment:** §4  
-**Status:** ready (independent)
+**Status:** ready (independent; follow streaming sketch in Decisions)  
+**TD:** TD-016
 
 ### Decision gate
 
@@ -133,7 +211,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ### Tasks
 
-1. Replace `XmlDocument` loads with streaming parse; keep public API stable.
+1. Replace worksheet (and shared-strings) `XmlDocument` loads with streaming per Decisions sketch; keep public API stable.
 2. Preserve row output vs existing `ExcelCoordinateReaderTests`.
 3. Keep CCN under Lizard gate (reuse existing helper splits from complexity work).
 
@@ -141,33 +219,21 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ---
 
-## Phase 17 — ApplicationState decision
-
-**Assessment:** §10  
-**Status:** ready (small; good cleanup PR)
-
-### Tasks
-
-1. Confirm zero production usages of `Models/ApplicationState.cs`.
-2. **Preferred:** delete the orphan and any stale doc references in living docs (`AGENTS`/`ARCHITECTURE` only if they mention it).
-3. Alternative: wire into layout/navigation mode state with tests — only if a concrete consumer exists in the same PR.
-
-**Acceptance:** No unused public application-state type; architecture docs (living) match reality.
-
----
-
 ## Phase 16 — ContentLoader cache bounds
 
 **Assessment:** §5  
-**Status:** ready (independent; lower priority)
+**Status:** ready (narrowed scope — see Decisions)  
+**TD:** TD-018
 
 ### Tasks
 
-1. Optional `MaxCachedLocations` in config (default `0` = unlimited, current behavior).
-2. LRU eviction by cache key when limit > 0; Info-level eviction logs.
-3. Tests: eviction order; small sets unchanged when unlimited.
+1. Change `_contentCache` key from `location.Name` to `location.Id`.
+2. Add optional `MaxCachedLocations` to `VisualConfig` / `visual-config.json` (default `0` = unlimited); document in [VISUAL_CONFIG.md](../../guides/VISUAL_CONFIG.md).
+3. LRU eviction when limit > 0; Info-level eviction logs.
+4. Tests: eviction order; Id key; unlimited path unchanged.
+5. Do **not** add gallery `LoadAll*` caching in this phase.
 
-**Acceptance:** Default unlimited path unchanged; bounded mode tested.
+**Acceptance:** Default unlimited path unchanged; bounded mode + Id key tested; verify green.
 
 ---
 
@@ -188,11 +254,11 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ## Execution Order
 
-1. **Phase 11** — map metadata (unblocks cleaner placement/validation)
-2. **Phase 17** — ApplicationState delete-or-wire (quick win; can ship anytime)
-3. **Phase 14** — spatial clusterer
+1. ~~**Phase 11** — map metadata + validator ceiling fix~~ **done**
+2. ~~**Phase 17** — delete `ApplicationState`~~ **done**
+3. ~~**Phase 14** — spatial clusterer~~ **done**
 4. **Phase 15** — Excel streaming
-5. **Phase 16** — ContentLoader LRU
+5. **Phase 16** — ContentLoader LRU (narrow scope)
 6. **Phase 18b** — only as file-size pressure appears
 
 Ship one phase per PR when practical.
@@ -210,10 +276,10 @@ Do **not** rewrite completed/archived plans or historical assessment bodies; lin
 
 ## Definition of Done (remaining scope)
 
-- [ ] Phase 11 complete
-- [ ] Phase 14 complete
+- [x] Phase 11 complete
+- [x] Phase 17 complete (delete)
+- [x] Phase 14 complete
 - [ ] Phase 15 complete **or** deferred with TD entry
-- [ ] Phase 17 complete (delete or wire)
 - [ ] Phase 16 complete **or** deferred with TD entry
 - [ ] Phase 18b triaged (done as needed, or explicitly deferred)
 - [ ] `.\scripts\verify.ps1` green

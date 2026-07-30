@@ -64,9 +64,10 @@ namespace InteractiveWorldMap
         private ManualLayout? _savedLayoutToApply = null;
         private bool _isFullMapLayoutSession = false;
 
-        // Map image dimensions
-        private const double ImageWidth = 8198.0;
-        private const double ImageHeight = 5542.0;
+        // Map image dimensions — single source of truth via MapMetadata (display space).
+        private MapMetadata _mapMetadata = MapMetadata.CreateDefault();
+        private double ImageWidth => _mapMetadata.DisplayWidth;
+        private double ImageHeight => _mapMetadata.DisplayHeight;
 
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
@@ -273,7 +274,9 @@ namespace InteractiveWorldMap
                 // Load map image
                 _logger.LogInfo("Step 2: Loading world map image");
                 var mapImage = await _contentLoader.LoadMapImageAsync();
-                _logger.LogInfo("Map image loaded, calling MapDisplay.LoadMapImage");
+                _mapMetadata = MapMetadata.FromDisplayBitmap(mapImage);
+                _logger.LogInfo(
+                    $"Map image loaded ({_mapMetadata.DisplayWidth}x{_mapMetadata.DisplayHeight}), calling MapDisplay.LoadMapImage");
 
                 MapDisplay.LoadMapImage(mapImage);
                 _logger.LogInfo("MapDisplay.LoadMapImage completed - viewport initialized");

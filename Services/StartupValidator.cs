@@ -17,12 +17,18 @@ public class StartupValidator
     private readonly ILogger _logger;
     private readonly string _contentFolderPath;
     private readonly IContentSetResolver _contentSetResolver;
+    private readonly MapMetadata _mapMetadata;
 
-    public StartupValidator(ILogger logger, string contentFolderPath, IContentSetResolver contentSetResolver)
+    public StartupValidator(
+        ILogger logger,
+        string contentFolderPath,
+        IContentSetResolver contentSetResolver,
+        MapMetadata? mapMetadata = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentFolderPath = contentFolderPath ?? throw new ArgumentNullException(nameof(contentFolderPath));
         _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
+        _mapMetadata = mapMetadata ?? MapMetadata.CreateDefault();
     }
 
     private string ResolveAssetPath(string fileName)
@@ -177,7 +183,7 @@ public class StartupValidator
         }
     }
 
-    private static void ValidateLocationObject(JToken token, int index, ValidationResult result)
+    private void ValidateLocationObject(JToken token, int index, ValidationResult result)
     {
         if (token is not JObject location)
         {
@@ -186,8 +192,9 @@ public class StartupValidator
         }
 
         AddMissingFieldWarnings(location, index, result);
-        AddCoordinateWarning(location, "PixelX", 16397, index, result);
-        AddCoordinateWarning(location, "PixelY", 11085, index, result);
+        // Coordinate space is display (half-res), not full-res crop source.
+        AddCoordinateWarning(location, "PixelX", _mapMetadata.DisplayWidth, index, result);
+        AddCoordinateWarning(location, "PixelY", _mapMetadata.DisplayHeight, index, result);
     }
 
     private static void AddMissingFieldWarnings(JObject location, int index, ValidationResult result)
