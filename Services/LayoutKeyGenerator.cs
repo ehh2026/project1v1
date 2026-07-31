@@ -53,7 +53,7 @@ namespace InteractiveWorldMap.Services
         {
             var locationNames = locations.Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
             var locationHash = ComputeHash(string.Join("|", locationNames)).Substring(0, 8);
-            
+
             return $"{locationHash}_z{viewport.ZoomLevel:F1}";
         }
 
@@ -110,7 +110,7 @@ namespace InteractiveWorldMap.Services
             {
                 var zoom1 = ExtractZoomLevel(parts1[1]);
                 var zoom2 = ExtractZoomLevel(parts2[1]);
-                
+
                 if (Math.Abs(zoom1 - zoom2) > zoomTolerance)
                     return false;
             }

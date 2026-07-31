@@ -51,7 +51,7 @@ public partial class ContentSubwindow : Window
     public ContentSubwindow()
     {
         InitializeComponent();
-        
+
         // Start with opacity 0 for animation
         Opacity = 0;
         PreferredSize = new Size(400, 300);
@@ -266,7 +266,7 @@ public partial class ContentSubwindow : Window
     private void TranslateButton_Click(object sender, RoutedEventArgs e)
     {
         _isTranslationVisible = !_isTranslationVisible;
-        
+
         if (_isTranslationVisible)
         {
             TranslationOverlay.Visibility = Visibility.Visible;
@@ -283,11 +283,11 @@ public partial class ContentSubwindow : Window
     {
         var screenWidth = SystemParameters.PrimaryScreenWidth;
         var screenHeight = SystemParameters.PrimaryScreenHeight;
-        
+
         // Calculate target window size based on screen percentages
         var targetWidth = screenWidth * WindowWidthPercent;
         var targetHeight = screenHeight * WindowHeightPercent;
-        
+
         // Ensure minimum dimensions
         targetWidth = Math.Max(MinWindowWidth, targetWidth);
         targetHeight = Math.Max(MinWindowHeight, targetHeight);

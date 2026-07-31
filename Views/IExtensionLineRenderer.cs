@@ -11,8 +11,8 @@ namespace InteractiveWorldMap.Views
     /// </summary>
     public interface IExtensionLineRenderer
     {
-        int  LineCount          { get; }
-        int  MarkerMappingCount { get; }
+        int LineCount { get; }
+        int MarkerMappingCount { get; }
         bool HasLine(LocationMarker marker);
 
         /// <summary>Removes all tracked lines from the canvas and clears all state.</summary>
@@ -23,10 +23,10 @@ namespace InteractiveWorldMap.Views
         /// For each extension, either applies a composite pin or draws a line.
         /// </summary>
         void Apply(
-            DenseMarkerGroup              group,
-            ViewportState                 viewport,
-            double                        containerWidth,
-            double                        containerHeight,
+            DenseMarkerGroup group,
+            ViewportState viewport,
+            double containerWidth,
+            double containerHeight,
             IReadOnlyList<LocationMarker> markers,
             Func<LocationMarker, Point, Point, bool> tryCompositePinApplier);
 

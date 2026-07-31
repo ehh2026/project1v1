@@ -144,7 +144,7 @@ namespace InteractiveWorldMap.Models
         /// <summary>
         /// Creates a viewport state zoomed to a specific point in the source image.
         /// </summary>
-        public static ViewportState CreateZoomedView(double centerX, double centerY, double zoomLevel, 
+        public static ViewportState CreateZoomedView(double centerX, double centerY, double zoomLevel,
             double sourceWidth, double sourceHeight, double containerWidth, double containerHeight)
         {
             // Calculate the viewport size at this zoom level

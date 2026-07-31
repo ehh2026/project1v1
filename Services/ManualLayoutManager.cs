@@ -270,7 +270,7 @@ namespace InteractiveWorldMap.Services
                     {
                         if (assignments.TryGetValue(marker.LocationName, out var a))
                         {
-                            marker.PairId         = a.PairId;
+                            marker.PairId = a.PairId;
                             marker.HeadSourcePath = a.HeadSourcePath;
                         }
                     }
@@ -318,24 +318,24 @@ namespace InteractiveWorldMap.Services
 
                 if (existing != null)
                 {
-                    existing.Markers       = markers;
+                    existing.Markers = markers;
                     existing.LocationCount = markers.Count;
-                    existing.UpdatedUtc    = DateTime.UtcNow;
-                    existing.Timestamp     = existing.UpdatedUtc;
-                    existing.DisplayName   = displayName;
-                    existing.GroupKey      = groupKey;
-                    existing.Key           = groupKey;
+                    existing.UpdatedUtc = DateTime.UtcNow;
+                    existing.Timestamp = existing.UpdatedUtc;
+                    existing.DisplayName = displayName;
+                    existing.GroupKey = groupKey;
+                    existing.Key = groupKey;
                     if (setAsDefault) SetDefaultForOriginClass(group, variantId, origin);
                 }
                 else
                 {
                     var layout = new ManualLayout(groupKey, markers)
                     {
-                        GroupKey       = groupKey,
-                        VariantId      = variantId,
-                        DisplayName    = displayName,
-                        Origin         = origin,
-                        IsDefault      = setAsDefault,
+                        GroupKey = groupKey,
+                        VariantId = variantId,
+                        DisplayName = displayName,
+                        Origin = origin,
+                        IsDefault = setAsDefault,
                         BasedOnVariantId = basedOnVariantId
                     };
                     group.Variants.Add(layout);
@@ -523,9 +523,9 @@ namespace InteractiveWorldMap.Services
 
         private static ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)
         {
-            collection.LayoutGroups      ??= new Dictionary<string, ManualLayoutGroup>();
-            collection.Layouts           ??= new Dictionary<string, ManualLayout>();
-            collection.SelectedVariants  ??= new Dictionary<string, string>(StringComparer.Ordinal);
+            collection.LayoutGroups ??= new Dictionary<string, ManualLayoutGroup>();
+            collection.Layouts ??= new Dictionary<string, ManualLayout>();
+            collection.SelectedVariants ??= new Dictionary<string, string>(StringComparer.Ordinal);
 
             foreach (var entry in collection.LayoutGroups.ToList())
             {
@@ -556,8 +556,8 @@ namespace InteractiveWorldMap.Services
 
         private static void NormalizeVariant(string groupKey, ManualLayout variant)
         {
-            variant.Key       = string.IsNullOrWhiteSpace(variant.Key)      ? groupKey : variant.Key;
-            variant.GroupKey  = string.IsNullOrWhiteSpace(variant.GroupKey) ? groupKey : variant.GroupKey;
+            variant.Key = string.IsNullOrWhiteSpace(variant.Key) ? groupKey : variant.Key;
+            variant.GroupKey = string.IsNullOrWhiteSpace(variant.GroupKey) ? groupKey : variant.GroupKey;
             variant.VariantId = string.IsNullOrWhiteSpace(variant.VariantId)
                 ? (variant.Origin == ManualLayoutOrigin.AutoSeed ? "seed-default" : "manual-default")
                 : variant.VariantId;
@@ -566,7 +566,7 @@ namespace InteractiveWorldMap.Services
                 : variant.DisplayName;
             variant.Markers ??= new List<ManualLayoutMarker>();
             variant.LocationCount = variant.LocationCount > 0 ? variant.LocationCount : variant.Markers.Count;
-            if (variant.Timestamp  == default) variant.Timestamp  = DateTime.UtcNow;
+            if (variant.Timestamp == default) variant.Timestamp = DateTime.UtcNow;
             if (variant.CreatedUtc == default) variant.CreatedUtc = variant.Timestamp;
             if (variant.UpdatedUtc == default) variant.UpdatedUtc = variant.Timestamp;
         }
@@ -608,11 +608,11 @@ namespace InteractiveWorldMap.Services
 
         private static int GetVariantPriority(ManualLayout variant)
         {
-            if (variant.Origin == ManualLayoutOrigin.Manual   && variant.IsDefault) return 6;
+            if (variant.Origin == ManualLayoutOrigin.Manual && variant.IsDefault) return 6;
             if (variant.Origin == ManualLayoutOrigin.AutoSeed && variant.IsDefault) return 5;
-            if (variant.Origin == ManualLayoutOrigin.Manual)                        return 4;
-            if (variant.Origin == ManualLayoutOrigin.AutoSeed)                      return 3;
-            if (variant.IsDefault)                                                  return 2;
+            if (variant.Origin == ManualLayoutOrigin.Manual) return 4;
+            if (variant.Origin == ManualLayoutOrigin.AutoSeed) return 3;
+            if (variant.IsDefault) return 2;
             return 1;
         }
 
@@ -658,7 +658,7 @@ namespace InteractiveWorldMap.Services
                 })
                 .OrderBy(c => c.ZoomDifference)
                 .ThenByDescending(c => c.PreferredVariant?.UpdatedUtc ?? DateTime.MinValue)
-                .ThenByDescending(c => c.PreferredVariant?.Timestamp  ?? DateTime.MinValue)
+                .ThenByDescending(c => c.PreferredVariant?.Timestamp ?? DateTime.MinValue)
                 .Select(c => c.Group)
                 .FirstOrDefault();
         }

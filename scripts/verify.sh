@@ -33,19 +33,19 @@ if ! command -v dotnet >/dev/null 2>&1; then
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[1/6] dotnet restore"
+  echo "[1/9] dotnet restore"
   if ! dotnet restore InteractiveWorldMap.sln; then
     RUN_DOTNET=false
   fi
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[2/6] NuGet vulnerability check"
+  echo "[2/9] NuGet vulnerability check"
   python3 scripts/verify_nuget_vulnerabilities.py
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[3/6] dotnet build"
+  echo "[3/9] dotnet build"
   if ! dotnet build InteractiveWorldMap.sln --configuration Release --no-restore 2>&1; then
     echo "WARN: dotnet build failed — WPF requires Windows Desktop SDK (windows-latest CI)." >&2
     echo "REMEDIATION: Run .\\scripts\\verify.ps1 on Windows for full build/test." >&2
@@ -54,14 +54,28 @@ if [[ "$RUN_DOTNET" == true ]]; then
 fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
-  echo "[4/6] dotnet test"
-  dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal
+  echo "[4/9] dotnet test"
+  dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --filter "Category!=Performance" --collect:"XPlat Code Coverage" --results-directory TestResults/verify-coverage
+
+  echo "[5/9] code formatting check"
+  dotnet format InteractiveWorldMap.sln --verify-no-changes
+
+  echo "[6/9] coverage threshold gate"
+  COVERAGE_FILE=$(find TestResults -name "coverage.cobertura.xml" -type f 2>/dev/null | sort | tail -1)
+  if [ -n "$COVERAGE_FILE" ]; then
+    python3 scripts/summarize_coverage.py --results-directory TestResults/verify-coverage --min-line-coverage 42 --min-branch-coverage 37
+  else
+    echo "SKIP: No coverage file found (harness-only mode)."
+  fi
+
+  echo "[7/9] Lizard complexity gate"
+  python3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
 fi
 
-echo "[5/6] doc link check"
+echo "[8/9] doc link check"
 python3 scripts/verify_doc_links.py
 
-echo "[6/6] taste checks"
+echo "[9/9] taste checks"
 python3 scripts/verify_taste.py
 
 if [[ "$RUN_DOTNET" == true ]]; then

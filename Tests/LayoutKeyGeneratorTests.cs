@@ -19,8 +19,8 @@ public class LayoutKeyGeneratorTests
     {
         MinLocationsForExtension = 3,
         ProximityThresholdPixels = 10.0,
-        ExtensionLineLength      = 50.0,
-        MinimumLineLength        = 13.0
+        ExtensionLineLength = 50.0,
+        MinimumLineLength = 13.0
     };
 
     // -------------------------------------------------------------------------
@@ -51,7 +51,7 @@ public class LayoutKeyGeneratorTests
     [Fact]
     public void GenerateKey_LocationOrderIndependent_ProducesSameKey()
     {
-        var vp  = MakeZoomedViewport();
+        var vp = MakeZoomedViewport();
         var cfg = MakeConfig();
 
         var locationsAB = new List<Location>
@@ -75,7 +75,7 @@ public class LayoutKeyGeneratorTests
     {
         // StringComparer.Ordinal: 'A'(65) < 'a'(97), so "Alpha" < "alpha".
         // Both C# and the PS1 seed generator must agree on this order.
-        var vp  = MakeZoomedViewport();
+        var vp = MakeZoomedViewport();
         var cfg = MakeConfig();
 
         var upperFirst = new List<Location>
@@ -107,7 +107,7 @@ public class LayoutKeyGeneratorTests
             new() { Name = "A", PixelX = 0, PixelY = 0 },
             new() { Name = "B", PixelX = 1, PixelY = 1 }
         };
-        var vp  = MakeZoomedViewport();
+        var vp = MakeZoomedViewport();
         var cfg = MakeConfig();
 
         var key = LayoutKeyGenerator.GenerateKey(locations, vp, cfg);
@@ -116,19 +116,19 @@ public class LayoutKeyGeneratorTests
         // hash _ z{zoom} _ c{cx}_{cy} _ s{w}x{h} _ m{min} _ p{prox} _ l{len} _ n{minlen}
         Assert.True(parts.Length >= 8, $"Expected at least 8 underscore-separated parts, got: {key}");
         Assert.Matches(@"^[0-9a-f]{16}$", parts[0]);          // 16-char hex hash
-        Assert.StartsWith("z",  parts[1]);                     // zoom
-        Assert.StartsWith("c",  parts[2]);                     // center x
-        Assert.Contains  ("x",  parts[4]);                     // viewport size
-        Assert.Equal("m3",      parts[5]);                     // MinLocationsForExtension
-        Assert.Equal("p10.0",   parts[6]);                     // ProximityThresholdPixels
-        Assert.Equal("l50.0",   parts[7]);                     // ExtensionLineLength
-        Assert.Equal("n13.0",   parts[8]);                     // MinimumLineLength
+        Assert.StartsWith("z", parts[1]);                     // zoom
+        Assert.StartsWith("c", parts[2]);                     // center x
+        Assert.Contains("x", parts[4]);                     // viewport size
+        Assert.Equal("m3", parts[5]);                     // MinLocationsForExtension
+        Assert.Equal("p10.0", parts[6]);                     // ProximityThresholdPixels
+        Assert.Equal("l50.0", parts[7]);                     // ExtensionLineLength
+        Assert.Equal("n13.0", parts[8]);                     // MinimumLineLength
     }
 
     [Fact]
     public void GenerateKey_DifferentLocations_ProduceDifferentHashes()
     {
-        var vp  = MakeZoomedViewport();
+        var vp = MakeZoomedViewport();
         var cfg = MakeConfig();
 
         var locsAB = new List<Location>
@@ -169,7 +169,7 @@ public class LayoutKeyGeneratorTests
     [Fact]
     public void AreKeysCompatible_DifferentHash_ReturnsFalse()
     {
-        var vp  = MakeZoomedViewport();
+        var vp = MakeZoomedViewport();
         var cfg = MakeConfig();
 
         var k1 = LayoutKeyGenerator.GenerateKey(

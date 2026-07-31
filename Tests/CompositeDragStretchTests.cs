@@ -31,9 +31,9 @@ public class CompositeDragStretchTests
         var target = new PinPlacementTarget
         {
             StartScreen = new Point(0, 0),
-            EndScreen   = new Point(0, -200),  // straight up 200px
-            LocationId  = "loc-1",
-            GroupId     = 1
+            EndScreen = new Point(0, -200),  // straight up 200px
+            LocationId = "loc-1",
+            GroupId = 1
         };
         var candidates = SingleCandidate(nativeAngleDeg: 0.0, nativeLength: 100.0);
 
@@ -58,9 +58,9 @@ public class CompositeDragStretchTests
         var target = new PinPlacementTarget
         {
             StartScreen = new Point(0, 0),
-            EndScreen   = new Point(0, -120),  // straight up 120px
-            LocationId  = "loc-1",
-            GroupId     = 1
+            EndScreen = new Point(0, -120),  // straight up 120px
+            LocationId = "loc-1",
+            GroupId = 1
         };
         var candidates = SingleCandidate(nativeAngleDeg: 0.0, nativeLength: 100.0);
 
@@ -78,9 +78,9 @@ public class CompositeDragStretchTests
         // The rendered head stops at tipY - 110 = 190, while the cursor is at tipY - 200 = 100.
         // Policy A drives the guide line to the rendered head (190), not the cursor (100).
 
-        var tipScreen    = new Point(100, 300);
+        var tipScreen = new Point(100, 300);
         double clampedLength = 110;   // MaxStretchFactor × nativeLength
-        double cursorY       = 100;   // raw cursor 200px above tip
+        double cursorY = 100;   // raw cursor 200px above tip
 
         var renderedHeadY = tipScreen.Y - clampedLength;  // 190
         Assert.NotEqual(cursorY, renderedHeadY);
@@ -120,14 +120,14 @@ public class CompositeDragStretchTests
         {
             ["pin_a"] = new()
             {
-                HeadFile  = "pin_a_head.png",
+                HeadFile = "pin_a_head.png",
                 ShaftFile = "pin_a_shaft.png",
                 Shaft = new PinPartShaftGeometry
                 {
                     NativeAngleDeg = nativeAngleDeg,
-                    NativeLength   = nativeLength,
-                    LocalTip       = new PinPartPoint { X = 5, Y = (int)nativeLength - 5 },
-                    LocalJoin      = new PinPartPoint { X = 5, Y = 5 }
+                    NativeLength = nativeLength,
+                    LocalTip = new PinPartPoint { X = 5, Y = (int)nativeLength - 5 },
+                    LocalJoin = new PinPartPoint { X = 5, Y = 5 }
                 }
             }
         };

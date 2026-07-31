@@ -84,16 +84,16 @@ public class SingleLocationZoomClickTests
             "private void HandleIndividualMarkerPrimaryAction");
 
         Assert.Contains("_autoOpenLocation = location;", methodBody);
-        
+
         // Ensure IsAnimating or InteractionMode.Animating guard exists
         Assert.True(methodBody.Contains("IsAnimating") || methodBody.Contains("InteractionMode.Animating"),
             "Individual marker click handler must guard against double clicks during animation.");
-            
+
         // Verify order: edit mode check first, then animation check
         var editModeCheck = methodBody.IndexOf("MarkerMouseDownAction.AllowEditDrag");
         var animCheck = methodBody.IndexOf("InteractionMode.Animating");
         var clickLogic = methodBody.IndexOf("AnimateMarkerClick");
-        
+
         Assert.True(editModeCheck < animCheck, "Edit mode check must happen before animation state guard.");
         Assert.True(animCheck < clickLogic, "Animation guard must return early before zoom logic runs.");
     }
@@ -136,7 +136,7 @@ public class SingleLocationZoomClickTests
 
         // Should clear on early return (startViewport == null)
         Assert.Contains("_autoOpenLocation = null;", body);
-        
+
         // Should clear in catch block
         var catchBlockStart = body.IndexOf("catch (Exception");
         Assert.True(catchBlockStart > 0, "Method must have a catch block");
@@ -146,16 +146,16 @@ public class SingleLocationZoomClickTests
         // Completion callback checks
         var transitionCall = body.IndexOf("AnimateViewportTransition(");
         var callbackBody = body.Substring(transitionCall);
-        
+
         // Copy to local and clear synchronously
         Assert.Contains("var toOpen = _autoOpenLocation;", callbackBody);
         Assert.Contains("_autoOpenLocation = null;", callbackBody);
-        
+
         // Order requirement: ShowContentForLocation after ShowZoomedView
         var showZoomedIdx = callbackBody.IndexOf("ShowZoomedView");
         var showContentIdx = callbackBody.IndexOf("ShowContentForLocation");
-        
-        Assert.True(showZoomedIdx < showContentIdx, 
+
+        Assert.True(showZoomedIdx < showContentIdx,
             "ShowContentForLocation must happen after ShowZoomedView so viewport updates finish.");
         Assert.Contains("ShowContentForLocation(toOpen);", callbackBody);
         Assert.DoesNotContain(

@@ -98,7 +98,7 @@ Enforced by `Tests/Architecture/LayerDependencyTests.cs`.
 |--------|---------------|----------|
 | Locations | `Location`, `LocationCluster` | `Models/` |
 | Coordinates | `CoordinateMapper`, `CoordinateValidator` | `Utilities/` |
-| Clustering | `LocationClusterer`, `ClusterCache` | `Utilities/`, `Services/` |
+| Clustering | `LocationClusterer`, `SpatialGrid`, `ClusterCache` | `Utilities/`, `Services/` |
 | Map display | `MapDisplayControl`, zoom state | `Views/`, `Models/ViewportState` |
 | Markers | `LocationMarker`, `PinMarker`, `ClusterMarker` | `Views/` |
 | Content popups | `ContentSubwindow`, `DidacticTextWindow` | `Views/` |

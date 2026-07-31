@@ -17,12 +17,18 @@ public class StartupValidator
     private readonly ILogger _logger;
     private readonly string _contentFolderPath;
     private readonly IContentSetResolver _contentSetResolver;
+    private readonly MapMetadata _mapMetadata;
 
-    public StartupValidator(ILogger logger, string contentFolderPath, IContentSetResolver contentSetResolver)
+    public StartupValidator(
+        ILogger logger,
+        string contentFolderPath,
+        IContentSetResolver contentSetResolver,
+        MapMetadata? mapMetadata = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentFolderPath = contentFolderPath ?? throw new ArgumentNullException(nameof(contentFolderPath));
         _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
+        _mapMetadata = mapMetadata ?? MapMetadata.CreateDefault();
     }
 
     private string ResolveAssetPath(string fileName)
@@ -162,40 +168,7 @@ public class StartupValidator
             // Validate each location has required fields
             for (int i = 0; i < locations.Count; i++)
             {
-                var location = locations[i] as JObject;
-                if (location == null)
-                {
-                    result.Warnings.Add($"Location at index {i} is not a valid object");
-                    continue;
-                }
-
-                // Check required fields
-                if (!location.ContainsKey("Id"))
-                    result.Warnings.Add($"Location at index {i} is missing 'Id' field");
-                
-                if (!location.ContainsKey("Name"))
-                    result.Warnings.Add($"Location at index {i} is missing 'Name' field");
-                
-                if (!location.ContainsKey("PixelX"))
-                    result.Warnings.Add($"Location at index {i} is missing 'PixelX' field");
-                
-                if (!location.ContainsKey("PixelY"))
-                    result.Warnings.Add($"Location at index {i} is missing 'PixelY' field");
-
-                // Validate pixel coordinates are positive
-                if (location.TryGetValue("PixelX", out var pixelXToken))
-                {
-                    var pixelX = pixelXToken.Value<double>();
-                    if (pixelX < 0 || pixelX > 16397)
-                        result.Warnings.Add($"Location at index {i} has invalid PixelX: {pixelX} (must be between 0 and 16397)");
-                }
-
-                if (location.TryGetValue("PixelY", out var pixelYToken))
-                {
-                    var pixelY = pixelYToken.Value<double>();
-                    if (pixelY < 0 || pixelY > 11085)
-                        result.Warnings.Add($"Location at index {i} has invalid PixelY: {pixelY} (must be between 0 and 11085)");
-                }
+                ValidateLocationObject(locations[i], i, result);
             }
         }
         catch (JsonException ex)
@@ -209,6 +182,52 @@ public class StartupValidator
             _logger.LogWarning($"Error validating locations.json: {ex.Message}");
         }
     }
+
+    private void ValidateLocationObject(JToken token, int index, ValidationResult result)
+    {
+        if (token is not JObject location)
+        {
+            result.Warnings.Add($"Location at index {index} is not a valid object");
+            return;
+        }
+
+        AddMissingFieldWarnings(location, index, result);
+        // Coordinate space is display (half-res), not full-res crop source.
+        AddCoordinateWarning(location, "PixelX", _mapMetadata.DisplayWidth, index, result);
+        AddCoordinateWarning(location, "PixelY", _mapMetadata.DisplayHeight, index, result);
+    }
+
+    private static void AddMissingFieldWarnings(JObject location, int index, ValidationResult result)
+    {
+        foreach (var field in RequiredLocationFields)
+        {
+            if (!location.ContainsKey(field))
+                result.Warnings.Add($"Location at index {index} is missing '{field}' field");
+        }
+    }
+
+    private static void AddCoordinateWarning(
+        JObject location,
+        string field,
+        double maximum,
+        int index,
+        ValidationResult result)
+    {
+        if (!location.TryGetValue(field, out var token))
+            return;
+
+        var value = token.Value<double>();
+        if (value < 0 || value > maximum)
+            result.Warnings.Add($"Location at index {index} has invalid {field}: {value} (must be between 0 and {maximum})");
+    }
+
+    private static readonly string[] RequiredLocationFields =
+    {
+        "Id",
+        "Name",
+        "PixelX",
+        "PixelY"
+    };
 }
 
 /// <summary>

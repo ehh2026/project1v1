@@ -24,17 +24,30 @@ jobs:
 
       - name: Code health report
         shell: pwsh
-        run: py -3 scripts\advisory_code_health.py
+        run: python scripts\advisory_code_health.py
 
       - name: Coverage run
         shell: pwsh
         run: >
           dotnet test Tests\InteractiveWorldMap.Tests.csproj
           --configuration Release
+          --settings .runsettings
           --collect:"XPlat Code Coverage"
           --results-directory TestResults\coverage-advisory
 
       - name: Coverage summary
         if: always()
         shell: pwsh
-        run: py -3 scripts\summarize_coverage.py TestResults\coverage-advisory
+        run: python scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory
+
+      - name: Preview coverage threshold
+        shell: pwsh
+        run: python scripts/summarize_coverage.py --results-directory TestResults/coverage-advisory --min-line-coverage 42 --min-branch-coverage 37
+        continue-on-error: true
+
+      - name: Install Lizard
+        run: python -m pip install lizard
+
+      - name: Lizard complexity warning
+        run: lizard -C 15 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
+        continue-on-error: true

@@ -65,6 +65,12 @@ The repository's development `visual-config.json` may set this to `true`; produc
   - Larger values = more aggressive clustering (fewer clusters)
   - Smaller values = less clustering (more individual markers)
 
+- **MaxCachedLocations** (default: 0)
+  - Max in-memory bitmaps retained by `ContentLoader.LoadLocationContentAsync`
+  - `0` = unlimited (default); when greater than 0, least-recently-used entries are evicted
+  - Entries are keyed by location `Id` (falls back to `Name` only if Id is blank)
+  - Lowering the limit shrinks the cache immediately (LRU eviction until within bounds)
+
 - **LocationMarkerSize** (default: 16.0)
   - Size of individual location markers in pixels
   - Controls both width and height (markers are square)

@@ -298,8 +298,8 @@ namespace InteractiveWorldMap
             compositeMarker.ShaftOverrideRequested += locName => OnShaftOverrideRequested(marker, locName);
             _overrideStore.RecordEndpoints(marker.Location.Name, originalScreenPos, extendedScreenPos);
             marker.Content = compositeMarker;
-            marker.Width   = compositeMarker.Width;
-            marker.Height  = compositeMarker.Height;
+            marker.Width = compositeMarker.Width;
+            marker.Height = compositeMarker.Height;
             Panel.SetZIndex(marker, 2000);
             var topLeft = CompositePinPlacementPolicy.GetCompositeTopLeft(originalScreenPos, plan);
             Canvas.SetLeft(marker, topLeft.X);

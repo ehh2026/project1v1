@@ -66,13 +66,13 @@ namespace InteractiveWorldMap.Services
             string? preferredPairId,
             string? preferredHeadSourcePath)
         {
-            var selection    = _placementCalculator.CalculatePlacement(target, candidates, config, preferredPairId);
+            var selection = _placementCalculator.CalculatePlacement(target, candidates, config, preferredPairId);
             var headGeometry = ResolveHeadGeometry(candidates, target.LocationId, config, preferredHeadSourcePath);
-            var renderPlan   = _renderPlanBuilder.BuildPlan(target, selection, config, headGeometry);
+            var renderPlan = _renderPlanBuilder.BuildPlan(target, selection, config, headGeometry);
 
             var result = new CompositePinPlanningResult
             {
-                Selection  = selection,
+                Selection = selection,
                 RenderPlan = renderPlan
             };
 
@@ -109,7 +109,7 @@ namespace InteractiveWorldMap.Services
             IReadOnlyDictionary<string, PinPartGeometryEntry> candidates,
             string locationId)
         {
-            var keys  = candidates.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
+            var keys = candidates.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
             var index = Math.Abs(locationId.GetHashCode()) % keys.Count;
             return candidates[keys[index]];
         }

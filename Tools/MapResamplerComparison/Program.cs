@@ -42,18 +42,18 @@ var resampler = new ZoomedMapResampler();
 using var csv = new StreamWriter(Path.Combine(outputPath, "comparison.csv"));
 csv.WriteLine("width,height,mode,elapsed_ms,source_x,source_y,source_width,source_height,file");
 foreach (var size in new[] { (1920, 1080), (2560, 1440), (3840, 2160) })
-foreach (var mode in Enum.GetValues<ZoomedMapResamplingMode>())
-{
-    var watch = Stopwatch.StartNew();
-    var result = resampler.Resize(source, size.Item1, size.Item2, mode);
-    watch.Stop();
-    var fileName = $"{size.Item1}x{size.Item2}_{mode}.png";
-    using var stream = File.Create(Path.Combine(outputPath, fileName));
-    var encoder = new PngBitmapEncoder();
-    encoder.Frames.Add(BitmapFrame.Create(result));
-    encoder.Save(stream);
-    csv.WriteLine(string.Join(",", size.Item1, size.Item2, mode,
-        watch.Elapsed.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture),
-        crop.X, crop.Y, crop.Width, crop.Height, fileName));
-    Console.WriteLine($"{fileName}: {watch.Elapsed.TotalMilliseconds:F0} ms");
-}
+    foreach (var mode in Enum.GetValues<ZoomedMapResamplingMode>())
+    {
+        var watch = Stopwatch.StartNew();
+        var result = resampler.Resize(source, size.Item1, size.Item2, mode);
+        watch.Stop();
+        var fileName = $"{size.Item1}x{size.Item2}_{mode}.png";
+        using var stream = File.Create(Path.Combine(outputPath, fileName));
+        var encoder = new PngBitmapEncoder();
+        encoder.Frames.Add(BitmapFrame.Create(result));
+        encoder.Save(stream);
+        csv.WriteLine(string.Join(",", size.Item1, size.Item2, mode,
+            watch.Elapsed.TotalMilliseconds.ToString("F2", CultureInfo.InvariantCulture),
+            crop.X, crop.Y, crop.Width, crop.Height, fileName));
+        Console.WriteLine($"{fileName}: {watch.Elapsed.TotalMilliseconds:F0} ms");
+    }

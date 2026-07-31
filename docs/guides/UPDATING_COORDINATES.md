@@ -39,6 +39,8 @@ The map image dimensions are:
 - Width: 8198 pixels
 - Height: 5542 pixels
 
+These match the display map (`World Map Extra Large.jpg`). Runtime code reads them from `Models/MapMetadata` (`CreateDefault` / loaded bitmap), not scattered literals.
+
 Use these dimensions when calculating pixel coordinates for new locations.
 
 ## Clustering

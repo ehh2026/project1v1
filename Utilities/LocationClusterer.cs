@@ -8,6 +8,7 @@ namespace InteractiveWorldMap.Utilities
 {
     /// <summary>
     /// Clusters locations based on Euclidean distance in pixel coordinates.
+    /// Neighbor search uses a <see cref="SpatialGrid"/> (cell size = threshold, 3×3 scan).
     /// </summary>
     public class LocationClusterer
     {
@@ -18,7 +19,7 @@ namespace InteractiveWorldMap.Utilities
         public double DistanceThreshold { get; set; } = 150.0;
 
         /// <summary>
-        /// Clusters locations using simple Euclidean distance-based algorithm.
+        /// Clusters locations using Euclidean distance with spatial indexing.
         /// </summary>
         /// <param name="locations">List of locations to cluster</param>
         /// <returns>List of clusters</returns>
@@ -26,6 +27,9 @@ namespace InteractiveWorldMap.Utilities
         {
             if (locations == null || locations.Count == 0)
                 return new List<LocationCluster>();
+
+            var grid = new SpatialGrid(DistanceThreshold);
+            grid.InsertAll(locations);
 
             var clusters = new List<LocationCluster>();
             var processed = new HashSet<string>();
@@ -38,8 +42,8 @@ namespace InteractiveWorldMap.Utilities
                     continue;
 
                 // Find all locations within threshold distance
-                var nearbyLocations = FindNearbyLocations(location, locations, processed);
-                
+                var nearbyLocations = FindNearbyLocations(location, grid, processed);
+
                 // Create cluster
                 var cluster = new LocationCluster
                 {
@@ -64,11 +68,11 @@ namespace InteractiveWorldMap.Utilities
 
         /// <summary>
         /// Finds all locations within the distance threshold of the seed location.
-        /// Uses recursive search to find all connected locations.
+        /// Uses BFS over spatially indexed neighbors (connected components).
         /// </summary>
         private List<Location> FindNearbyLocations(
-            Location seedLocation, 
-            List<Location> allLocations, 
+            Location seedLocation,
+            SpatialGrid grid,
             HashSet<string> processed)
         {
             var cluster = new List<Location> { seedLocation };
@@ -80,14 +84,13 @@ namespace InteractiveWorldMap.Utilities
             {
                 var current = toProcess.Dequeue();
 
-                // Find all unprocessed locations within threshold
-                foreach (var location in allLocations)
+                foreach (var location in grid.GetCandidatesInNeighborhood(current))
                 {
                     if (processed.Contains(location.Id) || inCluster.Contains(location.Id))
                         continue;
 
                     double distance = CalculateDistance(current, location);
-                    
+
                     if (distance <= DistanceThreshold)
                     {
                         cluster.Add(location);
@@ -150,7 +153,7 @@ namespace InteractiveWorldMap.Utilities
     }
 
     /// <summary>
-    /// Statistics about clustering results.
+    /// Statistics about the clustering results.
     /// </summary>
     public class ClusteringStats
     {

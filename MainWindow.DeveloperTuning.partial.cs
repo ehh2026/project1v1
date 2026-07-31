@@ -164,45 +164,16 @@ namespace InteractiveWorldMap
             _isTuningBusy = true;
             try
             {
-                var oldPinPartsEnabled = _visualConfig.PinParts.Enabled;
-                var oldUseComposite = _visualConfig.PinParts.UseCompositeRendering;
-                var oldUsePrerasterize = _visualConfig.PinParts.UsePrerasterizedRendering;
-                var oldShowDebugOverlay = _visualConfig.Debug.ShowCompositePinDebugOverlay;
-                var oldUseLitShafts = _visualConfig.PinParts.UseLitShafts;
-                var oldShaftVariant = _visualConfig.PinParts.ShaftAssetVariant;
-                var oldHeadVariant = _visualConfig.PinParts.HeadAssetVariant;
-                var oldClusterThreshold = _visualConfig.ClusterDistanceThreshold;
-                var oldStubLength = _visualConfig.PinParts.DefaultStubLengthPixels;
-                var oldTargetHeadRadius = _visualConfig.PinParts.TargetHeadRadiusPx;
-                var oldTargetShaftHalfWidth = _visualConfig.PinParts.TargetShaftHalfWidthPx;
-                var oldLocationMarkerSize = _visualConfig.LocationMarkerSize;
-                var oldClusterMarkerSize = _visualConfig.ClusterMarkerSize;
-                var oldClusterBadgeSize = _visualConfig.ClusterBadgeSize;
-                var oldClusterCountFontSize = _visualConfig.ClusterCountFontSize;
-                var oldPinShadowEnabled = _visualConfig.PinMarkers.ShowShadow;
-                var oldPinShadowOpacity = _visualConfig.PinMarkers.ShadowOpacity;
-                var oldClusterShadowEnabled = _visualConfig.ClusterMarkerShadow.Enabled;
-                var oldClusterShadowOpacity = _visualConfig.ClusterMarkerShadow.Opacity;
-                var oldDrawnHeadDiameter = _visualConfig.PinMarkers.BallSize;
-                var oldDrawnShaftWidth = _visualConfig.PinMarkers.ShaftWidth;
-                var oldDrawnShaftLength = _visualConfig.PinMarkers.ShaftLength;
-                var oldPinHitDiameter = _visualConfig.MarkerHitTargets.PinDiameterPx;
-                var oldClusterHitDiameter = _visualConfig.MarkerHitTargets.ClusterDiameterPx;
-                var oldZoomedMapMode = _visualConfig.ZoomedMapRendering.ResamplingMode;
-
-                var newShaftVariant = e.ShaftVariant.Trim();
-                var newHeadVariant = e.HeadVariant.Trim();
-                var oldCanUseComposite = _visualConfig.UsePinMarkers && oldPinPartsEnabled && oldUseComposite;
-                var newCanUseComposite = _visualConfig.UsePinMarkers && e.UseComposite;
-                var turningCompositeOff = oldCanUseComposite && !newCanUseComposite;
-
-                var needsRecreate =
-                    !NearlyEqual(oldClusterThreshold, e.ClusterThreshold) ||
-                    !NearlyEqual(oldLocationMarkerSize, e.LocationMarkerSize) ||
-                    !NearlyEqual(oldClusterMarkerSize, e.ClusterMarkerSize) ||
-                    !NearlyEqual(oldClusterBadgeSize, e.ClusterBadgeSize) ||
-                    !NearlyEqual(oldClusterCountFontSize, e.ClusterCountFontSize) ||
-                    (turningCompositeOff && _individualMarkers.Count > 0 && _baseMarkerVisuals.Count == 0);
+                var changes = TuningChangeSet.Create(
+                    _visualConfig,
+                    e,
+                    _individualMarkers.Count,
+                    _baseMarkerVisuals.Count);
+                var newShaftVariant = changes.NewShaftVariant;
+                var newHeadVariant = changes.NewHeadVariant;
+                var newCanUseComposite = changes.NewCanUseComposite;
+                var turningCompositeOff = changes.TurningCompositeOff;
+                var needsRecreate = changes.NeedsRecreate;
 
                 // Recreate-class changes require a full-map cluster rebuild which is meaningless
                 // while zoomed into a cluster. Reject and prompt the user to zoom out first.
@@ -212,105 +183,13 @@ namespace InteractiveWorldMap
                     return false;
                 }
 
-                var assetVariantChanged =
-                    !string.Equals(oldShaftVariant, newShaftVariant, StringComparison.Ordinal) ||
-                    !string.Equals(oldHeadVariant, newHeadVariant, StringComparison.Ordinal) ||
-                    oldUseLitShafts != e.UseLitShafts;
+                ApplyTuningValues(e, newShaftVariant, newHeadVariant);
+                ApplyOpenContentWindowStyle();
 
-                // Plan-affecting changes: trigger cache invalidation and composite rebuild.
-                var compositePlanChanged =
-                    oldUseComposite != e.UseComposite ||
-                    assetVariantChanged ||
-                    !NearlyEqual(oldStubLength, e.StubLength) ||
-                    !NearlyEqual(oldTargetHeadRadius, e.TargetHeadRadiusPx) ||
-                    !NearlyEqual(oldTargetShaftHalfWidth, e.TargetShaftHalfWidthPx);
-
-                // Render-only changes: need a visual refresh but do not invalidate cached plans.
-                var renderSettingsChanged =
-                    oldUsePrerasterize != e.UsePrerasterize ||
-                    oldShowDebugOverlay != e.ShowDebugOverlay ||
-                    oldZoomedMapMode != e.ZoomedMapResamplingMode;
-
-                var drawnDimensionsChanged =
-                    !NearlyEqual(oldDrawnHeadDiameter, e.DrawnHeadDiameterPx) ||
-                    !NearlyEqual(oldDrawnShaftWidth, e.DrawnShaftWidthPx) ||
-                    !NearlyEqual(oldDrawnShaftLength, e.DrawnShaftLengthPx);
-
-                var hitTargetsChanged =
-                    !NearlyEqual(oldPinHitDiameter, e.PinHitDiameterPx) ||
-                    !NearlyEqual(oldClusterHitDiameter, e.ClusterHitDiameterPx);
-
-                var pinShadowChanged =
-                    oldPinShadowEnabled != e.PinShadowEnabled ||
-                    !NearlyEqual(oldPinShadowOpacity, e.PinShadowOpacity);
-                var clusterShadowChanged =
-                    oldClusterShadowEnabled != e.ClusterShadowEnabled ||
-                    !NearlyEqual(oldClusterShadowOpacity, e.ClusterShadowOpacity);
-
-                _visualConfig.PinParts.Enabled = e.UseComposite;
-                _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
-                _visualConfig.PinParts.UsePrerasterizedRendering = e.UsePrerasterize;
-                _visualConfig.Debug.ShowCompositePinDebugOverlay = e.ShowDebugOverlay;
-                _visualConfig.PinParts.UseLitShafts = e.UseLitShafts;
-                _visualConfig.PinParts.ShaftAssetVariant = newShaftVariant;
-                _visualConfig.PinParts.HeadAssetVariant = newHeadVariant;
-                _visualConfig.ClusterDistanceThreshold = e.ClusterThreshold;
-                _visualConfig.PinParts.DefaultStubLengthPixels = e.StubLength;
-                _visualConfig.PinParts.TargetHeadRadiusPx = e.TargetHeadRadiusPx;
-                _visualConfig.PinParts.TargetShaftHalfWidthPx = e.TargetShaftHalfWidthPx;
-                _visualConfig.LocationMarkerSize = e.LocationMarkerSize;
-                _visualConfig.ClusterMarkerSize = e.ClusterMarkerSize;
-                _visualConfig.ClusterBadgeSize = e.ClusterBadgeSize;
-                _visualConfig.ClusterCountFontSize = e.ClusterCountFontSize;
-                _visualConfig.ZoomScale = e.ZoomScale;
-                _visualConfig.AnimationDurationMs = e.AnimationDurationMs;
-                _visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;
-                _visualConfig.PinMarkers.BallSize = e.DrawnHeadDiameterPx;
-                _visualConfig.PinMarkers.ShaftWidth = e.DrawnShaftWidthPx;
-                _visualConfig.PinMarkers.ShaftLength = e.DrawnShaftLengthPx;
-                _visualConfig.PinMarkers.ShowShadow = e.PinShadowEnabled;
-                _visualConfig.PinMarkers.ShadowOpacity = e.PinShadowOpacity;
-                _visualConfig.ClusterMarkerShadow.Enabled = e.ClusterShadowEnabled;
-                _visualConfig.ClusterMarkerShadow.Opacity = e.ClusterShadowOpacity;
-                _visualConfig.MarkerHitTargets.PinDiameterPx = e.PinHitDiameterPx;
-                _visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;
-                _visualConfig.ZoomedMapRendering.ResamplingMode = e.ZoomedMapResamplingMode;
-
-                // Tip cap is a render-only drawn-pin setting; the ReapplyViewAfterTuningChange call
-                // below re-runs UpdatePinTipCaps, which reads these fresh values.
-                var cap = _visualConfig.PinMarkers.DrawnPinTipCap;
-                cap.Style = e.TipCapStyle;
-                cap.Alignment = e.TipCapAlignment;
-                cap.WidthPx = e.TipCapWidthPx;
-                cap.LineWeightPx = e.TipCapLineWeightPx;
-                cap.ArcDepthPx = e.TipCapArcDepthPx;
-
-                // Content popup/caption styling is popup-only (no marker rebuild). Update config,
-                // then live-restyle any currently open popups so changes are visible immediately;
-                // otherwise they apply on the next popup open.
-                var cw = _visualConfig.ContentWindows;
-                cw.FontFamily = e.ContentFontFamily;
-                cw.Popup.BackgroundColor = e.PopupBackgroundColor;
-                cw.Popup.BackgroundOpacity = e.PopupBackgroundOpacity;
-                cw.Popup.BorderColor = e.PopupBorderColor;
-                cw.Popup.BorderThickness = e.PopupBorderThickness;
-                cw.Popup.CornerRadius = e.PopupCornerRadius;
-                cw.Popup.TextColor = e.PopupTextColor;
-                cw.Popup.HeadingFontSize = e.PopupHeadingFontSize;
-                cw.Popup.BodyFontSize = e.PopupBodyFontSize;
-                cw.Caption.BackgroundColor = e.CaptionBackgroundColor;
-                cw.Caption.BackgroundOpacity = e.CaptionBackgroundOpacity;
-                cw.Caption.TopBorderColor = e.CaptionTopBorderColor;
-                cw.Caption.TextColor = e.CaptionTextColor;
-                cw.Caption.FontSize = e.CaptionFontSize;
-                _activeSubwindow?.ApplyStyle(cw);
-                _activeDidacticWindow?.ApplyStyle(cw);
-                _activeThumbnailBrowser?.ApplyStyle(cw);
-
-                if (assetVariantChanged)
+                if (changes.AssetVariantChanged)
                     _pinPartBitmapCache.Clear();
 
-                if (compositePlanChanged)
+                if (changes.CompositePlanChanged)
                     _compositePinPlanCache.ClearAll();
 
                 if (turningCompositeOff)
@@ -321,10 +200,10 @@ namespace InteractiveWorldMap
                     _overrideStore.ClearAll();
                 }
 
-                if (drawnDimensionsChanged)
+                if (changes.DrawnDimensionsChanged)
                     RefreshDrawnPinVisuals();
 
-                if (pinShadowChanged || clusterShadowChanged)
+                if (changes.PinShadowChanged || changes.ClusterShadowChanged)
                     RefreshMarkerShadows();
 
                 if (needsRecreate)
@@ -333,13 +212,13 @@ namespace InteractiveWorldMap
                 }
                 else
                 {
-                    if (turningCompositeOff || ((compositePlanChanged || renderSettingsChanged) && newCanUseComposite))
+                    if (turningCompositeOff || ((changes.CompositePlanChanged || changes.RenderSettingsChanged) && newCanUseComposite))
                         RestoreBaseMarkerVisuals();
 
                     ReapplyViewAfterTuningChange();
                 }
 
-                if (hitTargetsChanged)
+                if (changes.HitTargetsChanged)
                     RefreshMarkerHitTargets();
 
                 DeveloperTuningPanel.LoadValues(_visualConfig);
@@ -359,6 +238,81 @@ namespace InteractiveWorldMap
             }
         }
 
+        private void ApplyTuningValues(
+            TuningPanelEventArgs e,
+            string newShaftVariant,
+            string newHeadVariant)
+        {
+            _visualConfig.PinParts.Enabled = e.UseComposite;
+            _visualConfig.PinParts.UseCompositeRendering = e.UseComposite;
+            _visualConfig.PinParts.UsePrerasterizedRendering = e.UsePrerasterize;
+            _visualConfig.Debug.ShowCompositePinDebugOverlay = e.ShowDebugOverlay;
+            _visualConfig.PinParts.UseLitShafts = e.UseLitShafts;
+            _visualConfig.PinParts.ShaftAssetVariant = newShaftVariant;
+            _visualConfig.PinParts.HeadAssetVariant = newHeadVariant;
+            _visualConfig.ClusterDistanceThreshold = e.ClusterThreshold;
+            _visualConfig.PinParts.DefaultStubLengthPixels = e.StubLength;
+            _visualConfig.PinParts.TargetHeadRadiusPx = e.TargetHeadRadiusPx;
+            _visualConfig.PinParts.TargetShaftHalfWidthPx = e.TargetShaftHalfWidthPx;
+            _visualConfig.LocationMarkerSize = e.LocationMarkerSize;
+            _visualConfig.ClusterMarkerSize = e.ClusterMarkerSize;
+            _visualConfig.ClusterBadgeSize = e.ClusterBadgeSize;
+            _visualConfig.ClusterCountFontSize = e.ClusterCountFontSize;
+            _visualConfig.ZoomScale = e.ZoomScale;
+            _visualConfig.AnimationDurationMs = e.AnimationDurationMs;
+            _visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;
+            ApplyPinMarkerTuning(e);
+            ApplyContentWindowTuning(e);
+        }
+
+        private void ApplyPinMarkerTuning(TuningPanelEventArgs e)
+        {
+            _visualConfig.PinMarkers.BallSize = e.DrawnHeadDiameterPx;
+            _visualConfig.PinMarkers.ShaftWidth = e.DrawnShaftWidthPx;
+            _visualConfig.PinMarkers.ShaftLength = e.DrawnShaftLengthPx;
+            _visualConfig.PinMarkers.ShowShadow = e.PinShadowEnabled;
+            _visualConfig.PinMarkers.ShadowOpacity = e.PinShadowOpacity;
+            _visualConfig.ClusterMarkerShadow.Enabled = e.ClusterShadowEnabled;
+            _visualConfig.ClusterMarkerShadow.Opacity = e.ClusterShadowOpacity;
+            _visualConfig.MarkerHitTargets.PinDiameterPx = e.PinHitDiameterPx;
+            _visualConfig.MarkerHitTargets.ClusterDiameterPx = e.ClusterHitDiameterPx;
+            _visualConfig.ZoomedMapRendering.ResamplingMode = e.ZoomedMapResamplingMode;
+
+            var cap = _visualConfig.PinMarkers.DrawnPinTipCap;
+            cap.Style = e.TipCapStyle;
+            cap.Alignment = e.TipCapAlignment;
+            cap.WidthPx = e.TipCapWidthPx;
+            cap.LineWeightPx = e.TipCapLineWeightPx;
+            cap.ArcDepthPx = e.TipCapArcDepthPx;
+        }
+
+        private void ApplyContentWindowTuning(TuningPanelEventArgs e)
+        {
+            var cw = _visualConfig.ContentWindows;
+            cw.FontFamily = e.ContentFontFamily;
+            cw.Popup.BackgroundColor = e.PopupBackgroundColor;
+            cw.Popup.BackgroundOpacity = e.PopupBackgroundOpacity;
+            cw.Popup.BorderColor = e.PopupBorderColor;
+            cw.Popup.BorderThickness = e.PopupBorderThickness;
+            cw.Popup.CornerRadius = e.PopupCornerRadius;
+            cw.Popup.TextColor = e.PopupTextColor;
+            cw.Popup.HeadingFontSize = e.PopupHeadingFontSize;
+            cw.Popup.BodyFontSize = e.PopupBodyFontSize;
+            cw.Caption.BackgroundColor = e.CaptionBackgroundColor;
+            cw.Caption.BackgroundOpacity = e.CaptionBackgroundOpacity;
+            cw.Caption.TopBorderColor = e.CaptionTopBorderColor;
+            cw.Caption.TextColor = e.CaptionTextColor;
+            cw.Caption.FontSize = e.CaptionFontSize;
+        }
+
+        private void ApplyOpenContentWindowStyle()
+        {
+            var cw = _visualConfig.ContentWindows;
+            _activeSubwindow?.ApplyStyle(cw);
+            _activeDidacticWindow?.ApplyStyle(cw);
+            _activeThumbnailBrowser?.ApplyStyle(cw);
+        }
+
         private async Task RecreateAllMarkersAsync()
         {
             _extensionLineRenderer.Clear();
@@ -366,6 +320,7 @@ namespace InteractiveWorldMap
             ClearAllMarkers();
 
             _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
+            _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
             _clusters = await _contentLoader.LoadClustersAsync();
             AddClustersToMap(_clusters);
         }
@@ -494,6 +449,129 @@ namespace InteractiveWorldMap
                 CaptionTextColor = content.Caption.TextColor,
                 CaptionFontSize = content.Caption.FontSize
             };
+        }
+
+        private sealed class TuningChangeSet
+        {
+            private TuningChangeSet(
+                string newShaftVariant,
+                string newHeadVariant,
+                bool newCanUseComposite,
+                bool turningCompositeOff,
+                bool needsRecreate,
+                bool assetVariantChanged,
+                bool compositePlanChanged,
+                bool renderSettingsChanged,
+                bool drawnDimensionsChanged,
+                bool hitTargetsChanged,
+                bool pinShadowChanged,
+                bool clusterShadowChanged)
+            {
+                NewShaftVariant = newShaftVariant;
+                NewHeadVariant = newHeadVariant;
+                NewCanUseComposite = newCanUseComposite;
+                TurningCompositeOff = turningCompositeOff;
+                NeedsRecreate = needsRecreate;
+                AssetVariantChanged = assetVariantChanged;
+                CompositePlanChanged = compositePlanChanged;
+                RenderSettingsChanged = renderSettingsChanged;
+                DrawnDimensionsChanged = drawnDimensionsChanged;
+                HitTargetsChanged = hitTargetsChanged;
+                PinShadowChanged = pinShadowChanged;
+                ClusterShadowChanged = clusterShadowChanged;
+            }
+
+            public string NewShaftVariant { get; }
+            public string NewHeadVariant { get; }
+            public bool NewCanUseComposite { get; }
+            public bool TurningCompositeOff { get; }
+            public bool NeedsRecreate { get; }
+            public bool AssetVariantChanged { get; }
+            public bool CompositePlanChanged { get; }
+            public bool RenderSettingsChanged { get; }
+            public bool DrawnDimensionsChanged { get; }
+            public bool HitTargetsChanged { get; }
+            public bool PinShadowChanged { get; }
+            public bool ClusterShadowChanged { get; }
+
+            public static TuningChangeSet Create(
+                VisualConfig visualConfig,
+                TuningPanelEventArgs e,
+                int individualMarkerCount,
+                int baseMarkerVisualCount)
+            {
+                var newShaftVariant = e.ShaftVariant.Trim();
+                var newHeadVariant = e.HeadVariant.Trim();
+                var oldCanUseComposite = visualConfig.UsePinMarkers &&
+                                         visualConfig.PinParts.Enabled &&
+                                         visualConfig.PinParts.UseCompositeRendering;
+                var newCanUseComposite = visualConfig.UsePinMarkers && e.UseComposite;
+                var turningCompositeOff = oldCanUseComposite && !newCanUseComposite;
+                var assetVariantChanged = HasAssetVariantChanged(visualConfig, e, newShaftVariant, newHeadVariant);
+                var hitTargetsChanged = HasHitTargetChange(visualConfig, e);
+
+                return new TuningChangeSet(
+                    newShaftVariant,
+                    newHeadVariant,
+                    newCanUseComposite,
+                    turningCompositeOff,
+                    HasRecreateChange(visualConfig, e, turningCompositeOff, individualMarkerCount, baseMarkerVisualCount),
+                    assetVariantChanged,
+                    HasCompositePlanChange(visualConfig, e, assetVariantChanged),
+                    HasRenderSettingChange(visualConfig, e),
+                    HasDrawnDimensionChange(visualConfig, e),
+                    hitTargetsChanged,
+                    visualConfig.PinMarkers.ShowShadow != e.PinShadowEnabled ||
+                    !NearlyEqual(visualConfig.PinMarkers.ShadowOpacity, e.PinShadowOpacity),
+                    visualConfig.ClusterMarkerShadow.Enabled != e.ClusterShadowEnabled ||
+                    !NearlyEqual(visualConfig.ClusterMarkerShadow.Opacity, e.ClusterShadowOpacity));
+            }
+
+            private static bool HasAssetVariantChanged(
+                VisualConfig visualConfig,
+                TuningPanelEventArgs e,
+                string newShaftVariant,
+                string newHeadVariant) =>
+                !string.Equals(visualConfig.PinParts.ShaftAssetVariant, newShaftVariant, StringComparison.Ordinal) ||
+                !string.Equals(visualConfig.PinParts.HeadAssetVariant, newHeadVariant, StringComparison.Ordinal) ||
+                visualConfig.PinParts.UseLitShafts != e.UseLitShafts;
+
+            private static bool HasRecreateChange(
+                VisualConfig visualConfig,
+                TuningPanelEventArgs e,
+                bool turningCompositeOff,
+                int individualMarkerCount,
+                int baseMarkerVisualCount) =>
+                !NearlyEqual(visualConfig.ClusterDistanceThreshold, e.ClusterThreshold) ||
+                !NearlyEqual(visualConfig.LocationMarkerSize, e.LocationMarkerSize) ||
+                !NearlyEqual(visualConfig.ClusterMarkerSize, e.ClusterMarkerSize) ||
+                !NearlyEqual(visualConfig.ClusterBadgeSize, e.ClusterBadgeSize) ||
+                !NearlyEqual(visualConfig.ClusterCountFontSize, e.ClusterCountFontSize) ||
+                (turningCompositeOff && individualMarkerCount > 0 && baseMarkerVisualCount == 0);
+
+            private static bool HasCompositePlanChange(
+                VisualConfig visualConfig,
+                TuningPanelEventArgs e,
+                bool assetVariantChanged) =>
+                visualConfig.PinParts.UseCompositeRendering != e.UseComposite ||
+                assetVariantChanged ||
+                !NearlyEqual(visualConfig.PinParts.DefaultStubLengthPixels, e.StubLength) ||
+                !NearlyEqual(visualConfig.PinParts.TargetHeadRadiusPx, e.TargetHeadRadiusPx) ||
+                !NearlyEqual(visualConfig.PinParts.TargetShaftHalfWidthPx, e.TargetShaftHalfWidthPx);
+
+            private static bool HasRenderSettingChange(VisualConfig visualConfig, TuningPanelEventArgs e) =>
+                visualConfig.PinParts.UsePrerasterizedRendering != e.UsePrerasterize ||
+                visualConfig.Debug.ShowCompositePinDebugOverlay != e.ShowDebugOverlay ||
+                visualConfig.ZoomedMapRendering.ResamplingMode != e.ZoomedMapResamplingMode;
+
+            private static bool HasDrawnDimensionChange(VisualConfig visualConfig, TuningPanelEventArgs e) =>
+                !NearlyEqual(visualConfig.PinMarkers.BallSize, e.DrawnHeadDiameterPx) ||
+                !NearlyEqual(visualConfig.PinMarkers.ShaftWidth, e.DrawnShaftWidthPx) ||
+                !NearlyEqual(visualConfig.PinMarkers.ShaftLength, e.DrawnShaftLengthPx);
+
+            private static bool HasHitTargetChange(VisualConfig visualConfig, TuningPanelEventArgs e) =>
+                !NearlyEqual(visualConfig.MarkerHitTargets.PinDiameterPx, e.PinHitDiameterPx) ||
+                !NearlyEqual(visualConfig.MarkerHitTargets.ClusterDiameterPx, e.ClusterHitDiameterPx);
         }
 
         private static bool NearlyEqual(double left, double right)

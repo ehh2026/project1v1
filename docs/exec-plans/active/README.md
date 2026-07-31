@@ -20,15 +20,17 @@ started: YYYY-MM-DD
 
 | Plan | Scope |
 |------|--------|
-| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Remaining [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) items (Phases 11+) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
 | [touch-scrollable-thumbnail-browser-plan.md](touch-scrollable-thumbnail-browser-plan.md) | Touch/mouse vertical thumbnail scrolling with tap-versus-swipe arbitration |
+| [complexity-and-ci-hooks.md](complexity-and-ci-hooks.md) | Refactor high-complexity methods and promote format, analyzer, coverage, and Lizard gates |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
+
+- `refactoring-assessment-followthrough-plan.md` — Remaining assessment debt (map metadata, ApplicationState, spatial clusterer, Excel streaming, ContentLoader LRU); Phase 18b deferred — moved 2026-07-30
 
 - `content-auto-fullscreen-open-fix-plan.md` - Prevent marker-open mouse/touch release from immediately toggling content presentation mode - moved 2026-07-22
 
@@ -59,5 +61,6 @@ Completed plans move to [../completed/](../completed/). Parked plans (core done,
 3. **Plan finishes** — move file to `../completed/`, update [CHANGELOG.md](../../../CHANGELOG.md), remove or shorten the `TO_DO.md` bullet.
 4. **Investigations** — live in [../../assessments/](../../assessments/); feature how-to in [../../guides/](../../guides/).
 5. **Historical only** — move to [../../archive/planning/](../../archive/planning/), not `docs/` root.
+6. **Lingering incomplete plans** — plans older than 30 days that are still incomplete produce a **non-blocking** warning from `scripts/verify_taste.py` / `scripts/doc_gardening.py`. Agents must report the warning to the user and ask whether to continue, park under `../inactive/`, or archive under `../completed/`.
 
 Full doc model: [agent-workflows.md](../../agent-workflows.md#documentation-maintenance). Harness: `scripts/doc_gardening.py`.

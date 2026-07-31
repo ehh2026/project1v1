@@ -15,9 +15,9 @@ public class RadialExtensionCalculatorTests
     {
         ProximityThresholdPixels = 50,
         MinLocationsForExtension = 2,
-        ExtensionLineLength      = 100,
-        AngleNudgeThreshold      = 5.0,
-        AngleNudgeAmount         = 2.0
+        ExtensionLineLength = 100,
+        AngleNudgeThreshold = 5.0,
+        AngleNudgeAmount = 2.0
     };
 
     // ─── DetectDenseGroups ───────────────────────────────────────────────────
@@ -44,7 +44,7 @@ public class RadialExtensionCalculatorTests
         var locB = new Location { Id = "b", Name = "B" };
         var positions = new Dictionary<Location, Point>
         {
-            [locA] = new Point(0,   0),
+            [locA] = new Point(0, 0),
             [locB] = new Point(500, 0)   // 500px apart > threshold 50px
         };
 
@@ -59,7 +59,7 @@ public class RadialExtensionCalculatorTests
         var locB = new Location { Id = "b", Name = "B" };
         var positions = new Dictionary<Location, Point>
         {
-            [locA] = new Point(0,  0),
+            [locA] = new Point(0, 0),
             [locB] = new Point(30, 0)   // 30px apart < threshold 50px
         };
 
@@ -78,7 +78,7 @@ public class RadialExtensionCalculatorTests
         var locC = new Location { Id = "c", Name = "C" };
         var positions = new Dictionary<Location, Point>
         {
-            [locA] = new Point(0,  0),
+            [locA] = new Point(0, 0),
             [locB] = new Point(20, 0),
             [locC] = new Point(40, 0)
         };
@@ -99,8 +99,8 @@ public class RadialExtensionCalculatorTests
         var locD = new Location { Id = "d", Name = "D" };
         var positions = new Dictionary<Location, Point>
         {
-            [locA] = new Point(0,   0),
-            [locB] = new Point(20,  0),   // cluster 1
+            [locA] = new Point(0, 0),
+            [locB] = new Point(20, 0),   // cluster 1
             [locC] = new Point(500, 0),
             [locD] = new Point(520, 0)    // cluster 2
         };
@@ -122,7 +122,7 @@ public class RadialExtensionCalculatorTests
     [Fact]
     public void CalculateRadialExtensions_EmptyGroup_ReturnsEmpty()
     {
-        var calc  = new RadialExtensionCalculator(DefaultConfig());
+        var calc = new RadialExtensionCalculator(DefaultConfig());
         var group = new DenseMarkerGroup { Locations = new System.Collections.Generic.List<Location>() };
         Assert.Empty(calc.CalculateRadialExtensions(group, new Dictionary<Location, Point>(), 800, 600));
     }
@@ -135,12 +135,12 @@ public class RadialExtensionCalculatorTests
         var locB = new Location { Id = "b", Name = "B" };
         var group = new DenseMarkerGroup
         {
-            Locations   = new List<Location> { locA, locB },
+            Locations = new List<Location> { locA, locB },
             CenterPoint = new Point(100, 100)
         };
         var screenPositions = new Dictionary<Location, Point>
         {
-            [locA] = new Point(95,  100),  // slightly left of center
+            [locA] = new Point(95, 100),  // slightly left of center
             [locB] = new Point(105, 100)   // slightly right of center
         };
 
@@ -157,7 +157,7 @@ public class RadialExtensionCalculatorTests
         var locB = new Location { Id = "b", Name = "B" };
         var group = new DenseMarkerGroup
         {
-            Locations   = new List<Location> { locA, locB },
+            Locations = new List<Location> { locA, locB },
             CenterPoint = new Point(200, 200)
         };
         var screenPositions = new Dictionary<Location, Point>
@@ -185,7 +185,7 @@ public class RadialExtensionCalculatorTests
         var locB = new Location { Id = "b", Name = "B" };
         var group = new DenseMarkerGroup
         {
-            Locations   = new List<Location> { locA, locB },
+            Locations = new List<Location> { locA, locB },
             CenterPoint = new Point(200, 200)
         };
         // Place markers directly north and south of center

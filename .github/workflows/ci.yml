@@ -28,9 +28,26 @@ jobs:
       - name: Build
         run: dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
 
+      - name: Format
+        run: dotnet format InteractiveWorldMap.sln --verify-no-changes
+
       - name: Test
-        run: dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity normal
-        # Remediation: run `dotnet test Tests/InteractiveWorldMap.Tests.csproj` locally
+        run: dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity normal --settings .runsettings --filter "Category!=Performance" --collect:"XPlat Code Coverage" --results-directory TestResults\ci-coverage
+        # Remediation: run `dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "Category!=Performance"` locally
+
+      - name: Enforce coverage threshold
+        shell: pwsh
+        run: python scripts/summarize_coverage.py --results-directory TestResults/ci-coverage --min-line-coverage 42 --min-branch-coverage 37
+
+      - name: Install Lizard
+        run: python -m pip install lizard
+
+      - name: Lizard complexity warning
+        run: lizard -C 15 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
+        continue-on-error: true
+
+      - name: Lizard complexity fail
+        run: lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
 
       - name: Verify doc links
         shell: pwsh

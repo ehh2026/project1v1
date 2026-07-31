@@ -13,7 +13,7 @@ namespace InteractiveWorldMap.Views;
 public partial class ThumbnailBrowserWindow : Window
 {
     public ObservableCollection<ThumbnailItem> Thumbnails { get; } = new ObservableCollection<ThumbnailItem>();
-    
+
     public event EventHandler<int>? ThumbnailSelected;
 
     public ThumbnailBrowserWindow()
@@ -45,7 +45,7 @@ public partial class ThumbnailBrowserWindow : Window
     public void LoadThumbnails(BitmapImage[] images, int selectedIndex)
     {
         Thumbnails.Clear();
-        
+
         for (int i = 0; i < images.Length; i++)
         {
             Thumbnails.Add(new ThumbnailItem
@@ -75,11 +75,11 @@ public partial class ThumbnailBrowserWindow : Window
     {
         // Match the height of the content window
         Height = contentWindow.Height;
-        
+
         // Position to the right of the content window
         Left = contentWindow.Left + contentWindow.Width + 10;
         Top = contentWindow.Top;
-        
+
         // Ensure it stays on screen
         var screenWidth = SystemParameters.PrimaryScreenWidth;
         if (Left + Width > screenWidth)
@@ -87,7 +87,7 @@ public partial class ThumbnailBrowserWindow : Window
             // If it doesn't fit on the right, put it on the left
             Left = contentWindow.Left - Width - 10;
         }
-        
+
         // Ensure minimum left position
         Left = Math.Max(0, Left);
     }
@@ -119,13 +119,13 @@ public partial class ThumbnailBrowserWindow : Window
             To = 0,
             Duration = duration
         };
-        
+
         fadeOut.Completed += (s, e) =>
         {
             Close();
             onComplete?.Invoke();
         };
-        
+
         BeginAnimation(OpacityProperty, fadeOut);
     }
 
@@ -145,10 +145,10 @@ public partial class ThumbnailBrowserWindow : Window
 public class ThumbnailItem : System.ComponentModel.INotifyPropertyChanged
 {
     private bool _isSelected;
-    
+
     public BitmapImage? Thumbnail { get; set; }
     public int Index { get; set; }
-    
+
     public bool IsSelected
     {
         get => _isSelected;
@@ -161,6 +161,6 @@ public class ThumbnailItem : System.ComponentModel.INotifyPropertyChanged
             }
         }
     }
-    
+
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 }

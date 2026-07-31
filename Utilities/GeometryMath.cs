@@ -116,9 +116,9 @@ public static class GeometryMath
         Point line2Start, Point line2End)
     {
         double dist1 = PointToLineSegmentDistance(line1Start, line2Start, line2End);
-        double dist2 = PointToLineSegmentDistance(line1End,   line2Start, line2End);
+        double dist2 = PointToLineSegmentDistance(line1End, line2Start, line2End);
         double dist3 = PointToLineSegmentDistance(line2Start, line1Start, line1End);
-        double dist4 = PointToLineSegmentDistance(line2End,   line1Start, line1End);
+        double dist4 = PointToLineSegmentDistance(line2End, line1Start, line1End);
         return Math.Min(Math.Min(dist1, dist2), Math.Min(dist3, dist4));
     }
 

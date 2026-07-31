@@ -48,7 +48,7 @@ public class MarkerShadowRenderingTests
     public void ExtensionLineRenderer_DoesNotFloorConfiguredShadowOpacity()
     {
         var source = Read("Views", "ExtensionLineRenderer.cs");
-        Assert.Contains("Opacity     = pinConfig.ShadowOpacity", source);
+        Assert.Contains("Opacity = pinConfig.ShadowOpacity", source);
         Assert.DoesNotContain("Math.Max(pinConfig.ShadowOpacity, 0.45)", source);
     }
 

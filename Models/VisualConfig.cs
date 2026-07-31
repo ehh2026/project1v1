@@ -12,6 +12,18 @@ namespace InteractiveWorldMap.Models
         /// </summary>
         public double ClusterDistanceThreshold { get; set; } = 300.0;
 
+        private int _maxCachedLocations;
+
+        /// <summary>
+        /// Maximum number of location content bitmaps kept in <c>ContentLoader</c>'s in-memory cache.
+        /// <c>0</c> (default) means unlimited. When greater than zero, least-recently-used entries are evicted.
+        /// </summary>
+        public int MaxCachedLocations
+        {
+            get => _maxCachedLocations;
+            set => _maxCachedLocations = value < 0 ? 0 : value;
+        }
+
         /// <summary>
         /// Configuration for radial extension lines.
         /// </summary>
@@ -120,43 +132,43 @@ namespace InteractiveWorldMap.Models
     }
 }
 
+/// <summary>
+/// Configuration for the manual layout editor feature.
+/// </summary>
+public class ManualLayoutEditorConfig
+{
     /// <summary>
-    /// Configuration for the manual layout editor feature.
+    /// Whether the manual layout editor feature is enabled.
     /// </summary>
-    public class ManualLayoutEditorConfig
-    {
-        /// <summary>
-        /// Whether the manual layout editor feature is enabled.
-        /// </summary>
-        public bool Enabled { get; set; } = false;
+    public bool Enabled { get; set; } = false;
 
-        /// <summary>
-        /// Whether to show the "Edit Layout" button in the UI.
-        /// </summary>
-        public bool ShowEditButton { get; set; } = true;
+    /// <summary>
+    /// Whether to show the "Edit Layout" button in the UI.
+    /// </summary>
+    public bool ShowEditButton { get; set; } = true;
 
-        /// <summary>
-        /// Path to the file where manual layouts are stored.
-        /// </summary>
-        public string LayoutStoragePath { get; set; } = "Images&Content/Demo-Content/manual-layouts.json";
+    /// <summary>
+    /// Path to the file where manual layouts are stored.
+    /// </summary>
+    public string LayoutStoragePath { get; set; } = "Images&Content/Demo-Content/manual-layouts.json";
 
-        /// <summary>
-        /// When true, namespaces stored layouts in AppData per active content set.
-        /// </summary>
-        public bool SetAwareStorage { get; set; } = true;
+    /// <summary>
+    /// When true, namespaces stored layouts in AppData per active content set.
+    /// </summary>
+    public bool SetAwareStorage { get; set; } = true;
 
-        /// <summary>
-        /// Whether to enable snap-to-grid when dragging markers.
-        /// </summary>
-        public bool EnableSnapToGrid { get; set; } = false;
+    /// <summary>
+    /// Whether to enable snap-to-grid when dragging markers.
+    /// </summary>
+    public bool EnableSnapToGrid { get; set; } = false;
 
-        /// <summary>
-        /// Grid size in pixels for snap-to-grid feature.
-        /// </summary>
-        public double GridSize { get; set; } = 5.0;
+    /// <summary>
+    /// Grid size in pixels for snap-to-grid feature.
+    /// </summary>
+    public double GridSize { get; set; } = 5.0;
 
-        /// <summary>
-        /// Whether to show an indicator when a manual layout is active.
-        /// </summary>
-        public bool ShowLayoutIndicator { get; set; } = true;
-    }
+    /// <summary>
+    /// Whether to show an indicator when a manual layout is active.
+    /// </summary>
+    public bool ShowLayoutIndicator { get; set; } = true;
+}

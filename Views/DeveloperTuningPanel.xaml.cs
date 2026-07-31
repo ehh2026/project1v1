@@ -352,40 +352,55 @@ public partial class DeveloperTuningPanel : UserControl
     {
         args = new TuningPanelEventArgs();
 
-        if (!TryReadPositive(TxtClusterThreshold.Text, "Cluster threshold", out var clusterThreshold, out error) ||
-            !TryReadNonNegative(TxtStubLength.Text, "Stub length", out var stubLength, out error) ||
-            !TryReadNonNegative(TxtTargetHeadRadius.Text, "Head radius", out var targetHeadRadius, out error) ||
-            !TryReadNonNegative(TxtTargetShaftHalfWidth.Text, "Shaft half width", out var targetShaftHalfWidth, out error) ||
-            !TryReadPositive(TxtLocationMarkerSize.Text, "Location marker", out var locationMarkerSize, out error) ||
-            !TryReadPositive(TxtClusterMarkerSize.Text, "Cluster marker", out var clusterMarkerSize, out error) ||
-            !TryReadPositive(TxtClusterBadgeSize.Text, "Cluster badge", out var clusterBadgeSize, out error) ||
-            !TryReadPositive(TxtClusterCountFontSize.Text, "Cluster count font", out var clusterCountFontSize, out error) ||
-            !TryReadPositive(TxtZoomScale.Text, "Zoom scale", out var zoomScale, out error) ||
-            !TryReadPositiveInt(TxtAnimationDurationMs.Text, "Animation duration", out var animationDurationMs, out error) ||
-            !TryReadOpacity(TxtPinShadowOpacity.Text, "Pin shadow opacity", out var pinShadowOpacity, out error) ||
-            !TryReadOpacity(TxtClusterShadowOpacity.Text, "Cluster shadow opacity", out var clusterShadowOpacity, out error) ||
-            !TryReadPositive(TxtDrawnHeadDiameter.Text, "Drawn head diameter", out var drawnHeadDiameter, out error) ||
-            !TryReadPositive(TxtDrawnShaftWidth.Text, "Drawn shaft width", out var drawnShaftWidth, out error) ||
-            !TryReadPositive(TxtDrawnShaftLength.Text, "Drawn shaft length", out var drawnShaftLength, out error) ||
-            !TryReadPositive(TxtPinHitDiameter.Text, "Pin hitbox", out var pinHitDiameter, out error) ||
-            !TryReadPositive(TxtClusterHitDiameter.Text, "Cluster hitbox", out var clusterHitDiameter, out error) ||
-            !TryReadPositive(TxtTipCapWidth.Text, "Cap width", out var tipCapWidth, out error) ||
-            !TryReadPositive(TxtTipCapLineWeight.Text, "Line weight", out var tipCapLineWeight, out error) ||
-            !TryReadNonNegative(TxtTipCapArcDepth.Text, "Curvature", out var tipCapArcDepth, out error) ||
-            !TryReadNonEmpty(TxtContentFontFamily.Text, "Font family", out var contentFontFamily, out error) ||
-            !TryReadColor(TxtPopupBackgroundColor.Text, "Popup background color", out var popupBg, out error) ||
-            !TryReadOpacity(TxtPopupBackgroundOpacity.Text, "Popup background opacity", out var popupBgOpacity, out error) ||
-            !TryReadColor(TxtPopupBorderColor.Text, "Popup border color", out var popupBorderColor, out error) ||
-            !TryReadNonNegative(TxtPopupBorderThickness.Text, "Popup border thickness", out var popupBorderThickness, out error) ||
-            !TryReadNonNegative(TxtPopupCornerRadius.Text, "Popup corner radius", out var popupCornerRadius, out error) ||
-            !TryReadColor(TxtPopupTextColor.Text, "Popup text color", out var popupTextColor, out error) ||
-            !TryReadPositive(TxtPopupHeadingFontSize.Text, "Popup heading size", out var popupHeadingSize, out error) ||
-            !TryReadPositive(TxtPopupBodyFontSize.Text, "Popup body size", out var popupBodySize, out error) ||
-            !TryReadColor(TxtCaptionBackgroundColor.Text, "Caption background color", out var captionBg, out error) ||
-            !TryReadOpacity(TxtCaptionBackgroundOpacity.Text, "Caption background opacity", out var captionBgOpacity, out error) ||
-            !TryReadColor(TxtCaptionTopBorderColor.Text, "Caption top border color", out var captionTopBorder, out error) ||
-            !TryReadColor(TxtCaptionTextColor.Text, "Caption text color", out var captionTextColor, out error) ||
-            !TryReadPositive(TxtCaptionFontSize.Text, "Caption text size", out var captionSize, out error))
+        if (!TryReadMapTuning(
+                TxtClusterThreshold.Text,
+                TxtZoomScale.Text,
+                TxtAnimationDurationMs.Text,
+                out var map,
+                out error) ||
+            !TryReadPinAppearance(
+                TxtLocationMarkerSize.Text,
+                TxtClusterMarkerSize.Text,
+                TxtClusterBadgeSize.Text,
+                TxtClusterCountFontSize.Text,
+                TxtStubLength.Text,
+                TxtTargetHeadRadius.Text,
+                TxtTargetShaftHalfWidth.Text,
+                TxtDrawnHeadDiameter.Text,
+                TxtDrawnShaftWidth.Text,
+                TxtDrawnShaftLength.Text,
+                TxtTipCapWidth.Text,
+                TxtTipCapLineWeight.Text,
+                TxtTipCapArcDepth.Text,
+                out var appearance,
+                out error) ||
+            !TryReadHitboxes(
+                TxtPinHitDiameter.Text,
+                TxtClusterHitDiameter.Text,
+                out var hitboxes,
+                out error) ||
+            !TryReadShadowTuning(
+                TxtPinShadowOpacity.Text,
+                TxtClusterShadowOpacity.Text,
+                out var shadows,
+                out error) ||
+            !TryReadContentWindowTuning(
+                TxtContentFontFamily.Text,
+                TxtPopupBackgroundColor.Text,
+                TxtPopupBackgroundOpacity.Text,
+                TxtPopupBorderColor.Text,
+                TxtPopupBorderThickness.Text,
+                TxtPopupCornerRadius.Text,
+                TxtPopupTextColor.Text,
+                TxtPopupHeadingFontSize.Text,
+                TxtPopupBodyFontSize.Text,
+                TxtCaptionBackgroundColor.Text,
+                TxtCaptionBackgroundOpacity.Text,
+                TxtCaptionTopBorderColor.Text,
+                TxtCaptionTextColor.Text,
+                TxtCaptionFontSize.Text,
+                out var content,
+                out error))
         {
             return false;
         }
@@ -401,238 +416,47 @@ public partial class DeveloperTuningPanel : UserControl
             ZoomedMapResamplingMode = GetZoomedMapResamplingMode(),
             ShaftVariant = GetVariantFromCombo(CmbShaftVariant).Trim(),
             HeadVariant = GetVariantFromCombo(CmbHeadVariant).Trim(),
-            ClusterThreshold = clusterThreshold,
-            StubLength = stubLength,
-            TargetHeadRadiusPx = targetHeadRadius,
-            TargetShaftHalfWidthPx = targetShaftHalfWidth,
-            LocationMarkerSize = locationMarkerSize,
-            ClusterMarkerSize = clusterMarkerSize,
-            ClusterBadgeSize = clusterBadgeSize,
-            ClusterCountFontSize = clusterCountFontSize,
-            ZoomScale = zoomScale,
-            AnimationDurationMs = animationDurationMs,
+            ClusterThreshold = map.ClusterThreshold,
+            StubLength = appearance.StubLength,
+            TargetHeadRadiusPx = appearance.TargetHeadRadiusPx,
+            TargetShaftHalfWidthPx = appearance.TargetShaftHalfWidthPx,
+            LocationMarkerSize = appearance.LocationMarkerSize,
+            ClusterMarkerSize = appearance.ClusterMarkerSize,
+            ClusterBadgeSize = appearance.ClusterBadgeSize,
+            ClusterCountFontSize = appearance.ClusterCountFontSize,
+            ZoomScale = map.ZoomScale,
+            AnimationDurationMs = map.AnimationDurationMs,
             PinShadowEnabled = ChkPinShadowEnabled.IsChecked == true,
-            PinShadowOpacity = pinShadowOpacity,
+            PinShadowOpacity = shadows.PinShadowOpacity,
             ClusterShadowEnabled = ChkClusterShadowEnabled.IsChecked == true,
-            ClusterShadowOpacity = clusterShadowOpacity,
-            DrawnHeadDiameterPx = drawnHeadDiameter,
-            DrawnShaftWidthPx = drawnShaftWidth,
-            DrawnShaftLengthPx = drawnShaftLength,
-            PinHitDiameterPx = pinHitDiameter,
-            ClusterHitDiameterPx = clusterHitDiameter,
+            ClusterShadowOpacity = shadows.ClusterShadowOpacity,
+            DrawnHeadDiameterPx = appearance.DrawnHeadDiameterPx,
+            DrawnShaftWidthPx = appearance.DrawnShaftWidthPx,
+            DrawnShaftLengthPx = appearance.DrawnShaftLengthPx,
+            PinHitDiameterPx = hitboxes.PinHitDiameterPx,
+            ClusterHitDiameterPx = hitboxes.ClusterHitDiameterPx,
             TipCapStyle = GetTipCapStyle(),
             TipCapAlignment = GetTipCapAlignment(),
-            TipCapWidthPx = tipCapWidth,
-            TipCapLineWeightPx = tipCapLineWeight,
-            TipCapArcDepthPx = tipCapArcDepth,
-            ContentFontFamily = contentFontFamily,
-            PopupBackgroundColor = popupBg,
-            PopupBackgroundOpacity = popupBgOpacity,
-            PopupBorderColor = popupBorderColor,
-            PopupBorderThickness = popupBorderThickness,
-            PopupCornerRadius = popupCornerRadius,
-            PopupTextColor = popupTextColor,
-            PopupHeadingFontSize = popupHeadingSize,
-            PopupBodyFontSize = popupBodySize,
-            CaptionBackgroundColor = captionBg,
-            CaptionBackgroundOpacity = captionBgOpacity,
-            CaptionTopBorderColor = captionTopBorder,
-            CaptionTextColor = captionTextColor,
-            CaptionFontSize = captionSize
+            TipCapWidthPx = appearance.TipCapWidthPx,
+            TipCapLineWeightPx = appearance.TipCapLineWeightPx,
+            TipCapArcDepthPx = appearance.TipCapArcDepthPx,
+            ContentFontFamily = content.ContentFontFamily,
+            PopupBackgroundColor = content.PopupBackgroundColor,
+            PopupBackgroundOpacity = content.PopupBackgroundOpacity,
+            PopupBorderColor = content.PopupBorderColor,
+            PopupBorderThickness = content.PopupBorderThickness,
+            PopupCornerRadius = content.PopupCornerRadius,
+            PopupTextColor = content.PopupTextColor,
+            PopupHeadingFontSize = content.PopupHeadingFontSize,
+            PopupBodyFontSize = content.PopupBodyFontSize,
+            CaptionBackgroundColor = content.CaptionBackgroundColor,
+            CaptionBackgroundOpacity = content.CaptionBackgroundOpacity,
+            CaptionTopBorderColor = content.CaptionTopBorderColor,
+            CaptionTextColor = content.CaptionTextColor,
+            CaptionFontSize = content.CaptionFontSize
         };
         error = string.Empty;
         return true;
     }
 
-    private static bool TryReadPositive(string text, string label, out double value, out string error)
-    {
-        if (!TryReadDouble(text, label, out value, out error))
-            return false;
-
-        if (value <= 0)
-        {
-            error = $"{label} must be greater than 0.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadNonNegative(string text, string label, out double value, out string error)
-    {
-        if (!TryReadDouble(text, label, out value, out error))
-            return false;
-
-        if (value < 0)
-        {
-            error = $"{label} must be 0 or greater.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadPositiveInt(
-        string text, string label, out int value, out string error)
-    {
-        if (!int.TryParse(
-                text,
-                NumberStyles.Integer,
-                CultureInfo.InvariantCulture,
-                out value) ||
-            value <= 0)
-        {
-            error = $"{label} must be a positive integer.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static bool TryReadOpacity(
-        string text, string label, out double value, out string error)
-    {
-        if (!TryReadDouble(text, label, out value, out error))
-            return false;
-
-        if (value < 0 || value > 1)
-        {
-            error = $"{label} must be between 0 and 1.";
-            return false;
-        }
-
-        return true;
-    }
-
-    private static bool TryReadColor(string text, string label, out string value, out string error)
-    {
-        value = (text ?? string.Empty).Trim();
-        if (!ContentWindowTheme.TryParseColor(value, out _))
-        {
-            error = $"{label} must be a valid hex color (e.g. #1E1E1E or #FF1E1E1E).";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static bool TryReadNonEmpty(string text, string label, out string value, out string error)
-    {
-        value = (text ?? string.Empty).Trim();
-        if (value.Length == 0)
-        {
-            error = $"{label} must not be empty.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static bool TryReadDouble(string text, string label, out double value, out string error)
-    {
-        if (!double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value))
-        {
-            error = $"{label} must be a number.";
-            return false;
-        }
-
-        if (double.IsNaN(value) || double.IsInfinity(value))
-        {
-            error = $"{label} must be finite.";
-            return false;
-        }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static string Format(double value) => value.ToString(CultureInfo.InvariantCulture);
-
-    /// <summary>
-    /// Validates already-parsed numeric tuning values (e.g. from a reloaded config file).
-    /// Applies the same positivity/finite rules as the UI path without re-parsing text fields.
-    /// Called from MainWindow before applying a reloaded config so invalid disk values are rejected.
-    /// </summary>
-    public static bool TryValidate(TuningPanelEventArgs args, out string error)
-    {
-        if (args == null) throw new ArgumentNullException(nameof(args));
-
-        if (args.ClusterThreshold <= 0 || !double.IsFinite(args.ClusterThreshold))
-        { error = "Cluster threshold must be > 0 and finite."; return false; }
-        if (args.LocationMarkerSize <= 0 || !double.IsFinite(args.LocationMarkerSize))
-        { error = "Location marker size must be > 0 and finite."; return false; }
-        if (args.ClusterMarkerSize <= 0 || !double.IsFinite(args.ClusterMarkerSize))
-        { error = "Cluster marker size must be > 0 and finite."; return false; }
-        if (args.ClusterBadgeSize <= 0 || !double.IsFinite(args.ClusterBadgeSize))
-        { error = "Cluster badge size must be > 0 and finite."; return false; }
-        if (args.ClusterCountFontSize <= 0 || !double.IsFinite(args.ClusterCountFontSize))
-        { error = "Cluster count font size must be > 0 and finite."; return false; }
-        if (args.ZoomScale <= 0 || !double.IsFinite(args.ZoomScale))
-        { error = "Zoom scale must be > 0 and finite."; return false; }
-        if (args.AnimationDurationMs <= 0)
-        { error = "Animation duration must be a positive integer."; return false; }
-        if (!IsValidOpacity(args.PinShadowOpacity))
-        { error = "Pin shadow opacity must be between 0 and 1 and finite."; return false; }
-        if (!IsValidOpacity(args.ClusterShadowOpacity))
-        { error = "Cluster shadow opacity must be between 0 and 1 and finite."; return false; }
-        if (args.StubLength < 0 || !double.IsFinite(args.StubLength))
-        { error = "Stub length must be >= 0 and finite."; return false; }
-        if (args.TargetHeadRadiusPx < 0 || !double.IsFinite(args.TargetHeadRadiusPx))
-        { error = "Head radius must be >= 0 and finite."; return false; }
-        if (args.TargetShaftHalfWidthPx < 0 || !double.IsFinite(args.TargetShaftHalfWidthPx))
-        { error = "Shaft half width must be >= 0 and finite."; return false; }
-        if (args.DrawnHeadDiameterPx <= 0 || !double.IsFinite(args.DrawnHeadDiameterPx))
-        { error = "Drawn head diameter must be > 0 and finite."; return false; }
-        if (args.DrawnShaftWidthPx <= 0 || !double.IsFinite(args.DrawnShaftWidthPx))
-        { error = "Drawn shaft width must be > 0 and finite."; return false; }
-        if (args.DrawnShaftLengthPx <= 0 || !double.IsFinite(args.DrawnShaftLengthPx))
-        { error = "Drawn shaft length must be > 0 and finite."; return false; }
-        if (args.PinHitDiameterPx <= 0 || !double.IsFinite(args.PinHitDiameterPx))
-        { error = "Pin hitbox must be > 0 and finite."; return false; }
-        if (args.ClusterHitDiameterPx <= 0 || !double.IsFinite(args.ClusterHitDiameterPx))
-        { error = "Cluster hitbox must be > 0 and finite."; return false; }
-        if (args.TipCapWidthPx <= 0 || !double.IsFinite(args.TipCapWidthPx))
-        { error = "Cap width must be > 0 and finite."; return false; }
-        if (args.TipCapLineWeightPx <= 0 || !double.IsFinite(args.TipCapLineWeightPx))
-        { error = "Line weight must be > 0 and finite."; return false; }
-        if (args.TipCapArcDepthPx < 0 || !double.IsFinite(args.TipCapArcDepthPx))
-        { error = "Curvature must be >= 0 and finite."; return false; }
-        if (string.IsNullOrWhiteSpace(args.ContentFontFamily))
-        { error = "Font family must not be empty."; return false; }
-        if (!ContentWindowTheme.TryParseColor(args.PopupBackgroundColor, out _))
-        { error = "Popup background color must be a valid hex color."; return false; }
-        if (!IsValidOpacity(args.PopupBackgroundOpacity))
-        { error = "Popup background opacity must be between 0 and 1 and finite."; return false; }
-        if (!ContentWindowTheme.TryParseColor(args.PopupBorderColor, out _))
-        { error = "Popup border color must be a valid hex color."; return false; }
-        if (args.PopupBorderThickness < 0 || !double.IsFinite(args.PopupBorderThickness))
-        { error = "Popup border thickness must be >= 0 and finite."; return false; }
-        if (args.PopupCornerRadius < 0 || !double.IsFinite(args.PopupCornerRadius))
-        { error = "Popup corner radius must be >= 0 and finite."; return false; }
-        if (!ContentWindowTheme.TryParseColor(args.PopupTextColor, out _))
-        { error = "Popup text color must be a valid hex color."; return false; }
-        if (args.PopupHeadingFontSize <= 0 || !double.IsFinite(args.PopupHeadingFontSize))
-        { error = "Popup heading size must be > 0 and finite."; return false; }
-        if (args.PopupBodyFontSize <= 0 || !double.IsFinite(args.PopupBodyFontSize))
-        { error = "Popup body size must be > 0 and finite."; return false; }
-        if (!ContentWindowTheme.TryParseColor(args.CaptionBackgroundColor, out _))
-        { error = "Caption background color must be a valid hex color."; return false; }
-        if (!IsValidOpacity(args.CaptionBackgroundOpacity))
-        { error = "Caption background opacity must be between 0 and 1 and finite."; return false; }
-        if (!ContentWindowTheme.TryParseColor(args.CaptionTopBorderColor, out _))
-        { error = "Caption top border color must be a valid hex color."; return false; }
-        if (!ContentWindowTheme.TryParseColor(args.CaptionTextColor, out _))
-        { error = "Caption text color must be a valid hex color."; return false; }
-        if (args.CaptionFontSize <= 0 || !double.IsFinite(args.CaptionFontSize))
-        { error = "Caption text size must be > 0 and finite."; return false; }
-
-        error = string.Empty;
-        return true;
-    }
-
-    private static bool IsValidOpacity(double value) =>
-        double.IsFinite(value) && value >= 0 && value <= 1;
 }

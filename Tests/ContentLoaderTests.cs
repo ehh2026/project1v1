@@ -471,6 +471,166 @@ public class ContentLoaderTests
         }
     }
 
+    [Fact]
+    public async Task LoadLocationContentAsync_SecondCall_ReturnsSameCachedInstance()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Paris");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1.png"));
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                MaxCachedLocations = 0
+            };
+            var location = new Location { Name = "Paris", Id = "loc_paris" };
+
+            var first = await loader.LoadLocationContentAsync(location);
+            var second = await loader.LoadLocationContentAsync(location);
+
+            Assert.NotNull(first);
+            Assert.Same(first, second);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadLocationContentAsync_CachesByLocationId_NotName()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var folderA = Path.Combine(tempDir, "SameName");
+            Directory.CreateDirectory(folderA);
+            SaveTinyPng(Path.Combine(folderA, "1.png"));
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var first = new Location { Name = "SameName", Id = "id_one" };
+            var second = new Location { Name = "SameName", Id = "id_two" };
+
+            var imageOne = await loader.LoadLocationContentAsync(first);
+            var imageTwo = await loader.LoadLocationContentAsync(second);
+
+            Assert.NotNull(imageOne);
+            Assert.NotNull(imageTwo);
+            // Distinct Ids ⇒ independent cache entries (both loads perform work / log cache miss then cache).
+            Assert.Contains(logger.InfoMessages, m => m.Contains("key=id_one") && m.Contains("Successfully loaded"));
+            Assert.Contains(logger.InfoMessages, m => m.Contains("key=id_two") && m.Contains("Successfully loaded"));
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadLocationContentAsync_WhenMaxCachedLocationsExceeded_EvictsLeastRecentlyUsed()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            foreach (var name in new[] { "A", "B", "C" })
+            {
+                var folder = Path.Combine(tempDir, name);
+                Directory.CreateDirectory(folder);
+                SaveTinyPng(Path.Combine(folder, "1.png"));
+            }
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                MaxCachedLocations = 2
+            };
+
+            var locA = new Location { Name = "A", Id = "id_a" };
+            var locB = new Location { Name = "B", Id = "id_b" };
+            var locC = new Location { Name = "C", Id = "id_c" };
+
+            var imageA = await loader.LoadLocationContentAsync(locA);
+            var imageB = await loader.LoadLocationContentAsync(locB);
+            // Touch A so B becomes LRU
+            var imageAAgain = await loader.LoadLocationContentAsync(locA);
+            Assert.Same(imageA, imageAAgain);
+
+            var imageC = await loader.LoadLocationContentAsync(locC);
+
+            Assert.NotNull(imageA);
+            Assert.NotNull(imageB);
+            Assert.NotNull(imageC);
+            Assert.Contains(logger.InfoMessages, m => m.Contains("Evicted cached location content") && m.Contains("key=id_b"));
+
+            // B was evicted: reload is a fresh load, not the same instance.
+            var imageBReloaded = await loader.LoadLocationContentAsync(locB);
+            Assert.NotNull(imageBReloaded);
+            Assert.NotSame(imageB, imageBReloaded);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task MaxCachedLocations_WhenLowered_EvictsImmediately()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            foreach (var name in new[] { "A", "B", "C" })
+            {
+                var folder = Path.Combine(tempDir, name);
+                Directory.CreateDirectory(folder);
+                SaveTinyPng(Path.Combine(folder, "1.png"));
+            }
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                MaxCachedLocations = 0
+            };
+
+            var locA = new Location { Name = "A", Id = "id_a" };
+            var locB = new Location { Name = "B", Id = "id_b" };
+            var locC = new Location { Name = "C", Id = "id_c" };
+
+            var imageA = await loader.LoadLocationContentAsync(locA);
+            var imageB = await loader.LoadLocationContentAsync(locB);
+            var imageC = await loader.LoadLocationContentAsync(locC);
+            Assert.NotNull(imageA);
+            Assert.NotNull(imageB);
+            Assert.NotNull(imageC);
+
+            // Touch A and C so B is LRU when the limit drops to 2.
+            Assert.Same(imageA, await loader.LoadLocationContentAsync(locA));
+            Assert.Same(imageC, await loader.LoadLocationContentAsync(locC));
+
+            loader.MaxCachedLocations = 2;
+
+            Assert.Contains(logger.InfoMessages, m => m.Contains("Evicted cached location content") && m.Contains("key=id_b"));
+
+            // A and C must still be cached immediately after the shrink (before any new inserts).
+            Assert.Same(imageA, await loader.LoadLocationContentAsync(locA));
+            Assert.Same(imageC, await loader.LoadLocationContentAsync(locC));
+
+            var imageBReloaded = await loader.LoadLocationContentAsync(locB);
+            Assert.NotNull(imageBReloaded);
+            Assert.NotSame(imageB, imageBReloaded);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Loader that skips the repo Excel file so JSON-only tests stay isolated.
     /// </summary>
@@ -559,7 +719,7 @@ public class ContentLoaderTests
         {
             var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
             var relativePath = "Pins_v2/parts/pin_part_geometry.json";
-            
+
             // Write a dummy file under Assets/Pins_v2/parts
             var fullPath = Path.Combine(tempDir, ContentFileNames.AssetsFolderName, relativePath);
             Directory.CreateDirectory(Path.GetDirectoryName(fullPath)!);
@@ -579,7 +739,7 @@ public class ContentLoaderTests
     {
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-stable-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
-        
+
         try
         {
             var demoDir = Path.Combine(tempDir, ContentFileNames.DemoContentFolderName);
@@ -608,7 +768,7 @@ public class ContentLoaderTests
         // Legacy root lacks coordinate source
         var tempDir = Path.Combine(Path.GetTempPath(), "iwm-empty-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
-        
+
         try
         {
             // Include map under Assets
@@ -617,7 +777,7 @@ public class ContentLoaderTests
             File.WriteAllText(Path.Combine(assetsDir, ContentFileNames.WorldMapFileName), "fake");
 
             var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
-            
+
             // Should fail validation because there is no locations.json or Excel in active set (resolved to Legacy here)
             Assert.False(loader.ValidateContentFolder());
         }

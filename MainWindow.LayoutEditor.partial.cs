@@ -208,7 +208,7 @@ namespace InteractiveWorldMap
             if (extensions == null) return;
             var assignments = _assignmentEnricher.GetAssignments(extensions, _compositePinPlanningService);
             bool ok = _layoutEditor.TrySaveAsVariant(name, extensions, assignments);
-            EditModeStatusText.Text       = ok ? "✓ VARIANT SAVED" : "✗ SAVE FAILED";
+            EditModeStatusText.Text = ok ? "✓ VARIANT SAVED" : "✗ SAVE FAILED";
             EditModeStatusText.Foreground = ok ? new SolidColorBrush(Color.FromRgb(50, 205, 50)) : new SolidColorBrush(Colors.Red);
             await ResetEditModeStatusAfterDelayAsync(2000);
         }
@@ -245,7 +245,7 @@ namespace InteractiveWorldMap
                     return (m.Location, MarkerCenter: center,
                         OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, cw, ch));
                 });
-            var extensions = LayoutEditorController.BuildExtensions(markerData);
+            var extensions = LayoutEditorController.BuildExtensions((IEnumerable<(Location Location, Point MarkerCenter, Point OriginalScreen)>)markerData);
 
             // Persist the extended position in source-image space so the layout re-projects to the
             // correct map position at any window size (size-independent persistence; see Phase 5c).
@@ -361,8 +361,8 @@ namespace InteractiveWorldMap
             {
                 marker.Cursor = Cursors.Hand;
                 marker.MouseLeftButtonDown += OnMarkerDragStart;
-                marker.MouseMove           += OnMarkerDragMove;
-                marker.MouseLeftButtonUp   += OnMarkerDragEnd;
+                marker.MouseMove += OnMarkerDragMove;
+                marker.MouseLeftButtonUp += OnMarkerDragEnd;
 
                 _logger.LogInfo(_extensionLineRenderer.HasLine(marker)
                     ? $"    Marker '{marker.Location.Name}' has line"
@@ -428,7 +428,7 @@ namespace InteractiveWorldMap
                         _logger.LogWarning($"  - {issue}");
 
                     // Show warning but allow save
-                    EditModeStatusText.Text       = $"⚠ {validationIssues.Count} Issues Found";
+                    EditModeStatusText.Text = $"⚠ {validationIssues.Count} Issues Found";
                     EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(255, 165, 0));
 
                 }
@@ -450,7 +450,7 @@ namespace InteractiveWorldMap
                 // Show confirmation (unless we just showed a warning)
                 if (validationIssues.Count == 0)
                 {
-                    EditModeStatusText.Text       = "✓ LAYOUT SAVED";
+                    EditModeStatusText.Text = "✓ LAYOUT SAVED";
                     EditModeStatusText.Foreground = new SolidColorBrush(Color.FromRgb(50, 205, 50));
 
                 }
@@ -460,7 +460,7 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 _logger.LogError($"Failed to save layout: {ex.Message}");
-                EditModeStatusText.Text       = "✗ SAVE FAILED";
+                EditModeStatusText.Text = "✗ SAVE FAILED";
                 EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
             }
         }
@@ -662,71 +662,9 @@ namespace InteractiveWorldMap
 
             foreach (var instruction in applyPlan.Instructions)
             {
-                if (!visibleMarkers.TryGetValue(instruction.LocationName, out var marker))
-                    continue;
-
-                if (instruction.CachedPlan != null
-                    && _baseMarkerVisuals.TryGetValue(marker, out var baseState)
-                    && IsPinStyleMarkerBase(baseState.Content))
-                {
-                    var shaftImage = LoadPinPartBitmap(instruction.CachedPlan.ShaftSourcePath);
-                    var headImage  = LoadPinPartBitmap(instruction.CachedPlan.HeadSourcePath);
-                    if (shaftImage != null && headImage != null)
-                    {
-                        ApplyRenderPlanToMarker(
-                            marker,
-                            instruction.OriginalScreen,
-                            instruction.ExtendedScreen,
-                            instruction.CachedPlan,
-                            shaftImage,
-                            headImage);
-                        // Phase 4: extension line as drag guide + endpoint source in edit mode
-                        if (_layoutEditor.IsEditMode)
-                            _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
-                        continue;
-                    }
-                }
-
-                if (TryApplyCompositePinMarker(
-                        marker,
-                        instruction.OriginalScreen,
-                        instruction.ExtendedScreen,
-                        instruction.PairId,
-                        instruction.HeadSourcePath))
-                {
-                    // Phase 4: extension line as drag guide + endpoint source in edit mode
-                    if (_layoutEditor.IsEditMode)
-                        _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
-                    continue;
-                }
-
-                if (instruction.RequiresExtensionLine)
-                {
-                    SetDrawnPinRole(marker, DrawnPinRole.ManualLayout);
-                    // Drawn pin lifted off the map: the extension line is the shaft and the
-                    // head-only role sits on the endpoint.
-                    // 2.1: during animation reuse the existing line pair (reposition in place);
-                    // TryRepositionPinLine returns false on the first frame (none exists yet), so
-                    // we create it then and reuse it for the rest of the animation.
-                    if (!IsAnimating ||
-                        !_extensionLineRenderer.TryRepositionPinLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen))
-                    {
-                        _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
-                    }
-                    _extensionLineRenderer.AnchorExtendedMarker(marker, instruction.ExtendedScreen);
-                }
-                else
-                {
-                    SetDrawnPinRole(marker, DrawnPinRole.AutoStub);
-                    if (marker.Content is AutoStubPinMarker autoStub)
-                    {
-                        var tip = autoStub.GetShaftTipPoint();
-                        Canvas.SetLeft(marker, instruction.OriginalScreen.X - tip.X);
-                        Canvas.SetTop(marker, instruction.OriginalScreen.Y - tip.Y);
-                    }
-                }
+                ApplyManualLayoutInstruction(instruction, visibleMarkers);
             }
-
+            // TryRepositionPinLine(marker...) is used inside ApplyManualLayoutInstruction during animation.
             if (applyPlan.ShouldSaveToCache && !string.IsNullOrEmpty(groupKey))
             {
                 _planApplicationService.SaveIfMissed(
@@ -743,6 +681,110 @@ namespace InteractiveWorldMap
             UpdatePinTipCaps();
         }
 
+        private void ApplyManualLayoutInstruction(
+            ManualLayoutApplyInstruction instruction,
+            IReadOnlyDictionary<string, LocationMarker> visibleMarkers)
+        {
+            if (!visibleMarkers.TryGetValue(instruction.LocationName, out var marker))
+                return;
+
+            if (TryApplyCachedManualLayoutInstruction(marker, instruction))
+                return;
+
+            if (TryApplyCompositeManualLayoutInstruction(marker, instruction))
+                return;
+
+            ApplyDrawnManualLayoutInstruction(marker, instruction);
+        }
+
+        private bool TryApplyCachedManualLayoutInstruction(
+            LocationMarker marker,
+            ManualLayoutApplyInstruction instruction)
+        {
+            if (instruction.CachedPlan == null ||
+                !_baseMarkerVisuals.TryGetValue(marker, out var baseState) ||
+                !IsPinStyleMarkerBase(baseState.Content))
+            {
+                return false;
+            }
+
+            var shaftImage = LoadPinPartBitmap(instruction.CachedPlan.ShaftSourcePath);
+            var headImage = LoadPinPartBitmap(instruction.CachedPlan.HeadSourcePath);
+            if (shaftImage == null || headImage == null)
+                return false;
+
+            ApplyRenderPlanToMarker(
+                marker,
+                instruction.OriginalScreen,
+                instruction.ExtendedScreen,
+                instruction.CachedPlan,
+                shaftImage,
+                headImage);
+            AddEditModeGuideLine(marker, instruction);
+            return true;
+        }
+
+        private bool TryApplyCompositeManualLayoutInstruction(
+            LocationMarker marker,
+            ManualLayoutApplyInstruction instruction)
+        {
+            if (!TryApplyCompositePinMarker(
+                    marker,
+                    instruction.OriginalScreen,
+                    instruction.ExtendedScreen,
+                    instruction.PairId,
+                    instruction.HeadSourcePath))
+            {
+                return false;
+            }
+
+            AddEditModeGuideLine(marker, instruction);
+            return true;
+        }
+
+        private void ApplyDrawnManualLayoutInstruction(
+            LocationMarker marker,
+            ManualLayoutApplyInstruction instruction)
+        {
+            if (instruction.RequiresExtensionLine)
+            {
+                ApplyDrawnManualExtensionInstruction(marker, instruction);
+            }
+            else
+            {
+                ApplyAutoStubInstruction(marker, instruction);
+            }
+        }
+
+        private void ApplyDrawnManualExtensionInstruction(
+            LocationMarker marker,
+            ManualLayoutApplyInstruction instruction)
+        {
+            SetDrawnPinRole(marker, DrawnPinRole.ManualLayout);
+            if (!IsAnimating ||
+                !_extensionLineRenderer.TryRepositionPinLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen))
+            {
+                _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+            }
+            _extensionLineRenderer.AnchorExtendedMarker(marker, instruction.ExtendedScreen);
+        }
+
+        private void ApplyAutoStubInstruction(LocationMarker marker, ManualLayoutApplyInstruction instruction)
+        {
+            SetDrawnPinRole(marker, DrawnPinRole.AutoStub);
+            if (marker.Content is AutoStubPinMarker autoStub)
+            {
+                var tip = autoStub.GetShaftTipPoint();
+                Canvas.SetLeft(marker, instruction.OriginalScreen.X - tip.X);
+                Canvas.SetTop(marker, instruction.OriginalScreen.Y - tip.Y);
+            }
+        }
+
+        private void AddEditModeGuideLine(LocationMarker marker, ManualLayoutApplyInstruction instruction)
+        {
+            if (_layoutEditor.IsEditMode)
+                _extensionLineRenderer.AddLine(marker, instruction.OriginalScreen, instruction.ExtendedScreen);
+        }
         private async Task ResetEditModeStatusAfterDelayAsync(int delayMs)
         {
             await Task.Delay(delayMs);

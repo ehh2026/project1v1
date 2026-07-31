@@ -63,7 +63,12 @@ def check_todo_size(errors: list[str]) -> None:
         )
 
 
-def check_stale_active_plans(errors: list[str]) -> None:
+def check_stale_active_plans(warnings: list[str]) -> None:
+    """Warn on incomplete active plans older than MAX_ACTIVE_PLAN_DAYS.
+
+    Lingering incomplete work is advisory only — do not fail gardening/CI.
+    Agents must surface these warnings to the user.
+    """
     active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
     if not active_dir.exists():
         return
@@ -72,11 +77,15 @@ def check_stale_active_plans(errors: list[str]) -> None:
         if plan.name == "README.md":
             continue
         mtime = datetime.fromtimestamp(plan.stat().st_mtime)
-        if mtime < cutoff and "status: completed" not in plan.read_text(encoding="utf-8"):
+        content = plan.read_text(encoding="utf-8", errors="replace")
+        if mtime < cutoff and "status: completed" not in content:
             rel = plan.relative_to(REPO_ROOT)
-            errors.append(
-                f"{rel}: active plan older than {MAX_ACTIVE_PLAN_DAYS} days. "
-                "REMEDIATION: Complete or move to docs/exec-plans/completed/."
+            warnings.append(
+                f"{rel}: incomplete active plan older than {MAX_ACTIVE_PLAN_DAYS} days "
+                "(lingering; non-blocking). "
+                "AGENTS: Report this warning to the user and ask whether to continue the plan, "
+                "park it under docs/exec-plans/inactive/, or archive to docs/exec-plans/completed/. "
+                "REMEDIATION (optional): refresh the plan, finish remaining work, or move it out of active/."
             )
 
 
@@ -139,13 +148,19 @@ def check_duplicate_active_completed_plans(errors: list[str]) -> None:
 
 def main() -> int:
     errors: list[str] = []
+    warnings: list[str] = []
     run_doc_link_check(errors)
     check_agents_size(errors)
     check_todo_size(errors)
-    check_stale_active_plans(errors)
+    check_stale_active_plans(warnings)
     check_active_plans_listed(errors)
     check_active_plan_front_matter(errors)
     check_duplicate_active_completed_plans(errors)
+
+    if warnings:
+        print("Doc gardening WARNINGS (non-blocking):", file=sys.stderr)
+        for warn in warnings:
+            print(f"  - {warn}", file=sys.stderr)
 
     if errors:
         print("Doc gardening FAILED:", file=sys.stderr)
@@ -153,7 +168,10 @@ def main() -> int:
             print(f"  - {err}", file=sys.stderr)
         return 1
 
-    print("Doc gardening passed.")
+    if warnings:
+        print("Doc gardening passed with warnings.")
+    else:
+        print("Doc gardening passed.")
     return 0
 
 

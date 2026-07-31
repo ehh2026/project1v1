@@ -75,7 +75,7 @@ Optional future polish (out of scope unless trivial): add a string enum `PinRend
 | [pin-parts-composite-placement-plan.md](../completed/pin-parts-composite-placement-plan.md) | Parent — composite pipeline already built |
 | [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md) | **Partially superseded** — Phases 2–3 (all-marker composite rollout) become prerequisites of this plan, not a separate legacy fallback |
 | [composite-pins-manual-layout-phases-plan.md](../completed/composite-pins-manual-layout-phases-plan.md) | **Must revise** — edit-mode drag wrapper must stop depending on `ImagePinMarker` |
-| [refactoring-assessment-followthrough-plan.md](../active/refactoring-assessment-followthrough-plan.md) | Marker factory extraction should target the new two-path factory |
+| [refactoring-assessment-followthrough-plan.md](refactoring-assessment-followthrough-plan.md) | Marker factory extraction should target the new two-path factory |
 
 When this plan completes, mark the “replace `ImagePinMarker` everywhere” items in `docs/TO_DO.md` and `composite-pins-unzoomed-plan.md` as done or redirect here.
 

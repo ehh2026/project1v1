@@ -127,11 +127,11 @@ namespace InteractiveWorldMap
             placement = default;
 
             double left = Canvas.GetLeft(marker);
-            double top  = Canvas.GetTop(marker);
+            double top = Canvas.GetTop(marker);
             if (double.IsNaN(left) || double.IsNaN(top))
                 return false;
 
-            var tipLocal        = pin.GetScaledShaftTipPoint();
+            var tipLocal = pin.GetScaledShaftTipPoint();
             var connectionLocal = pin.GetScaledConnectionPoint();
 
             // Direction is offset-independent, so compute it from the local points.
@@ -181,7 +181,7 @@ namespace InteractiveWorldMap
         private double GetExtensionLineOutlineWidth()
         {
             var pinConfig = _visualConfig.PinMarkers;
-            double coreWidth    = Math.Max(pinConfig.ShaftWidth, 2.5);
+            double coreWidth = Math.Max(pinConfig.ShaftWidth, 2.5);
             double outlineExtra = Math.Max(pinConfig.ShaftOutlineThickness, 1.0);
             return coreWidth + (2.0 * outlineExtra);
         }

@@ -153,4 +153,4 @@ Assessment: [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT
 
 ## Follow-on work
 
-Remaining assessment items: [refactoring-assessment-followthrough-plan.md](../active/refactoring-assessment-followthrough-plan.md) (Phases 11+)
+Remaining assessment items: [refactoring-assessment-followthrough-plan.md](../completed/refactoring-assessment-followthrough-plan.md) (Phases 11+; completed 2026-07-30)

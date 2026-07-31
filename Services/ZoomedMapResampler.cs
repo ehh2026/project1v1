@@ -88,13 +88,13 @@ public sealed class ZoomedMapResampler : IZoomedMapResampler
         Parallel.For(0, sourceHeight, y =>
         {
             for (var x = 0; x < width; x++)
-            for (var c = 0; c < 4; c++)
-            {
-                var value = 0.0;
-                foreach (var w in xWeights[x])
-                    value += input[(y * sourceWidth + w.Index) * 4 + c] * w.Value;
-                horizontal[(y * width + x) * 4 + c] = value;
-            }
+                for (var c = 0; c < 4; c++)
+                {
+                    var value = 0.0;
+                    foreach (var w in xWeights[x])
+                        value += input[(y * sourceWidth + w.Index) * 4 + c] * w.Value;
+                    horizontal[(y * width + x) * 4 + c] = value;
+                }
         });
 
         var output = new byte[width * height * 4];
@@ -102,14 +102,14 @@ public sealed class ZoomedMapResampler : IZoomedMapResampler
         Parallel.For(0, height, y =>
         {
             for (var x = 0; x < width; x++)
-            for (var c = 0; c < 4; c++)
-            {
-                var value = 0.0;
-                foreach (var w in yWeights[y])
-                    value += horizontal[(w.Index * width + x) * 4 + c] * w.Value;
-                output[(y * width + x) * 4 + c] =
-                    (byte)Math.Clamp(Math.Round(value, MidpointRounding.AwayFromZero), 0, 255);
-            }
+                for (var c = 0; c < 4; c++)
+                {
+                    var value = 0.0;
+                    foreach (var w in yWeights[y])
+                        value += horizontal[(w.Index * width + x) * 4 + c] * w.Value;
+                    output[(y * width + x) * 4 + c] =
+                        (byte)Math.Clamp(Math.Round(value, MidpointRounding.AwayFromZero), 0, 255);
+                }
         });
         var result = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, output, width * 4);
         result.Freeze();
@@ -127,20 +127,20 @@ public sealed class ZoomedMapResampler : IZoomedMapResampler
         Parallel.For(0, height, y =>
         {
             for (var x = 0; x < width; x++)
-            for (var c = 0; c < 3; c++)
-            {
-                var sum = 0;
-                var k = 0;
-                for (var dy = -1; dy <= 1; dy++)
-                for (var dx = -1; dx <= 1; dx++)
-                    sum += input[(Math.Clamp(y + dy, 0, height - 1) * width +
-                                  Math.Clamp(x + dx, 0, width - 1)) * 4 + c] * weights[k++];
-                var original = input[(y * width + x) * 4 + c];
-                var difference = original - (sum / 16.0);
-                var value = Math.Abs(difference) < 2 ? original : original + 0.25 * difference;
-                output[(y * width + x) * 4 + c] =
-                    (byte)Math.Clamp(Math.Round(value, MidpointRounding.AwayFromZero), 0, 255);
-            }
+                for (var c = 0; c < 3; c++)
+                {
+                    var sum = 0;
+                    var k = 0;
+                    for (var dy = -1; dy <= 1; dy++)
+                        for (var dx = -1; dx <= 1; dx++)
+                            sum += input[(Math.Clamp(y + dy, 0, height - 1) * width +
+                                          Math.Clamp(x + dx, 0, width - 1)) * 4 + c] * weights[k++];
+                    var original = input[(y * width + x) * 4 + c];
+                    var difference = original - (sum / 16.0);
+                    var value = Math.Abs(difference) < 2 ? original : original + 0.25 * difference;
+                    output[(y * width + x) * 4 + c] =
+                        (byte)Math.Clamp(Math.Round(value, MidpointRounding.AwayFromZero), 0, 255);
+                }
         });
         var result = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgra32, null, output, width * 4);
         result.Freeze();
@@ -162,7 +162,7 @@ public sealed class ZoomedMapResampler : IZoomedMapResampler
     {
         const double b = 1.0 / 3.0, c = 1.0 / 3.0;
         x = Math.Abs(x);
-        if (x < 1) return ((12 - 9*b - 6*c)*x*x*x + (-18 + 12*b + 6*c)*x*x + 6 - 2*b) / 6;
-        return x < 2 ? ((-b - 6*c)*x*x*x + (6*b + 30*c)*x*x + (-12*b - 48*c)*x + 8*b + 24*c) / 6 : 0;
+        if (x < 1) return ((12 - 9 * b - 6 * c) * x * x * x + (-18 + 12 * b + 6 * c) * x * x + 6 - 2 * b) / 6;
+        return x < 2 ? ((-b - 6 * c) * x * x * x + (6 * b + 30 * c) * x * x + (-12 * b - 48 * c) * x + 8 * b + 24 * c) / 6 : 0;
     }
 }

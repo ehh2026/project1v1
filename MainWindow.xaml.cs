@@ -36,11 +36,11 @@ namespace InteractiveWorldMap
         private ThumbnailBrowserWindow? _activeThumbnailBrowser;
         private DidacticTextWindow? _activeDidacticWindow;
         private List<LocationCluster> _clusters = new List<LocationCluster>();
-        
+
         // Collections to track markers
         private readonly List<LocationMarker> _individualMarkers = new List<LocationMarker>();
         private readonly List<ClusterMarker> _clusterMarkers = new List<ClusterMarker>();
-        
+
         // Radial extension support
         private List<DenseMarkerGroup> _denseGroups = new List<DenseMarkerGroup>();
         private IExtensionLineRenderer _extensionLineRenderer = null!;
@@ -54,7 +54,7 @@ namespace InteractiveWorldMap
         private MarkerPlacementOrchestrator _placementOrchestrator = null!;
         private InteractionMode _mode = InteractionMode.Normal;
         private Location? _autoOpenLocation = null;
-        
+
         // Manual layout editor support
         private LayoutEditorController _layoutEditor = null!;
         private LocationMarker? _draggedMarker = null;
@@ -63,18 +63,19 @@ namespace InteractiveWorldMap
         private LocationCluster? _currentZoomedCluster = null;
         private ManualLayout? _savedLayoutToApply = null;
         private bool _isFullMapLayoutSession = false;
-        
-        // Map image dimensions
-        private const double ImageWidth = 8198.0;
-        private const double ImageHeight = 5542.0;
-        
+
+        // Map image dimensions — single source of truth via MapMetadata (display space).
+        private MapMetadata _mapMetadata = MapMetadata.CreateDefault();
+        private double ImageWidth => _mapMetadata.DisplayWidth;
+        private double ImageHeight => _mapMetadata.DisplayHeight;
+
         // Visual configuration
         private VisualConfig _visualConfig = new VisualConfig();
         private DrawnPinMarkerFactory _drawnPinFactory = null!;
         private readonly VisualConfigService _configService;
         private readonly string _configPath;
         private readonly string _defaultConfigPath;
-        
+
         private Dictionary<string, PinPartGeometryEntry>? _pinPartGeometry;
         private readonly Dictionary<string, BitmapSource> _pinPartBitmapCache = new Dictionary<string, BitmapSource>(StringComparer.OrdinalIgnoreCase);
         private readonly Dictionary<LocationMarker, MarkerVisualState> _baseMarkerVisuals = new Dictionary<LocationMarker, MarkerVisualState>();
@@ -97,7 +98,7 @@ namespace InteractiveWorldMap
         public double ClusterMarkerSize => _visualConfig.ClusterMarkerSize;
         public double ClusterBadgeSize => _visualConfig.ClusterBadgeSize;
         public double ClusterCountFontSize => _visualConfig.ClusterCountFontSize;
-        
+
         // Zoom configuration from config
         private double ZoomScale => _visualConfig.ZoomScale;
         private int AnimationDurationMs => _visualConfig.AnimationDurationMs;
@@ -134,7 +135,7 @@ namespace InteractiveWorldMap
                 _logger = new FileLogger();
                 _configService = new VisualConfigService(message => _logger.LogWarning(message));
                 _logger.LogInfo("=== MainWindow Constructor Started ===");
-                
+
                 // Load visual configuration: user file overlaid on shipped defaults so local
                 // tuning survives updates (see docs/guides/VISUAL_CONFIG.md).
                 _configPath = IOPath.Combine(AppDomain.CurrentDomain.BaseDirectory, "visual-config.json");
@@ -147,7 +148,7 @@ namespace InteractiveWorldMap
                 {
                     WindowStyle = WindowStyle.SingleBorderWindow;
                     WindowState = WindowState.Normal;
-                    Width  = _visualConfig.Debug.WindowedWidth;
+                    Width = _visualConfig.Debug.WindowedWidth;
                     Height = _visualConfig.Debug.WindowedHeight;
                     _logger.LogInfo($"[Debug] WindowedMode: {Width}x{Height}");
                 }
@@ -163,12 +164,13 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  RadialExtension.MinLocationsForExtension: {_visualConfig.RadialExtension.MinLocationsForExtension}");
                 _logger.LogInfo($"  RadialExtension.ProximityThresholdPixels: {_visualConfig.RadialExtension.ProximityThresholdPixels}");
                 _logger.LogInfo($"  RadialExtension.ExtensionLineLength: {_visualConfig.RadialExtension.ExtensionLineLength}");
-                
+
                 _contentSetResolver = new ContentSetResolver();
                 _contentLoader = new ContentLoader(_logger, _contentSetResolver);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
+                _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
                 _logger.LogInfo("ContentLoader created");
-                
+
                 // Initialize radial extension calculator if enabled
                 if (_visualConfig.RadialExtension.Enabled)
                 {
@@ -196,7 +198,7 @@ namespace InteractiveWorldMap
                     _layoutManager = new ManualLayoutManager(layoutFilePath, _logger);
                     _logger.LogInfo($"ManualLayoutManager initialized (read-only for loading saved layouts) at: {layoutFilePath}");
                 }
-                
+
                 _layoutEditor = new LayoutEditorController(_layoutManager!, _visualConfig, _logger);
                 WireLayoutEditorEvents();
 
@@ -205,7 +207,7 @@ namespace InteractiveWorldMap
 
                 _viewportCalculator = new ViewportCalculator();
                 _logger.LogInfo("ViewportCalculator created");
-                
+
                 _frameCache = new AnimationFrameCache(_logger);
                 _logger.LogInfo("AnimationFrameCache created");
 
@@ -217,25 +219,25 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("ZoomedRegionCache created");
 
                 // Phase 4: composite render-plan disk cache
-                _compositePinPlanCache  = new CompositePinPlanCache(_logger);
+                _compositePinPlanCache = new CompositePinPlanCache(_logger);
                 _planApplicationService = new CompositePinApplicationService(_compositePinPlanCache, _compositePinPlanningService);
                 _logger.LogInfo("CompositePinPlanCache created");
 
                 // Wire up events
                 Loaded += OnWindowLoaded;
                 _logger.LogInfo("Loaded event wired");
-                
+
                 KeyDown += OnKeyDown;
                 _logger.LogInfo("KeyDown event wired");
-                
+
                 PreviewMouseLeftButtonDown += OnPreviewMouseLeftButtonDown;
                 _logger.LogInfo("PreviewMouseLeftButtonDown event wired");
-                
+
                 SizeChanged += OnSizeChanged;
                 _logger.LogInfo("SizeChanged event wired");
 
                 SetupTuningPanel();
-                
+
                 _logger.LogInfo("=== MainWindow Constructor Completed ===");
             }
             catch (Exception ex)
@@ -273,8 +275,10 @@ namespace InteractiveWorldMap
                 // Load map image
                 _logger.LogInfo("Step 2: Loading world map image");
                 var mapImage = await _contentLoader.LoadMapImageAsync();
-                _logger.LogInfo("Map image loaded, calling MapDisplay.LoadMapImage");
-                
+                _mapMetadata = MapMetadata.FromDisplayBitmap(mapImage);
+                _logger.LogInfo(
+                    $"Map image loaded ({_mapMetadata.DisplayWidth}x{_mapMetadata.DisplayHeight}), calling MapDisplay.LoadMapImage");
+
                 MapDisplay.LoadMapImage(mapImage);
                 _logger.LogInfo("MapDisplay.LoadMapImage completed - viewport initialized");
 
@@ -286,7 +290,7 @@ namespace InteractiveWorldMap
                 _logger.LogInfo("Step 4: Loading and clustering location data");
                 _clusters = await _contentLoader.LoadClustersAsync();
                 _logger.LogInfo($"Loaded {_clusters.Count} clusters");
-                
+
                 if (_clusters.Any())
                 {
                     _logger.LogInfo("Step 5: Adding cluster markers to map");
@@ -314,18 +318,18 @@ namespace InteractiveWorldMap
         private void AddClustersToMap(List<LocationCluster> clusters)
         {
             _logger.LogInfo($"[AddClustersToMap] Adding {clusters.Count} clusters");
-            
+
             var canvas = MapDisplay.Markers;
             var viewport = MapDisplay.CurrentViewport;
-            
+
             if (viewport == null)
             {
                 _logger.LogError("Current viewport is null");
                 return;
             }
-            
+
             _logger.LogInfo($"  Viewport: ({viewport.ViewportX:F2}, {viewport.ViewportY:F2}) {viewport.ViewportWidth:F2}x{viewport.ViewportHeight:F2}");
-            
+
             foreach (var cluster in clusters)
             {
                 if (cluster.IsSingleLocation)
@@ -339,9 +343,9 @@ namespace InteractiveWorldMap
                     AddClusterMarker(cluster);
                 }
             }
-            
+
             _logger.LogInfo($"[AddClustersToMap] Complete - {_individualMarkers.Count} individual, {_clusterMarkers.Count} cluster markers");
-            
+
             // Update marker positions based on current viewport
             UpdateMarkerPositions();
             TryApplyFullMapManualLayout();
@@ -354,7 +358,7 @@ namespace InteractiveWorldMap
         private LocationMarker AddIndividualMarker(Location location)
         {
             LocationMarker marker;
-            
+
             // Use pin markers if enabled in config
             if (_visualConfig.UsePinMarkers)
             {
@@ -366,7 +370,7 @@ namespace InteractiveWorldMap
                 marker = new LocationMarker(_visualConfig) { Location = location };
                 _logger.LogInfo($"  Created REGULAR marker for '{location.Name}'");
             }
-            
+
             // Position will be updated by UpdateMarkerPositions()
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
@@ -380,12 +384,12 @@ namespace InteractiveWorldMap
                     e.Handled = true;
                 };
             }
-            
+
             _individualMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
-            
+
             _logger.LogInfo($"  Individual marker '{location.Name}' added at source ({location.PixelX}, {location.PixelY})");
-            
+
             return marker;
         }
 
@@ -398,14 +402,14 @@ namespace InteractiveWorldMap
             var stamp = _contentLoader.TryLoadContentBitmap(ContentFileNames.ClusterStampFileName);
             marker.ApplyStampImage(stamp);
             marker.UpdateDisplay();
-            
+
             // Position will be updated by UpdateMarkerPositions()
             Canvas.SetLeft(marker, 0);
             Canvas.SetTop(marker, 0);
-            
+
             _clusterMarkers.Add(marker);
             MapDisplay.Markers.Children.Add(marker);
-            
+
             _logger.LogInfo($"  Cluster marker ({cluster.Count} locations) added at source ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
         }
 

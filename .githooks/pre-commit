@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+command -v dotnet >/dev/null 2>&1 || { echo "dotnet not on PATH - skipping format check"; exit 0; }
+dotnet format InteractiveWorldMap.sln --verify-no-changes

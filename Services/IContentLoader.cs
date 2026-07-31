@@ -9,6 +9,7 @@ namespace InteractiveWorldMap.Services;
 public interface IContentLoader
 {
     double ClusterDistanceThreshold { get; set; }
+    int MaxCachedLocations { get; set; }
     string ContentFolderPath { get; set; }
     string? ExcelCoordinateFilePath { get; set; }
     bool IsInitialized { get; }

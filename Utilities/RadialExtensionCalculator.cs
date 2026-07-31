@@ -34,7 +34,7 @@ namespace InteractiveWorldMap.Utilities
             if (markerPositions == null || markerPositions.Count == 0)
                 return new List<DenseMarkerGroup>();
 
-            var groups    = new List<DenseMarkerGroup>();
+            var groups = new List<DenseMarkerGroup>();
             var processed = new HashSet<Location>();
 
             foreach (var kvp in markerPositions)
@@ -45,14 +45,14 @@ namespace InteractiveWorldMap.Utilities
                 if (processed.Contains(location))
                     continue;
 
-                var cluster   = new List<Location> { location };
-                var queue     = new Queue<Location>();
+                var cluster = new List<Location> { location };
+                var queue = new Queue<Location>();
                 var inCluster = new HashSet<Location> { location };
                 queue.Enqueue(location);
 
                 while (queue.Count > 0)
                 {
-                    var current    = queue.Dequeue();
+                    var current = queue.Dequeue();
                     var currentPos = markerPositions[current];
 
                     foreach (var otherKvp in markerPositions)
@@ -76,7 +76,7 @@ namespace InteractiveWorldMap.Utilities
                 {
                     groups.Add(new DenseMarkerGroup
                     {
-                        Locations   = cluster,
+                        Locations = cluster,
                         CenterPoint = CalculateCenterPoint(cluster, markerPositions)
                     });
                     foreach (var loc in cluster)
@@ -92,10 +92,10 @@ namespace InteractiveWorldMap.Utilities
         /// Ensures no line crossings by maintaining angular order.
         /// </summary>
         public List<RadialExtension> CalculateRadialExtensions(
-            DenseMarkerGroup              group,
-            Dictionary<Location, Point>   markerScreenPositions,
-            double                        canvasWidth,
-            double                        canvasHeight)
+            DenseMarkerGroup group,
+            Dictionary<Location, Point> markerScreenPositions,
+            double canvasWidth,
+            double canvasHeight)
         {
             if (group == null || group.Count == 0)
                 return new List<RadialExtension>();
@@ -109,8 +109,8 @@ namespace InteractiveWorldMap.Utilities
                 if (!markerScreenPositions.TryGetValue(location, out Point screenPosition))
                     continue;
 
-                double dx           = screenPosition.X - screenCenter.X;
-                double dy           = screenPosition.Y - screenCenter.Y;
+                double dx = screenPosition.X - screenCenter.X;
+                double dy = screenPosition.Y - screenCenter.Y;
                 double angleDegrees = Math.Atan2(dx, -dy) * (180.0 / Math.PI);
                 if (angleDegrees < 0) angleDegrees += 360.0;
                 items.Add(new LocationAngleInfo(location, screenPosition, angleDegrees));
@@ -124,10 +124,10 @@ namespace InteractiveWorldMap.Utilities
             var extensions = new List<RadialExtension>();
             for (int i = 0; i < items.Count; i++)
             {
-                var    item         = items[i];
+                var item = items[i];
                 double angleRadians = item.NaturalAngle * (Math.PI / 180.0);
-                double extendedX    = item.ScreenPosition.X + _config.ExtensionLineLength * Math.Sin(angleRadians);
-                double extendedY    = item.ScreenPosition.Y - _config.ExtensionLineLength * Math.Cos(angleRadians);
+                double extendedX = item.ScreenPosition.X + _config.ExtensionLineLength * Math.Sin(angleRadians);
+                double extendedY = item.ScreenPosition.Y - _config.ExtensionLineLength * Math.Cos(angleRadians);
 
                 double adjustedLength = _config.ExtensionLineLength;
                 if (extendedX < 0 || extendedX > canvasWidth || extendedY < 0 || extendedY > canvasHeight)
@@ -140,10 +140,10 @@ namespace InteractiveWorldMap.Utilities
 
                 extensions.Add(new RadialExtension
                 {
-                    Location         = item.Location,
+                    Location = item.Location,
                     OriginalPosition = item.ScreenPosition,
                     ExtendedPosition = new Point(extendedX, extendedY),
-                    Angle            = item.NaturalAngle
+                    Angle = item.NaturalAngle
                 });
             }
 
@@ -166,10 +166,10 @@ namespace InteractiveWorldMap.Utilities
         {
             if (items.Count < 2) return;
 
-            const int    maxIterations = 10;
+            const int maxIterations = 10;
             const double maxAngleRange = 45.0;
-            bool needsAdjustment       = true;
-            int  iteration             = 0;
+            bool needsAdjustment = true;
+            int iteration = 0;
 
             while (needsAdjustment && iteration < maxIterations)
             {
@@ -195,10 +195,10 @@ namespace InteractiveWorldMap.Utilities
         {
             if (items.Count < 2) return;
 
-            const int    maxIterations = 5;
+            const int maxIterations = 5;
             const double maxAngleRange = 90.0;
-            bool needsAdjustment       = true;
-            int  iteration             = 0;
+            bool needsAdjustment = true;
+            int iteration = 0;
 
             while (needsAdjustment && iteration < maxIterations)
             {
@@ -211,7 +211,7 @@ namespace InteractiveWorldMap.Utilities
                     var b = items[j];
 
                     double distOrigin = CalculateDistance(a.ScreenPosition, b.ScreenPosition);
-                    double distExt    = CalculateDistance(ExtendedPoint(a), ExtendedPoint(b));
+                    double distExt = CalculateDistance(ExtendedPoint(a), ExtendedPoint(b));
 
                     if (distExt >= distOrigin * 0.95) continue; // 5 % tolerance — not converging
 
@@ -233,8 +233,8 @@ namespace InteractiveWorldMap.Utilities
             if (items.Count < 2) return;
 
             const int maxIterations = 10;
-            bool foundIntersection  = true;
-            int  iteration          = 0;
+            bool foundIntersection = true;
+            int iteration = 0;
 
             while (foundIntersection && iteration < maxIterations)
             {
@@ -307,14 +307,14 @@ namespace InteractiveWorldMap.Utilities
             List<LocationAngleInfo> items, int i, int j, double angleDiff, double nudgeAmount)
         {
             double nudge = nudgeAmount;
-            double newI  = items[i].NaturalAngle - nudge;
-            double newJ  = items[j].NaturalAngle + nudge;
+            double newI = items[i].NaturalAngle - nudge;
+            double newJ = items[j].NaturalAngle + nudge;
 
             if (AngularDiff(newI, newJ) > 180.0) // would reverse circular ordering
             {
                 nudge = Math.Min(nudge, angleDiff / 3.0);
-                newI  = items[i].NaturalAngle - nudge;
-                newJ  = items[j].NaturalAngle + nudge;
+                newI = items[i].NaturalAngle - nudge;
+                newJ = items[j].NaturalAngle + nudge;
             }
 
             items[i] = items[i].WithAngle(newI);
@@ -362,10 +362,10 @@ namespace InteractiveWorldMap.Utilities
             double cosAngle = Math.Cos(angleRadians);
             double maxLength = _config.ExtensionLineLength;
 
-            if      (sinAngle > 0) maxLength = Math.Min(maxLength, (canvasWidth  - center.X) /  sinAngle);
-            else if (sinAngle < 0) maxLength = Math.Min(maxLength,              center.X      / -sinAngle);
+            if (sinAngle > 0) maxLength = Math.Min(maxLength, (canvasWidth - center.X) / sinAngle);
+            else if (sinAngle < 0) maxLength = Math.Min(maxLength, center.X / -sinAngle);
 
-            if      (cosAngle > 0) maxLength = Math.Min(maxLength,              center.Y      /  cosAngle);
+            if (cosAngle > 0) maxLength = Math.Min(maxLength, center.Y / cosAngle);
             else if (cosAngle < 0) maxLength = Math.Min(maxLength, (canvasHeight - center.Y) / -cosAngle);
 
             return Math.Max(20.0, maxLength * 0.9);

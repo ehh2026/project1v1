@@ -80,21 +80,31 @@ def check_visual_config_model(errors: list[str]) -> None:
         )
 
 
-def check_stale_active_plans(errors: list[str]) -> None:
+def check_stale_active_plans(warnings: list[str]) -> None:
+    """Warn on incomplete active plans older than MAX_ACTIVE_PLAN_DAYS.
+
+    Lingering incomplete work is advisory only — do not fail verify/CI/hooks.
+    Agents must surface these warnings to the user.
+    """
     active_dir = REPO_ROOT / "docs" / "exec-plans" / "active"
     if not active_dir.exists():
         return
     cutoff = datetime.now() - timedelta(days=MAX_ACTIVE_PLAN_DAYS)
     for plan in active_dir.glob("*.md"):
+        if plan.name == "README.md":
+            continue
         mtime = datetime.fromtimestamp(plan.stat().st_mtime)
         if mtime < cutoff:
             content = plan.read_text(encoding="utf-8", errors="replace")
             if "status: completed" in content:
                 continue
             rel = plan.relative_to(REPO_ROOT)
-            errors.append(
-                f"{rel}: active plan older than {MAX_ACTIVE_PLAN_DAYS} days. "
-                "REMEDIATION: Complete or move to docs/exec-plans/completed/."
+            warnings.append(
+                f"{rel}: incomplete active plan older than {MAX_ACTIVE_PLAN_DAYS} days "
+                "(lingering; non-blocking). "
+                "AGENTS: Report this warning to the user and ask whether to continue the plan, "
+                "park it under docs/exec-plans/inactive/, or archive to docs/exec-plans/completed/. "
+                "REMEDIATION (optional): refresh the plan, finish remaining work, or move it out of active/."
             )
 
 
@@ -141,13 +151,19 @@ def check_agents_md_size(errors: list[str]) -> None:
 
 def main() -> int:
     errors: list[str] = []
+    warnings: list[str] = []
     check_file_sizes(errors)
     check_console_writeline(errors)
     check_visual_config_model(errors)
-    check_stale_active_plans(errors)
+    check_stale_active_plans(warnings)
     check_views_content_paths(errors)
     check_views_jobject(errors)
     check_agents_md_size(errors)
+
+    if warnings:
+        print("Taste check WARNINGS (non-blocking):", file=sys.stderr)
+        for warn in warnings:
+            print(f"  - {warn}", file=sys.stderr)
 
     if errors:
         print("Taste check FAILED:", file=sys.stderr)
@@ -155,7 +171,10 @@ def main() -> int:
             print(f"  - {err}", file=sys.stderr)
         return 1
 
-    print("Taste check passed.")
+    if warnings:
+        print("Taste check passed with warnings.")
+    else:
+        print("Taste check passed.")
     return 0
 
 

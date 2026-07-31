@@ -30,7 +30,7 @@ namespace InteractiveWorldMap.Models
         public int LocationCount { get; set; }
         public List<ManualLayoutMarker> Markers { get; set; } = new List<ManualLayoutMarker>();
 
-        public ManualLayout() 
+        public ManualLayout()
         {
             Timestamp = DateTime.UtcNow;
             CreatedUtc = Timestamp;

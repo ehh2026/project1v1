@@ -11,7 +11,16 @@ fi
 
 echo "Running advisory pre-push checks..."
 
+echo "Running build check..."
+dotnet restore InteractiveWorldMap.sln || exit 1
+dotnet build InteractiveWorldMap.sln --configuration Release --no-restore --force 2>&1
+if [ $? -ne 0 ]; then
+  echo "Build failed. Fix compilation errors before pushing."
+  exit 1
+fi
+
 $PYTHON_CMD scripts/verify_doc_links.py || exit 1
+# Taste hard-fails on architecture invariants; incomplete stale active plans warn only.
 $PYTHON_CMD scripts/verify_taste.py || exit 1
 $PYTHON_CMD scripts/advisory_code_health.py || true
 

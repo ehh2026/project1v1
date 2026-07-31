@@ -17,10 +17,24 @@ public class ContentLoader : IContentLoader
 {
     private readonly ILogger _logger;
     private readonly IContentSetResolver _contentSetResolver;
-    private readonly Dictionary<string, BitmapImage> _contentCache;
+    private readonly Dictionary<string, LinkedListNode<ContentCacheEntry>> _contentCache;
+    private readonly LinkedList<ContentCacheEntry> _contentCacheLru;
     private readonly LocationClusterer _clusterer;
     private ClusterCache _clusterCache = null!;
     private Lazy<ContentSetResolution> _activeSetResolution = null!;
+    private int _maxCachedLocations;
+
+    private sealed class ContentCacheEntry
+    {
+        public ContentCacheEntry(string key, BitmapImage image)
+        {
+            Key = key;
+            Image = image;
+        }
+
+        public string Key { get; }
+        public BitmapImage Image { get; }
+    }
 
     public string ActiveContentSetPath => _activeSetResolution.Value.Path;
     public ContentSetKind ActiveContentSetKind => _activeSetResolution.Value.Kind;
@@ -33,6 +47,20 @@ public class ContentLoader : IContentLoader
     {
         get => _clusterer.DistanceThreshold;
         set => _clusterer.DistanceThreshold = value;
+    }
+
+    /// <summary>
+    /// Maximum entries in the location-content bitmap cache. <c>0</c> means unlimited (default).
+    /// Lowering the limit immediately evicts least-recently-used entries until within bounds.
+    /// </summary>
+    public int MaxCachedLocations
+    {
+        get => _maxCachedLocations;
+        set
+        {
+            _maxCachedLocations = value < 0 ? 0 : value;
+            EnforceContentCacheLimit();
+        }
     }
 
     private string _contentFolderPath = string.Empty;
@@ -71,7 +99,8 @@ public class ContentLoader : IContentLoader
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _contentSetResolver = contentSetResolver ?? throw new ArgumentNullException(nameof(contentSetResolver));
-        _contentCache = new Dictionary<string, BitmapImage>();
+        _contentCache = new Dictionary<string, LinkedListNode<ContentCacheEntry>>(StringComparer.Ordinal);
+        _contentCacheLru = new LinkedList<ContentCacheEntry>();
         _clusterer = new LocationClusterer();
         ContentFolderPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ContentFileNames.ContentFolderName);
     }
@@ -159,7 +188,7 @@ public class ContentLoader : IContentLoader
         try
         {
             var mapPath = GetWorldMapPath();
-            
+
             if (!File.Exists(mapPath))
             {
                 _logger.LogError($"World map image not found at: {mapPath}");
@@ -189,9 +218,9 @@ public class ContentLoader : IContentLoader
         try
         {
             _logger.LogInfo("Loading and clustering locations");
-            
+
             var locations = await LoadLocationsAsync();
-            
+
             if (!locations.Any())
             {
                 _logger.LogWarning("No locations to cluster");
@@ -206,13 +235,13 @@ public class ContentLoader : IContentLoader
             // Compute clusters and save to cache
             var clusters = _clusterer.ClusterLocations(locations);
             var stats = _clusterer.GetClusteringStats(clusters);
-            
+
             _logger.LogInfo($"Clustering complete: {stats.TotalClusters} clusters " +
                           $"({stats.SingleLocationClusters} single, {stats.MultiLocationClusters} multi) " +
                           $"from {stats.TotalLocations} locations");
 
             _clusterCache.Save(locations, clusters, ClusterDistanceThreshold);
-            
+
             return clusters;
         }
         catch (Exception ex)
@@ -234,13 +263,13 @@ public class ContentLoader : IContentLoader
             var excelPath = ExcelCoordinateFilePath
                 ?? Path.Combine(ActiveContentSetPath, ContentFileNames.ExcelCoordinateFileName);
             _logger.LogInfo($"Checking for Excel file at: {excelPath}");
-            
+
             if (File.Exists(excelPath))
             {
                 _logger.LogInfo("Excel file found, attempting to load locations from Excel");
                 var reader = new ExcelCoordinateReader(_logger);
                 var locationsFromExcel = reader.ReadLocationsFromExcel(excelPath);
-                
+
                 if (locationsFromExcel.Any())
                 {
                     _logger.LogInfo($"Successfully loaded {locationsFromExcel.Count} locations from Excel");
@@ -260,7 +289,7 @@ public class ContentLoader : IContentLoader
             // Fall back to locations.json
             var locationsPath = Path.Combine(ActiveContentSetPath, ContentFileNames.LocationsJsonFileName);
             _logger.LogInfo($"Checking for locations.json at: {locationsPath}");
-            
+
             if (!File.Exists(locationsPath))
             {
                 _logger.LogWarning($"Neither Excel file nor locations.json found");
@@ -270,7 +299,7 @@ public class ContentLoader : IContentLoader
             _logger.LogInfo("Loading locations from locations.json");
             var json = await File.ReadAllTextAsync(locationsPath);
             var locations = JsonConvert.DeserializeObject<List<Location>>(json);
-            
+
             if (locations == null || !locations.Any())
             {
                 _logger.LogWarning("No locations found in locations.json");
@@ -317,7 +346,7 @@ public class ContentLoader : IContentLoader
 
             var results = new List<(BitmapImage Image, string? TranslationText, string? CaptionText)>();
             var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
-            
+
             for (int i = 0; i < imageFiles.Length; i++)
             {
                 var imagePath = imageFiles[i];
@@ -331,7 +360,7 @@ public class ContentLoader : IContentLoader
                     _logger.LogWarning($"Missing image file for location {location.Name}: {imagePath}");
                     continue;
                 }
-                
+
                 BitmapImage image;
                 try
                 {
@@ -397,17 +426,18 @@ public class ContentLoader : IContentLoader
         try
         {
             _logger.LogInfo($"Loading content for location: {location.Name}");
+            var cacheKey = GetContentCacheKey(location);
 
             // Return cached content if available
-            if (_contentCache.TryGetValue(location.Name, out var cachedImage))
+            if (TryGetCachedContent(cacheKey, out var cachedImage))
             {
-                _logger.LogInfo($"Returning cached content for location: {location.Name}");
+                _logger.LogInfo($"Returning cached content for location: {location.Name} (key={cacheKey})");
                 return cachedImage;
             }
 
             // Look for content in a subfolder named after the location
             var locationFolder = Path.Combine(ActiveContentSetPath, location.Name);
-            
+
             if (!Directory.Exists(locationFolder))
             {
                 _logger.LogWarning($"Content folder not found for location {location.Name}: {locationFolder}");
@@ -426,14 +456,67 @@ public class ContentLoader : IContentLoader
             var bitmap = await Task.Run(() => LoadFrozenBitmap(imageFiles!));
 
             // Cache the loaded image
-            _contentCache[location.Name] = bitmap;
-            _logger.LogInfo($"Successfully loaded and cached content for location: {location.Name}");
+            AddToContentCache(cacheKey, bitmap);
+            _logger.LogInfo($"Successfully loaded and cached content for location: {location.Name} (key={cacheKey})");
             return bitmap;
         }
         catch (Exception ex)
         {
             _logger.LogError($"Failed to load content for location {location.Name}: {ex.Message}\n{ex.StackTrace}");
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Cache key for location content: prefer stable <see cref="Location.Id"/>.
+    /// Falls back to <see cref="Location.Name"/> only when Id is blank (legacy / test fixtures).
+    /// </summary>
+    private static string GetContentCacheKey(Location location) =>
+        string.IsNullOrWhiteSpace(location.Id) ? location.Name : location.Id;
+
+    private bool TryGetCachedContent(string cacheKey, out BitmapImage image)
+    {
+        if (_contentCache.TryGetValue(cacheKey, out var node))
+        {
+            _contentCacheLru.Remove(node);
+            _contentCacheLru.AddFirst(node);
+            image = node.Value.Image;
+            return true;
+        }
+
+        image = null!;
+        return false;
+    }
+
+    private void AddToContentCache(string cacheKey, BitmapImage bitmap)
+    {
+        if (_contentCache.TryGetValue(cacheKey, out var existing))
+        {
+            _contentCacheLru.Remove(existing);
+            _contentCache.Remove(cacheKey);
+        }
+
+        var entry = new ContentCacheEntry(cacheKey, bitmap);
+        var node = _contentCacheLru.AddFirst(entry);
+        _contentCache[cacheKey] = node;
+        EnforceContentCacheLimit();
+    }
+
+    private void EnforceContentCacheLimit()
+    {
+        if (MaxCachedLocations <= 0)
+            return;
+
+        while (_contentCache.Count > MaxCachedLocations)
+        {
+            var lru = _contentCacheLru.Last;
+            if (lru == null)
+                break;
+
+            _contentCacheLru.RemoveLast();
+            _contentCache.Remove(lru.Value.Key);
+            _logger.LogInfo(
+                $"Evicted cached location content (LRU): key={lru.Value.Key}; cacheSize={_contentCache.Count}; max={MaxCachedLocations}");
         }
     }
 

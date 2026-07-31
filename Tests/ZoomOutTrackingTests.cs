@@ -20,13 +20,13 @@ public class ZoomOutTrackingTests
     private static VisualConfig TestConfig() => new()
     {
         LocationMarkerSize = 20,
-        ClusterMarkerSize  = 30,
+        ClusterMarkerSize = 30,
         RadialExtension = new RadialExtensionConfig
         {
-            Enabled                  = true,
+            Enabled = true,
             ProximityThresholdPixels = 50,
             MinLocationsForExtension = 2,
-            ExtensionLineLength      = 100,
+            ExtensionLineLength = 100,
             ZoomThresholdForExtensions = 10.0
         }
     };
@@ -92,7 +92,7 @@ public class ZoomOutTrackingTests
 
             // Where the orchestrator says the marker should be.
             var placementCenterX = placement.Left + TestConfig().LocationMarkerSize / 2.0;
-            var placementCenterY = placement.Top  + TestConfig().LocationMarkerSize / 2.0;
+            var placementCenterY = placement.Top + TestConfig().LocationMarkerSize / 2.0;
 
             // Where the map image actually shows the marker's source point.
             var expected = frame.SourceToScreen(marker.PixelX, marker.PixelY, containerW, containerH);
@@ -140,7 +140,7 @@ public class ZoomOutTrackingTests
             var placement = Assert.Single(result.IndividualPlacements);
             var center = new Point(
                 placement.Left + TestConfig().LocationMarkerSize / 2.0,
-                placement.Top  + TestConfig().LocationMarkerSize / 2.0);
+                placement.Top + TestConfig().LocationMarkerSize / 2.0);
 
             if (firstCenter is null)
             {

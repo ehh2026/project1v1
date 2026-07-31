@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""
-Summarize Cobertura coverage files emitted by dotnet test / coverlet.collector.
-
-The summary is advisory and exits 0 when no coverage file is found so it can be
-used in non-blocking CI jobs.
-"""
+"""Summarize Cobertura coverage files emitted by dotnet test / coverlet.collector."""
 
 from __future__ import annotations
 
@@ -30,6 +25,13 @@ def percentage(value: str | None) -> str:
         return "n/a"
 
 
+def rate_to_percentage(value: str | None) -> float:
+    try:
+        return float(value or 0) * 100.0
+    except ValueError:
+        return 0.0
+
+
 def summarize_file(path: Path) -> str:
     root = ET.parse(path).getroot()
     line_rate = percentage(root.attrib.get("line-rate"))
@@ -51,12 +53,49 @@ def build_summary(paths: list[Path]) -> str:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Summarize Cobertura coverage output.")
     parser.add_argument("path", nargs="?", type=Path, default=REPO_ROOT / "TestResults")
-    return parser.parse_args(argv)
+    parser.add_argument("--results-directory", type=Path, default=None)
+    parser.add_argument("--min-line-coverage", type=float, default=None)
+    parser.add_argument("--min-branch-coverage", type=float, default=None)
+    args = parser.parse_args(argv)
+    if args.results_directory is not None and args.path != REPO_ROOT / "TestResults":
+        parser.error("pass either positional path or --results-directory, not both")
+    if args.results_directory is not None:
+        args.path = args.results_directory
+    return args
+
+
+def check_thresholds(args: argparse.Namespace, paths: list[Path]) -> int:
+    if args.min_line_coverage is None and args.min_branch_coverage is None:
+        return 0
+
+    if not paths:
+        print("Coverage threshold check failed: no Cobertura coverage files found.", file=sys.stderr)
+        return 1
+
+    newest = max(paths, key=lambda path: path.stat().st_mtime)
+    root = ET.parse(newest).getroot()
+    line_coverage = rate_to_percentage(root.attrib.get("line-rate"))
+    branch_coverage = rate_to_percentage(root.attrib.get("branch-rate"))
+
+    failed = False
+    if args.min_line_coverage is not None and line_coverage < args.min_line_coverage:
+        print(
+            f"Line coverage {line_coverage:.1f}% is below threshold {args.min_line_coverage:.1f}%.",
+            file=sys.stderr)
+        failed = True
+    if args.min_branch_coverage is not None and branch_coverage < args.min_branch_coverage:
+        print(
+            f"Branch coverage {branch_coverage:.1f}% is below threshold {args.min_branch_coverage:.1f}%.",
+            file=sys.stderr)
+        failed = True
+
+    return 1 if failed else 0
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv or sys.argv[1:])
-    summary = build_summary(find_coverage_files(args.path))
+    paths = find_coverage_files(args.path)
+    summary = build_summary(paths)
     print(summary)
 
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
@@ -65,7 +104,7 @@ def main(argv: list[str] | None = None) -> int:
             handle.write(summary)
             handle.write("\n")
 
-    return 0
+    return check_thresholds(args, paths)
 
 
 if __name__ == "__main__":

@@ -105,7 +105,7 @@ namespace InteractiveWorldMap
                     {
                         var renderedHead = new Point(
                             Canvas.GetLeft(_draggedMarker) + draggedCpm.RenderPlan.HeadCenterLocal.X,
-                            Canvas.GetTop(_draggedMarker)  + draggedCpm.RenderPlan.HeadCenterLocal.Y);
+                            Canvas.GetTop(_draggedMarker) + draggedCpm.RenderPlan.HeadCenterLocal.Y);
 
                         if (_extensionLineRenderer.HasLine(_draggedMarker))
                             _extensionLineRenderer.MoveLineEndpoint(_draggedMarker, renderedHead);

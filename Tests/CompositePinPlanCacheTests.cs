@@ -26,43 +26,46 @@ public class CompositePinPlanCacheTests
     /// </summary>
     private static (CompositePinPlanCache cache, string groupKey, string cacheKey) SetupCache()
     {
-        var cache    = new CompositePinPlanCache(new MockLogger());
+        var cache = new CompositePinPlanCache(new MockLogger());
         var groupKey = "test_group_" + Guid.NewGuid().ToString("N")[..8];
-        var key      = cache.ComputeCacheKey(groupKey, "manual-default", "layoutHash", "geoHash", "cfgHash");
+        var key = cache.ComputeCacheKey(groupKey, "manual-default", "layoutHash", "geoHash", "cfgHash");
         return (cache, groupKey, key);
     }
 
     private static CompositePinRenderPlan MakePlan(string pairId, double angleDeg) =>
         new CompositePinRenderPlan
         {
-            PairId           = pairId,
-            ShaftSourcePath  = $"Pins_v2/parts/{pairId}_shaft.png",
-            HeadSourcePath   = $"Pins_v2/parts/{pairId}_head.png",
-            Width            = 40,
-            Height           = 80,
-            TargetAngleDeg   = angleDeg,
-            TargetLengthPx   = 55,
-            HeadRotationDeg  = angleDeg,
+            PairId = pairId,
+            ShaftSourcePath = $"Pins_v2/parts/{pairId}_shaft.png",
+            HeadSourcePath = $"Pins_v2/parts/{pairId}_head.png",
+            Width = 40,
+            Height = 80,
+            TargetAngleDeg = angleDeg,
+            TargetLengthPx = 55,
+            HeadRotationDeg = angleDeg,
             BodyStretchFactor = 1.0,
             StretchBodyLengthPx = 30,
-            TipAnchorLocal   = new Point(20, 4),
-            JoinAnchorLocal  = new Point(20, 34),
+            TipAnchorLocal = new Point(20, 4),
+            JoinAnchorLocal = new Point(20, 34),
             StretchStartLocal = new Point(20, 10),
-            StretchEndLocal  = new Point(20, 34),
-            HeadAttachLocal  = new Point(20, 34),
-            HeadCenterLocal  = new Point(20, 55),
+            StretchEndLocal = new Point(20, 34),
+            HeadAttachLocal = new Point(20, 34),
+            HeadCenterLocal = new Point(20, 55),
             ShaftTipCapLayer = new CompositePinLayerPlan
             {
-                SourcePath   = $"Pins_v2/parts/{pairId}_tip.png",
-                SourceWidth  = 40,
+                SourcePath = $"Pins_v2/parts/{pairId}_tip.png",
+                SourceWidth = 40,
                 SourceHeight = 20,
-                ClipPolygon  = new List<Point> { new(0, 0), new(40, 0), new(40, 20), new(0, 20) },
-                Transform    = Matrix.Identity
+                ClipPolygon = new List<Point> { new(0, 0), new(40, 0), new(40, 20), new(0, 20) },
+                Transform = Matrix.Identity
             },
-            ShaftBodyLayer    = new CompositePinLayerPlan { SourcePath = "body.png" },
+            ShaftBodyLayer = new CompositePinLayerPlan { SourcePath = "body.png" },
             ShaftHeadCapLayer = new CompositePinLayerPlan { SourcePath = "headcap.png" },
-            HeadLayer         = new CompositePinLayerPlan { SourcePath = "head.png",
-                Transform = new Matrix(1, 0, 0, 1, 5, 10) }
+            HeadLayer = new CompositePinLayerPlan
+            {
+                SourcePath = "head.png",
+                Transform = new Matrix(1, 0, 0, 1, 5, 10)
+            }
         };
 
     [Fact]
@@ -238,8 +241,8 @@ public class CompositePinPlanCacheTests
         var cache = new CompositePinPlanCache(new MockLogger());
         var groupA = "group_a_" + Guid.NewGuid().ToString("N")[..8];
         var groupB = "group_b_" + Guid.NewGuid().ToString("N")[..8];
-        var keyA   = cache.ComputeCacheKey(groupA, "v1", "lh", "gh", "ch");
-        var keyB   = cache.ComputeCacheKey(groupB, "v1", "lh", "gh", "ch");
+        var keyA = cache.ComputeCacheKey(groupA, "v1", "lh", "gh", "ch");
+        var keyB = cache.ComputeCacheKey(groupB, "v1", "lh", "gh", "ch");
 
         cache.Save(keyA, groupA, "v1", new[] { new CachedCompositePlanEntry("LocA", MakePlan("pin_06", 10)) });
         cache.Save(keyB, groupB, "v1", new[] { new CachedCompositePlanEntry("LocB", MakePlan("pin_07", 20)) });
@@ -389,7 +392,7 @@ public class CompositePinPlanCacheTests
     [Fact]
     public void BuildApplyInstructions_ReconstructsExtendedFromAngleAndLength()
     {
-        var cache    = new CompositePinPlanCache(new MockLogger());
+        var cache = new CompositePinPlanCache(new MockLogger());
         var planning = new CompositePinPlanningService(
             new PinPartPlacementCalculator(),
             new CompositePinRenderPlanBuilder());
@@ -397,9 +400,9 @@ public class CompositePinPlanCacheTests
 
         var layout = new ManualLayout
         {
-            GroupKey  = "g1",
+            GroupKey = "g1",
             VariantId = "manual-default",
-            Markers   = new List<ManualLayoutMarker>()
+            Markers = new List<ManualLayoutMarker>()
         };
 
         var applications = new List<LayoutEditorController.LayoutMarkerApplication>
@@ -418,13 +421,13 @@ public class CompositePinPlanCacheTests
 
         var viewport = new ViewportState
         {
-            SourceImageWidth  = 8198,
+            SourceImageWidth = 8198,
             SourceImageHeight = 5542,
-            ViewportX         = 1000,
-            ViewportY         = 800,
-            ViewportWidth     = 500,
-            ViewportHeight    = 400,
-            ZoomLevel         = 55
+            ViewportX = 1000,
+            ViewportY = 800,
+            ViewportWidth = 500,
+            ViewportHeight = 400,
+            ZoomLevel = 55
         };
 
         var result = service.BuildApplyInstructions(
@@ -451,7 +454,7 @@ public class CompositePinPlanCacheTests
         // Regression (2026-06-23): a source-space pin head was re-projected through the current
         // (zoomed) viewport, so the shaft grew with the zoom factor. With a full-map reference
         // viewport the tip→head screen distance must stay constant across zoom levels.
-        var cache    = new CompositePinPlanCache(new MockLogger());
+        var cache = new CompositePinPlanCache(new MockLogger());
         var planning = new CompositePinPlanningService(
             new PinPartPlacementCalculator(),
             new CompositePinRenderPlanBuilder());
@@ -462,9 +465,9 @@ public class CompositePinPlanCacheTests
 
         var layout = new ManualLayout
         {
-            GroupKey  = "g1",
+            GroupKey = "g1",
             VariantId = "manual-default",
-            Markers   = new List<ManualLayoutMarker>()
+            Markers = new List<ManualLayoutMarker>()
         };
 
         // Head sits 50 source-px right of the location; angle/length are irrelevant on this path.

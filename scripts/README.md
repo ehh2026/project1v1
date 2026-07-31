@@ -30,27 +30,28 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `validate_startup.ps1` | `verify.ps1` | — | Headless WPF startup check (Windows) |
 | `verify_nuget_vulnerabilities.py` | `verify.ps1`, `verify.sh`, CI | stdlib | Fail on High/Critical NuGet advisories |
 | `verify_doc_links.py` | `verify.ps1`, `verify.sh`, doc-gardening CI | stdlib | Markdown link integrity |
-| `verify_taste.py` | `verify.ps1`, `verify.sh` | stdlib | Architecture taste invariants (Views, JObject, etc.) |
+| `verify_taste.py` | `verify.ps1`, `verify.sh`, pre-push | stdlib | Architecture taste invariants (Views, JObject, etc.). Incomplete active plans older than 30 days warn only (non-blocking); agents must report those warnings to the user. |
 | `advisory_code_health.py` | Pre-push, advisory CI | stdlib | Non-blocking largest-file, advisory size, and approximate method complexity report |
 | `summarize_coverage.py` | Advisory CI | stdlib | Summarize Cobertura coverage emitted by `dotnet test --collect:"XPlat Code Coverage"` |
 | `install_git_hooks.ps1` | Manual | Git | Configure local `core.hooksPath` to use `.githooks/pre-push` |
 | `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
-| `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter |
+| `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter. Incomplete active plans older than 30 days warn only (same policy as `verify_taste.py`). |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 | `create_head_asset_variants.py` | Manual | venv | Generate black-outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |
 
 ## Advisory hooks and health checks
 
-Install the repo-local pre-push hook:
+Install the repo-local pre-commit and pre-push hooks:
 
 ```powershell
 .\scripts\install_git_hooks.ps1
 ```
 
-The hook runs doc links, taste checks, and the advisory code-health report before push.
-It is intentionally lightweight and does not replace the merge gate; run `.\scripts\verify.ps1`
-before merge-ready pushes. In emergencies, bypass the hook with `git push --no-verify`.
+The pre-commit hook verifies formatting with `dotnet format --verify-no-changes`.
+The pre-push hook runs restore/build, doc links, taste checks, and the advisory code-health report before push.
+These hooks do not replace the merge gate; run `.\scripts\verify.ps1` before merge-ready pushes.
+In emergencies, bypass hooks with `git commit --no-verify` or `git push --no-verify`.
 
 Generate the advisory report directly:
 
@@ -61,8 +62,16 @@ py -3 scripts\advisory_code_health.py
 Generate local coverage and summarize it:
 
 ```powershell
-dotnet test Tests\InteractiveWorldMap.Tests.csproj --collect:"XPlat Code Coverage" --results-directory TestResults\coverage-advisory
-py -3 scripts\summarize_coverage.py TestResults\coverage-advisory
+dotnet test Tests\InteractiveWorldMap.Tests.csproj --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\coverage-advisory
+py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory
+py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory --min-line-coverage 42 --min-branch-coverage 37
+```
+
+Run the local complexity gate directly:
+
+```powershell
+py -3 -m pip install lizard
+py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
 ```
 
 ## Related docs
