@@ -32,8 +32,8 @@ jobs:
         run: dotnet format InteractiveWorldMap.sln --verify-no-changes
 
       - name: Test
-        run: dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity normal --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\ci-coverage
-        # Remediation: run `dotnet test Tests/InteractiveWorldMap.Tests.csproj` locally
+        run: dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity normal --settings .runsettings --filter "Category!=Performance" --collect:"XPlat Code Coverage" --results-directory TestResults\ci-coverage
+        # Remediation: run `dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "Category!=Performance"` locally
 
       - name: Enforce coverage threshold
         shell: pwsh

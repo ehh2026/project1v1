@@ -236,8 +236,9 @@ public class ExcelCoordinateReader
     private static XmlDocument LoadXmlDocument(ZipArchiveEntry entry)
     {
         using var stream = entry.Open();
-        var xml = new XmlDocument();
-        xml.Load(stream);
+        using var reader = XmlReader.Create(stream, ReaderSettings);
+        var xml = new XmlDocument { XmlResolver = null };
+        xml.Load(reader);
         return xml;
     }
 

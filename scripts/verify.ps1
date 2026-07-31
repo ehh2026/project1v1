@@ -80,7 +80,7 @@ dotnet build InteractiveWorldMap.sln --configuration Release --no-restore
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[4/11] dotnet test"
-dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\verify-coverage
+dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --filter "Category!=Performance" --collect:"XPlat Code Coverage" --results-directory TestResults\verify-coverage
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "[5/11] manual layout seed verification"

@@ -578,6 +578,59 @@ public class ContentLoaderTests
         }
     }
 
+    [Fact]
+    public async Task MaxCachedLocations_WhenLowered_EvictsImmediately()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            foreach (var name in new[] { "A", "B", "C" })
+            {
+                var folder = Path.Combine(tempDir, name);
+                Directory.CreateDirectory(folder);
+                SaveTinyPng(Path.Combine(folder, "1.png"));
+            }
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                MaxCachedLocations = 0
+            };
+
+            var locA = new Location { Name = "A", Id = "id_a" };
+            var locB = new Location { Name = "B", Id = "id_b" };
+            var locC = new Location { Name = "C", Id = "id_c" };
+
+            var imageA = await loader.LoadLocationContentAsync(locA);
+            var imageB = await loader.LoadLocationContentAsync(locB);
+            var imageC = await loader.LoadLocationContentAsync(locC);
+            Assert.NotNull(imageA);
+            Assert.NotNull(imageB);
+            Assert.NotNull(imageC);
+
+            // Touch A and C so B is LRU when the limit drops to 2.
+            Assert.Same(imageA, await loader.LoadLocationContentAsync(locA));
+            Assert.Same(imageC, await loader.LoadLocationContentAsync(locC));
+
+            loader.MaxCachedLocations = 2;
+
+            Assert.Contains(logger.InfoMessages, m => m.Contains("Evicted cached location content") && m.Contains("key=id_b"));
+
+            // A and C must still be cached immediately after the shrink (before any new inserts).
+            Assert.Same(imageA, await loader.LoadLocationContentAsync(locA));
+            Assert.Same(imageC, await loader.LoadLocationContentAsync(locC));
+
+            var imageBReloaded = await loader.LoadLocationContentAsync(locB);
+            Assert.NotNull(imageBReloaded);
+            Assert.NotSame(imageB, imageBReloaded);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Loader that skips the repo Excel file so JSON-only tests stay isolated.
     /// </summary>

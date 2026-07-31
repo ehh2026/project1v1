@@ -27,6 +27,7 @@ Every agent must keep completion state current before handing work back:
 # Manual steps
 dotnet build InteractiveWorldMap.sln
 dotnet test Tests/InteractiveWorldMap.Tests.csproj --settings .runsettings
+# Default verify/CI also use: --filter "Category!=Performance"
 dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 .\run-demo.bat                                    # Windows: build + launch
 .\scripts\validate_startup.ps1                  # Headless startup check (Windows)

@@ -51,11 +51,16 @@ public class ContentLoader : IContentLoader
 
     /// <summary>
     /// Maximum entries in the location-content bitmap cache. <c>0</c> means unlimited (default).
+    /// Lowering the limit immediately evicts least-recently-used entries until within bounds.
     /// </summary>
     public int MaxCachedLocations
     {
         get => _maxCachedLocations;
-        set => _maxCachedLocations = value < 0 ? 0 : value;
+        set
+        {
+            _maxCachedLocations = value < 0 ? 0 : value;
+            EnforceContentCacheLimit();
+        }
     }
 
     private string _contentFolderPath = string.Empty;
@@ -463,7 +468,8 @@ public class ContentLoader : IContentLoader
     }
 
     /// <summary>
-    /// Cache key for location content: prefer stable <see cref="Location.Id"/>, fall back to name.
+    /// Cache key for location content: prefer stable <see cref="Location.Id"/>.
+    /// Falls back to <see cref="Location.Name"/> only when Id is blank (legacy / test fixtures).
     /// </summary>
     private static string GetContentCacheKey(Location location) =>
         string.IsNullOrWhiteSpace(location.Id) ? location.Name : location.Id;
@@ -493,7 +499,11 @@ public class ContentLoader : IContentLoader
         var entry = new ContentCacheEntry(cacheKey, bitmap);
         var node = _contentCacheLru.AddFirst(entry);
         _contentCache[cacheKey] = node;
+        EnforceContentCacheLimit();
+    }
 
+    private void EnforceContentCacheLimit()
+    {
         if (MaxCachedLocations <= 0)
             return;
 

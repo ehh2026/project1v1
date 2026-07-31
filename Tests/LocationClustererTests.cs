@@ -292,8 +292,9 @@ namespace InteractiveWorldMap.Tests
         }
 
         /// <summary>
-        /// Documents spatial-index scaling for n≥200. Soft timing ceiling only —
-        /// Trait Category=Performance so it can be filtered out of tight suites if needed.
+        /// Documents spatial-index scaling for n≥200. Soft timing ceiling only.
+        /// Marked Category=Performance and excluded from default verify/CI via
+        /// <c>--filter "Category!=Performance"</c>; run manually when measuring.
         /// </summary>
         [Fact]
         [Trait("Category", "Performance")]

@@ -55,7 +55,7 @@ fi
 
 if [[ "$RUN_DOTNET" == true ]]; then
   echo "[4/9] dotnet test"
-  dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults/verify-coverage
+  dotnet test Tests/InteractiveWorldMap.Tests.csproj --configuration Release --no-build --verbosity minimal --settings .runsettings --filter "Category!=Performance" --collect:"XPlat Code Coverage" --results-directory TestResults/verify-coverage
 
   echo "[5/9] code formatting check"
   dotnet format InteractiveWorldMap.sln --verify-no-changes

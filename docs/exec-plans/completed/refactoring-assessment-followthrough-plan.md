@@ -11,7 +11,7 @@ tracker: ../completed/refactoring-plan.md
 
 # Refactoring Assessment Follow-Through Plan
 
-Close remaining items from [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) that were not finished in [refactoring-plan.md](../completed/refactoring-plan.md) (Phases 1â€“10).
+Close remaining items from [REFACTORING_ASSESSMENT.md](../../assessments/REFACTORING_ASSESSMENT.md) that were not finished in [refactoring-plan.md](../completed/refactoring-plan.md) (Phases 1–10).
 
 > **2026-07-30 refresh:** Rebased against current code. Phase 12 (MarkerLayerControl) is obsolete; Phase 13 (nullable) and the Phase 18 large-file slice are done. Open questions resolved below; remaining work ordered for implementation. Historical assessments/completed plans are left unchanged.
 
@@ -23,10 +23,10 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 
 | Item | Evidence |
 |------|----------|
-| Phases 1â€“10 (original refactoring plan) | [refactoring-plan.md](../completed/refactoring-plan.md) |
+| Phases 1–10 (original refactoring plan) | [refactoring-plan.md](../completed/refactoring-plan.md) |
 | Phase 11 â€” Map dimensions single source of truth | `Models/MapMetadata`; MainWindow properties; display-space `StartupValidator` ceilings; TD-014 resolved |
 | Phase 17 â€” ApplicationState decision | Deleted orphan `Models/ApplicationState.cs`; TD-017 resolved |
-| Phase 14 â€” LocationClusterer spatial indexing | `SpatialGrid` + 3Ã—3 neighbor query; TD-015 resolved |
+| Phase 14 â€” LocationClusterer spatial indexing | `SpatialGrid` + 3×3 neighbor query; TD-015 resolved |
 | Phase 15 â€” ExcelCoordinateReader streaming parse | `XmlReader` for shared strings + rows; workbook/rels DOM; TD-016 resolved |
 | Phase 16 â€” ContentLoader cache bounds | Id-keyed LRU + `MaxCachedLocations`; TD-018 resolved |
 | Phase 12 â€” `MarkerLayerControl` positioning extraction | **Obsolete** â€” control removed; placement via `MarkerPlacementOrchestrator`, `ViewportState`, `MapDisplayControl` |
@@ -48,7 +48,7 @@ TO_DO: [Refactoring assessment follow-through](../../TO_DO.md)
 | Coordinate value types (`PixelCoordinate`, etc.) | High churn â€” new plan if pursued |
 | `ContentSubwindow` DPI sizing | Low / cosmetic |
 | Full UI automation suite | TD-004 |
-| Assessment Â§6 excessive logging cleanup | Out of scope here â€” use existing `DebugConfig` / levels; no dedicated phase |
+| Assessment §6 excessive logging cleanup | Out of scope here â€” use existing `DebugConfig` / levels; no dedicated phase |
 | Gallery multi-image cache (`LoadAllLocationImages*`) | Not Phase 16 â€” UI path bypasses `_contentCache`; new TD if memory becomes an issue |
 
 ## Decisions (resolved 2026-07-30)
@@ -59,11 +59,11 @@ These close the readiness gaps. Implementers should treat them as constraints, n
 
 | Question | Decision |
 |----------|----------|
-| Coordinate / placement space | **Display** space only. Excel columns E/F are half-size; docs and `MainWindow` constants (`8198Ã—5542`) match `World Map Extra Large.jpg`. |
-| Full-res (`16397Ã—11085`) role | Crop / high-quality zoom source only (`ZoomedRegionCache` already scales from actual bitmap sizes). Not used for marker placement or Excel validation. |
+| Coordinate / placement space | **Display** space only. Excel columns E/F are half-size; docs and `MainWindow` constants (`8198×5542`) match `World Map Extra Large.jpg`. |
+| Full-res (`16397×11085`) role | Crop / high-quality zoom source only (`ZoomedRegionCache` already scales from actual bitmap sizes). Not used for marker placement or Excel validation. |
 | Validator ceilings | **Bug fix:** change `StartupValidator` from full-res ceilings to **display** max X/Y. Coords above display size are invalid for current content. |
 | Type shape | `Models/MapMetadata` with required `DisplayWidth` / `DisplayHeight` and optional `FullResWidth` / `FullResHeight` (defaults / probes for docs and sanity checks â€” not placement). |
-| Source of truth | `MapMetadata.CreateDefault()` documents asset defaults (`8198Ã—5542`, `16397Ã—11085`). After the display map loads, prefer `MapMetadata.FromDisplayBitmap(bitmap)` (PixelWidth/Height) with default fallback if load failed. **Do not** add map size fields to `visual-config.json` in this phase (avoids config/Excel/bitmap drift). |
+| Source of truth | `MapMetadata.CreateDefault()` documents asset defaults (`8198×5542`, `16397×11085`). After the display map loads, prefer `MapMetadata.FromDisplayBitmap(bitmap)` (PixelWidth/Height) with default fallback if load failed. **Do not** add map size fields to `visual-config.json` in this phase (avoids config/Excel/bitmap drift). |
 | Owner | Construct once at app/MainWindow init after display map load; pass into navigation / placement / validator. Do not re-read literals in partials. |
 | `ZoomedRegionCache` | Leave as-is (measures bitmaps). No requirement to inject `MapMetadata` into crop scale math. |
 | Docs / tools | Living guide [UPDATING_COORDINATES.md](../../guides/UPDATING_COORDINATES.md) already matches display space â€” add a one-line pointer to `MapMetadata` if useful. `Tools/ManualLayoutSeedGenerator` CLI dims stay optional overrides; out of scope unless a tiny default-from-`CreateDefault()` is free. |
@@ -73,10 +73,10 @@ These close the readiness gaps. Implementers should treat them as constraints, n
 | Question | Decision |
 |----------|----------|
 | Dependency on Phase 11 | **None** â€” independent; may ship in parallel or after 17. |
-| Correctness | Cell size = `DistanceThreshold`. Neighbor query checks the seed cell and its **3Ã—3** Moore neighborhood so Euclidean radius â‰¤ threshold is preserved. |
+| Correctness | Cell size = `DistanceThreshold`. Neighbor query checks the seed cell and its **3×3** Moore neighborhood so Euclidean radius â‰¤ threshold is preserved. |
 | Behavior lock | Same clusters as today for existing fixtures (membership + centers within current float tolerance). Input list order still defines seed order. |
-| Timing comparison | Add a test marked with `Trait("Performance")` **or** `Skip` documenting nâ‰¥200 improvement. **Not** included in default `dotnet test` / verify filter. |
-| `ClusterCache` | Identical outputs â‡’ existing cache keys remain valid; no migration. |
+| Timing comparison | Add a test marked with `Trait("Performance")` **or** `Skip` documenting n≥200 improvement. **Not** included in default `dotnet test` / verify filter. |
+| `ClusterCache` | Identical outputs ⇒ existing cache keys remain valid; no migration. |
 
 ### Phase 15 â€” Excel streaming
 
@@ -116,20 +116,20 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 | `MainWindow*.cs` | Stay under 800 taste-lines; prefer Services/Utilities extractions over growing partials |
 | `Utilities/ExcelCoordinateReader.cs` | Streaming refactor must not re-inflate CCN â€” keep helpers extracted (complexity gates) |
 | `Utilities/LocationClusterer.cs` | New spatial index in its own type (`SpatialGrid`); clusterer stays thin |
-| Layer rules | Models â† Utilities/Services â† Views; no Services in Views |
+| Layer rules | Models ← Utilities/Services ← Views; no Services in Views |
 
 ---
 
 ## Phase 11 â€” Map dimensions single source of truth
 
-**Assessment:** Â§3  
+**Assessment:** §3  
 **Status:** complete (2026-07-30)  
 **TD:** TD-014 (resolved)
 
 ### Reality check
 
 - Display / placement space: `MainWindow` `ImageWidth = 8198`, `ImageHeight = 5542` (half of full-res map).
-- Full-res map (`16397Ã—11085`) is still relevant for zoomed-region / high-quality crop paths; **`ZoomedRegionCache` already uses bitmap pixel sizes**.
+- Full-res map (`16397×11085`) is still relevant for zoomed-region / high-quality crop paths; **`ZoomedRegionCache` already uses bitmap pixel sizes**.
 - `StartupValidator` currently warns against full-res ceilings â€” **incorrect for display-space coords**; fix as part of this phase.
 - There is no `MapMetadata` / `IMapMetadata` type yet.
 
@@ -161,7 +161,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ## Phase 17 â€” ApplicationState decision
 
-**Assessment:** Â§10  
+**Assessment:** §10  
 **Status:** complete (2026-07-30) â€” deleted orphan type  
 **TD:** TD-017 (resolved)
 
@@ -177,7 +177,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ## Phase 14 â€” LocationClusterer spatial indexing
 
-**Assessment:** Â§7  
+**Assessment:** §7  
 **Status:** complete (2026-07-30)  
 **TD:** TD-015 (resolved)
 
@@ -191,9 +191,9 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ### Tasks
 
-1. Grid-based neighbor query for `FindNearbyLocations` (cell size = cluster threshold; **3Ã—3** cell scan).
+1. Grid-based neighbor query for `FindNearbyLocations` (cell size = cluster threshold; **3×3** cell scan).
 2. Preserve identical cluster output for existing fixtures (behavior lock).
-3. Add Trait/Skip timing comparison for nâ‰¥200 (not a verify gate).
+3. Add Trait/Skip timing comparison for n≥200 (not a verify gate).
 
 **Acceptance:** Fixture clusters unchanged; spatial tests pass; verify green; `ClusterCache` needs no migration.
 
@@ -201,7 +201,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ## Phase 15 â€” ExcelCoordinateReader streaming parse
 
-**Assessment:** Â§4  
+**Assessment:** §4  
 **Status:** complete (2026-07-30)  
 **TD:** TD-016 (resolved)
 
@@ -222,7 +222,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ## Phase 16 â€” ContentLoader cache bounds
 
-**Assessment:** Â§5  
+**Assessment:** §5  
 **Status:** complete (2026-07-30)  
 **TD:** TD-018 (resolved)
 
@@ -240,7 +240,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 
 ## Phase 18b â€” Optional MainWindow extractions
 
-**Assessment:** Â§1 remaining  
+**Assessment:** §1 remaining  
 **Status:** deferred (2026-07-30) â€” no MainWindow partial currently near the 800-line taste limit; extract when growth pressure returns
 
 | Extract | New home | When |
@@ -249,7 +249,7 @@ Ship remaining assessment debt in priority order without breaking demo-ready beh
 | Zoom animation orchestration | extend animation helper / `Services/ZoomAnimationController.cs` | Navigation growth |
 | Marker creation factory | `Services/MarkerFactory.cs` (drawn path already has `Views/DrawnPinMarkerFactory`) | Marker-placement growth |
 
-**Acceptance:** Each extraction reduces a MainWindow partial by â‰¥100 lines with tests; no feature regression.
+**Acceptance:** Each extraction reduces a MainWindow partial by ≥100 lines with tests; no feature regression.
 
 ---
 
