@@ -36,6 +36,13 @@ namespace InteractiveWorldMap.Models
         public bool ShowCompositePinDebugOverlay { get; set; } = false;
 
         /// <summary>
+        /// Surface content-image diagnostics: the on-screen "large image" notice and the heavy-file /
+        /// downscale log warnings. Off by default so gallery visitors never see them and logs stay quiet;
+        /// image downscaling itself always runs regardless of this flag.
+        /// </summary>
+        public bool LogContentImageDiagnostics { get; set; } = false;
+
+        /// <summary>
         /// Shows the developer-only runtime tuning panel and F12 toggle.
         /// </summary>
         public bool EnableTuningPanel { get; set; } = false;

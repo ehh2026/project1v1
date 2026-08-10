@@ -171,6 +171,9 @@ namespace InteractiveWorldMap
                 _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
                 _contentLoader.MaxDecodePixelWidth = _visualConfig.ContentImages.MaxDecodePixelWidth;
                 _contentLoader.MaxDecodePixelHeight = _visualConfig.ContentImages.MaxDecodePixelHeight;
+                _contentLoader.LargeImageWarnBytes = _visualConfig.ContentImages.LargeImageWarnBytes;
+                _contentLoader.EnableImageDiagnostics =
+                    AreDeveloperToolsEnabled() && _visualConfig.Debug.LogContentImageDiagnostics;
                 _contentLoader.LargeImageDetected += OnLargeContentImageDetected;
                 _logger.LogInfo("ContentLoader created");
 
@@ -492,11 +495,18 @@ namespace InteractiveWorldMap
             await InitializeAsync();
         }
 
+        // Safety floor for the content-image decode box (4K UHD). Used when neither the display metrics
+        // nor the config supply a positive cap, so a very large image can never be decoded unbounded
+        // (which is what hung the UI on big TIFFs).
+        private const int FallbackDecodePixelWidth = 3840;
+        private const int FallbackDecodePixelHeight = 2160;
+
         /// <summary>
         /// Sizes the content-image decode box to the actual physical resolution of the display the app
         /// is running on (e.g. 3840x2160 on a 4K gallery screen), so images are never decoded to more
-        /// pixels than the screen can show. Falls back to the configured defaults if the DPI/screen
-        /// metrics are unavailable. Runs once the window is loaded, when a valid DPI context exists.
+        /// pixels than the screen can show. Falls back to the configured defaults, and then to a 4K
+        /// floor, if the DPI/screen metrics are unavailable or non-positive. Runs once the window is
+        /// loaded, when a valid DPI context exists.
         /// </summary>
         private void ApplyDisplayBasedImageDecodeCap()
         {
@@ -515,10 +525,23 @@ namespace InteractiveWorldMap
                     _contentLoader.MaxDecodePixelHeight = pixelHeight;
                     _logger.LogInfo($"Content image decode box set to display size: {pixelWidth}x{pixelHeight}");
                 }
+                else
+                {
+                    _logger.LogWarning("Display size unavailable; keeping configured content decode box.");
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogWarning($"Could not size decode box to display; using config defaults ({ex.Message})");
+            }
+
+            // Hard floor: never leave the decode box unbounded, regardless of display detection or config.
+            if (_contentLoader.MaxDecodePixelWidth <= 0 && _contentLoader.MaxDecodePixelHeight <= 0)
+            {
+                _contentLoader.MaxDecodePixelWidth = FallbackDecodePixelWidth;
+                _contentLoader.MaxDecodePixelHeight = FallbackDecodePixelHeight;
+                _logger.LogWarning(
+                    $"Content decode box was unbounded; applied {FallbackDecodePixelWidth}x{FallbackDecodePixelHeight} floor.");
             }
         }
 

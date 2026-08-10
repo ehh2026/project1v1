@@ -59,14 +59,14 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Raised by <see cref="IContentLoader.LargeImageDetected"/> (on the UI thread) when a content
-        /// image is being downscaled to fit the display. The image is still shown; this just tells the
-        /// user why opening takes a moment instead of appearing to hang.
+        /// Raised by <see cref="IContentLoader.LargeImageDetected"/> (on the UI thread) when a heavy
+        /// content image file is loading. The image is still shown (downscaled to the display); this
+        /// just tells the user why opening takes a moment instead of appearing to hang.
         /// </summary>
-        private void OnLargeContentImageDetected(string fileName, int pixelWidth, int pixelHeight)
+        private void OnLargeContentImageDetected(string fileName, long bytes)
         {
-            var megapixels = (pixelWidth * (long)pixelHeight) / 1_000_000.0;
-            ShowContentStatus($"Large image ({megapixels:F0} MP) — scaling to fit the display…");
+            var megabytes = bytes / (1024.0 * 1024.0);
+            ShowContentStatus($"Large image ({megabytes:F0} MB) — optimizing for display…");
         }
 
         private ContentSubwindow CreateContentSubwindow(Location location)

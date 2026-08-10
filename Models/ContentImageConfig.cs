@@ -24,5 +24,14 @@ namespace InteractiveWorldMap.Models
         /// "no cap" (full-resolution decode).
         /// </summary>
         public int MaxDecodePixelHeight { get; set; } = 2160;
+
+        /// <summary>
+        /// File-size threshold, in bytes, at/above which a content image is flagged as heavy: an
+        /// actionable warning is logged and an on-screen notice is shown while it loads (the image is
+        /// still displayed, downscaled to the display box). This tracks decode/IO latency — the symptom
+        /// seen with large (e.g. 200&#160;MB) TIFFs — independently of pixel dimensions. Default 75&#160;MB;
+        /// <c>0</c> disables the notice.
+        /// </summary>
+        public long LargeImageWarnBytes { get; set; } = 75L * 1024 * 1024;
     }
 }

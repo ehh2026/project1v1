@@ -13,7 +13,7 @@ namespace InteractiveWorldMap.Services;
 /// <summary>
 /// Loads map images, location data, and location content from the Content_Folder.
 /// </summary>
-public class ContentLoader : IContentLoader
+public partial class ContentLoader : IContentLoader
 {
     private readonly ILogger _logger;
     private readonly IContentSetResolver _contentSetResolver;
@@ -86,8 +86,27 @@ public class ContentLoader : IContentLoader
         set => _maxDecodePixelHeight = value < 0 ? 0 : value;
     }
 
+    private long _largeImageWarnBytes;
+
+    /// <summary>
+    /// File-size threshold in bytes at/above which <see cref="LargeImageDetected"/> fires while loading
+    /// a content image. Advisory only (does not affect the decoded result); <c>0</c> disables it.
+    /// Negative values are clamped to 0.
+    /// </summary>
+    public long LargeImageWarnBytes
+    {
+        get => _largeImageWarnBytes;
+        set => _largeImageWarnBytes = value < 0 ? 0 : value;
+    }
+
+    /// <summary>
+    /// Gates content-image diagnostics (notice + heavy-file/downscale warnings). Off by default so
+    /// they only appear when developer/debug diagnostics are enabled. Does not affect downscaling.
+    /// </summary>
+    public bool EnableImageDiagnostics { get; set; }
+
     /// <inheritdoc />
-    public event Action<string, int, int>? LargeImageDetected;
+    public event Action<string, long>? LargeImageDetected;
 
     private string _contentFolderPath = string.Empty;
 
@@ -387,12 +406,12 @@ public class ContentLoader : IContentLoader
                     continue;
                 }
 
-                var decodeWidth = PlanImageDecode(imagePath);
+                WarnIfHeavyImageFile(imagePath);
 
                 BitmapImage image;
                 try
                 {
-                    image = await Task.Run(() => LoadFrozenBitmap(imagePath, decodeWidth));
+                    image = await Task.Run(() => LoadImageDownscaled(imagePath));
                 }
                 catch (Exception ex)
                 {
@@ -481,8 +500,8 @@ public class ContentLoader : IContentLoader
                 return null;
             }
 
-            var decodeWidth = PlanImageDecode(imageFiles!);
-            var bitmap = await Task.Run(() => LoadFrozenBitmap(imageFiles!, decodeWidth));
+            WarnIfHeavyImageFile(imageFiles!);
+            var bitmap = await Task.Run(() => LoadImageDownscaled(imageFiles!));
 
             // Cache the loaded image
             AddToContentCache(cacheKey, bitmap);
@@ -606,69 +625,7 @@ public class ContentLoader : IContentLoader
     // Private helpers
     // -------------------------------------------------------------------------
 
-    /// <summary>
-    /// Decides how <paramref name="absolutePath"/> should be decoded to fit the configured display box
-    /// and, when that requires downscaling, logs it and raises <see cref="LargeImageDetected"/>. Reads
-    /// only the image header (no full-pixel decode) and runs on the caller's (UI) thread so the notice
-    /// appears before the backgrounded decode. Returns the <c>DecodePixelWidth</c> to apply (<c>0</c> =
-    /// decode at native resolution). Never throws.
-    /// </summary>
-    private int PlanImageDecode(string absolutePath)
-    {
-        if (_maxDecodePixelWidth <= 0 && _maxDecodePixelHeight <= 0)
-            return 0; // no cap configured → native decode, no inspection needed
-
-        int sourceWidth, sourceHeight;
-        try
-        {
-            using var stream = File.OpenRead(absolutePath);
-            var decoder = BitmapDecoder.Create(
-                stream,
-                BitmapCreateOptions.DelayCreation | BitmapCreateOptions.IgnoreColorProfile,
-                BitmapCacheOption.None);
-            if (decoder.Frames.Count == 0)
-                return 0;
-            sourceWidth = decoder.Frames[0].PixelWidth;
-            sourceHeight = decoder.Frames[0].PixelHeight;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning($"Could not read image dimensions for decode cap: {absolutePath} ({ex.Message})");
-            return 0; // fall back to native decode
-        }
-
-        var decodeWidth = ImageDecodeMath.ComputeDecodePixelWidth(
-            sourceWidth, sourceHeight, _maxDecodePixelWidth, _maxDecodePixelHeight);
-
-        if (decodeWidth > 0)
-        {
-            _logger.LogWarning(
-                $"Large content image {sourceWidth}x{sourceHeight}px downscaled to fit " +
-                $"{_maxDecodePixelWidth}x{_maxDecodePixelHeight}: {absolutePath}");
-            LargeImageDetected?.Invoke(Path.GetFileName(absolutePath), sourceWidth, sourceHeight);
-        }
-
-        return decodeWidth;
-    }
-
-    /// <summary>
-    /// Loads a WPF bitmap from an absolute file path and freezes it for thread safety. When
-    /// <paramref name="decodePixelWidth"/> is positive the image is downscaled at decode time — this
-    /// bounds both decode cost and later render cost, which is what previously caused very large
-    /// images (e.g. high-megapixel TIFFs) to hang the UI.
-    /// </summary>
-    private static BitmapImage LoadFrozenBitmap(string absolutePath, int decodePixelWidth = 0)
-    {
-        var bitmap = new BitmapImage();
-        bitmap.BeginInit();
-        bitmap.UriSource = new Uri(absolutePath, UriKind.Absolute);
-        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        if (decodePixelWidth > 0)
-            bitmap.DecodePixelWidth = decodePixelWidth;
-        bitmap.EndInit();
-        bitmap.Freeze();
-        return bitmap;
-    }
+    // Content-image decode/warning helpers live in ContentLoader.Images.cs.
 
     /// <summary>
     /// Returns all .jpg/.png/.jpeg files in <paramref name="folder"/> in file-system order.

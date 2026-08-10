@@ -25,11 +25,23 @@ public interface IContentLoader
     int MaxDecodePixelHeight { get; set; }
 
     /// <summary>
-    /// Raised (on the caller's thread, before decode) when a content image is large enough that it is
-    /// being downscaled to fit the decode box. Arguments are the file name and the image's native
-    /// pixel width and height. The image is still loaded (downscaled); this drives a UI notice.
+    /// File-size threshold in bytes at/above which <see cref="LargeImageDetected"/> fires while a
+    /// content image loads. Advisory only; <c>0</c> disables it.
     /// </summary>
-    event Action<string, int, int>? LargeImageDetected;
+    long LargeImageWarnBytes { get; set; }
+
+    /// <summary>
+    /// Gates content-image diagnostics: the <see cref="LargeImageDetected"/> notice and the heavy-file /
+    /// downscale log warnings. When <c>false</c> (default) they are suppressed; downscaling still runs.
+    /// </summary>
+    bool EnableImageDiagnostics { get; set; }
+
+    /// <summary>
+    /// Raised (on the caller's thread, before decode) when a content image file is at/over
+    /// <see cref="LargeImageWarnBytes"/>. Arguments are the file name and its size in bytes. The image
+    /// is still loaded (downscaled to the display box); this drives a non-blocking UI notice.
+    /// </summary>
+    event Action<string, long>? LargeImageDetected;
     string ContentFolderPath { get; set; }
     string? ExcelCoordinateFilePath { get; set; }
     bool IsInitialized { get; }
