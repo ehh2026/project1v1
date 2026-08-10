@@ -31,6 +31,7 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --settings .runsettings
 dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 .\run-demo.bat                                    # Windows: build + launch
 .\scripts\validate_startup.ps1                  # Headless startup check (Windows)
+.\scripts\toggle-dev-tools.ps1 -State on        # Enable/disable in-app developer tools (on|off|toggle)
 
 # Local quality gates
 dotnet format InteractiveWorldMap.sln --verify-no-changes
@@ -57,7 +58,7 @@ py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scrip
 | `Tests/` | xUnit tests including architecture structural tests |
 | `scripts/` | Verification, log query, Python tooling — see [scripts/README.md](scripts/README.md) |
 | `Images&Content/` | `Assets/` (maps, pin parts), `Demo-Content/` / `Production-Content/` (Excel, `locations.json`, location folders), `Extras/` — see [CONTENT_SETS.md](docs/guides/CONTENT_SETS.md) |
-| `visual-config.json` | Machine-readable UI/debug config (deserialize to `Models/VisualConfig`) |
+| `visual-config.default.json` | Checked-in UI/debug config defaults (deserialize to `Models/VisualConfig`). A per-machine `visual-config.json` is seeded next to the built exe and overrides these; user values win on merge. |
 
 ## Architecture Rules
 

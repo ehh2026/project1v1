@@ -631,6 +631,98 @@ public class ContentLoaderTests
         }
     }
 
+    [Fact]
+    public async Task LoadLocationContentAsync_HeavyFile_RaisesLargeImageDetected_WhenDiagnosticsEnabled()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var folder = Path.Combine(tempDir, "Big");
+            Directory.CreateDirectory(folder);
+            SaveTinyPng(Path.Combine(folder, "1.png"));
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                EnableImageDiagnostics = true,
+                LargeImageWarnBytes = 1 // any real file exceeds one byte
+            };
+
+            string? firedFile = null;
+            long firedBytes = 0;
+            loader.LargeImageDetected += (file, bytes) => { firedFile = file; firedBytes = bytes; };
+
+            await loader.LoadLocationContentAsync(new Location { Name = "Big", Id = "id_big" });
+
+            Assert.Equal("1.png", firedFile);
+            Assert.True(firedBytes > 0);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadLocationContentAsync_SubThresholdFile_DoesNotRaiseLargeImageDetected()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var folder = Path.Combine(tempDir, "Small");
+            Directory.CreateDirectory(folder);
+            SaveTinyPng(Path.Combine(folder, "1.png"));
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                EnableImageDiagnostics = true,
+                LargeImageWarnBytes = 10_000_000 // tiny png is well under 10 MB
+            };
+
+            var fired = false;
+            loader.LargeImageDetected += (_, _) => fired = true;
+
+            await loader.LoadLocationContentAsync(new Location { Name = "Small", Id = "id_small" });
+
+            Assert.False(fired);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadLocationContentAsync_DiagnosticsDisabled_DoesNotRaise_EvenOverThreshold()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var folder = Path.Combine(tempDir, "Big");
+            Directory.CreateDirectory(folder);
+            SaveTinyPng(Path.Combine(folder, "1.png"));
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
+            {
+                ContentFolderPath = tempDir,
+                EnableImageDiagnostics = false, // gate off
+                LargeImageWarnBytes = 1
+            };
+
+            var fired = false;
+            loader.LargeImageDetected += (_, _) => fired = true;
+
+            await loader.LoadLocationContentAsync(new Location { Name = "Big", Id = "id_big2" });
+
+            Assert.False(fired);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
     /// <summary>
     /// Loader that skips the repo Excel file so JSON-only tests stay isolated.
     /// </summary>

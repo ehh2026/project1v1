@@ -30,8 +30,16 @@ namespace InteractiveWorldMap.Models
         /// actionable warning is logged and an on-screen notice is shown while it loads (the image is
         /// still displayed, downscaled to the display box). This tracks decode/IO latency — the symptom
         /// seen with large (e.g. 200&#160;MB) TIFFs — independently of pixel dimensions. Default 75&#160;MB;
-        /// <c>0</c> disables the notice.
+        /// <c>0</c> disables the notice. The heavy-file notice/log are additionally gated by
+        /// <c>Debug.LogContentImageDiagnostics</c> (developer-only).
         /// </summary>
         public long LargeImageWarnBytes { get; set; } = 75L * 1024 * 1024;
+
+        /// <summary>
+        /// Show the transient "Loading content…" banner on every content open. This is a guest-facing
+        /// UX choice independent of developer tools/diagnostics: enable it if you want visitors to see
+        /// load feedback. Default <c>false</c> because gallery content is pre-optimized to load quickly.
+        /// </summary>
+        public bool ShowLoadingStatus { get; set; } = false;
     }
 }

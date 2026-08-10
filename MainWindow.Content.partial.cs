@@ -28,6 +28,10 @@ namespace InteractiveWorldMap
         // Auto-hide timer for the transient content status/warning banner (ContentStatusBanner).
         private DispatcherTimer? _contentStatusTimer;
 
+        // Set (in MB) while opening a location whose image file tripped the heavy-file notice, so the
+        // post-decode banner can switch from in-progress to past-tense wording. Null when none tripped.
+        private double? _lastLargeImageMb;
+
         /// <summary>
         /// Shows the bottom-left content status banner with <paramref name="message"/>. When
         /// <paramref name="autoHideAfter"/> is provided the banner clears itself after that delay;
@@ -66,6 +70,7 @@ namespace InteractiveWorldMap
         private void OnLargeContentImageDetected(string fileName, long bytes)
         {
             var megabytes = bytes / (1024.0 * 1024.0);
+            _lastLargeImageMb = megabytes;
             ShowContentStatus($"Large image ({megabytes:F0} MB) — optimizing for display…");
         }
 
@@ -90,7 +95,12 @@ namespace InteractiveWorldMap
             try
             {
                 _logger.LogInfo($"Opening content for location: {location.Name}");
-                ShowContentStatus("Loading content…");
+                _lastLargeImageMb = null;
+                // The "Loading content…" banner is a standalone guest-facing UX toggle (default off,
+                // enable via ContentImages.ShowLoadingStatus). It is independent of the developer
+                // large-image diagnostics, which are gated separately by EnableImageDiagnostics.
+                if (_visualConfig.ContentImages.ShowLoadingStatus)
+                    ShowContentStatus("Loading content…");
 
                 // Close existing subwindow and thumbnail browser if any
                 if (_activeSubwindow != null)
@@ -143,10 +153,10 @@ namespace InteractiveWorldMap
             }
             finally
             {
-                // If a large-image warning was raised, leave it up briefly; otherwise clear the
-                // "Loading content…" banner now that the content window is up (or failed).
-                if (ContentStatusText.Text.StartsWith("Large image", StringComparison.Ordinal))
-                    ShowContentStatus(ContentStatusText.Text, TimeSpan.FromSeconds(4));
+                // If the image file tripped the heavy-file notice, leave a brief past-tense confirmation
+                // (decode is done by now); otherwise clear the "Loading content…" banner.
+                if (_lastLargeImageMb is { } mb)
+                    ShowContentStatus($"Large image ({mb:F0} MB) — optimized for display", TimeSpan.FromSeconds(4));
                 else
                     HideContentStatus();
             }

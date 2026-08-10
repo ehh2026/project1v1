@@ -37,6 +37,7 @@ This top-level sample is intentionally abbreviated. The actual file also include
 - `RadialExtension`
 - `ManualLayoutEditor`
 - `ContentWindows`
+- `ContentImages`
 - `Debug`
 
 ## Developer Tools Master Gate
@@ -265,6 +266,20 @@ When set to `true` and composite rendering is also enabled for the current marke
 - head center
 
 This is intended for tuning and screenshot-based inspection only, and should normally remain `false`.
+
+- `LogContentImageDiagnostics`
+
+When `true` (and `EnableDeveloperTools` is also `true`), content-image diagnostics are surfaced: the on-screen "large image" notice and the heavy-file / downscale log warnings. Off by default so gallery visitors never see them and logs stay quiet. Image downscaling itself always runs regardless of this flag.
+
+## ContentImages
+
+Bounds how location content images are decoded so a very large image (e.g. a high-megapixel TIFF) cannot blow up render cost/memory and hang the content popup.
+
+- `MaxDecodePixelWidth` (default `3840`) and `MaxDecodePixelHeight` (default `2160`) — the target decode box. Images larger than the box are downscaled at decode time (aspect ratio preserved); smaller images are never upscaled.
+- `LargeImageWarnBytes` (default `78643200`, i.e. 75 MB) — file-size threshold for the advisory notice/log (gated by `Debug.LogContentImageDiagnostics`). Advisory only; it does not change the decoded result. `0` disables it.
+- `ShowLoadingStatus` (default `false`) — show the transient "Loading content…" banner on every content open. This is a standalone guest-facing toggle, independent of developer tools/diagnostics; enable it if you want visitors to see load feedback.
+
+**Effective decode box:** at launch the app takes the **smaller** of the configured box and the display's physical resolution per dimension, so an operator can set a *smaller* cap (e.g. `1920×1080`) to save memory, but the box never exceeds what the screen can show. Each dimension is floored to a 4K bound (`3840×2160`) so it is never left unbounded — even if display detection fails or a dimension is set to `0`. The world map and pin-part assets are unaffected; they always decode at native resolution.
 
 ## ContentWindows
 

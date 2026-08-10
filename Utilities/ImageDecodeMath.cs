@@ -20,6 +20,23 @@ namespace InteractiveWorldMap.Utilities
         /// upscaled.
         /// </para>
         /// </summary>
+        /// <summary>
+        /// Resolves the effective decode cap for one dimension from a configured cap and a
+        /// display-derived cap. The tighter (smaller) of the two positive values wins, so an operator
+        /// who sets a smaller cap to save memory is honored while never exceeding the display; if only
+        /// one is positive it wins; if neither is positive the <paramref name="fallback"/> is used so
+        /// the dimension is never left unbounded.
+        /// </summary>
+        public static int ResolveDecodeCap(int configCap, int displayCap, int fallback)
+        {
+            var result = 0;
+            if (configCap > 0)
+                result = configCap;
+            if (displayCap > 0)
+                result = result > 0 ? System.Math.Min(result, displayCap) : displayCap;
+            return result > 0 ? result : fallback;
+        }
+
         public static int ComputeDecodePixelWidth(int sourceWidth, int sourceHeight, int maxWidth, int maxHeight)
         {
             if (sourceWidth <= 0 || sourceHeight <= 0)
