@@ -169,6 +169,9 @@ namespace InteractiveWorldMap
                 _contentLoader = new ContentLoader(_logger, _contentSetResolver);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
                 _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
+                _contentLoader.MaxDecodePixelWidth = _visualConfig.ContentImages.MaxDecodePixelWidth;
+                _contentLoader.MaxDecodePixelHeight = _visualConfig.ContentImages.MaxDecodePixelHeight;
+                _contentLoader.LargeImageDetected += OnLargeContentImageDetected;
                 _logger.LogInfo("ContentLoader created");
 
                 // Initialize radial extension calculator if enabled
@@ -485,7 +488,38 @@ namespace InteractiveWorldMap
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            ApplyDisplayBasedImageDecodeCap();
             await InitializeAsync();
+        }
+
+        /// <summary>
+        /// Sizes the content-image decode box to the actual physical resolution of the display the app
+        /// is running on (e.g. 3840x2160 on a 4K gallery screen), so images are never decoded to more
+        /// pixels than the screen can show. Falls back to the configured defaults if the DPI/screen
+        /// metrics are unavailable. Runs once the window is loaded, when a valid DPI context exists.
+        /// </summary>
+        private void ApplyDisplayBasedImageDecodeCap()
+        {
+            try
+            {
+                var dpi = VisualTreeHelper.GetDpi(this);
+                if (PhysicalPixelSizeCalculator.TryCalculate(
+                        SystemParameters.PrimaryScreenWidth,
+                        SystemParameters.PrimaryScreenHeight,
+                        dpi.DpiScaleX,
+                        dpi.DpiScaleY,
+                        out var pixelWidth,
+                        out var pixelHeight))
+                {
+                    _contentLoader.MaxDecodePixelWidth = pixelWidth;
+                    _contentLoader.MaxDecodePixelHeight = pixelHeight;
+                    _logger.LogInfo($"Content image decode box set to display size: {pixelWidth}x{pixelHeight}");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Could not size decode box to display; using config defaults ({ex.Message})");
+            }
         }
 
         private void OnClusterClicked(LocationCluster cluster)

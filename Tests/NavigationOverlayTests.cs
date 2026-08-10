@@ -34,7 +34,9 @@ public class NavigationOverlayTests
             .Where(name => name != null)
             .ToArray();
 
-        Assert.Equal(new[] { "ManualLayoutIndicator", "BackButton" }, namedChildren);
+        Assert.Equal(
+            new[] { "ManualLayoutIndicator", "ContentStatusBanner", "BackButton" },
+            namedChildren);
     }
 
     [Fact]

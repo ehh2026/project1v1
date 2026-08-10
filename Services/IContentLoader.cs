@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Windows.Media.Imaging;
@@ -10,6 +11,25 @@ public interface IContentLoader
 {
     double ClusterDistanceThreshold { get; set; }
     int MaxCachedLocations { get; set; }
+
+    /// <summary>
+    /// Width of the decode target box in pixels. Images larger than the box are downscaled at decode
+    /// time (aspect ratio preserved). A non-positive value on both dimensions means full-resolution
+    /// decode. See <see cref="Utilities.ImageDecodeMath"/>.
+    /// </summary>
+    int MaxDecodePixelWidth { get; set; }
+
+    /// <summary>
+    /// Height of the decode target box in pixels. See <see cref="MaxDecodePixelWidth"/>.
+    /// </summary>
+    int MaxDecodePixelHeight { get; set; }
+
+    /// <summary>
+    /// Raised (on the caller's thread, before decode) when a content image is large enough that it is
+    /// being downscaled to fit the decode box. Arguments are the file name and the image's native
+    /// pixel width and height. The image is still loaded (downscaled); this drives a UI notice.
+    /// </summary>
+    event Action<string, int, int>? LargeImageDetected;
     string ContentFolderPath { get; set; }
     string? ExcelCoordinateFilePath { get; set; }
     bool IsInitialized { get; }

@@ -11,6 +11,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Media.Imaging;
 using System.Windows.Controls.Primitives;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Utilities;
@@ -23,6 +24,50 @@ namespace InteractiveWorldMap
     {
         private bool _restoreThumbnailAfterPresentation;
         private bool _restoreDidacticAfterPresentation;
+
+        // Auto-hide timer for the transient content status/warning banner (ContentStatusBanner).
+        private DispatcherTimer? _contentStatusTimer;
+
+        /// <summary>
+        /// Shows the bottom-left content status banner with <paramref name="message"/>. When
+        /// <paramref name="autoHideAfter"/> is provided the banner clears itself after that delay;
+        /// otherwise it stays until <see cref="HideContentStatus"/> is called. Safe to call repeatedly.
+        /// </summary>
+        private void ShowContentStatus(string message, TimeSpan? autoHideAfter = null)
+        {
+            ContentStatusText.Text = message;
+            ContentStatusBanner.Visibility = Visibility.Visible;
+
+            _contentStatusTimer?.Stop();
+            if (autoHideAfter is not { } delay)
+                return;
+
+            _contentStatusTimer ??= new DispatcherTimer();
+            _contentStatusTimer.Interval = delay;
+            _contentStatusTimer.Tick -= OnContentStatusTimerTick;
+            _contentStatusTimer.Tick += OnContentStatusTimerTick;
+            _contentStatusTimer.Start();
+        }
+
+        private void OnContentStatusTimerTick(object? sender, EventArgs e) => HideContentStatus();
+
+        private void HideContentStatus()
+        {
+            _contentStatusTimer?.Stop();
+            ContentStatusBanner.Visibility = Visibility.Collapsed;
+            ContentStatusText.Text = string.Empty;
+        }
+
+        /// <summary>
+        /// Raised by <see cref="IContentLoader.LargeImageDetected"/> (on the UI thread) when a content
+        /// image is being downscaled to fit the display. The image is still shown; this just tells the
+        /// user why opening takes a moment instead of appearing to hang.
+        /// </summary>
+        private void OnLargeContentImageDetected(string fileName, int pixelWidth, int pixelHeight)
+        {
+            var megapixels = (pixelWidth * (long)pixelHeight) / 1_000_000.0;
+            ShowContentStatus($"Large image ({megapixels:F0} MP) — scaling to fit the display…");
+        }
 
         private ContentSubwindow CreateContentSubwindow(Location location)
         {
@@ -45,6 +90,7 @@ namespace InteractiveWorldMap
             try
             {
                 _logger.LogInfo($"Opening content for location: {location.Name}");
+                ShowContentStatus("Loading content…");
 
                 // Close existing subwindow and thumbnail browser if any
                 if (_activeSubwindow != null)
@@ -94,6 +140,15 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 _logger.LogError($"Failed to show content for location {location.Name}: {ex.Message}");
+            }
+            finally
+            {
+                // If a large-image warning was raised, leave it up briefly; otherwise clear the
+                // "Loading content…" banner now that the content window is up (or failed).
+                if (ContentStatusText.Text.StartsWith("Large image", StringComparison.Ordinal))
+                    ShowContentStatus(ContentStatusText.Text, TimeSpan.FromSeconds(4));
+                else
+                    HideContentStatus();
             }
         }
 

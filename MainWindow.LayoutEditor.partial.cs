@@ -679,6 +679,7 @@ namespace InteractiveWorldMap
 
             ApplyCompositePinDepthSort();
             UpdatePinTipCaps();
+            RefreshHitTargetsAfterManualLayout();
         }
 
         private void ApplyManualLayoutInstruction(
