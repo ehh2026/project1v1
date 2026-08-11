@@ -447,6 +447,35 @@ private static List<Location> CreateTestLocations(int count) { /* ... */ }
 
 ---
 
+## Implementation Guidelines
+
+### Bug Discovery During Testing
+
+If you discover bugs while implementing test coverage, follow this process:
+
+1. **Do NOT fix the bug immediately** — stay focused on test coverage
+2. **Document the bug** in the relevant exec plan or create a new bug-specific plan file in `docs/exec-plans/active/`
+3. **Add a TO_DO.md entry** pointing to the bug plan for tracking
+4. **Write an xfail test** that demonstrates the bug and will pass when fixed:
+   ```csharp
+   [Fact(Skip = "Bug: Describe the bug and reference plan file")]
+   public void TestName_ThatDemonstratesBug()
+   {
+       // Test that currently fails due to bug
+       // When bug is fixed, remove Skip attribute
+   }
+   ```
+5. **Continue with test coverage** — the xfail test documents the issue without blocking progress
+
+**Example TO_DO.md entry:**
+```markdown
+- [ ] Fix RadialExtensionCalculator angle wrap-around bug at 360° (see docs/exec-plans/active/radial-extension-bug-fix.md)
+```
+
+**Rationale:** This keeps the coverage initiative focused while ensuring bugs are properly documented and tracked for future fixes.
+
+---
+
 ## Phase 3: Error Paths + High-Value Expansions
 
 ### 3.1 ContentLoader Error Handling (~4-6 hours)
