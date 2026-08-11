@@ -111,7 +111,7 @@ Expected: build, non-performance tests, coverage gate, doc checks, taste checks,
 Run:
 
 ```powershell
-py -3 scripts\summarize_coverage.py --results-directory TestResults\verify-coverage --min-line-coverage 42 --min-branch-coverage 37
+py -3 scripts\summarize_coverage.py --results-directory TestResults\verify-coverage --min-line-coverage 45 --min-branch-coverage 40
 ```
 
 Expected: line coverage is at least 46.2% and branch coverage is at least 40.7%. Update this section if the numbers changed.

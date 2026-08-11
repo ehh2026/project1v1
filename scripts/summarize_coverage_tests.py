@@ -27,12 +27,12 @@ class SummarizeCoverageTests(unittest.TestCase):
             coverage = Path(tmp) / "coverage.cobertura.xml"
             coverage.write_text(COBERTURA.format(line_rate="0.41", branch_rate="0.36"), encoding="utf-8")
             args = summarize_coverage.parse_args(
-                [tmp, "--min-line-coverage", "42", "--min-branch-coverage", "37"])
+                [tmp, "--min-line-coverage", "45", "--min-branch-coverage", "40"])
 
             self.assertEqual(1, summarize_coverage.check_thresholds(args, [coverage]))
 
     def test_missing_coverage_with_threshold_returns_one(self):
-        args = summarize_coverage.parse_args(["--min-line-coverage", "42"])
+        args = summarize_coverage.parse_args(["--min-line-coverage", "45"])
 
         self.assertEqual(1, summarize_coverage.check_thresholds(args, []))
 

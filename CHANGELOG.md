@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Complexity/CI hooks plan archived:** `complexity-and-ci-hooks.md` moved to `docs/exec-plans/completed/` after `.\scripts\verify.ps1` passed on 2026-08-11 (842 tests, 48.9% line / 44.0% branch), closing the final archival bookkeeping item.
+
+- **Coverage gate ratchet:** Raised the enforced coverage threshold from 42% line / 37% branch to **45% line / 40% branch** in CI, the advisory workflow, and local verify scripts (`scripts/verify.ps1` / `verify.sh`, `AGENTS.md`, `scripts/README.md`), matching the current 48.9% line / 44.0% branch baseline without blocking the still-open 50% / 45% ratchet.
+
 - **Coverage ratchet implementation:** Added temp-directory seams and focused tests for `ClusterCache`, `CompositePinPlanCache`, and `FileLogger`, expanded `CompositePinApplicationService`, `ManualLayoutManager`, `LayoutEditorController`, `StartupValidator`, and `ContentLoader` coverage, and recorded the active coverage-plan pause point for the unfinished 50% / 45% target.
 
 - **Coverage plan refresh:** Revised the active test-coverage ratchet plan for the current 46.2% line / 40.7% branch baseline, separating completed service-testability work from remaining slices and adding explicit cache/logging testability seams, verification commands, and a path toward the 60% / 50% backlog target.

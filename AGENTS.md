@@ -35,7 +35,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 
 # Local quality gates
 dotnet format InteractiveWorldMap.sln --verify-no-changes
-py -3 scripts\summarize_coverage.py --results-directory TestResults\verify-coverage --min-line-coverage 42 --min-branch-coverage 37
+py -3 scripts\summarize_coverage.py --results-directory TestResults\verify-coverage --min-line-coverage 45 --min-branch-coverage 40
 py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
 ```
 

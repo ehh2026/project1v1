@@ -33,13 +33,12 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08). Refactoring assessment follow-through archived (2026-07-30) — [refactoring-assessment-followthrough-plan.md](exec-plans/completed/refactoring-assessment-followthrough-plan.md).
 
-- [ ] Finalize complexity/CI hooks plan archival after confirm `.\scripts\verify.ps1` is green - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
 ## Developer tooling
 
 - [ ] Explore building a distributable Windows executable (local `dotnet publish` + optional GitHub Actions publish job): decide self-contained vs framework-dependent, single file vs zip, signing, and installer needs — see [BUILDING_EXECUTABLE.md](guides/BUILDING_EXECUTABLE.md)
-- [ ] Increase test coverage from the latest full-run snapshot of 48.9% line / 44.0% branch toward 60% line / 50% branch: cache/logging seams and several service expansions are in progress; continue remaining ContentLoader, radial geometry, MainWindow-adjacent source guards, and edge-case error paths. Current coverage meets blocking gates (42%/37%) but the 50% / 45% next ratchet is not yet reached.
+- [ ] Increase test coverage from the latest full-run snapshot of 48.9% line / 44.0% branch toward 60% line / 50% branch: cache/logging seams and several service expansions are in progress; continue remaining ContentLoader, radial geometry, MainWindow-adjacent source guards, and edge-case error paths. Current coverage meets blocking gates (45%/40%) but the 50% / 45% next ratchet is not yet reached.
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
 
 ## User ideas (product)
