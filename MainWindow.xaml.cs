@@ -169,6 +169,12 @@ namespace InteractiveWorldMap
                 _contentLoader = new ContentLoader(_logger, _contentSetResolver);
                 _contentLoader.ClusterDistanceThreshold = _visualConfig.ClusterDistanceThreshold;
                 _contentLoader.MaxCachedLocations = _visualConfig.MaxCachedLocations;
+                _contentLoader.MaxDecodePixelWidth = _visualConfig.ContentImages.MaxDecodePixelWidth;
+                _contentLoader.MaxDecodePixelHeight = _visualConfig.ContentImages.MaxDecodePixelHeight;
+                _contentLoader.LargeImageWarnBytes = _visualConfig.ContentImages.LargeImageWarnBytes;
+                _contentLoader.EnableImageDiagnostics =
+                    AreDeveloperToolsEnabled() && _visualConfig.Debug.LogContentImageDiagnostics;
+                _contentLoader.LargeImageDetected += OnLargeContentImageDetected;
                 _logger.LogInfo("ContentLoader created");
 
                 // Initialize radial extension calculator if enabled
@@ -485,7 +491,68 @@ namespace InteractiveWorldMap
 
         private async void OnWindowLoaded(object sender, RoutedEventArgs e)
         {
+            ApplyDisplayBasedImageDecodeCap();
             await InitializeAsync();
+        }
+
+        // Safety floor for the content-image decode box (4K UHD). Used when neither the display metrics
+        // nor the config supply a positive cap, so a very large image can never be decoded unbounded
+        // (which is what hung the UI on big TIFFs).
+        private const int FallbackDecodePixelWidth = 3840;
+        private const int FallbackDecodePixelHeight = 2160;
+
+        /// <summary>
+        /// Sizes the content-image decode box from the configured caps and the display's physical
+        /// resolution: per dimension it takes the smaller of the two (so an operator's smaller cap is
+        /// honored, but the box never exceeds what the screen can show), and floors each dimension to
+        /// a 4K bound so it is never left unbounded — even if display detection fails or a config leaves
+        /// one dimension at 0. Runs once the window is loaded, when a valid DPI context exists.
+        /// <para>
+        /// Multi-monitor: the full-screen window's own size (<see cref="FrameworkElement.ActualWidth"/>/
+        /// <see cref="FrameworkElement.ActualHeight"/> in DIPs) reflects whichever monitor it is on, so
+        /// the box tracks the actual gallery display rather than assuming the primary screen. It falls
+        /// back to the primary screen only if the window has not been sized yet.
+        /// </para>
+        /// </summary>
+        private void ApplyDisplayBasedImageDecodeCap()
+        {
+            int displayWidth = 0, displayHeight = 0;
+            try
+            {
+                var dpi = VisualTreeHelper.GetDpi(this);
+
+                // Prefer the window's actual size (the monitor it is displayed on) over the primary
+                // screen, so a kiosk running on a secondary display is sized correctly.
+                var dipWidth = ActualWidth > 0 ? ActualWidth : SystemParameters.PrimaryScreenWidth;
+                var dipHeight = ActualHeight > 0 ? ActualHeight : SystemParameters.PrimaryScreenHeight;
+
+                if (PhysicalPixelSizeCalculator.TryCalculate(
+                        dipWidth,
+                        dipHeight,
+                        dpi.DpiScaleX,
+                        dpi.DpiScaleY,
+                        out displayWidth,
+                        out displayHeight))
+                {
+                    _logger.LogInfo($"Display physical size for content decode box: {displayWidth}x{displayHeight}");
+                }
+                else
+                {
+                    _logger.LogWarning("Display size unavailable; content decode box uses config/floor only.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning($"Could not read display size for content decode box ({ex.Message}); using config/floor.");
+            }
+
+            var config = _visualConfig.ContentImages;
+            _contentLoader.MaxDecodePixelWidth =
+                ImageDecodeMath.ResolveDecodeCap(config.MaxDecodePixelWidth, displayWidth, FallbackDecodePixelWidth);
+            _contentLoader.MaxDecodePixelHeight =
+                ImageDecodeMath.ResolveDecodeCap(config.MaxDecodePixelHeight, displayHeight, FallbackDecodePixelHeight);
+            _logger.LogInfo(
+                $"Content image decode box: {_contentLoader.MaxDecodePixelWidth}x{_contentLoader.MaxDecodePixelHeight}");
         }
 
         private void OnClusterClicked(LocationCluster cluster)

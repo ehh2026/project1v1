@@ -36,6 +36,23 @@
                            FontWeight="SemiBold"/>
             </Border>
 
+            <!-- Transient content status/warning banner (e.g. loading or large-image notice) -->
+            <Border x:Name="ContentStatusBanner"
+                    Visibility="Collapsed"
+                    Margin="0,0,0,8"
+                    HorizontalAlignment="Left"
+                    Background="#CC000000"
+                    BorderBrush="#FFD700"
+                    BorderThickness="1"
+                    CornerRadius="6"
+                    Padding="10,5">
+                <TextBlock x:Name="ContentStatusText"
+                           Text=""
+                           Foreground="White"
+                           FontSize="11"
+                           FontWeight="SemiBold"/>
+            </Border>
+
             <Button x:Name="BackButton"
                     Content="← Back to Full Map"
                     Visibility="Collapsed"

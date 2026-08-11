@@ -120,6 +120,21 @@ public class ManualLayoutZoomAnimationTests
     }
 
     [Fact]
+    public void ApplyManualLayout_ResyncsHitTargetsAfterSettle_SkippingAnimationFrames()
+    {
+        // Saved layouts in dense clusters must re-sync pin hit targets once the layout has fully
+        // settled (mirroring the Delete & Recalculate path), and skip that work on animation frames.
+        var editorSource = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.LayoutEditor.partial.cs"));
+        var applyBody = ExtractMethodBody(editorSource, "private void ApplyManualLayout");
+        Assert.Contains("RefreshHitTargetsAfterManualLayout()", applyBody);
+
+        var interactionSource = File.ReadAllText(Path.Combine(RepoRoot, "MainWindow.MarkerInteraction.partial.cs"));
+        var resyncBody = ExtractMethodBody(interactionSource, "private void RefreshHitTargetsAfterManualLayout()");
+        Assert.Contains("if (!IsAnimating)", resyncBody);
+        Assert.Contains("RefreshMarkerHitTargets()", resyncBody);
+    }
+
+    [Fact]
     public void UpdateMarkerPositions_CachesVisibleProjectionsDuringAnimation()
     {
         // Phase 2.2: visibility/source coords are constant across a single animation, so the

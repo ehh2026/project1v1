@@ -34,6 +34,7 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `advisory_code_health.py` | Pre-push, advisory CI | stdlib | Non-blocking largest-file, advisory size, and approximate method complexity report |
 | `summarize_coverage.py` | Advisory CI | stdlib | Summarize Cobertura coverage emitted by `dotnet test --collect:"XPlat Code Coverage"` |
 | `install_git_hooks.ps1` | Manual | Git | Configure local `core.hooksPath` to use `.githooks/pre-push` |
+| `toggle-dev-tools.ps1` | Manual | — | Turn `EnableDeveloperTools` on/off in every runtime `visual-config.json` next to a built/published exe (`-State on\|off\|toggle`; `-PublishDir <path>` for an external publish) |
 | `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter. Incomplete active plans older than 30 days warn only (same policy as `verify_taste.py`). |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |

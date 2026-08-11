@@ -129,6 +129,11 @@ namespace InteractiveWorldMap.Models
         /// </summary>
         public ContentWindowConfig ContentWindows { get; set; } = new ContentWindowConfig();
 
+        /// <summary>
+        /// Bounds on how content images are decoded and when oversized files trigger a warning.
+        /// </summary>
+        public ContentImageConfig ContentImages { get; set; } = new ContentImageConfig();
+
     }
 }
 

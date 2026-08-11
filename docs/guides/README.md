@@ -5,6 +5,7 @@ How the app works and how to operate it. Stable behavior lives here; future work
 | Doc | Description |
 |-----|-------------|
 | [SETUP_GUIDE.md](SETUP_GUIDE.md) | .NET SDK and Python venv setup |
+| [BUILDING_EXECUTABLE.md](BUILDING_EXECUTABLE.md) | Publishing a Windows executable (local `dotnet publish` and GitHub Actions) |
 | [DEMO_INSTRUCTIONS.md](DEMO_INSTRUCTIONS.md) | Demo and smoke-test checklist |
 | [VISUAL_CONFIG.md](VISUAL_CONFIG.md) | `visual-config.json` schema and usage |
 | [CONTENT_FEATURES.md](CONTENT_FEATURES.md) | Content loading and popup behavior |

@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** July 30, 2026
+**Last updated:** August 10, 2026
 
 ## Zoom & animation
 
@@ -38,6 +38,8 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Developer tooling
 
+- [ ] Explore building a distributable Windows executable (local `dotnet publish` + optional GitHub Actions publish job): decide self-contained vs framework-dependent, single file vs zip, signing, and installer needs — see [BUILDING_EXECUTABLE.md](guides/BUILDING_EXECUTABLE.md)
+- [ ] Increase test coverage from current 44.7% line / 39.8% branch toward 60% line / 50% branch: prioritize Services layer (ContentLoader, CompositePinApplicationService, ManualLayoutManager), MainWindow partials (Navigation, MarkerPlacement, Content), and edge-case error paths. Current coverage meets blocking gates (42%/37%) but leaves significant behavior untested.
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
 
 ## User ideas (product)

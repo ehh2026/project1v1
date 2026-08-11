@@ -13,7 +13,7 @@ namespace InteractiveWorldMap.Services;
 /// <summary>
 /// Loads map images, location data, and location content from the Content_Folder.
 /// </summary>
-public class ContentLoader : IContentLoader
+public partial class ContentLoader : IContentLoader
 {
     private readonly ILogger _logger;
     private readonly IContentSetResolver _contentSetResolver;
@@ -62,6 +62,51 @@ public class ContentLoader : IContentLoader
             EnforceContentCacheLimit();
         }
     }
+
+    private int _maxDecodePixelWidth;
+    private int _maxDecodePixelHeight;
+
+    /// <summary>
+    /// Width of the decode target box. Images larger than the box are downscaled at decode time
+    /// (aspect preserved); a non-positive value on both dimensions leaves images at native resolution.
+    /// Negative values are clamped to 0.
+    /// </summary>
+    public int MaxDecodePixelWidth
+    {
+        get => _maxDecodePixelWidth;
+        set => _maxDecodePixelWidth = value < 0 ? 0 : value;
+    }
+
+    /// <summary>
+    /// Height of the decode target box. See <see cref="MaxDecodePixelWidth"/>.
+    /// </summary>
+    public int MaxDecodePixelHeight
+    {
+        get => _maxDecodePixelHeight;
+        set => _maxDecodePixelHeight = value < 0 ? 0 : value;
+    }
+
+    private long _largeImageWarnBytes;
+
+    /// <summary>
+    /// File-size threshold in bytes at/above which <see cref="LargeImageDetected"/> fires while loading
+    /// a content image. Advisory only (does not affect the decoded result); <c>0</c> disables it.
+    /// Negative values are clamped to 0.
+    /// </summary>
+    public long LargeImageWarnBytes
+    {
+        get => _largeImageWarnBytes;
+        set => _largeImageWarnBytes = value < 0 ? 0 : value;
+    }
+
+    /// <summary>
+    /// Gates content-image diagnostics (notice + heavy-file/downscale warnings). Off by default so
+    /// they only appear when developer/debug diagnostics are enabled. Does not affect downscaling.
+    /// </summary>
+    public bool EnableImageDiagnostics { get; set; }
+
+    /// <inheritdoc />
+    public event Action<string, long>? LargeImageDetected;
 
     private string _contentFolderPath = string.Empty;
 
@@ -361,10 +406,12 @@ public class ContentLoader : IContentLoader
                     continue;
                 }
 
+                WarnIfHeavyImageFile(imagePath);
+
                 BitmapImage image;
                 try
                 {
-                    image = await Task.Run(() => LoadFrozenBitmap(imagePath));
+                    image = await Task.Run(() => LoadImageDownscaled(imagePath));
                 }
                 catch (Exception ex)
                 {
@@ -453,7 +500,8 @@ public class ContentLoader : IContentLoader
                 return null;
             }
 
-            var bitmap = await Task.Run(() => LoadFrozenBitmap(imageFiles!));
+            WarnIfHeavyImageFile(imageFiles!);
+            var bitmap = await Task.Run(() => LoadImageDownscaled(imageFiles!));
 
             // Cache the loaded image
             AddToContentCache(cacheKey, bitmap);
@@ -577,19 +625,7 @@ public class ContentLoader : IContentLoader
     // Private helpers
     // -------------------------------------------------------------------------
 
-    /// <summary>
-    /// Loads a WPF bitmap from an absolute file path and freezes it for thread safety.
-    /// </summary>
-    private static BitmapImage LoadFrozenBitmap(string absolutePath)
-    {
-        var bitmap = new BitmapImage();
-        bitmap.BeginInit();
-        bitmap.UriSource = new Uri(absolutePath, UriKind.Absolute);
-        bitmap.CacheOption = BitmapCacheOption.OnLoad;
-        bitmap.EndInit();
-        bitmap.Freeze();
-        return bitmap;
-    }
+    // Content-image decode/warning helpers live in ContentLoader.Images.cs.
 
     /// <summary>
     /// Returns all .jpg/.png/.jpeg files in <paramref name="folder"/> in file-system order.

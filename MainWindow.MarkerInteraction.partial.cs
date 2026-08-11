@@ -91,6 +91,21 @@ public partial class MainWindow
             SyncClusterHitTarget(cluster);
     }
 
+    /// <summary>
+    /// Authoritative hit-target sync after a manual layout has been fully applied (all instructions,
+    /// depth sort, tip caps). This mirrors <c>UpdateMarkerPositions</c> — the Delete &amp; Recalculate
+    /// path — which ends in a single refresh. Without it, saved layouts in dense clusters could leave
+    /// pin hit targets drifted off their heads, because the per-marker refreshes inside
+    /// <c>ApplyRenderPlanToMarker</c>/<c>RepositionCompositePinMarker</c> run before the post-passes
+    /// that can still adjust final geometry. Skipped on the per-frame zoom-animation hot path; the
+    /// non-animating settle frame performs the clean sync.
+    /// </summary>
+    private void RefreshHitTargetsAfterManualLayout()
+    {
+        if (!IsAnimating)
+            RefreshMarkerHitTargets();
+    }
+
     private void SyncPinHitTarget(LocationMarker marker)
     {
         if (!TryGetPinTargetGeometry(marker, out var center, out var visibleDiameter))
