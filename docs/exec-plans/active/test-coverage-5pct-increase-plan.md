@@ -1,3 +1,9 @@
+---
+status: active
+owner: agent
+started: 2026-08-10
+---
+
 # Test Coverage Improvement Plan — 5% Increase
 
 **Goal:** Increase coverage from current **44.7% line / 39.8% branch** to **~50% line / ~45% branch** (+5.3% line, +5.2% branch)

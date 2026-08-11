@@ -26,6 +26,8 @@ started: YYYY-MM-DD
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
 | [touch-scrollable-thumbnail-browser-plan.md](touch-scrollable-thumbnail-browser-plan.md) | Touch/mouse vertical thumbnail scrolling with tap-versus-swipe arbitration |
 | [complexity-and-ci-hooks.md](complexity-and-ci-hooks.md) | Refactor high-complexity methods and promote format, analyzer, coverage, and Lizard gates |
+| [test-coverage-5pct-increase-plan.md](test-coverage-5pct-increase-plan.md) | Increase service-layer unit coverage toward the next coverage target |
+| [service-testability-refactoring-plan.md](service-testability-refactoring-plan.md) | Refactor narrow service dependencies so skipped coverage tests can be implemented with isolated fakes/temp paths |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
