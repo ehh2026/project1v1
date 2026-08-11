@@ -501,21 +501,23 @@ During implementation, the following services were found to require source code 
 - **Needed change:** Extract `ICompositePinPlanningService` interface
 - **Impact:** Low risk, well-contained change
 - **Refactoring effort:** ~30 minutes
-- **Approval required:** Yes - create separate refactoring plan
+- **Approval required:** ✅ APPROVED - see [service-testability-refactoring-plan.md](./service-testability-refactoring-plan.md)
 
 #### AnimationFrameCache
 - **Issue:** Constructor hardcodes `Environment.SpecialFolder.ApplicationData` path
 - **Needed change:** Inject cache directory path via constructor
 - **Impact:** Low risk, maintains backward compatibility with default path
 - **Refactoring effort:** ~1 hour
-- **Approval required:** Yes - create separate refactoring plan
+- **Approval required:** ✅ APPROVED - see [service-testability-refactoring-plan.md](./service-testability-refactoring-plan.md)
 
 #### FileLogger
 - **Issue:** Already documented in plan as requiring refactor for testability
 - **Needed change:** Extract `ILogPathProvider` interface (already detailed in Phase 1.5)
 - **Approval required:** Yes - explicitly approved as part of Phase 1.5
 
-**Recommendation:** Create a separate exec plan for refactoring these services for testability, then resume test coverage work.
+**Refactoring Plan:** See [service-testability-refactoring-plan.md](./service-testability-refactoring-plan.md) for detailed implementation steps, impact analysis, and verification checklist.
+
+**Recommendation:** Complete the refactoring plan (1.5-2 hours), then resume test coverage work for ManualLayoutAssignmentEnricher and AnimationFrameCache.
 
 ---
 
