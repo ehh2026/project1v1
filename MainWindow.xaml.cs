@@ -507,6 +507,12 @@ namespace InteractiveWorldMap
         /// honored, but the box never exceeds what the screen can show), and floors each dimension to
         /// a 4K bound so it is never left unbounded — even if display detection fails or a config leaves
         /// one dimension at 0. Runs once the window is loaded, when a valid DPI context exists.
+        /// <para>
+        /// Multi-monitor: the full-screen window's own size (<see cref="FrameworkElement.ActualWidth"/>/
+        /// <see cref="FrameworkElement.ActualHeight"/> in DIPs) reflects whichever monitor it is on, so
+        /// the box tracks the actual gallery display rather than assuming the primary screen. It falls
+        /// back to the primary screen only if the window has not been sized yet.
+        /// </para>
         /// </summary>
         private void ApplyDisplayBasedImageDecodeCap()
         {
@@ -514,9 +520,15 @@ namespace InteractiveWorldMap
             try
             {
                 var dpi = VisualTreeHelper.GetDpi(this);
+
+                // Prefer the window's actual size (the monitor it is displayed on) over the primary
+                // screen, so a kiosk running on a secondary display is sized correctly.
+                var dipWidth = ActualWidth > 0 ? ActualWidth : SystemParameters.PrimaryScreenWidth;
+                var dipHeight = ActualHeight > 0 ? ActualHeight : SystemParameters.PrimaryScreenHeight;
+
                 if (PhysicalPixelSizeCalculator.TryCalculate(
-                        SystemParameters.PrimaryScreenWidth,
-                        SystemParameters.PrimaryScreenHeight,
+                        dipWidth,
+                        dipHeight,
                         dpi.DpiScaleX,
                         dpi.DpiScaleY,
                         out displayWidth,

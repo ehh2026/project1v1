@@ -6,34 +6,63 @@
 
 .DESCRIPTION
     Flips "EnableDeveloperTools" in the runtime visual-config.json that the app reads — the local
-    user config next to the built executable (bin\<Config>\net6.0-windows\visual-config.json). That
-    file is git-ignored, so this never changes the shipped defaults or affects other machines.
+    user config next to the built executable. That file is git-ignored, so this never changes the
+    shipped defaults or affects other machines.
 
-    If the runtime config does not exist yet (app not built/run), it is seeded from the sibling
+    Every folder under the repo that contains the built InteractiveWorldMap.exe is updated, so it
+    does not matter whether you run a Debug build, a Release build, or a published/self-contained
+    executable (e.g. bin\<Config>\net6.0-windows\publish\). Use -PublishDir to also target a
+    publish output written outside the repo.
+
+    If the runtime config does not exist yet next to an exe, it is seeded from the sibling
     visual-config.default.json. Changes take effect the next time the app launches.
 
 .PARAMETER State
     on | off | toggle (default: toggle). "toggle" flips whatever the config currently has.
 
+.PARAMETER PublishDir
+    Optional extra folder to include (e.g. a publish output written outside the repo with
+    `dotnet publish -o`). The folder itself and any subfolders containing the exe are updated.
+
 .EXAMPLE
-    .\scripts\toggle-dev-tools.ps1            # flip it
-    .\scripts\toggle-dev-tools.ps1 -State on  # force on
+    .\scripts\toggle-dev-tools.ps1                              # flip it
+    .\scripts\toggle-dev-tools.ps1 -State on                    # force on
+    .\scripts\toggle-dev-tools.ps1 -State on -PublishDir D:\Gallery\App  # include an external publish
 #>
 [CmdletBinding()]
 param(
     [ValidateSet('on', 'off', 'toggle')]
-    [string]$State = 'toggle'
+    [string]$State = 'toggle',
+
+    [string]$PublishDir
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Split-Path -Parent $PSScriptRoot
+$exeName = 'InteractiveWorldMap.exe'
 
-# Runtime configs live next to the built exe. Update every build output that exists so it doesn't
-# matter whether the user runs Debug or Release.
-$configPaths = @(
-    Join-Path $repoRoot 'bin\Debug\net6.0-windows\visual-config.json'
-    Join-Path $repoRoot 'bin\Release\net6.0-windows\visual-config.json'
-)
+# Runtime configs live next to the built exe. Discover every folder that actually contains the exe
+# (Debug, Release, publish/, self-contained output, ...) so it doesn't matter how the app was built
+# or run. This is more robust than hardcoding Debug/Release and covers published executables.
+$searchRoots = @(Join-Path $repoRoot 'bin')
+if ($PublishDir) {
+    $searchRoots += $PublishDir
+}
+
+$configPaths = @()
+foreach ($root in $searchRoots) {
+    if (-not (Test-Path $root)) {
+        continue
+    }
+    # A publish/exe folder may hold only the exe (config seeded on first run); match on the exe.
+    $configPaths += Get-ChildItem -Path $root -Recurse -File -Filter $exeName -ErrorAction SilentlyContinue |
+        ForEach-Object { Join-Path $_.DirectoryName 'visual-config.json' }
+}
+# An external -PublishDir may be the exe folder itself.
+if ($PublishDir -and (Test-Path (Join-Path $PublishDir $exeName))) {
+    $configPaths += Join-Path $PublishDir 'visual-config.json'
+}
+$configPaths = $configPaths | Sort-Object -Unique
 
 $updated = @()
 foreach ($configPath in $configPaths) {
@@ -76,7 +105,7 @@ foreach ($configPath in $configPaths) {
 }
 
 if ($updated.Count -eq 0) {
-    Write-Warning "No build output found under bin\. Build or run the app once, then re-run this script."
+    Write-Warning "No $exeName found under bin\ (or -PublishDir). Build/publish the app once, then re-run this script."
     exit 1
 }
 
