@@ -1,14 +1,14 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-08-10
 ---
 
 # Service Testability Refactoring Plan
 
-**Status:** Draft  
+**Status:** Completed  
 **Created:** 2026-08-10  
-**Related Plan:** [test-coverage-5pct-increase-plan.md](./test-coverage-5pct-increase-plan.md)  
+**Related Plan:** [test-coverage-5pct-increase-plan.md](../active/test-coverage-5pct-increase-plan.md)  
 **Estimated Effort:** 1.5-2 hours  
 
 ## Purpose
@@ -263,23 +263,23 @@ Only run the WPF app manually if the implementation changes runtime wiring beyon
    - Verify focused tests
 
 3. **Resume test coverage implementation**
-   - Return to [test-coverage-5pct-increase-plan.md](./test-coverage-5pct-increase-plan.md)
+   - Return to [test-coverage-5pct-increase-plan.md](../active/test-coverage-5pct-increase-plan.md)
    - Mark ManualLayoutAssignmentEnricher and AnimationFrameCache skipped sections complete or narrowed to remaining coverage work
    - Update coverage numbers after `.\scripts\verify.ps1`
 
 ## Post-Refactoring Checklist
 
-- [ ] Build succeeds: `dotnet build InteractiveWorldMap.sln`
-- [ ] Focused service tests pass:
+- [x] Build succeeds: `dotnet build InteractiveWorldMap.sln`
+- [x] Focused service tests pass:
   `dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~ManualLayoutAssignmentEnricherTests|FullyQualifiedName~CompositePinApplicationServiceTests|FullyQualifiedName~AnimationFrameCacheTests"`
-- [ ] All existing non-performance tests pass:
+- [x] All existing non-performance tests pass:
   `dotnet test Tests/InteractiveWorldMap.Tests.csproj --settings .runsettings --filter "Category!=Performance"`
 - [ ] App launches and runs correctly if runtime behavior is touched: `dotnet run --project InteractiveWorldMap.csproj`
-- [ ] Full verification passes: `.\scripts\verify.ps1`
-- [ ] Update test coverage plan to mark refactoring as complete
-- [ ] Update `docs/exec-plans/active/README.md` if this plan remains active; archive to `docs/exec-plans/completed/` when complete
-- [ ] Update `docs/TO_DO.md`: remove or narrow the linked coverage/refactoring bullet
-- [ ] Add or update the `[Unreleased]` `CHANGELOG.md` entry for testability/workflow-visible changes
+- [x] Full verification passes: `.\scripts\verify.ps1`
+- [x] Update test coverage plan to mark refactoring as complete
+- [x] Update `docs/exec-plans/active/README.md` if this plan remains active; archive to `docs/exec-plans/completed/` when complete
+- [x] Update `docs/TO_DO.md`: remove or narrow the linked coverage/refactoring bullet
+- [x] Add or update the `[Unreleased]` `CHANGELOG.md` entry for testability/workflow-visible changes
 - [ ] Resume test coverage work
 
 ## Risks and Mitigations
@@ -304,6 +304,6 @@ Only run the WPF app manually if the implementation changes runtime wiring beyon
 
 ## Related Documentation
 
-- [Test Coverage Plan](./test-coverage-5pct-increase-plan.md) - Phase 1 items 1.3 and 1.4
+- [Test Coverage Plan](../active/test-coverage-5pct-increase-plan.md) - Phase 1 items 1.3 and 1.4
 - [Architecture Rules](../../../ARCHITECTURE.md) - Layer dependency guidelines
 - [AGENTS.md](../../../AGENTS.md) - Implementation workflow

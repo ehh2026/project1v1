@@ -26,11 +26,12 @@ namespace InteractiveWorldMap.Services
 
         private static readonly JsonSerializerOptions JsonOptions = CreateJsonOptions();
 
-        public CompositePinPlanCache(ILogger logger)
+        public CompositePinPlanCache(ILogger logger, string? cacheDirectory = null)
         {
             _logger = logger;
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            _cacheDirectory = Path.Combine(appData, "InteractiveWorldMap", "composite_pin_plan_cache");
+            _cacheDirectory = cacheDirectory
+                ?? Path.Combine(appData, "InteractiveWorldMap", "composite_pin_plan_cache");
         }
 
         // ─── Key ─────────────────────────────────────────────────────────────

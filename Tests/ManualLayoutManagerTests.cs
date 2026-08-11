@@ -410,4 +410,308 @@ public class ManualLayoutManagerTests
             if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
         }
     }
+
+    [Fact]
+    public void LayoutExists_WithExactAndCompatibleKeys_ReturnsTrue()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            var savedKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+            var compatibleKey = "clusterhash_z55.05_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+
+            Assert.True(manager.SaveLayout(savedKey, OneExtension("Alpha", 30, 30)));
+
+            Assert.True(manager.LayoutExists(savedKey));
+            Assert.True(manager.LayoutExists(compatibleKey));
+            Assert.False(manager.LayoutExists("different_z55.00_c1_1_s179x101_m3_p10.0_l50.0_n13.0"));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void GetAllLayoutKeys_ReturnsDistinctGroupAndLegacyKeys()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+
+            Assert.True(manager.SaveLayout("group-a", OneExtension("Alpha", 30, 30)));
+            Assert.True(manager.SaveLayout("group-b", OneExtension("Beta", 40, 40)));
+
+            var keys = manager.GetAllLayoutKeys();
+
+            Assert.Equal(2, keys.Count);
+            Assert.Contains("group-a", keys);
+            Assert.Contains("group-b", keys);
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void ApplyLayout_WhenAllExtensionsMatch_AppliesPositionsAndReturnsTrue()
+    {
+        var manager = new ManualLayoutManager(Path.Combine(Path.GetTempPath(), "unused.json"), new MockLogger());
+        var extensions = new List<RadialExtension>
+        {
+            OneExtension("Alpha", 10, 10)[0],
+            OneExtension("Beta", 20, 20)[0]
+        };
+        var layout = new ManualLayout(
+            "group",
+            new List<ManualLayoutMarker>
+            {
+                new("Alpha", new Point(0, 0), new Point(100, 110), 45, 10),
+                new("Beta", new Point(0, 0), new Point(200, 210), 90, 20)
+            });
+
+        var applied = manager.ApplyLayout(layout, extensions);
+
+        Assert.True(applied);
+        Assert.Equal(new Point(100, 110), extensions[0].ExtendedPosition);
+        Assert.Equal(45, extensions[0].Angle);
+        Assert.Equal(new Point(200, 210), extensions[1].ExtendedPosition);
+    }
+
+    [Fact]
+    public void ApplyLayout_WhenSomeExtensionsMissing_ReturnsFalse()
+    {
+        var manager = new ManualLayoutManager(Path.Combine(Path.GetTempPath(), "unused.json"), new MockLogger());
+        var extensions = new List<RadialExtension>
+        {
+            OneExtension("Alpha", 10, 10)[0],
+            OneExtension("Beta", 20, 20)[0]
+        };
+        var layout = new ManualLayout(
+            "group",
+            new List<ManualLayoutMarker>
+            {
+                new("Alpha", new Point(0, 0), new Point(100, 110), 45, 10)
+            });
+
+        var applied = manager.ApplyLayout(layout, extensions);
+
+        Assert.False(applied);
+        Assert.Equal(new Point(100, 110), extensions[0].ExtendedPosition);
+        Assert.Equal(new Point(20, 20), extensions[1].ExtendedPosition);
+    }
+
+    [Fact]
+    public void DeleteLayout_RemovesManualVariantsButPreservesAutoSeed()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+        var groupKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+
+        try
+        {
+            File.WriteAllText(layoutPath, JsonWithAutoSeed(groupKey));
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            Assert.True(manager.SaveLayout(groupKey, OneExtension("Alpha", 30, 30)));
+
+            var deleted = manager.DeleteLayout(groupKey);
+
+            Assert.True(deleted);
+            var variants = manager.ListVariants(groupKey);
+            var variant = Assert.Single(variants);
+            Assert.Equal(ManualLayoutOrigin.AutoSeed, variant.Origin);
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void DeleteLayout_WhenOnlyManualVariant_RemovesGroup()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            Assert.True(manager.SaveLayout("group-delete", OneExtension("Alpha", 30, 30)));
+
+            Assert.True(manager.DeleteLayout("group-delete"));
+
+            Assert.False(manager.LayoutExists("group-delete"));
+            Assert.Empty(manager.ListVariants("group-delete"));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void SetDefaultVariant_WithImportedVariant_MakesImportedPreferredWhenNoManualDefault()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            Assert.True(manager.SaveVariant(
+                "group-default",
+                "imported-a",
+                "Imported A",
+                ManualLayoutOrigin.Imported,
+                OneExtension("Alpha", 30, 30),
+                null,
+                setAsDefault: false,
+                setAsSelected: false));
+            Assert.True(manager.SaveVariant(
+                "group-default",
+                "imported-b",
+                "Imported B",
+                ManualLayoutOrigin.Imported,
+                OneExtension("Alpha", 60, 60),
+                null,
+                setAsDefault: false,
+                setAsSelected: false));
+
+            Assert.True(manager.SetDefaultVariant("group-default", "imported-b"));
+
+            var loaded = manager.LoadLayout("group-default");
+            Assert.NotNull(loaded);
+            Assert.Equal("imported-b", loaded!.VariantId);
+            Assert.Equal("Imported B", loaded.DisplayName);
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void GetSelectedVariantId_ReturnsPersistedSelection()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            Assert.True(manager.SaveLayout("group-selected", OneExtension("Alpha", 30, 30)));
+            Assert.True(manager.SaveVariant(
+                "group-selected",
+                "variant-b",
+                "Variant B",
+                ManualLayoutOrigin.Manual,
+                OneExtension("Alpha", 60, 60),
+                null,
+                setAsDefault: false,
+                setAsSelected: true));
+
+            Assert.Equal("variant-b", manager.GetSelectedVariantId("group-selected"));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void SetSelectedVariantId_WithMissingGroupOrVariant_ReturnsFalse()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            Assert.True(manager.SaveLayout("group-selected", OneExtension("Alpha", 30, 30)));
+
+            Assert.False(manager.SetSelectedVariantId("missing-group", "manual-default"));
+            Assert.False(manager.SetSelectedVariantId("group-selected", "missing-variant"));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void LoadVariant_WithMissingGroupOrVariant_ReturnsNull()
+    {
+        var tempDir = CreateTempLayoutDir(out var layoutPath);
+
+        try
+        {
+            var manager = new ManualLayoutManager(layoutPath, new MockLogger());
+            Assert.True(manager.SaveLayout("group-load", OneExtension("Alpha", 30, 30)));
+
+            Assert.Null(manager.LoadVariant("missing-group", "manual-default"));
+            Assert.Null(manager.LoadVariant("group-load", "missing-variant"));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    private static string CreateTempLayoutDir(out string layoutPath)
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-layout-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempDir);
+        layoutPath = Path.Combine(tempDir, "manual-layouts.json");
+        return tempDir;
+    }
+
+    private static void DeleteTempDir(string tempDir)
+    {
+        if (Directory.Exists(tempDir))
+            Directory.Delete(tempDir, recursive: true);
+    }
+
+    private static List<RadialExtension> OneExtension(string name, double ex, double ey) => new()
+    {
+        new RadialExtension
+        {
+            Location = new Location { Id = name.ToLowerInvariant(), Name = name },
+            OriginalPosition = new Point(10, 10),
+            ExtendedPosition = new Point(ex, ey),
+            Angle = 45.0,
+            GroupId = 0
+        }
+    };
+
+    private static string JsonWithAutoSeed(string groupKey) => @"
+{
+  ""LayoutGroups"": {
+    """ + groupKey + @""": {
+      ""GroupKey"": """ + groupKey + @""",
+      ""Variants"": [
+        {
+          ""Key"": """ + groupKey + @""",
+          ""VariantId"": ""seed-default"",
+          ""DisplayName"": ""Generated Seed"",
+          ""Origin"": ""AutoSeed"",
+          ""IsDefault"": true,
+          ""Timestamp"": ""2026-06-05T00:00:00Z"",
+          ""CreatedUtc"": ""2026-06-05T00:00:00Z"",
+          ""UpdatedUtc"": ""2026-06-05T00:00:00Z"",
+          ""LocationCount"": 1,
+          ""Markers"": [
+            {
+              ""LocationName"": ""Alpha"",
+              ""OriginalPosition"": { ""X"": 10.0, ""Y"": 10.0 },
+              ""ExtendedPosition"": { ""X"": 20.0, ""Y"": 20.0 },
+              ""Angle"": 15.0,
+              ""LineLength"": 14.0
+            }
+          ]
+        }
+      ]
+    }
+  },
+  ""SelectedVariants"": {}
+}";
 }

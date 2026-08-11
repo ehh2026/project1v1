@@ -10,30 +10,35 @@ namespace InteractiveWorldMap.Services
     /// </summary>
     public class FileLogger : ILogger, IDisposable
     {
-        private static readonly BlockingCollection<string> _queue = new BlockingCollection<string>(boundedCapacity: 2000);
+        private static BlockingCollection<string> _queue = new BlockingCollection<string>(boundedCapacity: 2000);
         private static Thread? _writerThread;
         private static string? _logFilePath;
         private static int _instanceCount = 0;
         private static readonly object _initLock = new object();
 
-        public FileLogger()
+        public FileLogger(ILogPathProvider? pathProvider = null)
         {
             lock (_initLock)
             {
                 _instanceCount++;
-                if (_writerThread == null)
-                    Initialize();
+                if (_writerThread == null || _queue.IsAddingCompleted)
+                    Initialize(pathProvider ?? DefaultLogPathProvider.Instance);
             }
         }
 
-        private static void Initialize()
+        private static void Initialize(ILogPathProvider pathProvider)
         {
-            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-            var logDir = Path.Combine(appData, "InteractiveWorldMap", "logs");
+            if (_queue.IsAddingCompleted)
+                _queue = new BlockingCollection<string>(boundedCapacity: 2000);
 
-            try { Directory.CreateDirectory(logDir); } catch { }
+            _logFilePath = pathProvider.LogFilePath;
+            var logDir = Path.GetDirectoryName(_logFilePath);
 
-            _logFilePath = Path.Combine(logDir, "app.log");
+            if (!string.IsNullOrEmpty(logDir))
+            {
+                try { Directory.CreateDirectory(logDir); } catch { }
+            }
+
             Console.WriteLine($"Log file path: {_logFilePath}");
 
             _writerThread = new Thread(WriterLoop)
@@ -88,16 +93,57 @@ namespace InteractiveWorldMap.Services
         {
             // Hot path: enqueue only. The background WriterLoop does the file + console/debug
             // writes, so logging never blocks the calling (often UI) thread during animation.
-            _queue.TryAdd(message); // drops if queue is full (shouldn't happen)
+            try
+            {
+                if (!_queue.IsAddingCompleted)
+                    _queue.TryAdd(message); // drops if queue is full (shouldn't happen)
+            }
+            catch (InvalidOperationException)
+            {
+                // Last instance was disposed while a caller was logging; dropping is consistent
+                // with the bounded queue behavior.
+            }
         }
 
         public void Dispose()
         {
+            Thread? threadToJoin = null;
+
             lock (_initLock)
             {
                 _instanceCount--;
-                if (_instanceCount == 0)
+                if (_instanceCount == 0 && !_queue.IsAddingCompleted)
+                {
                     _queue.CompleteAdding();
+                    threadToJoin = _writerThread;
+                }
+            }
+
+            threadToJoin?.Join(TimeSpan.FromSeconds(2));
+
+            lock (_initLock)
+            {
+                if (_instanceCount == 0 && ReferenceEquals(_writerThread, threadToJoin))
+                {
+                    _writerThread = null;
+                    _logFilePath = null;
+                    if (_queue.IsAddingCompleted)
+                        _queue = new BlockingCollection<string>(boundedCapacity: 2000);
+                }
+            }
+        }
+
+        private sealed class DefaultLogPathProvider : ILogPathProvider
+        {
+            public static readonly DefaultLogPathProvider Instance = new();
+
+            public string LogFilePath
+            {
+                get
+                {
+                    var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+                    return Path.Combine(appData, "InteractiveWorldMap", "logs", "app.log");
+                }
             }
         }
     }

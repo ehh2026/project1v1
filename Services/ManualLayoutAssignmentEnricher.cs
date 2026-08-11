@@ -18,7 +18,7 @@ namespace InteractiveWorldMap.Services
         /// </summary>
         public IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)> GetAssignments(
             IEnumerable<RadialExtension> extensions,
-            CompositePinPlanningService planningService)
+            ICompositePinPlanningResultProvider planningService)
         {
             var result = new Dictionary<string, (string, string)>(System.StringComparer.Ordinal);
 
