@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Coverage ratchet (tests-only continuation):** Added MainWindow composite-pin and content source-guard wiring tests; expanded `RadialExtensionAdjuster`, `RadialExtensionCalculator`, and `ContentLoader` didactic/caption/error-path coverage. Documented a known `CalculateMaxLength` 20px-floor canvas overshoot as a skipped characterization test (no production fix in this continuation). Protected-location adjuster coverage remains skipped until a testability seam exists. Latest verify snapshot: **49.1% line / 44.4% branch** (866 pass / 2 skip); blocking 45%/40% gates met; 50%/45% ratchet still open.
+
 - **Complexity/CI hooks plan archived:** `complexity-and-ci-hooks.md` moved to `docs/exec-plans/completed/` after `.\scripts\verify.ps1` passed on 2026-08-11 (842 tests, 48.9% line / 44.0% branch), closing the final archival bookkeeping item.
 
 - **Coverage gate ratchet:** Raised the enforced coverage threshold from 42% line / 37% branch to **45% line / 40% branch** in CI, the advisory workflow, and local verify scripts (`scripts/verify.ps1` / `verify.sh`, `AGENTS.md`, `scripts/README.md`), matching the current 48.9% line / 44.0% branch baseline without blocking the still-open 50% / 45% ratchet.

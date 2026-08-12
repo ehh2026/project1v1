@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
@@ -753,6 +754,34 @@ public class ContentLoaderTests
         return tempDir;
     }
 
+    private static void SafeDeleteDirectory(string path, int maxRetries = 6)
+    {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        for (int attempt = 0; attempt < maxRetries; attempt++)
+        {
+            try
+            {
+                if (Directory.Exists(path))
+                {
+                    foreach (var file in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+                    {
+                        try { File.Delete(file); }
+                        catch (IOException) { /* file still locked; retry on next pass */ }
+                    }
+                    Directory.Delete(path, recursive: true);
+                }
+                return;
+            }
+            catch (IOException) when (attempt < maxRetries - 1)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                Thread.Sleep(100 * (attempt + 1));
+            }
+        }
+    }
+
     private static void SaveTinyPng(string path)
     {
         var bitmap = BitmapSource.Create(
@@ -1135,6 +1164,260 @@ public class ContentLoaderTests
 
             var image = Assert.Single(result);
             Assert.Equal("Caption from metadata", image.CaptionText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // LoadDidacticTextAsync — Phase 3 Task 3.2 coverage
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadDidacticTextAsync_NullLocation_Throws()
+    {
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => loader.LoadDidacticTextAsync(null!));
+    }
+
+    [Fact]
+    public async Task LoadDidacticTextAsync_WhenFileMissing_ReturnsNull()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "NoDidactic");
+            Directory.CreateDirectory(locationFolder);
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "NoDidactic", Id = "nd" };
+
+            var result = await loader.LoadDidacticTextAsync(location);
+
+            Assert.Null(result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadDidacticTextAsync_WhenExcelBioExists_PrefersWorkbookText()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "WithBoth");
+            Directory.CreateDirectory(locationFolder);
+            File.WriteAllText(Path.Combine(locationFolder, "didactic.txt"), "File didactic text.");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location
+            {
+                Name = "WithBoth",
+                Id = "wb",
+                DidacticText = "Excel workbook didactic text."
+            };
+
+            var result = await loader.LoadDidacticTextAsync(location);
+
+            Assert.Equal("Excel workbook didactic text.", result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadDidacticTextAsync_WithDidacticFile_ReturnsFileContent()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "FileOnly");
+            Directory.CreateDirectory(locationFolder);
+            File.WriteAllText(Path.Combine(locationFolder, "didactic.txt"), "Didactic from file.");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "FileOnly", Id = "fo" };
+
+            var result = await loader.LoadDidacticTextAsync(location);
+
+            Assert.Equal("Didactic from file.", result);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadDidacticTextAsync_WithLocationDidacticText_ReturnsPropertyText()
+    {
+        var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
+        {
+            ContentFolderPath = Path.Combine(Path.GetTempPath(), "iwm-cl-" + Guid.NewGuid().ToString("N"))
+        };
+        var location = new Location { Name = "Any", Id = "any", DidacticText = "From property." };
+
+        var result = await loader.LoadDidacticTextAsync(location);
+
+        Assert.Equal("From property.", result);
+    }
+
+    // -------------------------------------------------------------------------
+    // Caption sidecar coverage (tested via LoadAllLocationImagesWithTranslationsAsync)
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadCaptionsAsync_WhenSidecarExists_ReturnsCaption()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Captions");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1-photo.png"));
+            File.WriteAllText(
+                Path.Combine(locationFolder, "1-photo-caption.txt"),
+                "A detailed caption for this photo.");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Captions", Id = "cap" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.Equal("A detailed caption for this photo.", image.CaptionText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadCaptionsAsync_WhenCaptionMissing_ReturnsEmptyCaption()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "NoCaption");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1-photo.png"));
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "NoCaption", Id = "nc" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.Null(image.CaptionText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Additional uncovered error paths
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_WithTranslationSidecar_ReturnsTranslation()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "Trans");
+            Directory.CreateDirectory(locationFolder);
+            SaveTinyPng(Path.Combine(locationFolder, "1-photo.png"));
+            File.WriteAllText(
+                Path.Combine(locationFolder, "1-photo.txt"),
+                "Translated content here.");
+
+            var loader = new ContentLoader(new MockLogger(), new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "Trans", Id = "tr" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            var image = Assert.Single(result);
+            Assert.Equal("Translated content here.", image.TranslationText);
+        }
+        finally
+        {
+            Directory.Delete(tempDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAllLocationImagesWithTranslationsAsync_InvalidImage_SkipsAndLogsWarning()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var locationFolder = Path.Combine(tempDir, "BadImg");
+            Directory.CreateDirectory(locationFolder);
+            File.WriteAllText(Path.Combine(locationFolder, "1-broken.png"), "not-a-real-image");
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "BadImg", Id = "bi" };
+
+            var result = await loader.LoadAllLocationImagesWithTranslationsAsync(location);
+
+            Assert.Empty(result);
+            Assert.Contains(logger.WarningMessages, m => m.Contains("Failed to load image file for location BadImg"));
+        }
+        finally
+        {
+            SafeDeleteDirectory(tempDir);
+        }
+    }
+
+    [Fact]
+    public async Task LoadLocationContentAsync_InvalidImage_ReturnsNullAndLogsError()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            var folder = Path.Combine(tempDir, "BadContent");
+            Directory.CreateDirectory(folder);
+            File.WriteAllText(Path.Combine(folder, "1.png"), "corrupt");
+
+            var logger = new MockLogger();
+            var loader = new ContentLoader(logger, new ContentSetResolver()) { ContentFolderPath = tempDir };
+            var location = new Location { Name = "BadContent", Id = "bc" };
+
+            var result = await loader.LoadLocationContentAsync(location);
+
+            Assert.Null(result);
+            Assert.Contains(logger.ErrorMessages, m => m.Contains("Failed to load content for location BadContent"));
+        }
+        finally
+        {
+            SafeDeleteDirectory(tempDir);
+        }
+    }
+
+    [Fact]
+    public async Task LoadLocationsAsync_WhenLocationsJsonEmptyArray_ReturnsEmptyList()
+    {
+        var tempDir = CreateContentFolderWithMap();
+        try
+        {
+            File.WriteAllText(Path.Combine(tempDir, "locations.json"), "[]");
+
+            var loader = CreateLoaderForJsonTests(tempDir);
+            var locations = await loader.LoadLocationsAsync();
+
+            Assert.Empty(locations);
+            Assert.False(loader.IsInitialized);
         }
         finally
         {

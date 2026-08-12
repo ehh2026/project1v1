@@ -38,7 +38,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## Developer tooling
 
 - [ ] Explore building a distributable Windows executable (local `dotnet publish` + optional GitHub Actions publish job): decide self-contained vs framework-dependent, single file vs zip, signing, and installer needs — see [BUILDING_EXECUTABLE.md](guides/BUILDING_EXECUTABLE.md)
-- [ ] Increase test coverage from the latest full-run snapshot of 48.9% line / 44.0% branch toward 60% line / 50% branch: cache/logging seams and several service expansions are in progress; continue remaining ContentLoader, radial geometry, MainWindow-adjacent source guards, and edge-case error paths. Current coverage meets blocking gates (45%/40%) but the 50% / 45% next ratchet is not yet reached.
+- [ ] Increase test coverage from the latest full-run snapshot of **49.1% line / 44.4% branch** toward 50% line / 45% branch (then 60%/50%): MainWindow source guards, radial adjuster/calculator, and ContentLoader didactic/caption/error-path expansions are merged (tests-only); verify steps are green after format EOL fixes. Still ~0.9pp line / ~0.6pp branch short of the next ratchet. Blocking gates remain 45%/40%.
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
 
 ## User ideas (product)
@@ -79,6 +79,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Deferred
 
+- [ ] Radial extension canvas clamp: `RadialExtensionCalculator.CalculateMaxLength` floors length at 20px, which can place heads outside the canvas when a marker is <20px from an edge. Characterized by skipped `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` in [test-coverage-5pct-increase-plan.md](exec-plans/active/test-coverage-5pct-increase-plan.md). Do not fix in the tests-only coverage continuation.
 - [ ] Zoomed-map source/scale alternatives: evaluate a lower default zoom or native-resolution zoom cap after the resampler comparison.
 - [ ] Zoomed-map source quality: seek a substantially higher-resolution lossless or vector replacement for the raster JPEG.
 - [ ] Zoomed-map hybrid rendering: consider vector overlays for labels and country borders over the raster base.

@@ -24,6 +24,38 @@ started: 2026-08-10
 
 **Implementation pause point (2026-08-11):** Phase 1 cache/logging seams, Phase 2 composite application-service expansion, and selected Phase 3/4 service expansions are implemented. The focused written-test set passed with **204 tests**. Full `.\scripts\verify.ps1` passed with **842 non-performance tests** and **48.9% line / 44.0% branch coverage**. The 50% / 45% next-ratchet target remains unfinished.
 
+**Latest verify snapshot (2026-08-11, tests-only continuation):** Steps 1–8 of `.\scripts\verify.ps1` passed with **866 passed / 2 skipped** and Cobertura **49.1% line / 44.4% branch** (`f4f027d3…`). Step 9 initially failed on LF wiring tests; CRLF + one `dotnet format` whitespace fix on `RadialExtensionCalculatorTests.cs`, then steps 9–11 (format / coverage gate 45%/40% / Lizard) passed via free-model subagent `52e6e8f1`. **50% / 45% advisory target still not met** (~0.9pp line / ~0.6pp branch short).
+
+### Continuation constraints (2026-08-11 — tests-only push)
+
+**Hard rule for this continuation:** Do **not** change production source under `Services/`, `Utilities/`, `Models/`, `Views/`, `MainWindow*`, `App.xaml.cs`, or any other non-test code. Raise coverage with **new or expanded tests only**.
+
+| If… | Then… |
+|-----|--------|
+| A public behavior test fails because of a real product bug | Do **not** fix production code. Add an xfailing / skipped characterization test (`[Fact(Skip = "BUG: …")]`) with expected vs actual behavior, and document the bug under **Known bugs found (tests-only)** in this plan plus a short `docs/TO_DO.md` Deferred note if needed. |
+| A path needs a new production seam to test | Skip that path for this continuation; prefer already-public APIs, temp-directory seams already landed, or MainWindow **source-guard** string tests. |
+| Subagents | Prefer `opencode/mimo-v2.5-free`; fallback `opencode/deepseek-v4-flash-free`; then `devin/swe-1-6-slow`. **Max 1 concurrent subagent** on this machine (2 only if explicitly approved). Sequential slices; orchestrator reviews/merges before starting the next. |
+
+**Continuation slices in flight:**
+
+| Slice | Owner | Scope | Status |
+|-------|-------|-------|--------|
+| A — Phase 5.1 MainWindow source guards | `c96fccbe` @ `opencode/mimo-v2.5-free` | New wiring tests merged to feature checkout | **done** — 5/5 focused tests passed |
+| B — Phase 4.3 radial adjuster | orchestrator (after subagent draft) | Expanded `RadialExtensionAdjusterTests`; fixed bad LINE→MARKER fixture; skipped unobservable protected-state test | **done** — 16 passed, 1 skipped |
+| B2 — Phase 4.3 radial calculator | `b5749408` @ `opencode/mimo-v2.5-free` | Expanded `RadialExtensionCalculatorTests` (+7); canvas-bounds case xfail | **done** — 18 passed, 1 skipped (BUG) |
+| C — ContentLoader / edge error paths | `eab12c68` @ `opencode/mimo-v2.5-free` | 11 didactic/caption/error-path tests + SafeDeleteDirectory helper | **done** — 57/57 ContentLoaderTests passed |
+
+**Orchestration note (2026-08-11):** Parallel launch of A+B+C was too heavy. Serial only (max 1 subagent). Slices A, B, B2, and C merged after review. Verify path is green after CRLF/format fixes (steps 1–8 earlier + 9–11 via `52e6e8f1`). Coverage **49.1%/44.4%** — still short of 50%/45%; next is Cobertura-guided test-only gap fills if continuing the ratchet.
+
+**Known bugs found (tests-only):**
+
+| Slice | File | Bug | Evidence |
+|-------|------|-----|----------|
+| B2 | `Utilities/RadialExtensionCalculator.cs` | `CalculateMaxLength` enforces a hard 20px floor (`Math.Max(20.0, maxLength * 0.9)` and a second `< 20` clamp), so heads can still leave the canvas when a marker is closer than 20px to an edge. | `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` — `[Fact(Skip = "BUG: …")]`; observed Y≈-6.09 on a 100×100 canvas |
+
+**Skipped characterization (no seam, not a product bug):**
+- `AdjustExtensions_WithProtectedLocation_DoesNotMoveProtectedExtension` — `ProtectedFromOverlapAdjustment` is private per-call state; cannot seed across `AdjustExtensions` calls without a production seam.
+
 **Already completed in this coverage track:**
 
 | Area | Status | Tests |
@@ -43,7 +75,7 @@ started: 2026-08-10
 
 | Area | Why It Matters | Current Constraint |
 |------|----------------|--------------------|
-| `ContentLoader` and `ContentLoader.Images` | User-visible content loading, fallback, captions, and decode error paths. | Partially expanded; full focused suite is passing, but full coverage target still needs verification. |
+| `ContentLoader` and `ContentLoader.Images` | User-visible content loading, fallback, captions, and decode error paths. | Expanded with didactic/caption/error-path tests (57 focused tests passing); remaining gain needs Cobertura-guided selection. |
 | `ManualLayoutManager` | Persistence, migration, and variant constraints are high-risk behavior. | Expanded; remaining branches can be selected from the next coverage report. |
 | `LayoutEditorController` | Edit-mode variant flow and validation branch coverage. | Expanded; remaining validation branches can be selected from the next coverage report. |
 | `RadialExtensionAdjuster` / `RadialExtensionCalculator` | Complex geometry is where subtle overlap bugs hide. | Prefer public behavior tests; extract internal helpers only when a cohesive helper has a stable contract. |
