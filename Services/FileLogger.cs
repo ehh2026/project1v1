@@ -49,12 +49,20 @@ namespace InteractiveWorldMap.Services
                 var provider = pathProvider ?? DefaultLogPathProvider.Instance;
                 if (_writerThread == null || forcedTakeover)
                 {
-                    Initialize(provider);
+                    // If the stale writer is still stuck mid-I/O it may still hold its own log
+                    // file open, so reusing that same path here could fail to open (sharing
+                    // violation) and leave the new queue with no consumer at all. Route the
+                    // takeover writer to a distinct recovery path so it can never collide.
+                    var logFilePath = forcedTakeover
+                        ? BuildRecoveryLogPath(provider.LogFilePath)
+                        : provider.LogFilePath;
+                    Initialize(logFilePath);
                     if (forcedTakeover)
                     {
                         _queue.TryAdd(
                             $"[WARN]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
-                            "Previous log writer did not exit within the shutdown window; started a new writer.");
+                            $"Previous log writer did not exit within the shutdown window; " +
+                            $"switched to recovery log '{logFilePath}'.");
                     }
                     return;
                 }
@@ -71,13 +79,21 @@ namespace InteractiveWorldMap.Services
             }
         }
 
-        private static void Initialize(ILogPathProvider pathProvider)
+        private static string BuildRecoveryLogPath(string originalPath)
+        {
+            var dir = Path.GetDirectoryName(originalPath);
+            var name = Path.GetFileNameWithoutExtension(originalPath);
+            var ext = Path.GetExtension(originalPath);
+            var recoveryName = $"{name}.recovery-{DateTime.UtcNow:yyyyMMddHHmmssfff}{ext}";
+            return string.IsNullOrEmpty(dir) ? recoveryName : Path.Combine(dir, recoveryName);
+        }
+
+        private static void Initialize(string logFilePath)
         {
             if (_queue.IsAddingCompleted)
                 _queue = new BlockingCollection<string>(boundedCapacity: 2000);
 
-            _logFilePath = pathProvider.LogFilePath;
-            var logFilePath = _logFilePath;
+            _logFilePath = logFilePath;
             var logDir = Path.GetDirectoryName(logFilePath);
 
             if (!string.IsNullOrEmpty(logDir))
