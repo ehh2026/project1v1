@@ -102,7 +102,7 @@ dotnet format InteractiveWorldMap.sln --verify-no-changes
 if ($LASTEXITCODE -ne 0) { Write-Error "Formatting verification failed."; exit 1 }
 
 Write-Host "[10/11] coverage threshold gate"
-Invoke-HarnessPython "scripts/summarize_coverage.py" "--results-directory TestResults\verify-coverage --min-line-coverage 42 --min-branch-coverage 37"
+Invoke-HarnessPython "scripts/summarize_coverage.py" "--results-directory TestResults\verify-coverage --min-line-coverage 45 --min-branch-coverage 40"
 if ($LASTEXITCODE -ne 0) { Write-Error "Coverage gates failed."; exit 1 }
 
 Write-Host "[11/11] Lizard complexity gate"

@@ -63,7 +63,7 @@ if [[ "$RUN_DOTNET" == true ]]; then
   echo "[6/9] coverage threshold gate"
   COVERAGE_FILE=$(find TestResults -name "coverage.cobertura.xml" -type f 2>/dev/null | sort | tail -1)
   if [ -n "$COVERAGE_FILE" ]; then
-    python3 scripts/summarize_coverage.py --results-directory TestResults/verify-coverage --min-line-coverage 42 --min-branch-coverage 37
+    python3 scripts/summarize_coverage.py --results-directory TestResults/verify-coverage --min-line-coverage 45 --min-branch-coverage 40
   else
     echo "SKIP: No coverage file found (harness-only mode)."
   fi

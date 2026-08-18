@@ -25,10 +25,14 @@ started: YYYY-MM-DD
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
 | [touch-scrollable-thumbnail-browser-plan.md](touch-scrollable-thumbnail-browser-plan.md) | Touch/mouse vertical thumbnail scrolling with tap-versus-swipe arbitration |
-| [complexity-and-ci-hooks.md](complexity-and-ci-hooks.md) | Refactor high-complexity methods and promote format, analyzer, coverage, and Lizard gates |
+| [test-coverage-5pct-increase-plan.md](test-coverage-5pct-increase-plan.md) | Increase service-layer unit coverage toward the next coverage target |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
+
+- `complexity-and-ci-hooks.md` - Refactored high-complexity methods, wired format/analyzer/coverage/Lizard gates into CI and verify scripts; `verify.ps1` green 2026-08-11 - moved 2026-08-11
+
+- `service-testability-refactoring-plan.md` - Refactored narrow service dependencies for isolated service tests; added ManualLayoutAssignmentEnricher, CompositePinApplicationService SaveIfMissed, and AnimationFrameCache tests - moved 2026-08-11
 
 - `refactoring-assessment-followthrough-plan.md` — Remaining assessment debt (map metadata, ApplicationState, spatial clusterer, Excel streaming, ContentLoader LRU); Phase 18b deferred — moved 2026-07-30
 

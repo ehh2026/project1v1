@@ -10,7 +10,7 @@ namespace InteractiveWorldMap.Services
     /// Also maintains a per-session last-result cache used by <see cref="ManualLayoutAssignmentEnricher"/>
     /// to capture shaft/head assignments at save time.
     /// </summary>
-    public class CompositePinPlanningService
+    public class CompositePinPlanningService : ICompositePinPlanningResultProvider
     {
         private readonly PinPartPlacementCalculator _placementCalculator;
         private readonly CompositePinRenderPlanBuilder _renderPlanBuilder;

@@ -42,7 +42,7 @@ jobs:
 
       - name: Preview coverage threshold
         shell: pwsh
-        run: python scripts/summarize_coverage.py --results-directory TestResults/coverage-advisory --min-line-coverage 42 --min-branch-coverage 37
+        run: python scripts/summarize_coverage.py --results-directory TestResults/coverage-advisory --min-line-coverage 45 --min-branch-coverage 40
         continue-on-error: true
 
       - name: Install Lizard

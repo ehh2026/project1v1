@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** August 10, 2026
+**Last updated:** August 17, 2026
 
 ## Zoom & animation
 
@@ -22,7 +22,7 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 - [ ] Composite mode: user UI to reassign pin head asset (`HeadSourcePath` / `pin_XX_head.png` — effectively head color) — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today heads are auto-picked by location hash; only **shaft** has right-click override; verify reassigned head persists on manual layout save/reload; infrastructure exists: `ManualLayoutMarker.HeadSourcePath`, enricher on save, replay via `preferredHeadSourcePath`; missing: head picker UI like shaft menu)
 - [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
 - [ ] Do not use bright yellow pin heads unless manually assigned
-- [ ] Manual visual acceptance: drawn-pin divot caps. Code and automated coverage are complete; compare `ScreenHorizontal` and `ShaftAligned` on normal/inverted/angled pins, then smoke drag/hover/zoom behavior.
+- [ ] Manual visual acceptance: drawn-pin divot caps — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md). Code and automated coverage are complete; compare `ScreenHorizontal` and `ShaftAligned` on normal/inverted/angled pins, then smoke drag/hover/zoom behavior.
 
 ## Inactive (optional polish)
 
@@ -33,13 +33,12 @@ Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.
 
 Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACTORING_ASSESSMENT.md) — Phases 1–4 complete (2026-06-08). Refactoring assessment follow-through archived (2026-07-30) — [refactoring-assessment-followthrough-plan.md](exec-plans/completed/refactoring-assessment-followthrough-plan.md).
 
-- [ ] Finalize complexity/CI hooks plan archival after confirm `.\scripts\verify.ps1` is green - [complexity-and-ci-hooks.md](exec-plans/active/complexity-and-ci-hooks.md).
 - [ ] Zoom-level doc cleanup — [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](assessments/ZOOM_LEVELS_AUDIT_ASSESSMENT.md)
 
 ## Developer tooling
 
 - [ ] Explore building a distributable Windows executable (local `dotnet publish` + optional GitHub Actions publish job): decide self-contained vs framework-dependent, single file vs zip, signing, and installer needs — see [BUILDING_EXECUTABLE.md](guides/BUILDING_EXECUTABLE.md)
-- [ ] Increase test coverage from current 44.7% line / 39.8% branch toward 60% line / 50% branch: prioritize Services layer (ContentLoader, CompositePinApplicationService, ManualLayoutManager), MainWindow partials (Navigation, MarkerPlacement, Content), and edge-case error paths. Current coverage meets blocking gates (42%/37%) but leaves significant behavior untested.
+- [ ] Increase test coverage from the latest full-run snapshot of **49.4% line / 44.7% branch** toward 50% line / 45% branch (then 60%/50%): MainWindow source guards, radial adjuster/calculator, and ContentLoader didactic/caption/error-path expansions are merged (tests-only); Qodo review hardening is verified. Still ~0.6pp line / ~0.3pp branch short of the next ratchet. Blocking gates remain 45%/40%.
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
 
 ## User ideas (product)
@@ -62,6 +61,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## High priority
 
+- [ ] Fix radial extension canvas clamp: `RadialExtensionCalculator.CalculateMaxLength` floors length at 20px, which can place heads outside the canvas when a marker is <20px from an edge. Characterized by skipped `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` (`[Fact(Skip = "BUG: …")]`) — see [test-coverage-5pct-increase-plan.md](exec-plans/active/test-coverage-5pct-increase-plan.md) Known bugs (B2). After the fix, remove the Skip and make the test assert heads stay in bounds.
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 - [ ] Manual acceptance for settled zoomed-map rendering: compare the five Runtime Tuning modes on the target monitor, choose the default, and decide whether the measured first-generation custom-filter delay (about 1.7-3.3 seconds at 1440p here; cached afterward) needs further optimization — [plan](superpowers/plans/2026-07-01-zoomed-map-upscaling.md)

@@ -65,7 +65,7 @@ Generate local coverage and summarize it:
 ```powershell
 dotnet test Tests\InteractiveWorldMap.Tests.csproj --settings .runsettings --collect:"XPlat Code Coverage" --results-directory TestResults\coverage-advisory
 py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory
-py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory --min-line-coverage 42 --min-branch-coverage 37
+py -3 scripts\summarize_coverage.py --results-directory TestResults\coverage-advisory --min-line-coverage 45 --min-branch-coverage 40
 ```
 
 Run the local complexity gate directly:

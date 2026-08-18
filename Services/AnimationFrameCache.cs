@@ -17,13 +17,14 @@ public class AnimationFrameCache
     // Increment when interpolation geometry or pixel-resampling policy changes.
     private const int CacheVersion = 16;
 
-    public AnimationFrameCache(ILogger logger)
+    public AnimationFrameCache(ILogger logger, string? cacheDirectory = null)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
-        // Store cache in AppData
-        var appDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-        _cacheDirectory = Path.Combine(appDataPath, "InteractiveWorldMap", "frame_cache");
+        _cacheDirectory = cacheDirectory ?? Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "InteractiveWorldMap",
+            "frame_cache");
 
         Directory.CreateDirectory(_cacheDirectory);
 

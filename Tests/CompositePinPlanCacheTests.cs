@@ -16,20 +16,26 @@ public class CompositePinPlanCacheTests
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
     private static CompositePinPlanCache CreateCache(string dir) =>
-        new CompositePinPlanCache(new MockLogger());
+        new CompositePinPlanCache(new MockLogger(), dir);
 
     /// <summary>
     /// Creates a cache instance that writes into a temp sub-directory so tests
     /// do not pollute the real AppData cache folder.
-    /// We rely on the cache's own AppData path, but write test entries via
-    /// Save() and then read via TryLoad() — fully round-trip.
+    /// Test entries are written via Save() and read via TryLoad() — fully round-trip.
     /// </summary>
-    private static (CompositePinPlanCache cache, string groupKey, string cacheKey) SetupCache()
+    private static (CompositePinPlanCache cache, string groupKey, string cacheKey, string tempDir) SetupCache()
     {
-        var cache = new CompositePinPlanCache(new MockLogger());
+        var tempDir = Path.Combine(Path.GetTempPath(), "CompositePinPlanCache_" + Guid.NewGuid().ToString("N"));
+        var cache = CreateCache(tempDir);
         var groupKey = "test_group_" + Guid.NewGuid().ToString("N")[..8];
         var key = cache.ComputeCacheKey(groupKey, "manual-default", "layoutHash", "geoHash", "cfgHash");
-        return (cache, groupKey, key);
+        return (cache, groupKey, key, tempDir);
+    }
+
+    private static void DeleteTempDir(string tempDir)
+    {
+        if (Directory.Exists(tempDir))
+            Directory.Delete(tempDir, recursive: true);
     }
 
     private static CompositePinRenderPlan MakePlan(string pairId, double angleDeg) =>
@@ -123,11 +129,17 @@ public class CompositePinPlanCacheTests
     [Fact]
     public void TryLoad_WhenNoFileExists_ReturnsNull()
     {
-        var (cache, _, key) = SetupCache();
+        var (cache, _, key, tempDir) = SetupCache();
 
-        var result = cache.TryLoad(key);
-
-        Assert.Null(result);
+        try
+        {
+            var result = cache.TryLoad(key);
+            Assert.Null(result);
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
     }
 
     // ─── Cache hit round-trip ─────────────────────────────────────────────────
@@ -135,7 +147,7 @@ public class CompositePinPlanCacheTests
     [Fact]
     public void TryLoad_AfterSave_ReturnsSameEntries()
     {
-        var (cache, groupKey, key) = SetupCache();
+        var (cache, groupKey, key, tempDir) = SetupCache();
         var entries = new List<CachedCompositePlanEntry>
         {
             new("LocationA", MakePlan("pin_01", 30.0)),
@@ -162,14 +174,14 @@ public class CompositePinPlanCacheTests
         }
         finally
         {
-            cache.Invalidate(groupKey);
+            DeleteTempDir(tempDir);
         }
     }
 
     [Fact]
     public void TryLoad_AfterSave_PreservesMatrixCoefficients()
     {
-        var (cache, groupKey, key) = SetupCache();
+        var (cache, groupKey, key, tempDir) = SetupCache();
         var plan = MakePlan("pin_03", 45.0);
         plan.HeadLayer.Transform = new Matrix(2.5, 0.1, -0.1, 2.5, 7.0, 14.0);
 
@@ -189,14 +201,14 @@ public class CompositePinPlanCacheTests
         }
         finally
         {
-            cache.Invalidate(groupKey);
+            DeleteTempDir(tempDir);
         }
     }
 
     [Fact]
     public void TryLoad_AfterSave_PreservesClipPolygonPoints()
     {
-        var (cache, groupKey, key) = SetupCache();
+        var (cache, groupKey, key, tempDir) = SetupCache();
         var plan = MakePlan("pin_04", 90.0);
         plan.ShaftTipCapLayer.ClipPolygon = new List<Point>
         {
@@ -217,7 +229,7 @@ public class CompositePinPlanCacheTests
         }
         finally
         {
-            cache.Invalidate(groupKey);
+            DeleteTempDir(tempDir);
         }
     }
 
@@ -226,19 +238,27 @@ public class CompositePinPlanCacheTests
     [Fact]
     public void TryLoad_AfterInvalidate_ReturnsNull()
     {
-        var (cache, groupKey, key) = SetupCache();
+        var (cache, groupKey, key, tempDir) = SetupCache();
         cache.Save(key, groupKey, "manual-default", new[] { new CachedCompositePlanEntry("Loc", MakePlan("pin_05", 0)) });
 
         cache.Invalidate(groupKey);
         var result = cache.TryLoad(key);
 
-        Assert.Null(result);
+        try
+        {
+            Assert.Null(result);
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
     }
 
     [Fact]
     public void Invalidate_DoesNotDeleteEntriesForDifferentGroupKey()
     {
-        var cache = new CompositePinPlanCache(new MockLogger());
+        var tempDir = Path.Combine(Path.GetTempPath(), "CompositePinPlanCache_" + Guid.NewGuid().ToString("N"));
+        var cache = CreateCache(tempDir);
         var groupA = "group_a_" + Guid.NewGuid().ToString("N")[..8];
         var groupB = "group_b_" + Guid.NewGuid().ToString("N")[..8];
         var keyA = cache.ComputeCacheKey(groupA, "v1", "lh", "gh", "ch");
@@ -256,7 +276,7 @@ public class CompositePinPlanCacheTests
         }
         finally
         {
-            cache.Invalidate(groupB);
+            DeleteTempDir(tempDir);
         }
     }
 

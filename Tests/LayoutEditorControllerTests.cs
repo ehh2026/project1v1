@@ -561,4 +561,186 @@ public class LayoutEditorControllerTests
 
         Assert.False(application.RequiresExtensionLine);
     }
+
+    [Fact]
+    public void GetVariants_WithNoCurrentLayoutKey_ReturnsEmpty()
+    {
+        var (ctrl, _, _, _) = Make();
+
+        Assert.Empty(ctrl.GetVariants());
+    }
+
+    [Fact]
+    public void GetVariants_WithCurrentLayoutKey_ReturnsSavedVariants()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-variants");
+        Assert.True(ctrl.TrySave(new List<RadialExtension>
+        {
+            new()
+            {
+                Location = Loc("alpha"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle = 45
+            }
+        }));
+
+        var variants = ctrl.GetVariants();
+
+        var variant = Assert.Single(variants);
+        Assert.Equal("manual-default", variant.VariantId);
+        Assert.True(variant.IsSelected);
+    }
+
+    [Fact]
+    public void SwitchToVariant_WithNoCurrentLayoutKey_ReturnsNull()
+    {
+        var (ctrl, _, _, _) = Make();
+
+        Assert.Null(ctrl.SwitchToVariant("manual-default"));
+    }
+
+    [Fact]
+    public void SwitchToVariant_WithMissingVariant_ReturnsNull()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-switch");
+        Assert.True(ctrl.TrySave(new List<RadialExtension>
+        {
+            new()
+            {
+                Location = Loc("alpha"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle = 45
+            }
+        }));
+
+        Assert.Null(ctrl.SwitchToVariant("missing"));
+    }
+
+    [Fact]
+    public void SwitchToVariant_WithValidVariant_UpdatesActiveVariant()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-switch-valid");
+        var extensions = new List<RadialExtension>
+        {
+            new()
+            {
+                Location = Loc("alpha"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle = 45
+            }
+        };
+        Assert.True(ctrl.TrySave(extensions));
+        Assert.True(ctrl.TrySaveAsVariant("Wide Variant", extensions));
+        var variantId = ctrl.ActiveVariantId!;
+        Assert.NotEqual("manual-default", variantId);
+        Assert.NotNull(ctrl.SwitchToVariant("manual-default"));
+
+        var loaded = ctrl.SwitchToVariant(variantId);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(variantId, ctrl.ActiveVariantId);
+        Assert.Equal(ManualLayoutOrigin.Manual, ctrl.ActiveVariantOrigin);
+        Assert.Equal("Wide Variant", ctrl.ActiveVariantDisplayName);
+    }
+
+    [Fact]
+    public void TrySaveAsVariant_WithNullExtensions_Throws()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-save-as-null");
+
+        Assert.Throws<ArgumentNullException>(() => ctrl.TrySaveAsVariant("Variant", null!));
+    }
+
+    [Fact]
+    public void TrySaveAsVariant_WithNoCurrentLayoutKey_ReturnsFalse()
+    {
+        var (ctrl, _, logger, _) = Make();
+
+        var saved = ctrl.TrySaveAsVariant("Variant", new List<RadialExtension>());
+
+        Assert.False(saved);
+        Assert.Contains(logger.WarningMessages, message => message.Contains("CurrentLayoutKey"));
+    }
+
+    [Fact]
+    public void TrySaveAsVariant_WithBlankName_ReturnsFalse()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-save-as-blank");
+
+        var saved = ctrl.TrySaveAsVariant("  ", new List<RadialExtension>());
+
+        Assert.False(saved);
+    }
+
+    [Fact]
+    public void TrySaveAsVariant_WithName_SlugifiesVariantIdAndRaisesEvent()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-save-as");
+        var events = 0;
+        ctrl.VariantsChanged += _ => events++;
+        var extensions = new List<RadialExtension>
+        {
+            new()
+            {
+                Location = Loc("alpha"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle = 45
+            }
+        };
+
+        var saved = ctrl.TrySaveAsVariant("Wide Variant!! Name With Extra Text", extensions);
+
+        Assert.True(saved);
+        Assert.StartsWith("wide-variant-name-w", ctrl.ActiveVariantId);
+        Assert.Equal("Wide Variant!! Name With Extra Text", ctrl.ActiveVariantDisplayName);
+        Assert.True(ctrl.IsManualLayoutActive);
+        Assert.Equal(1, events);
+    }
+
+    [Fact]
+    public void TryDeleteActiveVariant_WithNoActiveVariant_ReturnsFalse()
+    {
+        var (ctrl, _, logger, _) = Make();
+
+        Assert.False(ctrl.TryDeleteActiveVariant());
+        Assert.Contains(logger.WarningMessages, message => message.Contains("no active variant"));
+    }
+
+    [Fact]
+    public void TryDeleteActiveVariant_WithSavedManualVariant_DeletesAndRaisesEvent()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-delete-active");
+        var events = 0;
+        ctrl.VariantsChanged += _ => events++;
+        var extensions = new List<RadialExtension>
+        {
+            new()
+            {
+                Location = Loc("alpha"),
+                OriginalPosition = new Point(0, 0),
+                ExtendedPosition = new Point(30, 30),
+                Angle = 45
+            }
+        };
+        Assert.True(ctrl.TrySave(extensions));
+        Assert.True(ctrl.TrySaveAsVariant("Variant B", extensions));
+
+        var deleted = ctrl.TryDeleteActiveVariant();
+
+        Assert.True(deleted);
+        Assert.Equal("manual-default", ctrl.ActiveVariantId);
+        Assert.True(ctrl.IsManualLayoutActive);
+        Assert.Equal(3, events);
+    }
 }

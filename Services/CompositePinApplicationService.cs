@@ -17,11 +17,11 @@ namespace InteractiveWorldMap.Services
     public class CompositePinApplicationService
     {
         private readonly CompositePinPlanCache _planCache;
-        private readonly CompositePinPlanningService _planningService;
+        private readonly ICompositePinPlanningResultProvider _planningService;
 
         public CompositePinApplicationService(
             CompositePinPlanCache planCache,
-            CompositePinPlanningService planningService)
+            ICompositePinPlanningResultProvider planningService)
         {
             _planCache = planCache;
             _planningService = planningService;
@@ -56,7 +56,7 @@ namespace InteractiveWorldMap.Services
 
         /// <summary>
         /// After a cache-miss render pass, collects the plans that were built during this session
-        /// (via <see cref="CompositePinPlanningService.TryGetLastResult"/>) and persists them.
+        /// (via <see cref="ICompositePinPlanningResultProvider.TryGetLastResult"/>) and persists them.
         /// Safe to call even when no plans were built — logs and returns silently.
         /// </summary>
         public void SaveIfMissed(
