@@ -64,8 +64,11 @@ internal static class ContentLoaderTestFixtures
                 }
                 return;
             }
-            catch (IOException) when (attempt < maxRetries - 1)
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
+                if (attempt == maxRetries - 1)
+                    return;
+
                 GC.Collect();
                 GC.WaitForPendingFinalizers();
                 Thread.Sleep(100 * (attempt + 1));
@@ -73,17 +76,21 @@ internal static class ContentLoaderTestFixtures
         }
     }
 
-    internal static void SaveTinyPng(string path)
+    internal static void SaveTinyPng(string path, int width = 1, int height = 1)
     {
+        var pixels = new byte[width * height * 4];
+        for (var pixel = 3; pixel < pixels.Length; pixel += 4)
+            pixels[pixel] = 255;
+
         var bitmap = BitmapSource.Create(
-            1,
-            1,
+            width,
+            height,
             96,
             96,
             PixelFormats.Bgra32,
             null,
-            new byte[] { 0, 0, 255, 255 },
-            4);
+            pixels,
+            width * 4);
         var encoder = new PngBitmapEncoder();
         encoder.Frames.Add(BitmapFrame.Create(bitmap));
 

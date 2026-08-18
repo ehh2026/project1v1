@@ -142,9 +142,7 @@ public class ContentLoaderPathAndBitmapTests
         }
         finally
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 
@@ -182,9 +180,7 @@ public class ContentLoaderPathAndBitmapTests
         }
         finally
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 
@@ -238,9 +234,7 @@ public class ContentLoaderPathAndBitmapTests
         }
         finally
         {
-            GC.Collect();
-            GC.WaitForPendingFinalizers();
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 
@@ -340,7 +334,7 @@ public class ContentLoaderPathAndBitmapTests
         {
             var folder = Path.Combine(tempDir, "Bounded");
             Directory.CreateDirectory(folder);
-            ContentLoaderTestFixtures.SaveTinyPng(Path.Combine(folder, "1.png"));
+            ContentLoaderTestFixtures.SaveTinyPng(Path.Combine(folder, "1.png"), width: 8, height: 8);
 
             var loader = new ContentLoader(new MockLogger(), new ContentSetResolver())
             {
