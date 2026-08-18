@@ -12,6 +12,8 @@ namespace InteractiveWorldMap.Services
     /// </summary>
     public class FileLogger : ILogger, IDisposable
     {
+        private static readonly TimeSpan WriterShutdownTimeout = TimeSpan.FromSeconds(5);
+
         private static BlockingCollection<string> _queue = new BlockingCollection<string>(boundedCapacity: 2000);
         private static Thread? _writerThread;
         private static string? _logFilePath;
@@ -24,14 +26,36 @@ namespace InteractiveWorldMap.Services
         {
             lock (_initLock)
             {
+                var forcedTakeover = false;
+                var deadline = DateTime.UtcNow.Add(WriterShutdownTimeout);
                 while (_writerThread != null && _queue.IsAddingCompleted)
-                    Monitor.Wait(_initLock);
+                {
+                    var remaining = deadline - DateTime.UtcNow;
+                    if (remaining <= TimeSpan.Zero || !Monitor.Wait(_initLock, remaining))
+                    {
+                        // The previous writer hasn't exited within the shutdown window (likely
+                        // stuck on blocked I/O). Stop waiting and start a fresh writer/queue
+                        // rather than blocking this constructor forever. Initialize() always
+                        // allocates a new queue when the old one's IsAddingCompleted, so the
+                        // stale writer's finally block (which compares queue identity before
+                        // touching shared state) can never clobber what we set up here once it
+                        // eventually does exit.
+                        forcedTakeover = true;
+                        break;
+                    }
+                }
 
                 _instanceCount++;
                 var provider = pathProvider ?? DefaultLogPathProvider.Instance;
-                if (_writerThread == null)
+                if (_writerThread == null || forcedTakeover)
                 {
                     Initialize(provider);
+                    if (forcedTakeover)
+                    {
+                        _queue.TryAdd(
+                            $"[WARN]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
+                            "Previous log writer did not exit within the shutdown window; started a new writer.");
+                    }
                     return;
                 }
 
@@ -167,7 +191,7 @@ namespace InteractiveWorldMap.Services
             // but never hang the disposing thread if it's stuck on blocked file/console I/O.
             // WriterLoop's own finally block clears the shared state when it actually stops, so
             // a timeout here cannot leave stale state that lets a second writer start early.
-            threadToJoin?.Join(TimeSpan.FromSeconds(5));
+            threadToJoin?.Join(WriterShutdownTimeout);
         }
 
         private sealed class DefaultLogPathProvider : ILogPathProvider
