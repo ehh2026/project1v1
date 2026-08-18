@@ -407,8 +407,7 @@ public class RadialExtensionAdjusterTests
 
         NewAdjuster().AdjustExtensions(new List<RadialExtension> { ext1, ext2 }, 12.0);
 
-        double angleDiff = Math.Abs(ext1.Angle - ext2.Angle);
-        double normalizedDiff = angleDiff > 180 ? 360 - angleDiff : angleDiff;
+        double normalizedDiff = CoordinateMapper.CircularAngleDistance(ext1.Angle, ext2.Angle);
         Assert.True(
             normalizedDiff >= MakeConfig().RadialExtension.AngleNudgeThreshold - 0.01,
             $"Angles near wrap-around should end at least ~threshold apart (got {normalizedDiff:F2}°)");

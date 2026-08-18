@@ -1,3 +1,4 @@
+using System;
 using System.Windows;
 
 namespace InteractiveWorldMap.Utilities;
@@ -66,5 +67,52 @@ public class CoordinateMapper
     public void UpdateProjection(Rect newMapBounds)
     {
         MapBounds = newMapBounds;
+    }
+
+    /// <summary>
+    /// Returns a screen point offset from <paramref name="origin"/> at the supplied angle,
+    /// where 0 degrees points up and angles increase clockwise.
+    /// </summary>
+    public static Point OffsetAtAngle(Point origin, double distance, double angleDegrees)
+    {
+        var angleRadians = angleDegrees * Math.PI / 180.0;
+        return new Point(
+            origin.X + distance * Math.Sin(angleRadians),
+            origin.Y - distance * Math.Cos(angleRadians));
+    }
+
+    /// <summary>
+    /// Returns the Euclidean distance between two screen points.
+    /// </summary>
+    public static double DistanceBetween(Point first, Point second)
+    {
+        var deltaX = second.X - first.X;
+        var deltaY = second.Y - first.Y;
+        return Math.Sqrt((deltaX * deltaX) + (deltaY * deltaY));
+    }
+
+    /// <summary>
+    /// Normalizes an angle to the range [0, 360).
+    /// </summary>
+    public static double NormalizeAngle(double angleDegrees)
+    {
+        var normalized = angleDegrees % 360.0;
+        return normalized < 0 ? normalized + 360.0 : normalized;
+    }
+
+    /// <summary>
+    /// Returns the clockwise angle from <paramref name="fromAngleDegrees"/> to
+    /// <paramref name="toAngleDegrees"/> in the range [0, 360).
+    /// </summary>
+    public static double ClockwiseAngleDistance(double fromAngleDegrees, double toAngleDegrees) =>
+        NormalizeAngle(toAngleDegrees - fromAngleDegrees);
+
+    /// <summary>
+    /// Returns the smallest circular separation between two angles in degrees.
+    /// </summary>
+    public static double CircularAngleDistance(double firstAngleDegrees, double secondAngleDegrees)
+    {
+        var clockwiseDistance = ClockwiseAngleDistance(firstAngleDegrees, secondAngleDegrees);
+        return Math.Min(clockwiseDistance, 360.0 - clockwiseDistance);
     }
 }

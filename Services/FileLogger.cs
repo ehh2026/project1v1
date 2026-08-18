@@ -24,9 +24,12 @@ namespace InteractiveWorldMap.Services
         {
             lock (_initLock)
             {
+                while (_writerThread != null && _queue.IsAddingCompleted)
+                    Monitor.Wait(_initLock);
+
                 _instanceCount++;
                 var provider = pathProvider ?? DefaultLogPathProvider.Instance;
-                if (_writerThread == null || _queue.IsAddingCompleted)
+                if (_writerThread == null)
                 {
                     Initialize(provider);
                     return;
@@ -58,16 +61,15 @@ namespace InteractiveWorldMap.Services
                 try { Directory.CreateDirectory(logDir); } catch { }
             }
 
-            Console.WriteLine($"Log file path: {logFilePath}");
-
             var queue = _queue;
+            queue.TryAdd($"[INFO]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Log file path: {logFilePath}");
             _writerThread = new Thread(() => WriterLoop(logFilePath!, queue))
             {
                 IsBackground = true,
                 Name = "LogWriter"
             };
             _writerThread.Start();
-            Console.WriteLine("Log writer initialized successfully");
+            queue.TryAdd($"[INFO]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - Log writer initialized successfully");
         }
 
         private static void WriterLoop(string logFilePath, BlockingCollection<string> queue)
@@ -143,7 +145,7 @@ namespace InteractiveWorldMap.Services
                 }
             }
 
-            threadToJoin?.Join(TimeSpan.FromSeconds(2));
+            threadToJoin?.Join();
 
             lock (_initLock)
             {
@@ -153,6 +155,7 @@ namespace InteractiveWorldMap.Services
                     _logFilePath = null;
                     if (_queue.IsAddingCompleted)
                         _queue = new BlockingCollection<string>(boundedCapacity: 2000);
+                    Monitor.PulseAll(_initLock);
                 }
             }
         }

@@ -19,14 +19,21 @@ namespace InteractiveWorldMap.Services
         private readonly string _cachePath;
         private readonly ILogger _logger;
 
-        public ClusterCache(ILogger logger, string contentSetSuffix, string? cacheRootDirectory = null)
+        public ClusterCache(
+            ILogger logger,
+            string contentSetSuffix,
+            string? cacheRootDirectory = null,
+            string? legacyCachePath = null)
         {
             _logger = logger;
-            var clustersRoot = cacheRootDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "InteractiveWorldMap", "clusters");
-            var interactiveWorldMapRoot = Path.GetDirectoryName(clustersRoot);
-            var oldPath = string.IsNullOrEmpty(interactiveWorldMapRoot)
-                ? null
-                : Path.Combine(interactiveWorldMapRoot, "cluster_cache.json");
+            var defaultClustersRoot = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "InteractiveWorldMap",
+                "clusters");
+            var clustersRoot = cacheRootDirectory ?? defaultClustersRoot;
+            var oldPath = legacyCachePath ?? (cacheRootDirectory == null
+                ? Path.Combine(Path.GetDirectoryName(defaultClustersRoot)!, "cluster_cache.json")
+                : null);
             _cachePath = Path.Combine(clustersRoot, $"{contentSetSuffix}.json");
 
             if (contentSetSuffix == "demo" && oldPath != null && File.Exists(oldPath) && !File.Exists(_cachePath))

@@ -76,7 +76,7 @@ public class ClusterCacheTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_WithDemoSuffix_MigratesLegacyCacheFromTempRoot()
+    public void Constructor_WithExplicitLegacyPath_MigratesLegacyCache()
     {
         var logger = new MockLogger();
         var clustersRoot = Path.Combine(_tempDir, "clusters");
@@ -85,11 +85,26 @@ public class ClusterCacheTests : IDisposable
         var legacyData = new { LocationHash = "unused", Clusters = new List<object>() };
         File.WriteAllText(legacyPath, JsonSerializer.Serialize(legacyData));
 
-        var cache = new ClusterCache(logger, "demo", clustersRoot);
+        var cache = new ClusterCache(logger, "demo", clustersRoot, legacyPath);
 
         var expectedNewPath = Path.Combine(clustersRoot, "demo.json");
         Assert.True(File.Exists(expectedNewPath));
         Assert.False(File.Exists(legacyPath));
+    }
+
+    [Fact]
+    public void Constructor_WithCustomRoot_DoesNotMigrateParentCache()
+    {
+        var logger = new MockLogger();
+        var clustersRoot = Path.Combine(_tempDir, "clusters");
+        Directory.CreateDirectory(clustersRoot);
+        var unrelatedParentCache = Path.Combine(_tempDir, "cluster_cache.json");
+        File.WriteAllText(unrelatedParentCache, "unrelated cache data");
+
+        _ = new ClusterCache(logger, "demo", clustersRoot);
+
+        Assert.True(File.Exists(unrelatedParentCache));
+        Assert.False(File.Exists(Path.Combine(clustersRoot, "demo.json")));
     }
 
     [Fact]

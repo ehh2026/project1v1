@@ -47,6 +47,8 @@ started: 2026-08-10
 
 **Orchestration note (2026-08-11):** Parallel launch of A+B+C was too heavy. Serial only (max 1 subagent). Slices A, B, B2, and C merged after review. Verify path is green after CRLF/format fixes (steps 1–8 earlier + 9–11 via `52e6e8f1`). Coverage **49.1%/44.4%** — still short of 50%/45%; next is Cobertura-guided test-only gap fills if continuing the ratchet.
 
+**PR #12 Qodo follow-up (2026-08-18):** Hardened the testability seams introduced by this track: custom ClusterCache roots only migrate an explicitly supplied legacy path, FileLogger waits for a completed writer before replacement, and radial tests route screen-coordinate/angle assertions through CoordinateMapper. Targeted regression and full verification passed: 869 tests / 2 existing skips, **49.4% line / 44.7% branch** coverage.
+
 **Known bugs found (tests-only):**
 
 | Slice | File | Bug | Evidence |
@@ -756,13 +758,13 @@ Do not promote advisory 60% / 50% aspirations into blocking gates until the repo
 
 **Baseline coverage (plan start):** 46.2% line / 40.7% branch
 
-**Latest verified snapshot:** 49.1% line / 44.4% branch
+**Latest verified snapshot:** 49.4% line / 44.7% branch
 
 **Next target:** 50% line / 45% branch
 
 **Backlog target:** 60% line / 50% branch
 
-**Current non-performance tests:** 866 passed / 2 skipped in latest verify run
+**Current non-performance tests:** 869 passed / 2 skipped in latest verify run
 
 **Completed test files in this track:** `MapNavigationServiceTests`, `ManualLayoutOverrideStoreTests`, `ManualLayoutAssignmentEnricherTests`, `AnimationFrameCacheTests`, `ClusterCacheTests`, `FileLoggerTests`, `CompositePinPlanCacheTests`, expanded `CompositePinApplicationServiceTests`, `ContentLoaderTests` (+ splits), radial adjuster/calculator expansions, MainWindow wiring guards
 

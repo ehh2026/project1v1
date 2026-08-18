@@ -38,7 +38,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 ## Developer tooling
 
 - [ ] Explore building a distributable Windows executable (local `dotnet publish` + optional GitHub Actions publish job): decide self-contained vs framework-dependent, single file vs zip, signing, and installer needs — see [BUILDING_EXECUTABLE.md](guides/BUILDING_EXECUTABLE.md)
-- [ ] Increase test coverage from the latest full-run snapshot of **49.1% line / 44.4% branch** toward 50% line / 45% branch (then 60%/50%): MainWindow source guards, radial adjuster/calculator, and ContentLoader didactic/caption/error-path expansions are merged (tests-only); verify steps are green after format EOL fixes. Still ~0.9pp line / ~0.6pp branch short of the next ratchet. Blocking gates remain 45%/40%.
+- [ ] Increase test coverage from the latest full-run snapshot of **49.4% line / 44.7% branch** toward 50% line / 45% branch (then 60%/50%): MainWindow source guards, radial adjuster/calculator, and ContentLoader didactic/caption/error-path expansions are merged (tests-only); Qodo review hardening is verified. Still ~0.6pp line / ~0.3pp branch short of the next ratchet. Blocking gates remain 45%/40%.
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
 
 ## User ideas (product)

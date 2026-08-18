@@ -315,21 +315,21 @@ public class RadialExtensionCalculatorTests
         double r = 30;
         var screenPositions = new Dictionary<Location, Point>
         {
-            [locs[0]] = new Point(200 + r * Math.Sin(-10 * Math.PI / 180), 200 - r * Math.Cos(-10 * Math.PI / 180)),
-            [locs[1]] = new Point(200 + r * Math.Sin(-5 * Math.PI / 180), 200 - r * Math.Cos(-5 * Math.PI / 180)),
-            [locs[2]] = new Point(200 + r * Math.Sin(5 * Math.PI / 180), 200 - r * Math.Cos(5 * Math.PI / 180)),
-            [locs[3]] = new Point(200 + r * Math.Sin(10 * Math.PI / 180), 200 - r * Math.Cos(10 * Math.PI / 180))
+            [locs[0]] = CoordinateMapper.OffsetAtAngle(group.CenterPoint, r, -10),
+            [locs[1]] = CoordinateMapper.OffsetAtAngle(group.CenterPoint, r, -5),
+            [locs[2]] = CoordinateMapper.OffsetAtAngle(group.CenterPoint, r, 5),
+            [locs[3]] = CoordinateMapper.OffsetAtAngle(group.CenterPoint, r, 10)
         };
 
         var extensions = calc.CalculateRadialExtensions(group, screenPositions, 800, 600);
 
         Assert.Equal(4, extensions.Count);
-        var sorted = extensions.Select(e => e.Angle % 360).OrderBy(a => a).ToList();
+        var sorted = extensions.Select(e => CoordinateMapper.NormalizeAngle(e.Angle)).OrderBy(a => a).ToList();
         double minGap = double.MaxValue;
         for (int i = 0; i < sorted.Count; i++)
         {
             double next = sorted[(i + 1) % sorted.Count];
-            double gap = (next - sorted[i] + 360) % 360;
+            double gap = CoordinateMapper.ClockwiseAngleDistance(sorted[i], next);
             minGap = Math.Min(minGap, gap);
         }
         Assert.True(minGap >= DefaultConfig().AngleNudgeThreshold,
@@ -389,9 +389,7 @@ public class RadialExtensionCalculatorTests
         // Extensions should still have non-zero length
         foreach (var ext in extensions)
         {
-            double dx = ext.ExtendedPosition.X - ext.OriginalPosition.X;
-            double dy = ext.ExtendedPosition.Y - ext.OriginalPosition.Y;
-            double length = System.Math.Sqrt(dx * dx + dy * dy);
+            double length = CoordinateMapper.DistanceBetween(ext.OriginalPosition, ext.ExtendedPosition);
             Assert.True(length > 0, $"Extension for {ext.Location.Name} has zero length");
         }
     }

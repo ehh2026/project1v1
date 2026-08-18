@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **PR #12 Qodo review hardening:** FileLogger now queues initialization diagnostics and serializes lifecycle replacement until the previous writer exits; ClusterCache custom roots do not inspect or migrate parent files unless a legacy path is explicitly supplied; radial-extension tests use CoordinateMapper's shared screen-coordinate and circular-angle helpers.
+
 - **Backlog priority:** Promoted the radial-extension canvas-clamp bug (`CalculateMaxLength` 20px floor overshoot near edges) from Deferred to High priority in `docs/TO_DO.md`; fix should un-skip `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds`.
 
 - **PR #12 review follow-through:** Addressed CodeRabbit findings: ClusterCache legacy-migration null/empty-parent guard and isolated temp migration tests; FileLogger warns on ignored alternate log paths and Dispose is idempotent (with characterization tests); ContentLoader tests split under the 800-line taste limit (`ContentLoaderTests`, `ContentLoaderPathAndBitmapTests`, `ContentLoaderDidacticCaptionTests` + shared fixtures); wiring/doc/fixture tightenings for composite-pin plan cache, MainWindow content wiring, and radial calculator right-edge coverage; plan/TO_DO/complexity-hooks bookkeeping corrections.
