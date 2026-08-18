@@ -171,9 +171,7 @@ public class RadialExtensionCalculatorTests
 
         foreach (var ext in extensions)
         {
-            double dx = ext.ExtendedPosition.X - ext.OriginalPosition.X;
-            double dy = ext.ExtendedPosition.Y - ext.OriginalPosition.Y;
-            double length = System.Math.Sqrt(dx * dx + dy * dy);
+            double length = CoordinateMapper.DistanceBetween(ext.OriginalPosition, ext.ExtendedPosition);
             Assert.True(length > 0, $"Extension for {ext.Location.Name} has zero length");
         }
     }

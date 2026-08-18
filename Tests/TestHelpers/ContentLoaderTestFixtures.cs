@@ -67,7 +67,9 @@ internal static class ContentLoaderTestFixtures
             catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
             {
                 if (attempt == maxRetries - 1)
-                    return;
+                    throw new IOException(
+                        $"Failed to delete temp test directory '{path}' after {maxRetries} attempts; " +
+                        "a file handle is likely still open.", ex);
 
                 GC.Collect();
                 GC.WaitForPendingFinalizers();

@@ -95,6 +95,24 @@ namespace InteractiveWorldMap.Services
             {
                 Console.WriteLine($"Log writer thread failed: {ex.Message}");
             }
+            finally
+            {
+                // The writer thread — not Dispose — owns clearing shared state, and only once
+                // it has actually stopped touching the file. That way a Dispose() whose bounded
+                // Join times out can never leave stale state that lets a second writer open the
+                // same file while this one is still running.
+                lock (_initLock)
+                {
+                    if (ReferenceEquals(_queue, queue))
+                    {
+                        _writerThread = null;
+                        _logFilePath = null;
+                        if (_queue.IsAddingCompleted)
+                            _queue = new BlockingCollection<string>(boundedCapacity: 2000);
+                    }
+                    Monitor.PulseAll(_initLock);
+                }
+            }
         }
 
         public void LogError(string message, Exception? ex = null)
@@ -145,19 +163,11 @@ namespace InteractiveWorldMap.Services
                 }
             }
 
-            threadToJoin?.Join();
-
-            lock (_initLock)
-            {
-                if (_instanceCount == 0 && ReferenceEquals(_writerThread, threadToJoin))
-                {
-                    _writerThread = null;
-                    _logFilePath = null;
-                    if (_queue.IsAddingCompleted)
-                        _queue = new BlockingCollection<string>(boundedCapacity: 2000);
-                    Monitor.PulseAll(_initLock);
-                }
-            }
+            // Bounded wait: give the writer a chance to flush and exit so shutdown is orderly,
+            // but never hang the disposing thread if it's stuck on blocked file/console I/O.
+            // WriterLoop's own finally block clears the shared state when it actually stops, so
+            // a timeout here cannot leave stale state that lets a second writer start early.
+            threadToJoin?.Join(TimeSpan.FromSeconds(5));
         }
 
         private sealed class DefaultLogPathProvider : ILogPathProvider

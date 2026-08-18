@@ -43,7 +43,7 @@ public class ContentLoaderDidacticCaptionTests
         }
         finally
         {
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 
@@ -71,7 +71,7 @@ public class ContentLoaderDidacticCaptionTests
         }
         finally
         {
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 
@@ -94,7 +94,7 @@ public class ContentLoaderDidacticCaptionTests
         }
         finally
         {
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 
@@ -264,7 +264,7 @@ public class ContentLoaderDidacticCaptionTests
         }
         finally
         {
-            Directory.Delete(tempDir, recursive: true);
+            ContentLoaderTestFixtures.SafeDeleteDirectory(tempDir);
         }
     }
 }

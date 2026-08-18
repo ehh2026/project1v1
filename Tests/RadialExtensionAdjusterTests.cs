@@ -32,16 +32,8 @@ public class RadialExtensionAdjusterTests
             Angle = angle,
             GroupId = groupId,
             OriginalPosition = origin,
-            ExtendedPosition = new Point(
-                origin.X + length * Math.Sin(angle * Math.PI / 180.0),
-                origin.Y - length * Math.Cos(angle * Math.PI / 180.0))
+            ExtendedPosition = CoordinateMapper.OffsetAtAngle(origin, length, angle)
         };
-
-    private static double Distance(Point a, Point b)
-    {
-        double dx = b.X - a.X, dy = b.Y - a.Y;
-        return Math.Sqrt(dx * dx + dy * dy);
-    }
 
     // -------------------------------------------------------------------------
     // Constructor guards
@@ -168,7 +160,7 @@ public class RadialExtensionAdjusterTests
 
         NewAdjuster().AdjustExtensions(new List<RadialExtension> { ext1, ext2 }, markerSize);
 
-        double finalDist = Distance(ext1.ExtendedPosition, ext2.ExtendedPosition);
+        double finalDist = CoordinateMapper.DistanceBetween(ext1.ExtendedPosition, ext2.ExtendedPosition);
         Assert.True(finalDist >= minGap,
             $"Extended positions should be ≥ {minGap:F0}px apart after adjustment; got {finalDist:F1}px");
     }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Windows;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
@@ -184,8 +185,12 @@ public class ClusterCacheTests : IDisposable
 
         cache.Save(locations, clusters, threshold: 50);
 
-        var trimmed = new List<Location> { locations[0], locations[1] };
-        var loaded = cache.TryLoad(trimmed, threshold: 50);
+        var cacheFile = Path.Combine(_tempDir, "test.json");
+        var node = JsonNode.Parse(File.ReadAllText(cacheFile))!;
+        node["Clusters"]![0]!["LocationKeys"]![0] = "Unknown:0.00,0.00";
+        File.WriteAllText(cacheFile, node.ToJsonString());
+
+        var loaded = cache.TryLoad(locations, threshold: 50);
 
         Assert.Null(loaded);
     }
