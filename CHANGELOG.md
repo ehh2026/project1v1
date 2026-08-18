@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Backlog priority:** Promoted the radial-extension canvas-clamp bug (`CalculateMaxLength` 20px floor overshoot near edges) from Deferred to High priority in `docs/TO_DO.md`; fix should un-skip `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds`.
+
 - **PR #12 review follow-through:** Addressed CodeRabbit findings: ClusterCache legacy-migration null/empty-parent guard and isolated temp migration tests; FileLogger warns on ignored alternate log paths and Dispose is idempotent (with characterization tests); ContentLoader tests split under the 800-line taste limit (`ContentLoaderTests`, `ContentLoaderPathAndBitmapTests`, `ContentLoaderDidacticCaptionTests` + shared fixtures); wiring/doc/fixture tightenings for composite-pin plan cache, MainWindow content wiring, and radial calculator right-edge coverage; plan/TO_DO/complexity-hooks bookkeeping corrections.
 
 - **Coverage ratchet (tests-only continuation):** Added MainWindow composite-pin and content source-guard wiring tests; expanded `RadialExtensionAdjuster`, `RadialExtensionCalculator`, and `ContentLoader` didactic/caption/error-path coverage. Documented a known `CalculateMaxLength` 20px-floor canvas overshoot as a skipped characterization test (no production fix in this continuation). Protected-location adjuster coverage remains skipped until a testability seam exists. Latest verify snapshot: **49.1% line / 44.4% branch** (866 pass / 2 skip); blocking 45%/40% gates met; 50%/45% ratchet still open.

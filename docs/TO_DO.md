@@ -61,6 +61,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## High priority
 
+- [ ] Fix radial extension canvas clamp: `RadialExtensionCalculator.CalculateMaxLength` floors length at 20px, which can place heads outside the canvas when a marker is <20px from an edge. Characterized by skipped `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` (`[Fact(Skip = "BUG: …")]`) — see [test-coverage-5pct-increase-plan.md](exec-plans/active/test-coverage-5pct-increase-plan.md) Known bugs (B2). After the fix, remove the Skip and make the test assert heads stay in bounds.
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 - [ ] Manual acceptance for settled zoomed-map rendering: compare the five Runtime Tuning modes on the target monitor, choose the default, and decide whether the measured first-generation custom-filter delay (about 1.7-3.3 seconds at 1440p here; cached afterward) needs further optimization — [plan](superpowers/plans/2026-07-01-zoomed-map-upscaling.md)
@@ -79,7 +80,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Deferred
 
-- [ ] Radial extension canvas clamp: `RadialExtensionCalculator.CalculateMaxLength` floors length at 20px, which can place heads outside the canvas when a marker is <20px from an edge. Characterized by skipped `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` in [test-coverage-5pct-increase-plan.md](exec-plans/active/test-coverage-5pct-increase-plan.md). Do not fix in the tests-only coverage continuation.
 - [ ] Zoomed-map source/scale alternatives: evaluate a lower default zoom or native-resolution zoom cap after the resampler comparison.
 - [ ] Zoomed-map source quality: seek a substantially higher-resolution lossless or vector replacement for the raster JPEG.
 - [ ] Zoomed-map hybrid rendering: consider vector overlays for labels and country borders over the raster base.
