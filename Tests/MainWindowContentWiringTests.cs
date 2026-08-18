@@ -35,7 +35,7 @@ public class MainWindowContentWiringTests
 
         // The display-aware method is wired into startup so the decode box is set before any
         // content image is loaded.
-        Assert.Contains("ApplyDisplayBasedImageDecodeCap()", source);
+        Assert.Contains("ApplyDisplayBasedImageDecodeCap();", source);
     }
 
     [Fact]

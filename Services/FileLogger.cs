@@ -7,6 +7,8 @@ namespace InteractiveWorldMap.Services
 {
     /// <summary>
     /// Non-blocking logger that queues messages and writes on a background thread.
+    /// Writer state is process-wide/static: a second instance with a different path is ignored
+    /// while an active writer is running (a warning is queued). Dispose is idempotent per instance.
     /// </summary>
     public class FileLogger : ILogger, IDisposable
     {
@@ -16,13 +18,29 @@ namespace InteractiveWorldMap.Services
         private static int _instanceCount = 0;
         private static readonly object _initLock = new object();
 
+        private bool _disposed;
+
         public FileLogger(ILogPathProvider? pathProvider = null)
         {
             lock (_initLock)
             {
                 _instanceCount++;
+                var provider = pathProvider ?? DefaultLogPathProvider.Instance;
                 if (_writerThread == null || _queue.IsAddingCompleted)
-                    Initialize(pathProvider ?? DefaultLogPathProvider.Instance);
+                {
+                    Initialize(provider);
+                    return;
+                }
+
+                var requestedPath = provider.LogFilePath;
+                if (!string.Equals(requestedPath, _logFilePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    // A writer is already running for another path. Document the ignored request
+                    // instead of failing, because the writer state is process-wide.
+                    _queue.TryAdd(
+                        $"[WARN]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
+                        $"Log path '{requestedPath}' ignored; active log file is '{_logFilePath}'");
+                }
             }
         }
 
@@ -32,16 +50,18 @@ namespace InteractiveWorldMap.Services
                 _queue = new BlockingCollection<string>(boundedCapacity: 2000);
 
             _logFilePath = pathProvider.LogFilePath;
-            var logDir = Path.GetDirectoryName(_logFilePath);
+            var logFilePath = _logFilePath;
+            var logDir = Path.GetDirectoryName(logFilePath);
 
             if (!string.IsNullOrEmpty(logDir))
             {
                 try { Directory.CreateDirectory(logDir); } catch { }
             }
 
-            Console.WriteLine($"Log file path: {_logFilePath}");
+            Console.WriteLine($"Log file path: {logFilePath}");
 
-            _writerThread = new Thread(WriterLoop)
+            var queue = _queue;
+            _writerThread = new Thread(() => WriterLoop(logFilePath!, queue))
             {
                 IsBackground = true,
                 Name = "LogWriter"
@@ -50,12 +70,12 @@ namespace InteractiveWorldMap.Services
             Console.WriteLine("Log writer initialized successfully");
         }
 
-        private static void WriterLoop()
+        private static void WriterLoop(string logFilePath, BlockingCollection<string> queue)
         {
             try
             {
-                using var writer = new StreamWriter(_logFilePath!, append: true) { AutoFlush = false };
-                foreach (var message in _queue.GetConsumingEnumerable())
+                using var writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+                foreach (var message in queue.GetConsumingEnumerable())
                 {
                     // Console/Debug output happens here on the background thread, not on the
                     // (often UI) thread that logged — so logging never blocks the caller.
@@ -64,7 +84,7 @@ namespace InteractiveWorldMap.Services
 
                     writer.WriteLine(message);
                     // Flush only when queue is momentarily empty (batches writes)
-                    if (_queue.Count == 0)
+                    if (queue.Count == 0)
                         writer.Flush();
                 }
                 writer.Flush();
@@ -111,6 +131,10 @@ namespace InteractiveWorldMap.Services
 
             lock (_initLock)
             {
+                if (_disposed)
+                    return;
+                _disposed = true;
+
                 _instanceCount--;
                 if (_instanceCount == 0 && !_queue.IsAddingCompleted)
                 {

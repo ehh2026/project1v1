@@ -79,14 +79,15 @@ public class ClusterCacheTests : IDisposable
     public void Constructor_WithDemoSuffix_MigratesLegacyCacheFromTempRoot()
     {
         var logger = new MockLogger();
-        var parentDir = Path.GetDirectoryName(_tempDir)!;
-        var legacyPath = Path.Combine(parentDir, "cluster_cache.json");
+        var clustersRoot = Path.Combine(_tempDir, "clusters");
+        Directory.CreateDirectory(clustersRoot);
+        var legacyPath = Path.Combine(_tempDir, "cluster_cache.json");
         var legacyData = new { LocationHash = "unused", Clusters = new List<object>() };
         File.WriteAllText(legacyPath, JsonSerializer.Serialize(legacyData));
 
-        var cache = new ClusterCache(logger, "demo", _tempDir);
+        var cache = new ClusterCache(logger, "demo", clustersRoot);
 
-        var expectedNewPath = Path.Combine(_tempDir, "demo.json");
+        var expectedNewPath = Path.Combine(clustersRoot, "demo.json");
         Assert.True(File.Exists(expectedNewPath));
         Assert.False(File.Exists(legacyPath));
     }

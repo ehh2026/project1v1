@@ -149,6 +149,64 @@ public class FileLoggerTests
         }
     }
 
+    [Fact]
+    public async Task Constructor_WhenWriterAlreadyRunning_IgnoresAlternatePathAndLogsWarning()
+    {
+        var tempDir = NewTempDir();
+        var primaryPath = Path.Combine(tempDir, "primary.log");
+        var ignoredPath = Path.Combine(tempDir, "ignored.log");
+
+        try
+        {
+            using (var primary = new FileLogger(new TestLogPathProvider(primaryPath)))
+            using (var secondary = new FileLogger(new TestLogPathProvider(ignoredPath)))
+            {
+                secondary.LogInfo("should land in primary");
+            }
+
+            // Dispose both instances before reading so the writer releases the file handle.
+            var lines = await WaitForLines(primaryPath, 2);
+            Assert.Contains(lines, line =>
+                line.Contains("[WARN]") &&
+                line.Contains(ignoredPath) &&
+                line.Contains("ignored"));
+            Assert.Contains(lines, line => line.Contains("should land in primary"));
+            Assert.False(File.Exists(ignoredPath));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public async Task Dispose_CalledTwice_DoesNotUnderflowInstanceCount()
+    {
+        var tempDir = NewTempDir();
+        var logPath = Path.Combine(tempDir, "app.log");
+
+        try
+        {
+            var logger = new FileLogger(new TestLogPathProvider(logPath));
+            logger.LogInfo("before double dispose");
+            logger.Dispose();
+            logger.Dispose(); // second call must be a no-op
+
+            using (var next = new FileLogger(new TestLogPathProvider(logPath)))
+            {
+                next.LogInfo("after double dispose");
+            }
+
+            var lines = await WaitForLines(logPath, 2);
+            Assert.Contains(lines, line => line.Contains("before double dispose"));
+            Assert.Contains(lines, line => line.Contains("after double dispose"));
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
     private static string NewTempDir()
         => Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
 

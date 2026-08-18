@@ -23,11 +23,13 @@ namespace InteractiveWorldMap.Services
         {
             _logger = logger;
             var clustersRoot = cacheRootDirectory ?? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "InteractiveWorldMap", "clusters");
-            var interactiveWorldMapRoot = Path.GetDirectoryName(clustersRoot)!;
-            var oldPath = Path.Combine(interactiveWorldMapRoot, "cluster_cache.json");
+            var interactiveWorldMapRoot = Path.GetDirectoryName(clustersRoot);
+            var oldPath = string.IsNullOrEmpty(interactiveWorldMapRoot)
+                ? null
+                : Path.Combine(interactiveWorldMapRoot, "cluster_cache.json");
             _cachePath = Path.Combine(clustersRoot, $"{contentSetSuffix}.json");
 
-            if (contentSetSuffix == "demo" && File.Exists(oldPath) && !File.Exists(_cachePath))
+            if (contentSetSuffix == "demo" && oldPath != null && File.Exists(oldPath) && !File.Exists(_cachePath))
             {
                 try
                 {

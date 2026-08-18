@@ -4,15 +4,17 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **PR #12 review follow-through:** Addressed CodeRabbit findings: ClusterCache legacy-migration null/empty-parent guard and isolated temp migration tests; FileLogger warns on ignored alternate log paths and Dispose is idempotent (with characterization tests); ContentLoader tests split under the 800-line taste limit (`ContentLoaderTests`, `ContentLoaderPathAndBitmapTests`, `ContentLoaderDidacticCaptionTests` + shared fixtures); wiring/doc/fixture tightenings for composite-pin plan cache, MainWindow content wiring, and radial calculator right-edge coverage; plan/TO_DO/complexity-hooks bookkeeping corrections.
+
 - **Coverage ratchet (tests-only continuation):** Added MainWindow composite-pin and content source-guard wiring tests; expanded `RadialExtensionAdjuster`, `RadialExtensionCalculator`, and `ContentLoader` didactic/caption/error-path coverage. Documented a known `CalculateMaxLength` 20px-floor canvas overshoot as a skipped characterization test (no production fix in this continuation). Protected-location adjuster coverage remains skipped until a testability seam exists. Latest verify snapshot: **49.1% line / 44.4% branch** (866 pass / 2 skip); blocking 45%/40% gates met; 50%/45% ratchet still open.
 
 - **Complexity/CI hooks plan archived:** `complexity-and-ci-hooks.md` moved to `docs/exec-plans/completed/` after `.\scripts\verify.ps1` passed on 2026-08-11 (842 tests, 48.9% line / 44.0% branch), closing the final archival bookkeeping item.
 
-- **Coverage gate ratchet:** Raised the enforced coverage threshold from 42% line / 37% branch to **45% line / 40% branch** in CI, the advisory workflow, and local verify scripts (`scripts/verify.ps1` / `verify.sh`, `AGENTS.md`, `scripts/README.md`), matching the current 48.9% line / 44.0% branch baseline without blocking the still-open 50% / 45% ratchet.
+- **Coverage gate ratchet:** Raised the enforced coverage threshold from 42% line / 37% branch to **45% line / 40% branch** in CI, the advisory workflow, and local verify scripts (`scripts/verify.ps1` / `verify.sh`, `AGENTS.md`, `scripts/README.md`), matching the then-current 48.9% line / 44.0% branch baseline without blocking the still-open 50% / 45% ratchet.
 
 - **Coverage ratchet implementation:** Added temp-directory seams and focused tests for `ClusterCache`, `CompositePinPlanCache`, and `FileLogger`, expanded `CompositePinApplicationService`, `ManualLayoutManager`, `LayoutEditorController`, `StartupValidator`, and `ContentLoader` coverage, and recorded the active coverage-plan pause point for the unfinished 50% / 45% target.
 
-- **Coverage plan refresh:** Revised the active test-coverage ratchet plan for the current 46.2% line / 40.7% branch baseline, separating completed service-testability work from remaining slices and adding explicit cache/logging testability seams, verification commands, and a path toward the 60% / 50% backlog target.
+- **Coverage plan refresh:** Revised the active test-coverage ratchet plan for the then-current 46.2% line / 40.7% branch baseline, separating completed service-testability work from remaining slices and adding explicit cache/logging testability seams, verification commands, and a path toward the 60% / 50% backlog target.
 
 - **Service testability coverage:** Added a narrow `ICompositePinPlanningResultProvider` seam so manual-layout assignment enrichment and composite-plan cache saves can be tested with hand-written fakes. `AnimationFrameCache` now accepts an optional cache directory while preserving the AppData default. Added focused tests for `ManualLayoutAssignmentEnricher`, `CompositePinApplicationService.SaveIfMissed`, and `AnimationFrameCache`; archived the service-testability refactor plan.
 

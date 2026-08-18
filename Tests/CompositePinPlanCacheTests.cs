@@ -21,8 +21,7 @@ public class CompositePinPlanCacheTests
     /// <summary>
     /// Creates a cache instance that writes into a temp sub-directory so tests
     /// do not pollute the real AppData cache folder.
-    /// We rely on the cache's own AppData path, but write test entries via
-    /// Save() and then read via TryLoad() — fully round-trip.
+    /// Test entries are written via Save() and read via TryLoad() — fully round-trip.
     /// </summary>
     private static (CompositePinPlanCache cache, string groupKey, string cacheKey, string tempDir) SetupCache()
     {

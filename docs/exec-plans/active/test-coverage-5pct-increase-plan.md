@@ -214,16 +214,6 @@ Add tests named:
 [Fact] public void Save_WhenDirectoryCannotBeCreated_DoesNotThrowAndLogsWarning()
 ```
 
-- [ ] **Step 5: Run focused verification.**
-
-Run:
-
-```powershell
-dotnet test Tests/InteractiveWorldMap.Tests.csproj --filter "FullyQualifiedName~ClusterCacheTests"
-```
-
-Expected: all `ClusterCacheTests` pass.
-
 - [x] **Step 5: Run focused verification.** — 10 `ClusterCacheTests` pass (Phase 1 Task 1.1 complete).
 
 ### Task 1.2: Make `CompositePinPlanCache` Temp-Directory Testable
@@ -764,16 +754,16 @@ Do not promote advisory 60% / 50% aspirations into blocking gates until the repo
 
 ## Appendix: Current Quick Reference
 
-**Baseline coverage:** 46.2% line / 40.7% branch
+**Baseline coverage (plan start):** 46.2% line / 40.7% branch
+
+**Latest verified snapshot:** 49.1% line / 44.4% branch
 
 **Next target:** 50% line / 45% branch
 
 **Backlog target:** 60% line / 50% branch
 
-**Current non-performance tests:** 771 in latest verified run
+**Current non-performance tests:** 866 passed / 2 skipped in latest verify run
 
-**Completed test files in this track:** `MapNavigationServiceTests`, `ManualLayoutOverrideStoreTests`, `ManualLayoutAssignmentEnricherTests`, `AnimationFrameCacheTests`, initial `CompositePinApplicationServiceTests`
+**Completed test files in this track:** `MapNavigationServiceTests`, `ManualLayoutOverrideStoreTests`, `ManualLayoutAssignmentEnricherTests`, `AnimationFrameCacheTests`, `ClusterCacheTests`, `FileLoggerTests`, `CompositePinPlanCacheTests`, expanded `CompositePinApplicationServiceTests`, `ContentLoaderTests` (+ splits), radial adjuster/calculator expansions, MainWindow wiring guards
 
-**Primary remaining test files to create:** `ClusterCacheTests`, `FileLoggerTests`
-
-**Primary remaining test files to expand:** `CompositePinApplicationServiceTests`, `ContentLoaderTests`, `ManualLayoutManagerTests`, `LayoutEditorControllerTests`, `StartupValidatorTests`, `RadialExtensionAdjusterTests`, `RadialExtensionCalculatorTests`
+**Primary remaining work:** Cobertura-guided gap fills to close the ~0.9pp / ~0.6pp shortfall to 50% / 45%

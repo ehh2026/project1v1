@@ -408,18 +408,23 @@ public class RadialExtensionCalculatorTests
         var group = new DenseMarkerGroup
         {
             Locations = new List<Location> { locA, locB },
-            CenterPoint = new Point(790, 300)
+            CenterPoint = new Point(745, 300)
         };
-        // Both markers at far-right edge, one slightly above center, one slightly below
+        // Horizontally separated so one natural angle is rightward (~90°) and
+        // ExtensionLineLength 500 requires CalculateMaxLength clamping.
+        // Keep remaining room > CalculateMaxLength's 20px floor so this case
+        // exercises clamp-to-edge rather than the known floor overshoot
+        // (covered by CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds).
         var screenPositions = new Dictionary<Location, Point>
         {
-            [locA] = new Point(790, 290),
-            [locB] = new Point(790, 310)
+            [locA] = new Point(750, 300),
+            [locB] = new Point(740, 300)
         };
 
         var extensions = calc.CalculateRadialExtensions(group, screenPositions, 800, 600);
 
         Assert.Equal(2, extensions.Count);
+        Assert.Contains(extensions, ext => ext.ExtendedPosition.X > ext.OriginalPosition.X);
         foreach (var ext in extensions)
         {
             Assert.True(ext.ExtendedPosition.X <= 800,
