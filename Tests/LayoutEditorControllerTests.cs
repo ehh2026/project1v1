@@ -249,6 +249,56 @@ public class LayoutEditorControllerTests
         Assert.Equal(result[0].OriginalPosition, result[0].ExtendedPosition);
     }
 
+    // ─── HasManualLayout (navigation precedence probe) ────────────────────────
+
+    [Fact]
+    public void HasManualLayout_WithSavedManualLayout_IsTrue()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-zoomed");
+        ctrl.TrySave(OneExtension());
+
+        Assert.True(ctrl.HasManualLayout("key-zoomed"));
+    }
+
+    [Fact]
+    public void HasManualLayout_WithOnlyAutoSeed_IsFalse()
+    {
+        // A seed is a starting point, not a decision, so it must not outrank a hand-made
+        // full-map layout when zooming into a single location.
+        var (ctrl, manager, _, _) = Make();
+        manager.SaveVariant(
+            "key-seeded", "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,
+            OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        Assert.False(ctrl.HasManualLayout("key-seeded"));
+    }
+
+    [Fact]
+    public void HasManualLayout_WithNoLayout_IsFalse()
+    {
+        var (ctrl, _, _, _) = Make();
+        Assert.False(ctrl.HasManualLayout("key-absent"));
+        Assert.False(ctrl.HasManualLayout(null));
+        Assert.False(ctrl.HasManualLayout(""));
+    }
+
+    [Fact]
+    public void HasManualLayout_DoesNotDisturbActiveVariantState()
+    {
+        // Called during navigation, where mutating editor state would be wrong. TryLoad has that
+        // side effect; this probe must not.
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-current");
+        ctrl.TrySave(OneExtension());
+        var activeBefore = ctrl.ActiveVariantId;
+
+        ctrl.HasManualLayout("some-other-key");
+
+        Assert.Equal("key-current", ctrl.CurrentLayoutKey);
+        Assert.Equal(activeBefore, ctrl.ActiveVariantId);
+    }
+
     // ─── IsCollapsedLayout ────────────────────────────────────────────────────
 
     [Fact]

@@ -132,10 +132,26 @@ never re-derives it on entry.
       every key change; same key still preserves. Covered by
       `SetLayoutKey_ChangingKey_ClearsActiveVariantIdentity` and
       `SetLayoutKey_SameKey_PreservesActiveVariantIdentity`.
-- [ ] 0.6 Reconsider the `preferFullMapLayout` branch (`Navigation:233-245`): preferring the
-      full-map layout for display is defensible, but it must not leave the *editor* pointed at the
-      full-map key. **Now mitigated** by 0.3/0.4 (the editor re-derives, the save verifies), but the
-      branch itself is still a key writer and deserves a direct fix.
+- [x] 0.6 **Done 2026-08-19 — layout precedence is now by origin, not scope.**
+      Reported by the user (Ohio pin): with 0.3 in place the editor always derived the *cluster*
+      key while the display always preferred the *full-map* layout for a single-location zoom. So a
+      zoomed layout could be saved and then never shown — zooming in kept the unzoomed appearance
+      until Edit Layout was clicked, which loaded the cluster key directly. The two paths disagreed
+      about which layout was in effect, and 0.3 is what exposed it.
+
+      **Rule, decided with the user:** a layout the user deliberately made wins, most specific
+      first — Manual zoomed layout → Manual full-map layout → auto seeds. Scope alone was the wrong
+      test: every cluster has a seed, and the original branch existed precisely so a seed could not
+      override hand-made full-map work. Origin preserves that protection while honoring intent.
+
+      Implemented as `LayoutEditorController.HasManualLayout` (deliberately side-effect free, unlike
+      `TryLoad` — see 0.10) plus `HasManualLayoutForZoomedView`, gating **both**
+      `TryApplyFullMapLayoutForZoomedSingle` and `ShowZoomedView`'s `preferFullMapLayout` so the two
+      paths cannot disagree again.
+
+      **Consequence to surface in the UI (feeds 6.1):** a pin can now legitimately have two saved
+      layouts — one unzoomed, one zoomed. The editor panel must say which scope is in effect, or
+      "why did my change not show up" becomes ambiguous in a new way.
 - [ ] 0.7 Narrow the writers. Six call sites mutate `CurrentLayoutKey`. Partially addressed (0.5
       removed one, 0.3/0.4 make the editor independent of it); the remaining writers should funnel
       through one guarded method.

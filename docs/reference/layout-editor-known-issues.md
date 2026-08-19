@@ -162,6 +162,32 @@ window size makes them reappear.
 
 ---
 
+## 5c. A zoomed-in pin arrangement was saved but never shown ✅ fixed
+
+**What you saw:** on the whole map you arrange a pin — say Ohio — and save. Clicking it zooms in and
+it keeps the unzoomed appearance, which is intended. But if you then open Edit Layout while zoomed
+and give it a different angle or length and save, zooming away and back showed the *old* unzoomed
+appearance again. Only clicking Edit Layout brought your zoomed version back.
+
+**Why:** the display always preferred the whole-map arrangement for a single zoomed pin, while the
+editor always worked on the zoomed one. So you could save a zoomed arrangement that the display never
+loaded.
+
+**What it does now — which arrangement wins:**
+
+1. An arrangement **you made** for this zoomed view
+2. Otherwise an arrangement **you made** on the whole map
+3. Otherwise the pre-generated starting layout
+
+In short, the most specific thing you did by hand wins, and pre-generated layouts never override your
+own work.
+
+**Worth knowing:** a single pin can now have two saved arrangements — one for the whole map, one for
+zoomed in. That is deliberate, since zoomed in there is much more room to spread a pin out. If you
+want the zoomed one gone so it falls back to the whole-map version, delete that zoomed layout.
+
+---
+
 ## 6. Changing settings can make layouts "disappear" ⬜ not started
 
 **What you may see:** you edit `visual-config.json`, restart, and your saved **cluster** layouts are
@@ -214,6 +240,7 @@ intermittent. Please run them after each round of fixes and record the result he
 | S5 | Reopen after save | Save, exit edit mode, re-enter | Your arrangement is still there, not stubs |
 | S6 | Resize while editing | Enter edit mode, drag heads, resize the window, then Save | Pins stay where you put them |
 | S7 | Restart persistence | Save, close the app, reopen | Arrangement restored |
+| S9 | Zoomed-vs-unzoomed precedence | Arrange a lone pin on the whole map and save; click it to zoom in; Edit Layout, change angle, save; zoom out and back in | The zoomed version you saved is shown, without needing to click Edit Layout |
 | S8 | Sparse view still saveable | Zoom to an area with a few pins too far apart to cluster, Edit Layout, Save | Save **succeeds**. Stubs here are correct, and must not be refused as "collapsed" |
 
 If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That is the guard working:
@@ -243,6 +270,7 @@ report the exact message if it happens repeatedly.
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |
 | 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 |
 | 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |
+| 5c | Zoomed arrangement saved but never shown | ✅ Fixed 2026-08-19 — needs confirmation (S9) |
 | 6 | Config changes hide cluster layouts | ⬜ Not started |
 | 7 | Dev tools toggle unrunnable from cmd | ⬜ Not started |
 

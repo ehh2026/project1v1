@@ -1,4 +1,5 @@
 using System;
+using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 
 namespace InteractiveWorldMap
@@ -64,6 +65,27 @@ namespace InteractiveWorldMap
                 _currentZoomedCluster?.Locations,
                 viewport,
                 _visualConfig.RadialExtension);
+        }
+
+        /// <summary>
+        /// True when the user has deliberately arranged the zoomed view for this cluster, i.e. a
+        /// Manual layout exists under the key that view would edit.
+        /// </summary>
+        /// <remarks>
+        /// Used to decide precedence on a single-location zoom. Seeds do not count — only a layout
+        /// the user made by hand outranks their full-map arrangement. Side-effect free, so calling
+        /// it during navigation cannot disturb editor state.
+        /// </remarks>
+        private bool HasManualLayoutForZoomedView(LocationCluster cluster)
+        {
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null || cluster?.Locations == null || cluster.Locations.Count == 0)
+                return false;
+
+            var zoomedKey = LayoutKeyGenerator.DeriveEditSessionKey(
+                cluster.Locations, viewport, _visualConfig.RadialExtension);
+
+            return _layoutEditor.HasManualLayout(zoomedKey);
         }
 
         /// <summary>

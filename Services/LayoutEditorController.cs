@@ -152,6 +152,23 @@ public sealed class LayoutEditorController
     }
 
     /// <summary>
+    /// True when a user-made (<see cref="ManualLayoutOrigin.Manual"/>) layout exists for the key.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately side-effect free, unlike <see cref="TryLoad"/>, which updates the active-variant
+    /// fields from whatever key it is handed. This exists to answer "has the user deliberately
+    /// arranged this view?" during navigation, where mutating editor state would be wrong.
+    /// Auto-generated seeds return false: they are a starting point, not a decision.
+    /// </remarks>
+    public bool HasManualLayout(string? key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+
+        var layout = _layoutManager.LoadLayout(key!);
+        return layout != null && layout.Origin == ManualLayoutOrigin.Manual;
+    }
+
+    /// <summary>
     /// Loads a specific variant by id, sets it as the persisted selection,
     /// and updates active-variant state.
     /// </summary>

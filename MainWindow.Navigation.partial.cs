@@ -151,13 +151,22 @@ namespace InteractiveWorldMap
 
 
         /// <summary>
-        /// Phase 7: single-location zoom must replay the full-map manual layout (angle/length/assignment)
-        /// so the composite stub matches the unzoomed appearance. Cluster layout keys are not used
-        /// when a full-map entry exists for that location.
+        /// Phase 7: single-location zoom replays the full-map manual layout (angle/length/assignment)
+        /// so the composite stub matches the unzoomed appearance — unless the user has deliberately
+        /// arranged this zoomed view, in which case that more specific choice wins.
         /// </summary>
+        /// <remarks>
+        /// Precedence is by origin, not by scope: a Manual zoomed layout beats a Manual full-map
+        /// layout, which beats auto-generated seeds. Scope alone is the wrong test, because every
+        /// cluster has a seed and a seed must never override work the user did by hand.
+        /// </remarks>
         private bool TryApplyFullMapLayoutForZoomedSingle(LocationCluster cluster)
         {
             if (!cluster.IsSingleLocation)
+                return false;
+
+            // A hand-made layout for this zoomed view is the more specific deliberate choice.
+            if (HasManualLayoutForZoomedView(cluster))
                 return false;
 
             // Honor a session unload: a zoomed single location stays at its auto-placed position.
@@ -231,7 +240,7 @@ namespace InteractiveWorldMap
                     if (_layoutManager != null && _visualConfig.RadialExtension.Enabled)
                     {
                         var preferFullMapLayout = false;
-                        if (cluster.IsSingleLocation)
+                        if (cluster.IsSingleLocation && !HasManualLayoutForZoomedView(cluster))
                         {
                             var fullMapKey = GenerateCurrentFullMapGroupKey();
                             var fullMapLayout = _layoutEditor.TryLoad(fullMapKey);

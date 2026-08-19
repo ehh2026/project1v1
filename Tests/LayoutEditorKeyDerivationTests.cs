@@ -99,6 +99,32 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
+    public void SingleLocationZoom_PrefersAHandMadeZoomedLayoutOverTheFullMapOne()
+    {
+        // Precedence is by origin, not scope: a Manual zoomed layout is a more specific deliberate
+        // choice than a Manual full-map one. Without this, a zoomed layout could be saved and then
+        // never displayed, because the full-map layout always won.
+        var source = ReadSource("MainWindow.Navigation.partial.cs");
+
+        var methodIndex = source.IndexOf(
+            "private bool TryApplyFullMapLayoutForZoomedSingle", StringComparison.Ordinal);
+        Assert.True(methodIndex >= 0, "TryApplyFullMapLayoutForZoomedSingle not found.");
+
+        var guardIndex = source.IndexOf(
+            "HasManualLayoutForZoomedView(cluster)", methodIndex, StringComparison.Ordinal);
+        var applyIndex = source.IndexOf("ApplyManualLayout(layout)", methodIndex, StringComparison.Ordinal);
+
+        Assert.True(guardIndex >= 0, "The full-map replay must yield to a hand-made zoomed layout.");
+        Assert.True(guardIndex < applyIndex, "The precedence check must run before applying.");
+
+        // The same rule must gate ShowZoomedView's preferFullMapLayout branch, or the two paths
+        // would disagree about which layout is in effect.
+        Assert.Contains(
+            "cluster.IsSingleLocation && !HasManualLayoutForZoomedView(cluster)",
+            source);
+    }
+
+    [Fact]
     public void OnSizeChanged_DoesNotRePlaceMarkersDuringEdit()
     {
         var source = ReadSource("MainWindow.xaml.cs");
