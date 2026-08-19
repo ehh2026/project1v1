@@ -257,7 +257,10 @@ public class CompositePinApplicationServiceTests
                 1920,
                 1080,
                 new PinPartConfig(),
-                groupKey: "a8bdc43c8f9c007f_z55.00_c6375.80_2933.40_s161x101_m3_p10.0_l50.0_n13.0",
+                // The key is incidental here: it only feeds plan caching, which is skipped because
+                // canUseCompositePins is false. What drives this case is the zoomed viewport and
+                // the tiny source-space offset, not the layout's identity.
+                groupKey: "cluster-taipei",
                 absoluteGeometryPath: MissingGeometryPath(),
                 canUseCompositePins: false,
                 fullMapViewport: fullMap);
