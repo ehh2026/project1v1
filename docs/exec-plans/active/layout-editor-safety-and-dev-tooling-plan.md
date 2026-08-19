@@ -144,6 +144,19 @@ never re-derives it on entry.
       test: every cluster has a seed, and the original branch existed precisely so a seed could not
       override hand-made full-map work. Origin preserves that protection while honoring intent.
 
+      **"Full-map layout containing the location" means it holds a saved marker record for that
+      location — not that the location falls inside the map area.** `FullMapLayoutContainsLocation`
+      is `layout.Markers.Any(m => string.Equals(m.LocationName, name, StringComparison.Ordinal))`.
+      The distinction matters because a full-map layout covers only a *subset* of locations: saving
+      captures visible markers only, and most individual pins are hidden inside cluster markers when
+      zoomed out. Observed in live data — the `unzoomed1` full-map variant holds 6 markers against
+      38 locations in the demo content. If no record exists for the pin, precedence falls through to
+      seeds / auto-placement, which is the intended outcome.
+
+      **Sharp edge:** the match is ordinal and exact, so renaming a location (or a stray space or
+      case change) silently orphans its saved entry. It would present to a user as "my arrangement
+      vanished". Worth a guard or a diagnostic if location renaming ever becomes a supported flow.
+
       Implemented as `LayoutEditorController.HasManualLayout` (deliberately side-effect free, unlike
       `TryLoad` — see 0.10) plus `HasManualLayoutForZoomedView`, gating **both**
       `TryApplyFullMapLayoutForZoomedSingle` and `ShowZoomedView`'s `preferFullMapLayout` so the two
