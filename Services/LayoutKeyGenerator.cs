@@ -149,6 +149,17 @@ namespace InteractiveWorldMap.Services
             return 0;
         }
 
+        /// <summary>
+        /// True for the whole-map layout key, including legacy sized forms (<c>fullmap_s…</c>).
+        /// Cluster layouts must be told apart from it because their saved head offsets are tiny in
+        /// source space — a zoomed drag of 59 screen px is barely one source pixel — so they have
+        /// to be re-projected at the viewport they were authored at, not at the full-map fit scale.
+        /// </summary>
+        public static bool IsFullMapLayoutKey(string? key)
+        {
+            return !string.IsNullOrEmpty(key) && IsFullMapKey(key!);
+        }
+
         private static bool IsFullMapKey(string key)
         {
             // Matches both the current constant key ("fullmap") and legacy sized keys ("fullmap_s…").

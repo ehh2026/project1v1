@@ -259,6 +259,63 @@ stubs among angled pins is normal, and only the all-dense-members-at-once case i
 
 ---
 
+## Phase 1c — P0: cluster layouts replay as stubs (the actual reported bug)
+
+**Added 2026-08-19 after manual smoke.** User saved `taipei2`, which looked correct, then loaded
+another variant and returned to `taipei2` — all pins were stubs. **This was never a save bug.**
+
+### Evidence
+
+The saved file (`%AppData%\InteractiveWorldMap\manual-layouts.demo.json`) was intact: `taipei2`
+carried real angles (75.7, 69.5, -61.3, 35.0) and valid `SourceExtendedX/Y`. The app log showed the
+layout resolving and applying correctly, then:
+
+```
+[ApplyManualLayout] Applying layout with 5 markers
+  Applied layout for: Chang Dai-chien   … all 5
+  Extension lines: 0
+  Marker-to-line mappings: 0
+    Marker 'Chang Dai-chien' has NO line   … all 5
+```
+
+All markers applied, **zero extension lines created**.
+
+**Why the save appeared fine at first:** nothing re-renders from the file immediately after saving —
+what you see is still the dragged state. Switching variants is the first replay from saved data, so
+the re-render path had been broken all along.
+
+### Root cause
+
+`ProjectSourceExtendedPosition` re-projects the head offset at the **full-map reference scale**
+(added 2026-06-23 so a whole-map layout's shaft length stays constant across zoom). A cluster layout
+is authored zoomed in: a 59-screen-pixel drag at zoom 55 is ~1.07 **source** pixels. At full-map fit
+scale (~0.19×) that becomes **0.46px** — under `ManualLayoutPlacementPolicy.ExtensionLineThreshold`
+(5px) — so `RequiresExtensionLine` is false and every marker falls through to
+`ApplyAutoStubInstruction`. Measured, not estimated: the regression test reports exactly 0.46px
+without the fix.
+
+### Fix
+
+- [x] 1c.1 First attempt — use the full-map reference only for full-map keys — **was wrong**: it
+      reintroduced the 2026-06-23 regression (`BuildApplyInstructions_SourceExtendedHead_ShaftLengthIsZoomInvariant`).
+      The two goals genuinely conflict on this path.
+- [x] 1c.2 Landed fix: keep the full-map reference, but when the projection collapses below the
+      extension threshold **and** the marker was saved with a real `LineLength`, fall back to the
+      saved angle/length screen geometry. Full-map layouts never hit this branch — their source
+      offsets are large enough to survive projection — so zoom-invariance is preserved.
+- [x] 1c.3 `BuildApplyInstructions_ClusterLayout_DoesNotShrinkOffsetToStub` reproduces the real
+      Taipei numbers and fails without the fix (0.46px).
+- [x] 1c.4 Corrected `BuildApplyInstructions_WithSourceExtendedCoords_PreservesFullMapOffset`, which
+      asserted full-map reference behavior while passing a **cluster** key (`"group-a"`) — it was
+      encoding the bug. Now uses `"fullmap"`.
+
+**Open follow-up:** three tests on this path encoded three different intents about what a saved head
+offset means (map-anchored position vs constant screen length). The fallback reconciles them but the
+underlying semantics deserve a deliberate decision — see 6.9 on removing `s{W}x{H}` from cluster
+keys, which is adjacent.
+
+---
+
 ## Phase 2 — P1: "Delete and Recalculate" wipes every saved variant
 
 ### Diagnosis

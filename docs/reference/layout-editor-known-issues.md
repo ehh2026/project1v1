@@ -60,6 +60,24 @@ This deliberately only applies to dense clusters. If you zoom into an area where
 enough apart that they are not treated as a cluster, they are *supposed* to be plain stubs, and
 saving that is perfectly valid.
 
+**Update 2026-08-19 — a fourth cause, and this one was never about saving.** A layout could save
+perfectly and still come back as stubs when you loaded it again. Your saved file was fine the whole
+time; the fault was in *redrawing* it.
+
+When you arrange pins zoomed in, the app records where each head sits as a position on the map. Zoomed
+that far in, dragging a head 59 pixels across the screen moves it barely one pixel on the map itself.
+When redrawing, the app was converting that map distance back using the *whole-map* scale, which
+turned 59 pixels into about half a pixel — small enough that it decided the pin had no arrangement at
+all and drew a plain stub. Every pin in the view, every time.
+
+It now notices when that conversion has collapsed a pin that was saved with a real arrangement, and
+uses the saved angle and length instead. Whole-map layouts are unaffected — their distances are large
+enough that the conversion was always fine.
+
+Why it looked like saving worked: right after you save, the pins on screen are still the ones you
+dragged. Nothing is redrawn from the file until you load a layout. **So "it saved fine" is not
+evidence until you load it again** — which is why smoke test S5 matters more than S2.
+
 ### What a "stub" actually is
 
 Useful to know when judging whether something is broken. Every pin is drawn with a short shaft of
@@ -189,9 +207,10 @@ report the exact message if it happens repeatedly.
 
 | Date | Build | Test | Result |
 |------|-------|------|--------|
-| 2026-08-19 | `b1fa379` | S2 — Save As in Hong Kong / Taipei, variant `taipei1` | ❌ **FAILED** — all pins snapped to short vertical stubs; not the arrangement drawn, and not the generated seed either. Cause: the Save As path did not go through the new guards. Fixed in the next build. |
-| | | S1, S3–S8 | ⬜ Not yet run |
-| _(pending)_ | next build | S1–S8 | ⬜ Please re-run S2 first — it is the one that failed |
+| 2026-08-19 | `b1fa379` | S2 — Save As in Hong Kong / Taipei, variant `taipei1` | ❌ **FAILED** — all pins snapped to short vertical stubs. Cause: the Save As path did not go through the new guards. Fixed in `81e6ced`. |
+| 2026-08-19 | `81e6ced` | S2 — Save As `taipei2` | ✅ Saved correctly, no stubs |
+| 2026-08-19 | `81e6ced` | S5 — load another layout, then reload `taipei2` | ❌ **FAILED** — all stubs again. **The saved file was verified intact** (real angles preserved); the fault was in redrawing a zoomed-in layout, not in saving it. Fixed below. |
+| _(pending)_ | next build | S1–S8 | ⬜ Please re-run **S5 first** — it is the one that failed. S2 alone is not enough: a layout can save correctly and still redraw wrongly |
 
 ---
 
@@ -200,6 +219,7 @@ report the exact message if it happens repeatedly.
 | # | Issue | Status |
 |---|-------|--------|
 | 1 | Saving destroys the layout | ✅ Fixed 2026-08-19 — needs real-app confirmation |
+| 1b | Saved layout redraws as stubs when reloaded | ✅ Fixed 2026-08-19 — needs real-app confirmation (S5) |
 | 2 | Same layout name in every view | ◐ Cause fixed; labels still unclear |
 | 3 | "Delete and Recalculate" deletes everything | ⬜ Not started |
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |

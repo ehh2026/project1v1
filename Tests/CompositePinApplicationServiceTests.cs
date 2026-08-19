@@ -5,6 +5,7 @@ using System.Windows;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
 using InteractiveWorldMap.Tests.TestHelpers;
+using InteractiveWorldMap.Utilities;
 using Xunit;
 
 namespace InteractiveWorldMap.Tests;
@@ -200,7 +201,7 @@ public class CompositePinApplicationServiceTests
                 1920,
                 1080,
                 new PinPartConfig(),
-                "group-a",
+                "fullmap",
                 MissingGeometryPath(),
                 canUseCompositePins: false,
                 fullMapViewport: fullMap);
@@ -211,6 +212,66 @@ public class CompositePinApplicationServiceTests
 
             Assert.Equal(fullHead.X - fullAnchor.X, instruction.ExtendedScreen.X - instruction.OriginalScreen.X, 3);
             Assert.Equal(fullHead.Y - fullAnchor.Y, instruction.ExtendedScreen.Y - instruction.OriginalScreen.Y, 3);
+        }
+        finally
+        {
+            DeleteTempDir(tempDir);
+        }
+    }
+
+    [Fact]
+    public void BuildApplyInstructions_ClusterLayout_DoesNotShrinkOffsetToStub()
+    {
+        // Regression, reproduced from a real failure: a Taipei cluster layout saved at zoom 55
+        // replayed with every pin as a short vertical stub. A ~59 screen-pixel drag at that zoom is
+        // barely one source pixel, and re-projecting it at the full-map fit scale collapsed it to a
+        // fraction of a pixel — under ManualLayoutPlacementPolicy.ExtensionLineThreshold (5px), so
+        // each pin fell through to the auto-stub branch. Cluster layouts must re-project at the
+        // viewport they were authored at.
+        var service = CreateService(out var tempDir);
+        var viewport = ViewportState.CreateZoomedView(6383, 2933, 55, 8198, 5542, 1920, 1080);
+        var fullMap = ViewportState.CreateFullMapView(8198, 5542, 1920, 1080);
+
+        var applications = new[]
+        {
+            new LayoutEditorController.LayoutMarkerApplication(
+                "Chang Dai-chien",
+                new Point(737.8, 445.5),
+                new Point(795.0, 431.0),
+                true)
+            {
+                SourceExtendedX = 6384.4375,
+                SourceExtendedY = 2931.3677,
+                Angle = 75.7,
+                LineLength = 59.0
+            }
+        };
+
+        try
+        {
+            var result = service.BuildApplyInstructions(
+                CreateLayout(),
+                applications,
+                new Dictionary<string, (double PixelX, double PixelY)> { ["Chang Dai-chien"] = (6383, 2933) },
+                viewport,
+                1920,
+                1080,
+                new PinPartConfig(),
+                groupKey: "a8bdc43c8f9c007f_z55.00_c6375.80_2933.40_s161x101_m3_p10.0_l50.0_n13.0",
+                absoluteGeometryPath: MissingGeometryPath(),
+                canUseCompositePins: false,
+                fullMapViewport: fullMap);
+
+            var instruction = Assert.Single(result.Instructions);
+            var dx = instruction.ExtendedScreen.X - instruction.OriginalScreen.X;
+            var dy = instruction.ExtendedScreen.Y - instruction.OriginalScreen.Y;
+            var length = Math.Sqrt((dx * dx) + (dy * dy));
+
+            Assert.True(
+                length > ManualLayoutPlacementPolicy.ExtensionLineThreshold,
+                $"Cluster head offset collapsed to {length:N2}px, at or under the {ManualLayoutPlacementPolicy.ExtensionLineThreshold}px " +
+                "threshold, so the pin would replay as an auto stub.");
+            Assert.True(instruction.RequiresExtensionLine);
         }
         finally
         {
