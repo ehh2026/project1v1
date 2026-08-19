@@ -36,9 +36,17 @@ lands**; it carries a "Last updated" date that must move with it.
 | 2026-08-19 | **Manual smoke S2 FAILED against `b1fa379`** — user saved variant `taipei1` in the Hong Kong / Taipei cluster and all pins collapsed to stubs. **Root cause: the Phase 1 guards were added to `OnSaveLayoutButtonClick`, but Save As used `CollectCurrentExtensions`, a second unguarded copy of the same collection logic.** Fixed in Phase 1b below. | Reproduced by user against a build containing Phase 0+1 |
 | 2026-08-19 | **Phase 1b**: collapsed both save routes into one guarded `TryCollectCurrentExtensions`; removed the duplicate inline collection and the now-redundant second scope check. Added `IsCollapsedLayout` backstop. | `.\scripts\verify.ps1` pending; 893 passed / 2 known skips |
 
+| 2026-08-19 | **Phase 1c landed** (`83f716d`): cluster layouts no longer replay as stubs. Root cause was the replay path, not saving. | `.\scripts\verify.ps1` **PASSED**. 894 passed / 2 known skips. Regression test measures the 0.46px collapse without the fix. |
+| 2026-08-19 | **Manual smoke S5 PASSED** against `83f716d` — the originally reported failure no longer reproduces. | User confirmation in the running app |
+
 **Carried forward:** 0.6, 0.7, 0.10 remain open — mitigated by the 0.3/0.4 guards but not fixed at
-source. 0.8 (manual smoke of the stub repro in the running app) is **not done**; the automated tests
-cover the mechanism, not the original intermittent failure.
+source. Phase 1c leaves an open question about what a saved head offset means (map-anchored position
+vs constant screen length); the fallback reconciles the conflicting tests but the semantics deserve a
+deliberate decision, adjacent to 6.9.
+
+**Smoke coverage:** S5 passed. S1, S3, S4, S6, S7, S8 not yet run — notably **S8** (a sparse view must
+still save successfully), which guards against a false positive introduced by the 1b.4 collapse
+backstop.
 
 ---
 
@@ -136,8 +144,10 @@ never re-derives it on entry.
       locally computed keys (`Navigation:169`, `Navigation:237`,
       `TryLoadFullMapManualLayoutForAnimation`), desyncing variant identity from the current key.
       Either make probe loads side-effect-free or require the key to match.
-- [ ] 0.8 Re-test the stub repro in the running app. If stubs persist, Phase 1's render race is the
-      remaining cause. **Requires manual smoke — not yet done.**
+- [x] 0.8 **Manual smoke S5 passed 2026-08-19 against `83f716d`** — save, load another variant,
+      reload: the arrangement redraws correctly, no stubs. This is the first confirmation against the
+      originally reported failure. Note the true cause turned out to be Phase 1c (replay), not the
+      render race; the Phase 0 and 1 fixes remain correct and independently tested.
 
 **Exit:** the editor always edits the layout for the view actually on screen, and a save can never
 write into a different scope's group.

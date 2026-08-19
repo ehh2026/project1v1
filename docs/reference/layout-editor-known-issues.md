@@ -21,7 +21,7 @@ the design was always correct — the bugs below made it *look* otherwise.
 
 ---
 
-## 1. Saving could destroy your layout ✅ partly fixed
+## 1. Saving could destroy your layout ✅ fixed
 
 **What you saw:** after saving, every pin was redrawn as a short vertical stub. Lengths and angles
 you had arranged were gone — not just on screen, but saved that way to disk.
@@ -227,7 +227,8 @@ report the exact message if it happens repeatedly.
 | 2026-08-19 | `b1fa379` | S2 — Save As in Hong Kong / Taipei, variant `taipei1` | ❌ **FAILED** — all pins snapped to short vertical stubs. Cause: the Save As path did not go through the new guards. Fixed in `81e6ced`. |
 | 2026-08-19 | `81e6ced` | S2 — Save As `taipei2` | ✅ Saved correctly, no stubs |
 | 2026-08-19 | `81e6ced` | S5 — load another layout, then reload `taipei2` | ❌ **FAILED** — all stubs again. **The saved file was verified intact** (real angles preserved); the fault was in redrawing a zoomed-in layout, not in saving it. Fixed below. |
-| _(pending)_ | next build | S1–S8 | ⬜ Please re-run **S5 first** — it is the one that failed. S2 alone is not enough: a layout can save correctly and still redraw wrongly |
+| 2026-08-19 | `83f716d` | S5 — save, load another layout, reload the new one | ✅ **PASSED** — arrangement redrawn correctly, no stubs. Confirms the redraw fix against the original failure |
+| _(pending)_ | `83f716d` | S1, S3, S4, S6, S7, S8 | ⬜ Not yet run |
 
 ---
 
@@ -235,8 +236,8 @@ report the exact message if it happens repeatedly.
 
 | # | Issue | Status |
 |---|-------|--------|
-| 1 | Saving destroys the layout | ✅ Fixed 2026-08-19 — needs real-app confirmation |
-| 1b | Saved layout redraws as stubs when reloaded | ✅ Fixed 2026-08-19 — needs real-app confirmation (S5) |
+| 1 | Saving destroys the layout | ✅ Fixed 2026-08-19 |
+| 1b | Saved layout redraws as stubs when reloaded | ✅ Fixed 2026-08-19 — confirmed in the app (S5) |
 | 2 | Same layout name in every view | ◐ Cause fixed; labels still unclear |
 | 3 | "Delete and Recalculate" deletes everything | ⬜ Not started |
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |
