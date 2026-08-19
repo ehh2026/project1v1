@@ -39,7 +39,38 @@ namespace InteractiveWorldMap
             UnusableGeometry,
 
             /// <summary>Every marker sat on its anchor — the layout had collapsed to stubs.</summary>
-            CollapsedLayout
+            CollapsedLayout,
+
+            /// <summary>The view changed under the editor, so captured endpoints are stale.</summary>
+            GeometryStale
+        }
+
+        /// <summary>
+        /// Set when something moved the view out from under an active edit session, making the
+        /// markers' screen coordinates inconsistent with the current viewport.
+        /// </summary>
+        private string? _editGeometryStaleReason;
+
+        /// <summary>True once the user has actually dragged a pin head in this edit session.</summary>
+        private bool _markersDraggedThisEditSession;
+
+        /// <summary>
+        /// Records that captured geometry can no longer be trusted for saving. Cleared when the
+        /// editor is next entered, which re-places markers against the current viewport.
+        /// </summary>
+        private void MarkEditSessionGeometryStale(string reason)
+        {
+            if (_editGeometryStaleReason != null) return;
+
+            _editGeometryStaleReason = reason;
+            _logger.LogWarning($"[LayoutEditor] Edit session geometry marked stale: {reason}");
+        }
+
+        /// <summary>Resets per-session capture state. Call when entering edit mode.</summary>
+        private void ResetEditSessionGeometryState()
+        {
+            _editGeometryStaleReason = null;
+            _markersDraggedThisEditSession = false;
         }
 
         /// <summary>
@@ -68,6 +99,8 @@ namespace InteractiveWorldMap
 
             if (!CurrentLayoutKeyMatchesView()) return ExtensionCollectionStatus.WrongLayout;
 
+            if (_editGeometryStaleReason != null) return ExtensionCollectionStatus.GeometryStale;
+
             // Explicit types, not var: MapDisplay is XAML-generated, so the formatting analyzer
             // cannot resolve it and infers these as unknown, which poisons the tuple element type.
             double cw = MapDisplay.ActualWidth;
@@ -92,11 +125,19 @@ namespace InteractiveWorldMap
                 return ExtensionCollectionStatus.UnusableGeometry;
             }
 
-            // Backstop for an endpoint that resolved but resolved to the anchor. Judged only
-            // against markers the placement rules would extend: a sparse view with no dense group
-            // is legitimately all default stubs, so it must never trip this.
-            if (LayoutEditorController.IsCollapsedLayout(markerData, ExpectedExtendedLocations(markerData)))
+            // Backstop for an endpoint that resolved but resolved to the anchor. Two limits keep it
+            // from refusing valid work:
+            //   - it judges only markers the placement rules would extend, since a sparse view with
+            //     no dense group is legitimately all default stubs;
+            //   - it is skipped once the user has dragged in this session, because dragging every
+            //     head onto its anchor is a deliberate arrangement that must stay saveable. Lost
+            //     renderer state is caught by the unresolved-endpoint check above, which does not
+            //     depend on the final coordinates.
+            if (!_markersDraggedThisEditSession &&
+                _layoutEditor.IsCollapsedLayout(markerData))
+            {
                 return ExtensionCollectionStatus.CollapsedLayout;
+            }
 
             extensions = LayoutEditorController.BuildExtensions(markerData);
 
@@ -110,35 +151,6 @@ namespace InteractiveWorldMap
             }
 
             return ExtensionCollectionStatus.Ok;
-        }
-
-        /// <summary>
-        /// Names of the locations the renderer would give a radial extension, using the same
-        /// dense-group detection placement uses. Pins outside any dense group are drawn as default
-        /// stubs by design, so they must not be judged as collapsed.
-        /// </summary>
-        private ISet<string> ExpectedExtendedLocations(
-            IReadOnlyList<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
-        {
-            var positions = new Dictionary<Location, Point>();
-            foreach (var (location, _, originalScreen) in markerData)
-            {
-                if (location != null)
-                    positions[location] = originalScreen;
-            }
-
-            var calculator = new RadialExtensionCalculator(_visualConfig.RadialExtension);
-            var names = new HashSet<string>(StringComparer.Ordinal);
-            foreach (var group in calculator.DetectDenseGroups(positions))
-            {
-                foreach (var location in group.Locations)
-                {
-                    if (location?.Name != null)
-                        names.Add(location.Name);
-                }
-            }
-
-            return names;
         }
 
         /// <summary>
@@ -163,6 +175,14 @@ namespace InteractiveWorldMap
                         $"Refusing to save: {blockedMarkers.Count} marker(s) have unusable geometry — " +
                         string.Join(", ", blockedMarkers.Take(10)));
                     EditModeStatusText.Text = "✗ SAVE ABORTED — GEOMETRY UNAVAILABLE, RETRY";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    break;
+
+                case ExtensionCollectionStatus.GeometryStale:
+                    _logger.LogError(
+                        $"Refusing to save: {_editGeometryStaleReason}, so marker positions no " +
+                        "longer match the current view. Re-enter edit mode to re-place them.");
+                    EditModeStatusText.Text = "✗ SAVE ABORTED — VIEW CHANGED, RE-ENTER EDIT MODE";
                     EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
                     break;
 

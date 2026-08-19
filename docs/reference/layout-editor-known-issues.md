@@ -39,7 +39,7 @@ than a save that loses your work.
 
 There was a second cause, now also fixed. The app tracks where each pin points separately from
 where the pin sits. If that record was briefly unavailable when you pressed Save — during a
-redraw — every pin looked like it was sitting on its own map dot, and got saved as a stub. The save
+redraw — every pin looked like it was sitting on its own location marker, and got saved as a stub. The save
 now checks that it actually knows where each pin points, and refuses with
 `✗ SAVE ABORTED — GEOMETRY UNAVAILABLE, RETRY` rather than writing guesses. Simply pressing Save
 again a moment later works.
@@ -53,7 +53,7 @@ layout (`taipei1`) therefore still collapsed every pin to a stub. Both buttons n
 checked path, so a save route cannot exist without the protections.
 
 A further backstop was added at the same time, for pins in a **dense cluster**: if every pin that
-should have a spread-out arrangement would instead be saved sitting on its own map dot, the save is
+should have a spread-out arrangement would instead be saved sitting on its own location marker, the save is
 refused with `✗ SAVE ABORTED — LAYOUT COLLAPSED, RETRY`.
 
 This deliberately only applies to dense clusters. If you zoom into an area where a few pins are far
@@ -142,6 +142,12 @@ held in memory could be lost, and a save straight afterwards stored empty geomet
 
 **What it does now:** resizing the window no longer re-places pins while you are in edit mode. Your
 arrangement stays put until you save or leave the editor.
+
+Because the view has moved but the pins have not, the app also marks the session as no longer
+trustworthy for saving. If you try to save after resizing, it refuses with
+`✗ SAVE ABORTED — VIEW CHANGED, RE-ENTER EDIT MODE`. Leave and re-open Edit Layout and your saved
+arrangement is reloaded against the new window size. This is deliberate: saving in that state would
+have mixed old pin positions with new map positions and stored wrong angles and lengths.
 
 ---
 

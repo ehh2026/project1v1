@@ -146,6 +146,39 @@ namespace InteractiveWorldMap.Services
             }
         }
 
+        /// <summary>
+        /// True when the group for <paramref name="key"/> holds any Manual variant, whether or not
+        /// it is the selected one.
+        /// </summary>
+        /// <remarks>
+        /// Distinct from loading and inspecting <c>Origin</c>: <see cref="LoadLayout"/> returns the
+        /// *selected* variant, and a selected AutoSeed would mask a Manual variant sitting beside it
+        /// in the same group. Navigation precedence asks "has the user arranged this view at all?",
+        /// which is a question about the group, not about the current selection.
+        /// </remarks>
+        public bool HasManualVariant(string key)
+        {
+            try
+            {
+                var collection = LoadLayoutCollection();
+
+                if (collection.LayoutGroups.TryGetValue(key, out var group) && GroupHasManual(group))
+                    return true;
+
+                var compatible = FindCompatibleGroup(key, collection);
+                return compatible != null && GroupHasManual(compatible);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[ManualLayoutManager] HasManualVariant failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool GroupHasManual(ManualLayoutGroup group) =>
+            group.Variants != null &&
+            group.Variants.Any(v => v.Origin == ManualLayoutOrigin.Manual);
+
         public bool LayoutExists(string key)
         {
             try

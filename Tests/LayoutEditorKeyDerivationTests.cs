@@ -140,6 +140,30 @@ public class LayoutEditorKeyDerivationTests
             guardIndex < updateIndex,
             "The edit-mode guard must run before UpdateMarkerPositions, which clears the " +
             "marker-to-line map a save depends on.");
+
+        // Skipping the update leaves endpoints in pre-resize screen space while the viewport moves
+        // on, so the session must be marked untrustworthy rather than silently saved later.
+        var staleIndex = source.IndexOf(
+            "MarkEditSessionGeometryStale(", handlerIndex, StringComparison.Ordinal);
+        Assert.True(
+            staleIndex >= 0 && staleIndex < updateIndex,
+            "Skipping the mid-edit update must mark the session's geometry stale, otherwise a " +
+            "later save mixes pre-resize endpoints with newly projected anchors.");
+    }
+
+    [Fact]
+    public void CollapseGuard_StandsDownOnceTheUserHasDragged()
+    {
+        // Dragging every head onto its own anchor is a legitimate arrangement of zero-length
+        // extensions. Inferring corruption from final coordinates alone would refuse it, so the
+        // backstop only applies before any drag. Lost renderer state is still caught by the
+        // unresolved-endpoint check, which does not depend on coordinates.
+        var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
+
+        Assert.Contains("!_markersDraggedThisEditSession &&", source);
+
+        var dragSource = ReadSource("MainWindow.LayoutEditorDrag.partial.cs");
+        Assert.Contains("_markersDraggedThisEditSession = true;", dragSource);
     }
 
     [Fact]

@@ -74,6 +74,12 @@ namespace InteractiveWorldMap
 
             if (e.LeftButton == MouseButtonState.Pressed)
             {
+                // A drag makes the resulting endpoints the user's deliberate choice — including one
+                // placed back onto its own anchor — so the collapse backstop stands down for the
+                // rest of this session. Lost renderer state is still caught by the
+                // unresolved-endpoint check, which does not depend on final coordinates.
+                _markersDraggedThisEditSession = true;
+
                 var currentPosition = e.GetPosition(MapDisplay.Markers);
                 var viewport = MapDisplay.CurrentViewport;
                 var cw = MapDisplay.ActualWidth;

@@ -714,8 +714,14 @@ namespace InteractiveWorldMap
                 // marker-to-line map, which is the only record of where each pin actually points;
                 // a save landing before it refills would persist every pin as a stub. Zoom is
                 // already blocked during edit, so a resize is the one way in.
+                //
+                // Skipping the update leaves marker and line endpoints in the pre-resize screen
+                // space while the viewport has moved on, so a save would mix old endpoints with
+                // newly projected anchors and persist wrong angles and lengths. Mark the session
+                // untrustworthy instead; the save path refuses until the editor is re-entered.
                 if (_layoutEditor.IsEditMode)
                 {
+                    MarkEditSessionGeometryStale("window resized during edit");
                     UpdateEditLayoutButtonVisibility();
                     return;
                 }

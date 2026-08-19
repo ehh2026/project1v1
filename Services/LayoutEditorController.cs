@@ -164,8 +164,10 @@ public sealed class LayoutEditorController
     {
         if (string.IsNullOrEmpty(key)) return false;
 
-        var layout = _layoutManager.LoadLayout(key!);
-        return layout != null && layout.Origin == ManualLayoutOrigin.Manual;
+        // Asks the group, not the current selection. LoadLayout returns the *selected* variant, so
+        // a selected AutoSeed would hide a Manual variant beside it and precedence would wrongly
+        // fall back to the full-map layout.
+        return _layoutManager.HasManualVariant(key!);
     }
 
     /// <summary>
@@ -323,7 +325,6 @@ public sealed class LayoutEditorController
         if (expectedExtendedLocations == null || expectedExtendedLocations.Count == 0)
             return false;
 
-        const double epsilon = 0.001;
         int considered = 0;
         foreach (var (location, markerCenter, originalScreen) in markerData)
         {
@@ -331,14 +332,53 @@ public sealed class LayoutEditorController
                 continue;
 
             considered++;
-            if (Math.Abs(markerCenter.X - originalScreen.X) > epsilon ||
-                Math.Abs(markerCenter.Y - originalScreen.Y) > epsilon)
-            {
+            if (!GeometryMath.ArePointsCoincident(markerCenter, originalScreen))
                 return false;
-            }
         }
 
         return considered > 0;
+    }
+
+    /// <summary>
+    /// Overload that works out the expected-extension set itself, using the same dense-group
+    /// detection the renderer uses so the two cannot drift apart.
+    /// </summary>
+    public bool IsCollapsedLayout(
+        IReadOnlyList<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+
+        return IsCollapsedLayout(markerData, FindExpectedExtendedLocations(markerData));
+    }
+
+    /// <summary>
+    /// Names of the locations the renderer would give a radial extension. Pins outside any dense
+    /// group are drawn as default stubs by design, so they must never be judged as collapsed.
+    /// </summary>
+    public ISet<string> FindExpectedExtendedLocations(
+        IReadOnlyList<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+
+        var positions = new Dictionary<Location, Point>();
+        foreach (var (location, _, originalScreen) in markerData)
+        {
+            if (location != null)
+                positions[location] = originalScreen;
+        }
+
+        var calculator = new RadialExtensionCalculator(_visualConfig.RadialExtension);
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var group in calculator.DetectDenseGroups(positions))
+        {
+            foreach (var location in group.Locations)
+            {
+                if (location?.Name != null)
+                    names.Add(location.Name);
+            }
+        }
+
+        return names;
     }
 
     /// <summary>

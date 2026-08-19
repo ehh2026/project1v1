@@ -248,6 +248,10 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"[OnEditLayoutButtonClick] Derived cluster layout key={_layoutEditor.CurrentLayoutKey}");
             }
 
+            // Entering the editor re-places markers against the current viewport, so any staleness
+            // from a previous session is resolved here.
+            ResetEditSessionGeometryState();
+
             _layoutEditor.EnterEditMode();
 
             // If a manual layout is saved, restore those positions for draggable editing.

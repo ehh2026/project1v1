@@ -26,6 +26,21 @@ public static class GeometryMath
     public const double IntersectionEndpointMargin = 0.01;
 
     /// <summary>
+    /// Tolerance for treating two screen points as the same point.
+    /// </summary>
+    public const double CoincidentPointEpsilon = 0.001;
+
+    /// <summary>
+    /// True when two points are the same to within <see cref="CoincidentPointEpsilon"/>.
+    /// </summary>
+    /// <remarks>
+    /// Used to detect a zero-length extension: a pin head sitting exactly on its own anchor.
+    /// </remarks>
+    public static bool ArePointsCoincident(Point a, Point b) =>
+        Math.Abs(a.X - b.X) <= CoincidentPointEpsilon &&
+        Math.Abs(a.Y - b.Y) <= CoincidentPointEpsilon;
+
+    /// <summary>
     /// Checks whether two line segments intersect using parametric line intersection.
     /// Endpoint touches are ignored via <see cref="IntersectionEndpointMargin"/>.
     /// </summary>
