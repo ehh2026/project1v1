@@ -36,24 +36,49 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
-    public void OnSaveLayoutButtonClick_VerifiesKeyMatchesViewBeforeWriting()
+    public void EverySavePath_CapturesMarkersThroughTheGuardedRoute()
     {
+        // Regression: the Save button's handler was guarded while "Save As" used a second,
+        // unguarded copy of the same collection logic, so a corrupting save still got through.
+        // Both must go through TryCollectCurrentExtensions, and nothing may collect markers
+        // for saving on its own.
         var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
 
-        var handlerIndex = source.IndexOf(
-            "private async void OnSaveLayoutButtonClick", StringComparison.Ordinal);
-        Assert.True(handlerIndex >= 0, "OnSaveLayoutButtonClick not found.");
+        foreach (var handler in new[]
+                 {
+                     "private async void OnSaveLayoutButtonClick",
+                     "private async void OnSaveAsConfirmButtonClick"
+                 })
+        {
+            var handlerIndex = source.IndexOf(handler, StringComparison.Ordinal);
+            Assert.True(handlerIndex >= 0, $"{handler} not found.");
 
-        var guardIndex = source.IndexOf(
-            "CurrentLayoutKeyMatchesView()", handlerIndex, StringComparison.Ordinal);
-        Assert.True(
-            guardIndex >= 0,
-            "The save path must verify the layout key still matches the view on screen before " +
-            "writing, so a stale key cannot overwrite another scope's layout.");
+            var guardIndex = source.IndexOf(
+                "TryCollectCurrentExtensions(", handlerIndex, StringComparison.Ordinal);
+            Assert.True(
+                guardIndex >= 0,
+                $"{handler} must capture markers through TryCollectCurrentExtensions, which " +
+                "verifies both layout scope and marker geometry before anything is written.");
+        }
 
-        var trySaveIndex = source.IndexOf("_layoutEditor.TrySave(", handlerIndex, StringComparison.Ordinal);
-        Assert.True(trySaveIndex >= 0, "TrySave call not found in the save handler.");
-        Assert.True(guardIndex < trySaveIndex, "The scope guard must run before TrySave.");
+        Assert.DoesNotContain("LayoutEditorController.BuildExtensions", source);
+    }
+
+    [Fact]
+    public void GuardedCapture_ChecksScopeAndGeometryBeforeBuilding()
+    {
+        var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
+
+        var methodIndex = source.IndexOf(
+            "private ExtensionCollectionStatus TryCollectCurrentExtensions", StringComparison.Ordinal);
+        Assert.True(methodIndex >= 0, "TryCollectCurrentExtensions not found.");
+
+        var scopeIndex = source.IndexOf("CurrentLayoutKeyMatchesView()", methodIndex, StringComparison.Ordinal);
+        var geometryIndex = source.IndexOf("FindNonFiniteMarkers", methodIndex, StringComparison.Ordinal);
+        var buildIndex = source.IndexOf("BuildExtensions(", methodIndex, StringComparison.Ordinal);
+
+        Assert.True(scopeIndex >= 0 && scopeIndex < buildIndex, "Scope must be verified before building.");
+        Assert.True(geometryIndex >= 0 && geometryIndex < buildIndex, "Geometry must be verified before building.");
     }
 
     [Fact]
@@ -92,31 +117,21 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
-    public void SaveHandler_RefusesUnresolvedMarkerGeometry()
-    {
-        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
-
-        var handlerIndex = source.IndexOf(
-            "private async void OnSaveLayoutButtonClick", StringComparison.Ordinal);
-        Assert.True(handlerIndex >= 0, "OnSaveLayoutButtonClick not found.");
-
-        var checkIndex = source.IndexOf(
-            "FindNonFiniteMarkers", handlerIndex, StringComparison.Ordinal);
-        var trySaveIndex = source.IndexOf("_layoutEditor.TrySave(", handlerIndex, StringComparison.Ordinal);
-
-        Assert.True(checkIndex >= 0, "The save path must reject unusable marker geometry.");
-        Assert.True(checkIndex < trySaveIndex, "The geometry check must run before TrySave.");
-    }
-
-    [Fact]
     public void MarkerEndpoint_ReportsWhetherItCouldBeResolved()
     {
-        Assert.Contains(
-            "private bool TryGetMarkerEndpoint(",
-            ReadSource("MainWindow.LayoutEditorGeometry.partial.cs"));
+        var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
 
-        Assert.Contains(
-            "if (!TryGetMarkerEndpoint(m, out var center))",
-            ReadSource("MainWindow.LayoutEditor.partial.cs"));
+        Assert.Contains("private bool TryGetMarkerEndpoint(", source);
+
+        // The capture loop must branch on the resolution result rather than discarding it.
+        // Matched loosely on purpose: this guards the behavior, not the local variable's name.
+        var captureIndex = source.IndexOf(
+            "private ExtensionCollectionStatus TryCollectCurrentExtensions", StringComparison.Ordinal);
+        Assert.True(captureIndex >= 0, "TryCollectCurrentExtensions not found.");
+
+        var branchIndex = source.IndexOf("if (!TryGetMarkerEndpoint(", captureIndex, StringComparison.Ordinal);
+        Assert.True(
+            branchIndex >= 0,
+            "The capture loop must record markers whose endpoint could not be resolved.");
     }
 }

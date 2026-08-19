@@ -33,6 +33,8 @@ lands**; it carries a "Last updated" date that must move with it.
 | 2026-08-18 | Read-only audit of every `CurrentLayoutKey` reader/writer. Found two defects not in the original plan (0.9, 0.10) and **corrected** the Phase 1.6 approach — a blanket `IsEditMode` guard on `UpdateMarkerPositions` would break two legitimate mid-edit callers. | n/a |
 | 2026-08-19 | **Phase 0 core landed** (`ae527b1`): 0.3, 0.4, 0.5, 0.9. Layout-key derivation extracted to `MainWindow.LayoutEditorKeys.partial.cs` (the editor partial had exceeded the 800-line limit). | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 880 passed / 2 known skips. New tests confirmed failing before the fix by reverting `LayoutEditorController.cs`. |
 | 2026-08-19 | **Phase 1 landed**: 1.1–1.8. Endpoint resolution made explicit, saves refuse unusable geometry, `OnSizeChanged` guarded, rolling `.bak` before every write. Marker geometry extracted to `MainWindow.LayoutEditorGeometry.partial.cs`. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 888 passed / 2 known skips. |
+| 2026-08-19 | **Manual smoke S2 FAILED against `b1fa379`** — user saved variant `taipei1` in the Hong Kong / Taipei cluster and all pins collapsed to stubs. **Root cause: the Phase 1 guards were added to `OnSaveLayoutButtonClick`, but Save As used `CollectCurrentExtensions`, a second unguarded copy of the same collection logic.** Fixed in Phase 1b below. | Reproduced by user against a build containing Phase 0+1 |
+| 2026-08-19 | **Phase 1b**: collapsed both save routes into one guarded `TryCollectCurrentExtensions`; removed the duplicate inline collection and the now-redundant second scope check. Added `IsCollapsedLayout` backstop. | `.\scripts\verify.ps1` pending; 893 passed / 2 known skips |
 
 **Carried forward:** 0.6, 0.7, 0.10 remain open — mitigated by the 0.3/0.4 guards but not fixed at
 source. 0.8 (manual smoke of the stub repro in the running app) is **not done**; the automated tests
@@ -220,6 +222,40 @@ so an endpoint/start asymmetry is **not** the cause.
 
 **Exit:** cannot produce an all-stub layout file through the save path; a save that would do so is
 refused with a visible message.
+
+### Phase 1b — the guard was on only one of two save routes
+
+**Added 2026-08-19 after manual smoke S2 failed.** The Phase 1 checks went into
+`OnSaveLayoutButtonClick`. "Save As" used `CollectCurrentExtensions`, a **second copy** of the same
+marker-collection logic, and was never protected. Saving a named variant still collapsed the layout.
+
+The lesson is about shape, not about a missed line: two copies of a capture path meant guarding one
+provably did not guard the other, and nothing in the tests noticed the asymmetry.
+
+- [x] 1b.1 Collapse both routes into a single `TryCollectCurrentExtensions` in
+      `MainWindow.LayoutEditorGeometry.partial.cs` that checks scope **and** geometry before
+      building anything. Delete `CollectCurrentExtensions`.
+- [x] 1b.2 Remove the now-duplicated scope check from `OnSaveLayoutButtonClick`; one guard, one
+      place. Comments at both sites warn against re-inlining.
+- [x] 1b.3 `EverySavePath_CapturesMarkersThroughTheGuardedRoute` asserts *both* handlers call the
+      shared route and that `MainWindow.LayoutEditor.partial.cs` no longer calls
+      `BuildExtensions` directly — so a third unguarded save path fails the build.
+- [x] 1b.4 **`IsCollapsedLayout` backstop** (answers "does allowing zero-length extensions open the
+      door to bugs?"): yes, partly. An endpoint that *resolves* but equals the anchor still yields a
+      180°/zero-length stub, which the resolution guard cannot see.
+      **Corrected after user review — first attempt was wrong.** It refused when *every* marker sat
+      on its anchor, which false-positives on a real case: a zoomed view whose pins are too far
+      apart to form a dense group is **legitimately all default stubs**, and that save would have
+      been blocked. The guard now judges only markers the renderer would actually extend, obtained
+      from `RadialExtensionCalculator.DetectDenseGroups` — the same rule placement uses, not a
+      second approximation of it. Sparse views produce an empty expected set and can never trip it.
+
+**Terminology worth keeping straight** (it caused confusion while implementing): a *zero-length
+extension* does not render as a head sitting on the pin tip with no shaft. The pin graphic has its
+own shaft — `Math.Max(pinConfig.ShaftLength, 12.0)` in `Views/AutoStubPinMarker.xaml.cs:37`, 24px by
+default — so it draws as a short vertical stub with the head above the dot. The stub appearance *is*
+the zero-length case; there is no separate "collapsed to nothing" visual. Consequently one or two
+stubs among angled pins is normal, and only the all-dense-members-at-once case is a defect.
 
 ---
 

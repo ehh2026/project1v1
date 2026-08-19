@@ -282,6 +282,49 @@ public sealed class LayoutEditorController
         !double.IsInfinity(p.X) && !double.IsInfinity(p.Y);
 
     /// <summary>
+    /// True when every marker that the placement rules say should carry a radial extension has
+    /// instead collapsed onto its own anchor — the signature of lost endpoints.
+    /// </summary>
+    /// <param name="markerData">Markers being captured for saving.</param>
+    /// <param name="expectedExtendedLocations">
+    /// Names of locations belonging to a dense group, i.e. the ones the renderer would extend.
+    /// Obtain these from <c>RadialExtensionCalculator.DetectDenseGroups</c> so this uses the same
+    /// rule as placement rather than a second guess at it.
+    /// </param>
+    /// <remarks>
+    /// A zero-length extension is <em>not</em> in itself wrong. A pin with no radial extension is
+    /// drawn as a default stub, and a sparsely populated view where no pins are close enough to
+    /// group is legitimately all stubs — refusing that would block valid saves. What cannot happen
+    /// legitimately is a <em>dense</em> group, which the renderer always extends, arriving here
+    /// with every member on its anchor.
+    /// </remarks>
+    public static bool IsCollapsedLayout(
+        IEnumerable<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData,
+        ISet<string> expectedExtendedLocations)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+        if (expectedExtendedLocations == null || expectedExtendedLocations.Count == 0)
+            return false;
+
+        const double epsilon = 0.001;
+        int considered = 0;
+        foreach (var (location, markerCenter, originalScreen) in markerData)
+        {
+            if (location?.Name == null || !expectedExtendedLocations.Contains(location.Name))
+                continue;
+
+            considered++;
+            if (Math.Abs(markerCenter.X - originalScreen.X) > epsilon ||
+                Math.Abs(markerCenter.Y - originalScreen.Y) > epsilon)
+            {
+                return false;
+            }
+        }
+
+        return considered > 0;
+    }
+
+    /// <summary>
     /// Validates a layout for intersecting lines and overlapping markers.
     /// Returns human-readable issue descriptions (empty list = no issues).
     /// </summary>

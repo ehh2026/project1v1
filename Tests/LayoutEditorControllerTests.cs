@@ -249,6 +249,76 @@ public class LayoutEditorControllerTests
         Assert.Equal(result[0].OriginalPosition, result[0].ExtendedPosition);
     }
 
+    // ─── IsCollapsedLayout ────────────────────────────────────────────────────
+
+    [Fact]
+    public void IsCollapsedLayout_DenseGroupAllOnAnchor_IsTrue()
+    {
+        // The reported failure: a dense cluster whose pins all snapped to short vertical stubs.
+        var dense = new HashSet<string> { "a", "b", "c" };
+
+        Assert.True(LayoutEditorController.IsCollapsedLayout(
+            new[]
+            {
+                (Loc("a"), new Point(10, 10), new Point(10, 10)),
+                (Loc("b"), new Point(20, 20), new Point(20, 20)),
+                (Loc("c"), new Point(30, 30), new Point(30, 30))
+            },
+            dense));
+    }
+
+    [Fact]
+    public void IsCollapsedLayout_SparseViewAllOnAnchor_IsFalse()
+    {
+        // Pins too far apart to form a dense group are drawn as default stubs by design. A zoomed
+        // view of a few scattered pins is legitimately all stubs and must remain saveable.
+        Assert.False(LayoutEditorController.IsCollapsedLayout(
+            new[]
+            {
+                (Loc("far1"), new Point(10, 10),   new Point(10, 10)),
+                (Loc("far2"), new Point(400, 400), new Point(400, 400))
+            },
+            new HashSet<string>()));
+    }
+
+    [Fact]
+    public void IsCollapsedLayout_OneDenseMemberStillExtended_IsFalse()
+    {
+        var dense = new HashSet<string> { "a", "b" };
+
+        Assert.False(LayoutEditorController.IsCollapsedLayout(
+            new[]
+            {
+                (Loc("a"), new Point(10, 10), new Point(10, 10)),
+                (Loc("b"), new Point(99, 60), new Point(20, 20))
+            },
+            dense));
+    }
+
+    [Fact]
+    public void IsCollapsedLayout_IgnoresMarkersOutsideDenseGroups()
+    {
+        // A collapsed dense group is still caught even when sparse stubs sit alongside it.
+        var dense = new HashSet<string> { "a", "b" };
+
+        Assert.True(LayoutEditorController.IsCollapsedLayout(
+            new[]
+            {
+                (Loc("a"),      new Point(10, 10),   new Point(10, 10)),
+                (Loc("b"),      new Point(20, 20),   new Point(20, 20)),
+                (Loc("sparse"), new Point(400, 400), new Point(400, 400))
+            },
+            dense));
+    }
+
+    [Fact]
+    public void IsCollapsedLayout_EmptyInput_IsFalse()
+    {
+        Assert.False(LayoutEditorController.IsCollapsedLayout(
+            Array.Empty<(Location, Point, Point)>(),
+            new HashSet<string>()));
+    }
+
     [Fact]
     public void SaveLayout_KeepsBackupOfPreviousFile()
     {

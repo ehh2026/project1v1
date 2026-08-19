@@ -47,6 +47,28 @@ again a moment later works.
 **Also:** every save now keeps a copy of the previous layout file alongside it, ending in `.bak`,
 so a bad save can be recovered by hand.
 
+**Update 2026-08-19 — a third cause, found by testing.** The checks above were added to the **Save**
+button but not to **Save As**, which used its own separate copy of the same logic. Saving a named
+layout (`taipei1`) therefore still collapsed every pin to a stub. Both buttons now share one
+checked path, so a save route cannot exist without the protections.
+
+A further backstop was added at the same time, for pins in a **dense cluster**: if every pin that
+should have a spread-out arrangement would instead be saved sitting on its own map dot, the save is
+refused with `✗ SAVE ABORTED — LAYOUT COLLAPSED, RETRY`.
+
+This deliberately only applies to dense clusters. If you zoom into an area where a few pins are far
+enough apart that they are not treated as a cluster, they are *supposed* to be plain stubs, and
+saving that is perfectly valid.
+
+### What a "stub" actually is
+
+Useful to know when judging whether something is broken. Every pin is drawn with a short shaft of
+its own (about 24px). A pin with no spread-out arrangement is drawn with just that shaft, pointing
+straight up — that is the "stub" look. So:
+
+- **One or two stubs among angled pins:** normal. Those pins simply are not part of a dense group.
+- **A whole dense cluster of stubs where you had arranged angles:** the bug. Report it.
+
 ---
 
 ## 2. The same layout name appeared in every view ✅ explained, fix pending
@@ -138,6 +160,38 @@ powershell -ExecutionPolicy Bypass -File .\scripts\toggle-dev-tools.ps1 -State o
 
 **What it should do:** a `toggle-dev-tools.bat` at the project root, next to `run-demo.bat`, that
 works from anywhere you double-click or type it.
+
+---
+
+## Manual smoke tests
+
+These cannot be checked automatically — the app needs a real window, and the failures were
+intermittent. Please run them after each round of fixes and record the result here.
+
+### Required smokes
+
+| # | Test | Steps | Expected |
+|---|------|-------|----------|
+| S1 | Save (plain) in a cluster | Zoom into a cluster, Edit Layout, drag some pin heads, press **Save** | Pins stay where you put them; `✓ LAYOUT SAVED` |
+| S2 | **Save As** in a cluster | Same, but use **Save As** and give it a name | Pins stay put; `✓ VARIANT SAVED`. Named variant appears in the dropdown |
+| S3 | Save on the whole map | Zoom out fully, Edit Layout, drag heads, Save | Pins stay put; other clusters' layouts unaffected |
+| S4 | Variant scoping | Save a named layout in cluster A, then open the editor in cluster B | B's dropdown does **not** list A's variant |
+| S5 | Reopen after save | Save, exit edit mode, re-enter | Your arrangement is still there, not stubs |
+| S6 | Resize while editing | Enter edit mode, drag heads, resize the window, then Save | Pins stay where you put them |
+| S7 | Restart persistence | Save, close the app, reopen | Arrangement restored |
+| S8 | Sparse view still saveable | Zoom to an area with a few pins too far apart to cluster, Edit Layout, Save | Save **succeeds**. Stubs here are correct, and must not be refused as "collapsed" |
+
+If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That is the guard working:
+nothing was written, and the layout on disk is intact. Press Save again after a moment. Please
+report the exact message if it happens repeatedly.
+
+### Smoke log
+
+| Date | Build | Test | Result |
+|------|-------|------|--------|
+| 2026-08-19 | `b1fa379` | S2 — Save As in Hong Kong / Taipei, variant `taipei1` | ❌ **FAILED** — all pins snapped to short vertical stubs; not the arrangement drawn, and not the generated seed either. Cause: the Save As path did not go through the new guards. Fixed in the next build. |
+| | | S1, S3–S8 | ⬜ Not yet run |
+| _(pending)_ | next build | S1–S8 | ⬜ Please re-run S2 first — it is the one that failed |
 
 ---
 

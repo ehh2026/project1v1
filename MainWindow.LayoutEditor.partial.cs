@@ -171,8 +171,14 @@ namespace InteractiveWorldMap
             SaveAsInputRow.Visibility = Visibility.Collapsed;
             var name = SaveAsNameTextBox.Text.Trim();
             if (string.IsNullOrEmpty(name)) return;
-            var extensions = CollectCurrentExtensions();
-            if (extensions == null) return;
+            var status = TryCollectCurrentExtensions(out var extensions, out var blocked);
+            if (status != ExtensionCollectionStatus.Ok)
+            {
+                ReportCollectionFailure(status, blocked);
+                await ResetEditModeStatusAfterDelayAsync(3000);
+                return;
+            }
+
             var assignments = _assignmentEnricher.GetAssignments(extensions, _compositePinPlanningService);
             bool ok = _layoutEditor.TrySaveAsVariant(name, extensions, assignments);
             EditModeStatusText.Text = ok ? "✓ VARIANT SAVED" : "✗ SAVE FAILED";
@@ -195,35 +201,8 @@ namespace InteractiveWorldMap
             }
         }
 
-        /// <summary>Returns current marker positions as extensions, or null if not ready.</summary>
-        private List<RadialExtension>? CollectCurrentExtensions()
-        {
-            if (_layoutEditor.CurrentLayoutKey == null) return null;
-            if (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()) return null;
-            var viewport = MapDisplay.CurrentViewport;
-            if (viewport == null) return null;
-            var cw = MapDisplay.ActualWidth;
-            var ch = MapDisplay.ActualHeight;
-            var markerData = _individualMarkers
-                .Where(m => m.Visibility == Visibility.Visible)
-                .Select(m =>
-                {
-                    var center = GetMarkerEndpoint(m);
-                    return (m.Location, MarkerCenter: center,
-                        OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, cw, ch));
-                });
-            var extensions = LayoutEditorController.BuildExtensions((IEnumerable<(Location Location, Point MarkerCenter, Point OriginalScreen)>)markerData);
-
-            // Persist the extended position in source-image space so the layout re-projects to the
-            // correct map position at any window size (size-independent persistence; see Phase 5c).
-            foreach (var ext in extensions)
-            {
-                var src = viewport.ScreenToSource(ext.ExtendedPosition.X, ext.ExtendedPosition.Y, cw, ch);
-                ext.SourceExtendedX = src.X;
-                ext.SourceExtendedY = src.Y;
-            }
-            return extensions;
-        }
+        // Marker capture for saving lives in MainWindow.LayoutEditorGeometry.partial.cs
+        // (TryCollectCurrentExtensions). Every save path must go through it — see the note there.
 
         #region Manual Layout Editor Methods
 
@@ -334,19 +313,9 @@ namespace InteractiveWorldMap
                 return;
             }
 
-            // Refuse to write into a layout belonging to a different view. Without this, a stale
-            // "fullmap" key inherited from a zoom animation would overwrite the whole-map layout
-            // with this cluster's markers, stranding every location not in the cluster.
-            if (!CurrentLayoutKeyMatchesView())
-            {
-                _logger.LogError(
-                    $"Refusing to save: layout key '{_layoutEditor.CurrentLayoutKey}' does not match " +
-                    $"the current view (expected '{DeriveCurrentViewLayoutKey()}')");
-                EditModeStatusText.Text = "✗ SAVE ABORTED — WRONG LAYOUT";
-                EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
-                await ResetEditModeStatusAfterDelayAsync(3000);
-                return;
-            }
+            // Scope and geometry are verified inside TryCollectCurrentExtensions below, which both
+            // this handler and Save As share. Do not re-add a separate check here: two copies of
+            // this guard is how the Save As path ended up unprotected.
 
             // If editing an AutoSeed layout, redirect to the Save As prompt.
             if (_layoutEditor.ActiveVariantOrigin == ManualLayoutOrigin.AutoSeed)
@@ -364,41 +333,15 @@ namespace InteractiveWorldMap
                     return;
                 }
 
-                // Collect current marker positions and delegate extension-building to controller.
-                // Use the extension line endpoint as the authoritative MarkerCenter: after "Auto Assign
-                // Pins" the marker's Canvas position is offset to the tip anchor, not the endpoint.
-                var unresolved = new List<string>();
-                var markerData = _individualMarkers
-                    .Where(m => m.Visibility == Visibility.Visible)
-                    .Select(m =>
-                    {
-                        if (!TryGetMarkerEndpoint(m, out var center))
-                            unresolved.Add(m.Location?.Name ?? "(unnamed)");
-
-                        return (
-                            m.Location,
-                            MarkerCenter: center,
-                            OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
-                    })
-                    .ToList();
-
-                // A marker whose endpoint could not be resolved would be written as though it sat
-                // on its anchor, flattening it to a stub. Refusing the save keeps the layout on
-                // disk intact; the user can retry once the pins have finished rendering.
-                var nonFinite = LayoutEditorController.FindNonFiniteMarkers(markerData);
-                if (unresolved.Count > 0 || nonFinite.Count > 0)
+                // Single guarded capture path — shared with Save As. See
+                // TryCollectCurrentExtensions in MainWindow.LayoutEditorGeometry.partial.cs.
+                var status = TryCollectCurrentExtensions(out var extensions, out var blocked);
+                if (status != ExtensionCollectionStatus.Ok)
                 {
-                    var blocked = unresolved.Concat(nonFinite).Distinct().ToList();
-                    _logger.LogError(
-                        $"Refusing to save: {blocked.Count} marker(s) have unusable geometry — " +
-                        string.Join(", ", blocked.Take(10)));
-                    EditModeStatusText.Text = "✗ SAVE ABORTED — GEOMETRY UNAVAILABLE, RETRY";
-                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    ReportCollectionFailure(status, blocked);
                     await ResetEditModeStatusAfterDelayAsync(3000);
                     return;
                 }
-
-                var extensions = LayoutEditorController.BuildExtensions(markerData);
 
                 // Validate layout before saving
                 var validationIssues = _layoutEditor.ValidateLayout(extensions);

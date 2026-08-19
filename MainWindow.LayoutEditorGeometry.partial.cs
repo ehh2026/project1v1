@@ -1,5 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
+using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Utilities;
 using InteractiveWorldMap.Views;
 
 namespace InteractiveWorldMap
@@ -15,6 +22,168 @@ namespace InteractiveWorldMap
     /// </remarks>
     public partial class MainWindow
     {
+        /// <summary>
+        /// Why a layout could not be captured for saving.
+        /// </summary>
+        private enum ExtensionCollectionStatus
+        {
+            Ok,
+
+            /// <summary>No layout key, no active session, or no viewport yet.</summary>
+            NotReady,
+
+            /// <summary>The layout key does not belong to the view on screen.</summary>
+            WrongLayout,
+
+            /// <summary>One or more markers had unresolvable or non-finite geometry.</summary>
+            UnusableGeometry,
+
+            /// <summary>Every marker sat on its anchor — the layout had collapsed to stubs.</summary>
+            CollapsedLayout
+        }
+
+        /// <summary>
+        /// Captures current marker positions as extensions, refusing when the result would corrupt
+        /// a saved layout.
+        /// </summary>
+        /// <remarks>
+        /// Every save path goes through here. An earlier version of this guard lived only in the
+        /// Save button's handler while "Save As" used a second, unguarded copy of the same
+        /// collection logic — which is exactly how a corrupting save still got through. Keep this
+        /// the single route; do not inline marker collection into a handler again.
+        /// </remarks>
+        private ExtensionCollectionStatus TryCollectCurrentExtensions(
+            out List<RadialExtension> extensions,
+            out IReadOnlyList<string> blockedMarkers)
+        {
+            extensions = new List<RadialExtension>();
+            blockedMarkers = Array.Empty<string>();
+
+            if (_layoutEditor.CurrentLayoutKey == null) return ExtensionCollectionStatus.NotReady;
+            if (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive())
+                return ExtensionCollectionStatus.NotReady;
+
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null) return ExtensionCollectionStatus.NotReady;
+
+            if (!CurrentLayoutKeyMatchesView()) return ExtensionCollectionStatus.WrongLayout;
+
+            // Explicit types, not var: MapDisplay is XAML-generated, so the formatting analyzer
+            // cannot resolve it and infers these as unknown, which poisons the tuple element type.
+            double cw = MapDisplay.ActualWidth;
+            double ch = MapDisplay.ActualHeight;
+
+            var unresolved = new List<string>();
+            var markerData = new List<(Location Location, Point MarkerCenter, Point OriginalScreen)>();
+            foreach (var marker in _individualMarkers.Where(m => m.Visibility == Visibility.Visible))
+            {
+                if (!TryGetMarkerEndpoint(marker, out Point center))
+                    unresolved.Add(marker.Location?.Name ?? "(unnamed)");
+
+                Point original = viewport.SourceToScreen(
+                    marker.Location.PixelX, marker.Location.PixelY, cw, ch);
+                markerData.Add((marker.Location, center, original));
+            }
+
+            var nonFinite = LayoutEditorController.FindNonFiniteMarkers(markerData);
+            if (unresolved.Count > 0 || nonFinite.Count > 0)
+            {
+                blockedMarkers = unresolved.Concat(nonFinite).Distinct().ToList();
+                return ExtensionCollectionStatus.UnusableGeometry;
+            }
+
+            // Backstop for an endpoint that resolved but resolved to the anchor. Judged only
+            // against markers the placement rules would extend: a sparse view with no dense group
+            // is legitimately all default stubs, so it must never trip this.
+            if (LayoutEditorController.IsCollapsedLayout(markerData, ExpectedExtendedLocations(markerData)))
+                return ExtensionCollectionStatus.CollapsedLayout;
+
+            extensions = LayoutEditorController.BuildExtensions(markerData);
+
+            // Persist the extended position in source-image space so the layout re-projects to the
+            // correct map position at any window size (size-independent persistence; see Phase 5c).
+            foreach (var ext in extensions)
+            {
+                var src = viewport.ScreenToSource(ext.ExtendedPosition.X, ext.ExtendedPosition.Y, cw, ch);
+                ext.SourceExtendedX = src.X;
+                ext.SourceExtendedY = src.Y;
+            }
+
+            return ExtensionCollectionStatus.Ok;
+        }
+
+        /// <summary>
+        /// Names of the locations the renderer would give a radial extension, using the same
+        /// dense-group detection placement uses. Pins outside any dense group are drawn as default
+        /// stubs by design, so they must not be judged as collapsed.
+        /// </summary>
+        private ISet<string> ExpectedExtendedLocations(
+            IReadOnlyList<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+        {
+            var positions = new Dictionary<Location, Point>();
+            foreach (var (location, _, originalScreen) in markerData)
+            {
+                if (location != null)
+                    positions[location] = originalScreen;
+            }
+
+            var calculator = new RadialExtensionCalculator(_visualConfig.RadialExtension);
+            var names = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var group in calculator.DetectDenseGroups(positions))
+            {
+                foreach (var location in group.Locations)
+                {
+                    if (location?.Name != null)
+                        names.Add(location.Name);
+                }
+            }
+
+            return names;
+        }
+
+        /// <summary>
+        /// Reports a failed capture on the edit-mode status line and in the log. Returns false
+        /// always, so callers can `if (!ReportCollectionFailure(...)) return;`.
+        /// </summary>
+        private bool ReportCollectionFailure(
+            ExtensionCollectionStatus status, IReadOnlyList<string> blockedMarkers)
+        {
+            switch (status)
+            {
+                case ExtensionCollectionStatus.WrongLayout:
+                    _logger.LogError(
+                        $"Refusing to save: layout key '{_layoutEditor.CurrentLayoutKey}' does not " +
+                        $"match the current view (expected '{DeriveCurrentViewLayoutKey()}')");
+                    EditModeStatusText.Text = "✗ SAVE ABORTED — WRONG LAYOUT";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    break;
+
+                case ExtensionCollectionStatus.UnusableGeometry:
+                    _logger.LogError(
+                        $"Refusing to save: {blockedMarkers.Count} marker(s) have unusable geometry — " +
+                        string.Join(", ", blockedMarkers.Take(10)));
+                    EditModeStatusText.Text = "✗ SAVE ABORTED — GEOMETRY UNAVAILABLE, RETRY";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    break;
+
+                case ExtensionCollectionStatus.CollapsedLayout:
+                    _logger.LogError(
+                        "Refusing to save: every marker sits on its anchor, so the layout has " +
+                        "collapsed to stubs. The saved layout on disk is left untouched.");
+                    EditModeStatusText.Text = "✗ SAVE ABORTED — LAYOUT COLLAPSED, RETRY";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    break;
+
+                default:
+                    _logger.LogWarning("Cannot save layout - no layout key, session, or viewport");
+                    EditModeStatusText.Text = "✗ SAVE ABORTED — NOT READY";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    break;
+            }
+
+            return false;
+        }
+
         /// <summary>
         /// Phase 4: returns the endpoint of a marker for layout saving.
         /// Uses extension line endpoint first, then composite pin head center, then marker center fallback.
