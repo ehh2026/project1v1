@@ -145,6 +145,23 @@ arrangement stays put until you save or leave the editor.
 
 ---
 
+## 5b. Using a different monitor can hide layouts from the list ⬜ not started
+
+**What you may see:** a layout you saved earlier is missing from the Variants dropdown, even though
+the map still looks arranged.
+
+**Why:** a saved cluster layout records the window size it was made at. Plugging into a different
+monitor, or docking and undocking, changes that size, and the dropdown only lists layouts matching
+the current one. The map itself is more forgiving and still finds the layout, which is why the
+arrangement can appear while the name does not.
+
+**Nothing is lost.** The layouts are all still in the file. Returning to the previous monitor or
+window size makes them reappear.
+
+**What it should do:** list every saved layout for the view regardless of window size.
+
+---
+
 ## 6. Changing settings can make layouts "disappear" ⬜ not started
 
 **What you may see:** you edit `visual-config.json`, restart, and your saved **cluster** layouts are
@@ -224,6 +241,7 @@ report the exact message if it happens repeatedly.
 | 3 | "Delete and Recalculate" deletes everything | ⬜ Not started |
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |
 | 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 |
+| 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |
 | 6 | Config changes hide cluster layouts | ⬜ Not started |
 | 7 | Dev tools toggle unrunnable from cmd | ⬜ Not started |
 

@@ -516,6 +516,18 @@ Phase 2 confusion.
 - [ ] 6.8 **Fix Trap 3:** give `ListVariants` the same compatibility fallback `LoadLayout` already
       uses, so the dropdown never reports "no variants" for a layout that is actively applied.
       Test at a window size outside the seeded `s{W}x{H}` set.
+**Where the size variants actually come from (user, 2026-08-19):** running the app on a different
+monitor — docking/undocking, or a different display — changes the window size, which changes the
+viewport dimensions baked into `s{W}x{H}`. That explains the observed spread in the live file:
+`taipei1`/`taipei2`/`nynyj1` under `s161x101`, `taiwan1`/`newyork1` under `s175x101`. Nothing is
+broken by this on its own, and it is not the cause of the stub bug (Phase 1c).
+
+It does have a real consequence, though, which is why 6.8/6.9 matter: because `ListVariants` matches
+the key exactly while `LoadLayout` falls back compatibly, **a layout saved on one monitor can vanish
+from the variant dropdown on another** while still being applied to the map. The data is fine; the
+dropdown just cannot find it. Worth confirming during the 6.8 fix that a dock/undock round trip
+keeps every variant listed.
+
 - [ ] 6.9 Consider whether `s{W}x{H}` belongs in the cluster key at all. `AreKeysCompatible` already
       ignores it and full-map keys deliberately dropped it for exactly this reason; keeping it
       fragments every cluster into one group per window size (4× duplication in the current file).
