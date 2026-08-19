@@ -131,6 +131,67 @@ public class LayoutEditorControllerTests
     }
 
     [Fact]
+    public void SetLayoutKey_ChangingKey_ClearsActiveVariantIdentity()
+    {
+        // Variant ids are only unique within a group. Carrying one across a scope change makes
+        // TrySave target a variant belonging to the previous layout.
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-first");
+        ctrl.TrySave(OneExtension());
+        Assert.Equal("manual-default", ctrl.ActiveVariantId);
+
+        ctrl.SetLayoutKey("key-second");
+
+        Assert.Null(ctrl.ActiveVariantId);
+        Assert.Null(ctrl.ActiveVariantOrigin);
+        Assert.Null(ctrl.ActiveVariantDisplayName);
+    }
+
+    [Fact]
+    public void SetLayoutKey_SameKey_PreservesActiveVariantIdentity()
+    {
+        var (ctrl, _, _, _) = Make();
+        ctrl.SetLayoutKey("key-same");
+        ctrl.TrySave(OneExtension());
+
+        ctrl.SetLayoutKey("key-same");
+
+        Assert.Equal("manual-default", ctrl.ActiveVariantId);
+        Assert.Equal(ManualLayoutOrigin.Manual, ctrl.ActiveVariantOrigin);
+    }
+
+    [Fact]
+    public void TrySave_AfterKeyChange_DoesNotWriteIntoPreviousKeysVariant()
+    {
+        // Regression: a stale active variant plus a changed key wrote the new scope's geometry
+        // into the previous scope's named variant.
+        var (ctrl, manager, _, _) = Make();
+        ctrl.SetLayoutKey("key-origin");
+        ctrl.TrySaveAsVariant("Layout One", OneExtension());
+        var originVariants = manager.ListVariants("key-origin");
+        Assert.Single(originVariants);
+
+        ctrl.SetLayoutKey("key-elsewhere");
+        ctrl.TrySave(OneExtension());
+
+        // The original group is untouched; the new group got its own default variant.
+        Assert.Single(manager.ListVariants("key-origin"));
+        Assert.Equal(originVariants[0].VariantId, manager.ListVariants("key-origin")[0].VariantId);
+        Assert.Contains(manager.ListVariants("key-elsewhere"), v => v.VariantId == "manual-default");
+    }
+
+    private static List<RadialExtension> OneExtension() => new()
+    {
+        new RadialExtension
+        {
+            Location         = Loc("x"),
+            OriginalPosition = new Point(10, 10),
+            ExtendedPosition = new Point(50, 50),
+            Angle            = 45.0
+        }
+    };
+
+    [Fact]
     public void SetManualLayoutActive_True_SetsFlag()
     {
         var (ctrl, _, _, _) = Make();

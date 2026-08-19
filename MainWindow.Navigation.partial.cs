@@ -441,8 +441,11 @@ namespace InteractiveWorldMap
             if (_layoutEditor.IsManualLayoutSuppressed)
                 return null;
 
+            // Do not claim the key speculatively: this runs at the start of every zoom-in and
+            // zoom-out, so writing "fullmap" here leaves a cluster edit session pointed at the
+            // full-map layout whenever ShowZoomedView's cluster-key branch does not run.
+            // ApplyManualLayoutDuringAnimation sets the key if the layout is actually applied.
             var key = GenerateCurrentFullMapGroupKey();
-            _layoutEditor.SetLayoutKey(key);
 
             var layout = _layoutEditor.TryLoad(key);
             if (layout != null)

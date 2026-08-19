@@ -244,4 +244,57 @@ public class LayoutKeyGeneratorTests
         Assert.False(LayoutKeyGenerator.AreKeysCompatible("fullmap", clusterKey));
         Assert.False(LayoutKeyGenerator.AreKeysCompatible(clusterKey, "fullmap_s1920x1080"));
     }
+
+    // -------------------------------------------------------------------------
+    // DeriveEditSessionKey — the editor must key off the view actually on screen
+    // -------------------------------------------------------------------------
+
+    [Fact]
+    public void DeriveEditSessionKey_NoZoomedCluster_ReturnsFullMapKey()
+    {
+        var key = LayoutKeyGenerator.DeriveEditSessionKey(null, MakeZoomedViewport(), MakeConfig());
+
+        Assert.Equal(LayoutKeyGenerator.GenerateFullMapGroupKey(), key);
+    }
+
+    [Fact]
+    public void DeriveEditSessionKey_EmptyClusterLocations_ReturnsFullMapKey()
+    {
+        var key = LayoutKeyGenerator.DeriveEditSessionKey(
+            new List<Location>(), MakeZoomedViewport(), MakeConfig());
+
+        Assert.Equal(LayoutKeyGenerator.GenerateFullMapGroupKey(), key);
+    }
+
+    [Fact]
+    public void DeriveEditSessionKey_WithZoomedCluster_ReturnsClusterKeyNotFullMap()
+    {
+        var locations = new List<Location>
+        {
+            new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+            new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+        };
+        var vp = MakeZoomedViewport();
+        var cfg = MakeConfig();
+
+        var key = LayoutKeyGenerator.DeriveEditSessionKey(locations, vp, cfg);
+
+        Assert.NotEqual(LayoutKeyGenerator.GenerateFullMapGroupKey(), key);
+        Assert.Equal(LayoutKeyGenerator.GenerateKey(locations, vp, cfg), key);
+    }
+
+    [Fact]
+    public void DeriveEditSessionKey_DifferentClusters_ProduceDifferentKeys()
+    {
+        var vp = MakeZoomedViewport();
+        var cfg = MakeConfig();
+
+        var newYork = LayoutKeyGenerator.DeriveEditSessionKey(
+            new List<Location> { new() { Name = "New York", PixelX = 100, PixelY = 200 } }, vp, cfg);
+        var hongKong = LayoutKeyGenerator.DeriveEditSessionKey(
+            new List<Location> { new() { Name = "Hong Kong", PixelX = 900, PixelY = 400 } }, vp, cfg);
+
+        Assert.NotEqual(newYork, hongKong);
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(newYork, hongKong));
+    }
 }

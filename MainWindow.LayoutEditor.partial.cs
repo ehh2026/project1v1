@@ -21,40 +21,7 @@ namespace InteractiveWorldMap
 {
     public partial class MainWindow
     {
-        private bool IsFullMapRootView()
-        {
-            var viewport = MapDisplay.CurrentViewport;
-            return _currentZoomedCluster == null &&
-                   viewport != null &&
-                   viewport.ZoomLevel <= 1.01;
-        }
-
-        private bool IsFullMapLayoutSessionActive()
-        {
-            return _isFullMapLayoutSession && _currentZoomedCluster == null;
-        }
-
-        private string GenerateCurrentFullMapGroupKey()
-        {
-            // Size-independent: marker positions re-project from source space, so the full-map
-            // layout is keyed by identity alone and survives window resizes.
-            return LayoutKeyGenerator.GenerateFullMapGroupKey();
-        }
-
-        private bool TrySetFullMapLayoutKey(bool editSession)
-        {
-            if (!IsFullMapRootView())
-                return false;
-
-            _isFullMapLayoutSession = editSession;
-            _layoutEditor.SetLayoutKey(GenerateCurrentFullMapGroupKey());
-            return true;
-        }
-
-        private void ClearFullMapLayoutSession()
-        {
-            _isFullMapLayoutSession = false;
-        }
+        // Layout-key derivation lives in MainWindow.LayoutEditorKeys.partial.cs.
 
         private void UpdateEditLayoutButtonVisibility()
         {
@@ -321,6 +288,23 @@ namespace InteractiveWorldMap
             else
             {
                 ClearFullMapLayoutSession();
+
+                // Re-derive the cluster key from the view on screen. Inheriting whatever
+                // CurrentLayoutKey held would let a "fullmap" key set by the zoom animation
+                // survive into a cluster edit session, and the save would then overwrite the
+                // full-map layout with this cluster's handful of markers.
+                var editViewport = MapDisplay.CurrentViewport;
+                if (editViewport == null)
+                {
+                    _logger.LogWarning("Cannot enter cluster layout edit - viewport is not ready");
+                    return;
+                }
+
+                _layoutEditor.SetLayoutKey(LayoutKeyGenerator.DeriveEditSessionKey(
+                    _currentZoomedCluster.Locations,
+                    editViewport,
+                    _visualConfig.RadialExtension));
+                _logger.LogInfo($"[OnEditLayoutButtonClick] Derived cluster layout key={_layoutEditor.CurrentLayoutKey}");
             }
 
             _layoutEditor.EnterEditMode();
@@ -385,6 +369,20 @@ namespace InteractiveWorldMap
                 (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
                 _logger.LogWarning("Cannot save layout - no layout key or active layout session");
+                return;
+            }
+
+            // Refuse to write into a layout belonging to a different view. Without this, a stale
+            // "fullmap" key inherited from a zoom animation would overwrite the whole-map layout
+            // with this cluster's markers, stranding every location not in the cluster.
+            if (!CurrentLayoutKeyMatchesView())
+            {
+                _logger.LogError(
+                    $"Refusing to save: layout key '{_layoutEditor.CurrentLayoutKey}' does not match " +
+                    $"the current view (expected '{DeriveCurrentViewLayoutKey()}')");
+                EditModeStatusText.Text = "✗ SAVE ABORTED — WRONG LAYOUT";
+                EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                await ResetEditModeStatusAfterDelayAsync(3000);
                 return;
             }
 

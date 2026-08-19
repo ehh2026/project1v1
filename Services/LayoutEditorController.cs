@@ -100,13 +100,17 @@ public sealed class LayoutEditorController
 
     public void SetLayoutKey(string? key)
     {
-        CurrentLayoutKey = key;
-        if (key == null)
+        // Any change of key is a change of scope. Variant ids are only unique within a group,
+        // so carrying the previous scope's active variant across would make TrySave target a
+        // variant belonging to a different layout. Clear on every change, not just on null.
+        if (!string.Equals(CurrentLayoutKey, key, StringComparison.Ordinal))
         {
             ActiveVariantId = null;
             ActiveVariantOrigin = null;
             ActiveVariantDisplayName = null;
         }
+
+        CurrentLayoutKey = key;
     }
 
     public void SetManualLayoutActive(bool active)

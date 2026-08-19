@@ -25,7 +25,7 @@ reproduced or traced by reading merged `main` — none are fixed yet.
 
 | # | Issue | Severity | Status |
 |---|-------|----------|--------|
-| 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | Not started |
+| 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | Core fixed (0.3–0.5, 0.9); 0.6/0.7/0.10 open; manual smoke pending |
 | 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | Not started |
 | 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | Not started |
 | 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | Not started |
@@ -81,23 +81,39 @@ never re-derives it on entry.
 
 ### Steps
 
-- [ ] 0.1 Failing test: enter edit mode while zoomed into a cluster after a full-map edit session;
-      assert `CurrentLayoutKey` is the cluster key, not `fullmap`.
-- [ ] 0.2 Failing test: saving while zoomed must not modify the `fullmap` group.
-- [ ] 0.3 Derive the key from the current view on **every** editor entry — make
-      `OnEditLayoutButtonClick` set the cluster key in the `else` branch instead of inheriting one.
-- [ ] 0.4 Guard the save path: assert the key still matches the current view immediately before
-      writing, and abort with a visible message if it does not. Defense in depth for the remaining
-      writers.
-- [ ] 0.5 Stop `TryLoadFullMapManualLayoutForAnimation` setting the key speculatively — set it only
-      once a layout is actually loaded, or keep animation state out of `CurrentLayoutKey` entirely.
+- [x] 0.1 Behavior tests for key derivation — `LayoutKeyGeneratorTests`:
+      `DeriveEditSessionKey_WithZoomedCluster_ReturnsClusterKeyNotFullMap`,
+      `DeriveEditSessionKey_DifferentClusters_ProduceDifferentKeys`, plus the two full-map cases.
+      Source guard for the MainWindow wiring in `Tests/LayoutEditorKeyDerivationTests.cs`.
+- [x] 0.2 `TrySave_AfterKeyChange_DoesNotWriteIntoPreviousKeysVariant` — verified failing before the
+      fix (saved into variant `layout-one-…` under the *new* key), passing after.
+- [x] 0.3 Added `LayoutKeyGenerator.DeriveEditSessionKey(...)` — a pure, unit-testable derivation —
+      and `OnEditLayoutButtonClick` now calls it in the zoomed branch instead of inheriting the key.
+- [x] 0.4 `CurrentLayoutKeyMatchesView()` guards `OnSaveLayoutButtonClick`; a mismatch aborts with
+      `✗ SAVE ABORTED — WRONG LAYOUT` and an error log rather than writing.
+- [x] 0.5 `TryLoadFullMapManualLayoutForAnimation` no longer calls `SetLayoutKey`.
+      `ApplyManualLayoutDuringAnimation` still sets it when a layout is actually applied.
+- [x] 0.9 **(new, found during the audit)** `SetLayoutKey` cleared the active-variant identity only
+      when the key was null. A change to a *different* non-null key left the previous scope's
+      `ActiveVariantId`/`Origin`/`DisplayName` in place, and `TrySave` targets its variant from
+      those fields — so a save wrote into a variant belonging to another layout. Now cleared on
+      every key change; same key still preserves. Covered by
+      `SetLayoutKey_ChangingKey_ClearsActiveVariantIdentity` and
+      `SetLayoutKey_SameKey_PreservesActiveVariantIdentity`.
 - [ ] 0.6 Reconsider the `preferFullMapLayout` branch (`Navigation:233-245`): preferring the
       full-map layout for display is defensible, but it must not leave the *editor* pointed at the
-      full-map key.
-- [ ] 0.7 Narrow the writers. Six call sites mutate `CurrentLayoutKey`; prefer deriving it from
-      current view state at point of use, or funnel all writes through one guarded method.
-- [ ] 0.8 Once fixed, re-test the stub repro. If stubs persist, Phase 1's render race is the
-      remaining cause.
+      full-map key. **Now mitigated** by 0.3/0.4 (the editor re-derives, the save verifies), but the
+      branch itself is still a key writer and deserves a direct fix.
+- [ ] 0.7 Narrow the writers. Six call sites mutate `CurrentLayoutKey`. Partially addressed (0.5
+      removed one, 0.3/0.4 make the editor independent of it); the remaining writers should funnel
+      through one guarded method.
+- [ ] 0.10 **(new, found during the audit)** `TryLoad(key)` mutates `ActiveVariantId`/`Origin`/
+      `DisplayName` without checking `key == CurrentLayoutKey`. Three probe-loads call it with
+      locally computed keys (`Navigation:169`, `Navigation:237`,
+      `TryLoadFullMapManualLayoutForAnimation`), desyncing variant identity from the current key.
+      Either make probe loads side-effect-free or require the key to match.
+- [ ] 0.8 Re-test the stub repro in the running app. If stubs persist, Phase 1's render race is the
+      remaining cause. **Requires manual smoke — not yet done.**
 
 **Exit:** the editor always edits the layout for the view actually on screen, and a save can never
 write into a different scope's group.
@@ -153,14 +169,16 @@ so an endpoint/start asymmetry is **not** the cause.
 - [ ] 1.5 Close the lookup gap in `GetMarkerEndpoint`: distinguish "no line registered" (unsafe —
       must abort) from "genuinely at the anchor" (legitimate zero extension). The current silent
       fallback to marker center conflates the two.
-- [ ] 1.6 **Close the race at its source.** `UpdateMarkerPositions()`
+- [ ] 1.6 **Close the race at its source — but narrowly.** `UpdateMarkerPositions()`
       (`MainWindow.MarkerPlacement.partial.cs:38`) calls `_extensionLineRenderer.Clear()` guarded
-      only by `if (!IsAnimating)` — there is no `IsEditMode` check. Zoom navigation is already
-      blocked during edit (`ShowEditModeNavigationBlockedStatus`), so the realistic trigger is a
-      **window resize while editing**. Decided 2026-08-18: a re-render is never needed while
-      dragging pin heads, so guard this call with `IsEditMode`. Audit the other `Clear()` call
-      sites (`MainWindow.DeveloperTuning.partial.cs:318`, `MainWindow.Navigation.partial.cs:99`
-      and `:373`, `MainWindow.LayoutEditor.partial.cs:181`/`:343`/`:623`) for the same gap.
+      only by `if (!IsAnimating)`.
+      **Correction (2026-08-18 audit):** do *not* blanket-guard `UpdateMarkerPositions` with
+      `IsEditMode`. Of its 13 call sites, three are reachable mid-edit and two of those are
+      legitimate — `OnDeleteVariantButtonClick` (`MainWindow.LayoutEditor.partial.cs:225`) and
+      `OnEditLayoutButtonClick` (`:351`, called right after `EnterEditMode()`). A blanket guard
+      would break both. The only unguarded illegitimate caller is `OnSizeChanged`
+      (`MainWindow.xaml.cs:713`), which has no `IsEditMode` check at all — that is where the guard
+      belongs. Every other caller is already blocked during edit by the navigation guards.
 - [ ] 1.7 Write a pre-save backup of `manual-layouts.json` (timestamped, into `temp/`) so a bad save
       is recoverable. Note `temp/` is gitignored with a 14-day cleanup policy.
 - [ ] 1.8 Regression test: a save whose endpoints resolve normally still round-trips angles and

@@ -70,6 +70,30 @@ namespace InteractiveWorldMap.Services
         }
 
         /// <summary>
+        /// Derives the layout key for an edit session from the view currently on screen.
+        /// Pass the zoomed cluster's locations when zoomed in, or null/empty for the full map.
+        /// </summary>
+        /// <remarks>
+        /// The editor must re-derive its key on every entry rather than inheriting whatever
+        /// <c>CurrentLayoutKey</c> happens to hold: zoom animations and full-map probes both
+        /// write that field, so an inherited key can point at "fullmap" while the user is
+        /// editing a cluster — which then saves cluster geometry into the full-map layout.
+        /// </remarks>
+        public static string DeriveEditSessionKey(
+            IReadOnlyList<Location>? zoomedClusterLocations,
+            ViewportState viewport,
+            RadialExtensionConfig config)
+        {
+            if (viewport == null) throw new ArgumentNullException(nameof(viewport));
+            if (config == null) throw new ArgumentNullException(nameof(config));
+
+            if (zoomedClusterLocations == null || zoomedClusterLocations.Count == 0)
+                return GenerateFullMapGroupKey();
+
+            return GenerateKey(zoomedClusterLocations.ToList(), viewport, config);
+        }
+
+        /// <summary>
         /// Compute SHA256 hash of a string
         /// </summary>
         private static string ComputeHash(string input)
