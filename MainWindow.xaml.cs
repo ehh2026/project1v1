@@ -710,6 +710,16 @@ namespace InteractiveWorldMap
             // Just update marker positions if we have a viewport
             if (MapDisplay.CurrentViewport != null)
             {
+                // Never re-place markers mid-edit. UpdateMarkerPositions clears the renderer's
+                // marker-to-line map, which is the only record of where each pin actually points;
+                // a save landing before it refills would persist every pin as a stub. Zoom is
+                // already blocked during edit, so a resize is the one way in.
+                if (_layoutEditor.IsEditMode)
+                {
+                    UpdateEditLayoutButtonVisibility();
+                    return;
+                }
+
                 UpdateMarkerPositions();
                 TryApplyFullMapManualLayout();
                 UpdateEditLayoutButtonVisibility();

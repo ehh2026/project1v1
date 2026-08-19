@@ -72,4 +72,51 @@ public class LayoutEditorKeyDerivationTests
         var body = source.Substring(methodIndex, methodEnd - methodIndex);
         Assert.DoesNotContain("SetLayoutKey", body);
     }
+
+    [Fact]
+    public void OnSizeChanged_DoesNotRePlaceMarkersDuringEdit()
+    {
+        var source = ReadSource("MainWindow.xaml.cs");
+
+        var handlerIndex = source.IndexOf("private void OnSizeChanged", StringComparison.Ordinal);
+        Assert.True(handlerIndex >= 0, "OnSizeChanged not found.");
+
+        var guardIndex = source.IndexOf("_layoutEditor.IsEditMode", handlerIndex, StringComparison.Ordinal);
+        var updateIndex = source.IndexOf("UpdateMarkerPositions()", handlerIndex, StringComparison.Ordinal);
+
+        Assert.True(guardIndex >= 0, "OnSizeChanged must not re-place markers while edit mode is active.");
+        Assert.True(
+            guardIndex < updateIndex,
+            "The edit-mode guard must run before UpdateMarkerPositions, which clears the " +
+            "marker-to-line map a save depends on.");
+    }
+
+    [Fact]
+    public void SaveHandler_RefusesUnresolvedMarkerGeometry()
+    {
+        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+
+        var handlerIndex = source.IndexOf(
+            "private async void OnSaveLayoutButtonClick", StringComparison.Ordinal);
+        Assert.True(handlerIndex >= 0, "OnSaveLayoutButtonClick not found.");
+
+        var checkIndex = source.IndexOf(
+            "FindNonFiniteMarkers", handlerIndex, StringComparison.Ordinal);
+        var trySaveIndex = source.IndexOf("_layoutEditor.TrySave(", handlerIndex, StringComparison.Ordinal);
+
+        Assert.True(checkIndex >= 0, "The save path must reject unusable marker geometry.");
+        Assert.True(checkIndex < trySaveIndex, "The geometry check must run before TrySave.");
+    }
+
+    [Fact]
+    public void MarkerEndpoint_ReportsWhetherItCouldBeResolved()
+    {
+        Assert.Contains(
+            "private bool TryGetMarkerEndpoint(",
+            ReadSource("MainWindow.LayoutEditorGeometry.partial.cs"));
+
+        Assert.Contains(
+            "if (!TryGetMarkerEndpoint(m, out var center))",
+            ReadSource("MainWindow.LayoutEditor.partial.cs"));
+    }
 }

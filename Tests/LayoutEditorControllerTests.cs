@@ -180,6 +180,92 @@ public class LayoutEditorControllerTests
         Assert.Contains(manager.ListVariants("key-elsewhere"), v => v.VariantId == "manual-default");
     }
 
+    // ─── FindNonFiniteMarkers ─────────────────────────────────────────────────
+
+    [Fact]
+    public void FindNonFiniteMarkers_AllFinite_ReturnsEmpty()
+    {
+        var bad = LayoutEditorController.FindNonFiniteMarkers(new[]
+        {
+            (Loc("a"), new Point(50, 50), new Point(10, 10))
+        });
+
+        Assert.Empty(bad);
+    }
+
+    [Fact]
+    public void FindNonFiniteMarkers_NaNCoordinate_IsReported()
+    {
+        // Canvas.GetLeft returns NaN when a position was never set, so an un-laid-out marker
+        // reaches the save path with NaN coordinates.
+        var bad = LayoutEditorController.FindNonFiniteMarkers(new[]
+        {
+            (Loc("good"), new Point(50, 50),           new Point(10, 10)),
+            (Loc("bad"),  new Point(double.NaN, 50),   new Point(10, 10))
+        });
+
+        Assert.Equal(new[] { "bad" }, bad);
+    }
+
+    [Fact]
+    public void FindNonFiniteMarkers_InfiniteCoordinate_IsReported()
+    {
+        var bad = LayoutEditorController.FindNonFiniteMarkers(new[]
+        {
+            (Loc("inf"), new Point(50, 50), new Point(double.PositiveInfinity, 10))
+        });
+
+        Assert.Equal(new[] { "inf" }, bad);
+    }
+
+    [Fact]
+    public void FindNonFiniteMarkers_ZeroLengthExtension_IsNotReported()
+    {
+        // A pin with no radial extension sits exactly on its anchor. That is legitimate and must
+        // not block a save — only unresolvable or non-finite geometry does.
+        var bad = LayoutEditorController.FindNonFiniteMarkers(new[]
+        {
+            (Loc("onAnchor"), new Point(10, 10), new Point(10, 10))
+        });
+
+        Assert.Empty(bad);
+    }
+
+    [Fact]
+    public void BuildExtensions_ZeroLengthDelta_ProducesVerticalStub()
+    {
+        // Documents the exact shape of the reported bug. Coincident points give dx = dy = 0, and
+        // Math.Atan2(0, -0.0) is pi — not 0 — because negating zero yields negative zero. So a
+        // marker whose endpoint could not be resolved is persisted as a zero-length extension at
+        // 180 degrees: the "short vertical stub" users saw, all pins pointing the same way.
+        // Reaching this state is now prevented by rejecting unresolved endpoints before saving.
+        var result = LayoutEditorController.BuildExtensions(new[]
+        {
+            (Loc("x"), new Point(10, 10), new Point(10, 10))
+        });
+
+        Assert.Single(result);
+        Assert.Equal(180.0, result[0].Angle, 3);
+        Assert.Equal(result[0].OriginalPosition, result[0].ExtendedPosition);
+    }
+
+    [Fact]
+    public void SaveLayout_KeepsBackupOfPreviousFile()
+    {
+        var (ctrl, _, _, tempDir) = Make();
+        var layoutPath = Path.Combine(tempDir, "layouts.json");
+        ctrl.SetLayoutKey("key-backup");
+
+        ctrl.TrySave(OneExtension());
+        Assert.True(File.Exists(layoutPath));
+        Assert.False(File.Exists(layoutPath + ".bak"), "No backup expected before a second save.");
+
+        ctrl.TrySave(OneExtension());
+
+        Assert.True(File.Exists(layoutPath + ".bak"),
+            "The previous layout file must be recoverable after an overwriting save.");
+    }
+
     private static List<RadialExtension> OneExtension() => new()
     {
         new RadialExtension

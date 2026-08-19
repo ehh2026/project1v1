@@ -516,9 +516,31 @@ namespace InteractiveWorldMap.Services
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
+            TryBackupBeforeOverwrite();
+
             var json = JsonSerializer.Serialize(collection, LayoutJsonOptions);
             File.WriteAllText(_layoutFilePath, json);
             _cachedLayouts = null;
+        }
+
+        /// <summary>
+        /// Keeps a copy of the previous layout file next to it, so a save that turns out to be
+        /// destructive can be recovered by hand. Deliberately a single rolling <c>.bak</c> rather
+        /// than timestamped copies: it is bounded, needs no cleanup policy, and covers the case
+        /// that matters — the save that just ran.
+        /// </summary>
+        private void TryBackupBeforeOverwrite()
+        {
+            try
+            {
+                if (File.Exists(_layoutFilePath))
+                    File.Copy(_layoutFilePath, _layoutFilePath + ".bak", overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                // A failed backup must never block the save the user asked for.
+                _logger.LogWarning($"[ManualLayoutManager] Could not back up layouts before save: {ex.Message}");
+            }
         }
 
         private static ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)

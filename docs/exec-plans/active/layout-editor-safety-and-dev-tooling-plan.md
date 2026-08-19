@@ -18,6 +18,28 @@ repo-root/`scripts/` only. No new layer edges — `LayerDependencyTests.cs` must
 
 ---
 
+**User-facing companion:**
+[../../reference/layout-editor-known-issues.md](../../reference/layout-editor-known-issues.md) —
+the same issues in plain language, for users rather than agents. **Keep it updated as each phase
+lands**; it carries a "Last updated" date that must move with it.
+
+---
+
+## Progress log
+
+| Date | Change | Verification |
+|------|--------|--------------|
+| 2026-08-18 | Plan created (`c950876`). Issues 1–6 diagnosed against merged `main` @ `9487fc0`. | Doc link check |
+| 2026-08-18 | Read-only audit of every `CurrentLayoutKey` reader/writer. Found two defects not in the original plan (0.9, 0.10) and **corrected** the Phase 1.6 approach — a blanket `IsEditMode` guard on `UpdateMarkerPositions` would break two legitimate mid-edit callers. | n/a |
+| 2026-08-19 | **Phase 0 core landed** (`ae527b1`): 0.3, 0.4, 0.5, 0.9. Layout-key derivation extracted to `MainWindow.LayoutEditorKeys.partial.cs` (the editor partial had exceeded the 800-line limit). | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 880 passed / 2 known skips. New tests confirmed failing before the fix by reverting `LayoutEditorController.cs`. |
+| 2026-08-19 | **Phase 1 landed**: 1.1–1.8. Endpoint resolution made explicit, saves refuse unusable geometry, `OnSizeChanged` guarded, rolling `.bak` before every write. Marker geometry extracted to `MainWindow.LayoutEditorGeometry.partial.cs`. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 888 passed / 2 known skips. |
+
+**Carried forward:** 0.6, 0.7, 0.10 remain open — mitigated by the 0.3/0.4 guards but not fixed at
+source. 0.8 (manual smoke of the stub repro in the running app) is **not done**; the automated tests
+cover the mechanism, not the original intermittent failure.
+
+---
+
 ## Current State
 
 Branched from `main` @ `9487fc0` (PR #7 + dependabot bumps merged). All five issues below were
@@ -26,7 +48,7 @@ reproduced or traced by reading merged `main` — none are fixed yet.
 | # | Issue | Severity | Status |
 |---|-------|----------|--------|
 | 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | Core fixed (0.3–0.5, 0.9); 0.6/0.7/0.10 open; manual smoke pending |
-| 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | Not started |
+| 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | Fixed 2026-08-19 (1.1–1.8); manual smoke pending |
 | 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | Not started |
 | 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | Not started |
 | 4 | No root-level guide to which config files to edit | P3 | Not started |
@@ -157,18 +179,23 @@ so an endpoint/start asymmetry is **not** the cause.
 
 ### Steps
 
-- [ ] 1.1 Add a failing test: `BuildExtensions` given `markerCenter == originalScreen` currently
-      emits a zero-length extension. Pin the *desired* behavior — reject, don't persist.
-- [ ] 1.2 Add a failing test for `NaN`/non-finite input coordinates (`Canvas.GetLeft` returns `NaN`
-      when never explicitly set) — these must not reach the JSON file.
-- [ ] 1.3 Make degeneracy explicit in the model: have `BuildExtensions` return the extensions plus a
-      list of markers whose geometry could not be resolved, rather than silently emitting zeros.
-- [ ] 1.4 **Refuse the save** when any marker's geometry is unresolved. Surface
-      `✗ SAVE ABORTED — geometry unavailable, retry` in `EditModeStatusText` and log the marker
-      names. A refused save is always better than a save that destroys the layout.
-- [ ] 1.5 Close the lookup gap in `GetMarkerEndpoint`: distinguish "no line registered" (unsafe —
-      must abort) from "genuinely at the anchor" (legitimate zero extension). The current silent
-      fallback to marker center conflates the two.
+- [x] 1.1 `BuildExtensions_ZeroLengthDelta_ProducesVerticalStub` documents the degenerate output.
+      **Finding:** the angle is **180°, not 0°** — `Math.Atan2(0, -0.0)` is π because negating zero
+      gives negative zero. That is precisely the reported symptom: every pin a short stub pointing
+      the same direction. **Design correction:** a zero-length extension is *not* itself an error —
+      a pin with no radial extension legitimately sits on its anchor. Rejecting on zero length
+      would block valid saves. The real signal is whether the endpoint could be *resolved*, which
+      is what 1.5 now tracks.
+- [x] 1.2 `FindNonFiniteMarkers` rejects `NaN`/infinity coordinates (`Canvas.GetLeft` returns `NaN`
+      when a position was never set). Covered by three tests including the legitimate zero-length
+      case, which must *not* be reported.
+- [x] 1.3 Superseded by 1.5 — resolution is tracked where the endpoint is read, not inferred from
+      geometry afterwards. This is the more direct signal and avoids the false positives in 1.1.
+- [x] 1.4 The save path refuses when any marker is unresolved or non-finite, showing
+      `✗ SAVE ABORTED — GEOMETRY UNAVAILABLE, RETRY` and logging the affected names.
+- [x] 1.5 `GetMarkerEndpoint` split into `TryGetMarkerEndpoint(marker, out Point)`, returning false
+      only for the last-resort marker-anchor guess. The four authoritative sources return true.
+      Extracted to `MainWindow.LayoutEditorGeometry.partial.cs` (800-line limit).
 - [ ] 1.6 **Close the race at its source — but narrowly.** `UpdateMarkerPositions()`
       (`MainWindow.MarkerPlacement.partial.cs:38`) calls `_extensionLineRenderer.Clear()` guarded
       only by `if (!IsAnimating)`.
@@ -179,10 +206,17 @@ so an endpoint/start asymmetry is **not** the cause.
       would break both. The only unguarded illegitimate caller is `OnSizeChanged`
       (`MainWindow.xaml.cs:713`), which has no `IsEditMode` check at all — that is where the guard
       belongs. Every other caller is already blocked during edit by the navigation guards.
-- [ ] 1.7 Write a pre-save backup of `manual-layouts.json` (timestamped, into `temp/`) so a bad save
-      is recoverable. Note `temp/` is gitignored with a 14-day cleanup policy.
-- [ ] 1.8 Regression test: a save whose endpoints resolve normally still round-trips angles and
-      lengths unchanged.
+      **Done 2026-08-19:** `OnSizeChanged` returns early while `IsEditMode`, refreshing only the
+      Edit Layout button visibility.
+- [x] 1.7 Pre-save backup added in `ManualLayoutManager.SaveLayoutCollection`.
+      **Deviation from plan:** a single rolling `<layoutfile>.bak` beside the layout file, rather
+      than timestamped copies in `temp/`. Reasons: `ManualLayoutManager` only knows its own file
+      path, so reaching into a repo-relative `temp/` would bake a layer assumption into a service
+      that tests point at arbitrary directories; and a rolling copy is bounded, needs no cleanup
+      policy, and covers the case that matters — the save that just ran. A failed backup never
+      blocks the save.
+- [x] 1.8 `SaveLayout_KeepsBackupOfPreviousFile`; existing round-trip coverage
+      (`BuildExtensions_AngleNorthUp_RoundTrips`) still passes unchanged.
 
 **Exit:** cannot produce an all-stub layout file through the save path; a save that would do so is
 refused with a visible message.

@@ -251,6 +251,37 @@ public sealed class LayoutEditorController
     }
 
     /// <summary>
+    /// Returns the names of markers whose coordinates are not finite (NaN or infinity).
+    /// </summary>
+    /// <remarks>
+    /// <c>Canvas.GetLeft</c>/<c>GetTop</c> return NaN when a position was never explicitly set, so
+    /// a marker that has not been laid out yields NaN coordinates. Persisting those produces a
+    /// layout file that cannot be read back as geometry, so a save carrying any of them is refused.
+    /// <para>
+    /// Note that a *zero-length* extension is not an error: a pin with no radial extension sits
+    /// exactly on its anchor, so <c>MarkerCenter == OriginalScreen</c> is legitimate. Whether the
+    /// endpoint could be resolved at all is tracked separately, at the point the endpoint is read.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<string> FindNonFiniteMarkers(
+        IEnumerable<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+
+        var bad = new List<string>();
+        foreach (var (location, markerCenter, originalScreen) in markerData)
+        {
+            if (!IsFinite(markerCenter) || !IsFinite(originalScreen))
+                bad.Add(location?.Name ?? "(unnamed)");
+        }
+        return bad;
+    }
+
+    private static bool IsFinite(Point p) =>
+        !double.IsNaN(p.X) && !double.IsNaN(p.Y) &&
+        !double.IsInfinity(p.X) && !double.IsInfinity(p.Y);
+
+    /// <summary>
     /// Validates a layout for intersecting lines and overlapping markers.
     /// Returns human-readable issue descriptions (empty list = no issues).
     /// </summary>

@@ -225,44 +225,6 @@ namespace InteractiveWorldMap
             return extensions;
         }
 
-        /// <summary>
-        /// Phase 4: returns the endpoint of a marker for layout saving.
-        /// Uses extension line endpoint first, then composite pin head center, then marker center fallback.
-        /// </summary>
-        private Point GetMarkerEndpoint(LocationMarker marker)
-        {
-            if (_extensionLineRenderer.TryGetLineEndpoint(marker, out var lineEnd))
-                return lineEnd;
-
-            if (marker.Content is CompositePinMarker cmp && cmp.RenderPlan != null)
-            {
-                var plan = cmp.RenderPlan;
-                return new Point(
-                    Canvas.GetLeft(marker) + plan.HeadCenterLocal.X,
-                    Canvas.GetTop(marker) + plan.HeadCenterLocal.Y);
-            }
-
-            // Drawn roles expose their actual head connection point. Using the configured
-            // LocationMarkerSize center would introduce a small saved-angle drift.
-            if (marker.Content is ManualLayoutPinMarker manualPin)
-            {
-                var connection = manualPin.GetConnectionPoint();
-                return new Point(
-                    Canvas.GetLeft(marker) + connection.X,
-                    Canvas.GetTop(marker) + connection.Y);
-            }
-
-            if (marker.Content is AutoStubPinMarker autoStub)
-            {
-                var connection = autoStub.GetConnectionPoint();
-                return new Point(
-                    Canvas.GetLeft(marker) + connection.X,
-                    Canvas.GetTop(marker) + connection.Y);
-            }
-
-            var markerSize = _visualConfig.LocationMarkerSize;
-            return new Point(Canvas.GetLeft(marker) + markerSize / 2, Canvas.GetTop(marker) + markerSize / 2);
-        }
         #region Manual Layout Editor Methods
 
         /// <summary>
@@ -405,16 +367,37 @@ namespace InteractiveWorldMap
                 // Collect current marker positions and delegate extension-building to controller.
                 // Use the extension line endpoint as the authoritative MarkerCenter: after "Auto Assign
                 // Pins" the marker's Canvas position is offset to the tip anchor, not the endpoint.
+                var unresolved = new List<string>();
                 var markerData = _individualMarkers
                     .Where(m => m.Visibility == Visibility.Visible)
                     .Select(m =>
                     {
-                        var center = GetMarkerEndpoint(m);
+                        if (!TryGetMarkerEndpoint(m, out var center))
+                            unresolved.Add(m.Location?.Name ?? "(unnamed)");
+
                         return (
                             m.Location,
                             MarkerCenter: center,
                             OriginalScreen: viewport.SourceToScreen(m.Location.PixelX, m.Location.PixelY, MapDisplay.ActualWidth, MapDisplay.ActualHeight));
-                    });
+                    })
+                    .ToList();
+
+                // A marker whose endpoint could not be resolved would be written as though it sat
+                // on its anchor, flattening it to a stub. Refusing the save keeps the layout on
+                // disk intact; the user can retry once the pins have finished rendering.
+                var nonFinite = LayoutEditorController.FindNonFiniteMarkers(markerData);
+                if (unresolved.Count > 0 || nonFinite.Count > 0)
+                {
+                    var blocked = unresolved.Concat(nonFinite).Distinct().ToList();
+                    _logger.LogError(
+                        $"Refusing to save: {blocked.Count} marker(s) have unusable geometry — " +
+                        string.Join(", ", blocked.Take(10)));
+                    EditModeStatusText.Text = "✗ SAVE ABORTED — GEOMETRY UNAVAILABLE, RETRY";
+                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
+                    await ResetEditModeStatusAfterDelayAsync(3000);
+                    return;
+                }
+
                 var extensions = LayoutEditorController.BuildExtensions(markerData);
 
                 // Validate layout before saving
