@@ -34,36 +34,39 @@ lands**; it carries a "Last updated" date that must move with it.
 | 2026-08-19 | **Phase 0 core landed** (`ae527b1`): 0.3, 0.4, 0.5, 0.9. Layout-key derivation extracted to `MainWindow.LayoutEditorKeys.partial.cs` (the editor partial had exceeded the 800-line limit). | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 880 passed / 2 known skips. New tests confirmed failing before the fix by reverting `LayoutEditorController.cs`. |
 | 2026-08-19 | **Phase 1 landed**: 1.1–1.8. Endpoint resolution made explicit, saves refuse unusable geometry, `OnSizeChanged` guarded, rolling `.bak` before every write. Marker geometry extracted to `MainWindow.LayoutEditorGeometry.partial.cs`. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 888 passed / 2 known skips. |
 | 2026-08-19 | **Manual smoke S2 FAILED against `b1fa379`** — user saved variant `taipei1` in the Hong Kong / Taipei cluster and all pins collapsed to stubs. **Root cause: the Phase 1 guards were added to `OnSaveLayoutButtonClick`, but Save As used `CollectCurrentExtensions`, a second unguarded copy of the same collection logic.** Fixed in Phase 1b below. | Reproduced by user against a build containing Phase 0+1 |
-| 2026-08-19 | **Phase 1b**: collapsed both save routes into one guarded `TryCollectCurrentExtensions`; removed the duplicate inline collection and the now-redundant second scope check. Added `IsCollapsedLayout` backstop. | `.\scripts\verify.ps1` pending; 893 passed / 2 known skips |
-
+| 2026-08-19 | **Phase 1b landed** (`81e6ced`): collapsed both save routes into one guarded `TryCollectCurrentExtensions`; removed the duplicate inline collection and the now-redundant second scope check. Added `IsCollapsedLayout` backstop. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 893 passed / 2 known skips. |
 | 2026-08-19 | **Phase 1c landed** (`83f716d`): cluster layouts no longer replay as stubs. Root cause was the replay path, not saving. | `.\scripts\verify.ps1` **PASSED**. 894 passed / 2 known skips. Regression test measures the 0.46px collapse without the fix. |
 | 2026-08-19 | **Manual smoke S5 PASSED** against `83f716d` — the originally reported failure no longer reproduces. | User confirmation in the running app |
+| 2026-08-19 | **Phase 0.6 landed** (`58abd6f`): layout precedence by origin rather than scope, so a hand-made zoomed layout is displayed instead of being saved and ignored. | `.\scripts\verify.ps1` **PASSED**. 899 passed / 2 known skips. |
+| 2026-08-19 | **Qodo review addressed** (`3db2514`): three real defects — `HasManualLayout` masked by a selected seed; the `OnSizeChanged` guard leaving stale endpoints that a later save would mis-project; the collapse backstop refusing a deliberate all-anchor drag. Plus layering/size cleanups and the `LayoutEditorControllerTests` split. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 901 passed / 2 known skips. Masking fix verified failing against the old implementation. |
 
-**Carried forward:** 0.6, 0.7, 0.10 remain open — mitigated by the 0.3/0.4 guards but not fixed at
-source. Phase 1c leaves an open question about what a saved head offset means (map-anchored position
-vs constant screen length); the fallback reconciles the conflicting tests but the semantics deserve a
-deliberate decision, adjacent to 6.9.
+**Carried forward:** 0.7 and 0.10 remain open — the remaining `CurrentLayoutKey` writers should
+funnel through one guarded method, and `TryLoad` still mutates active-variant state from any key it
+is handed (0.10 is partly mitigated: `HasManualLayout` is side-effect free). Phase 1c leaves an open
+question about what a saved head offset means — map-anchored position versus constant screen
+length; the fallback reconciles the conflicting tests but the semantics deserve a deliberate
+decision, adjacent to 6.9. **0.6 is done** (`58abd6f`) and no longer carried.
 
-**Smoke coverage:** S5 passed. S1, S3, S4, S6, S7, S8 not yet run — notably **S8** (a sparse view must
-still save successfully), which guards against a false positive introduced by the 1b.4 collapse
-backstop.
+**Smoke coverage:** S5 passed. S1, S3, S4, S6, S7, S8, S9, S10 not yet run. **S8 and S10 are the
+priority** — both assert that a *valid* save is not wrongly refused, which is the failure mode the
+1b.4 collapse backstop can introduce and the one automated tests approximate least well.
 
 ---
 
 ## Current State
 
-Branched from `main` @ `9487fc0` (PR #7 + dependabot bumps merged). All five issues below were
-reproduced or traced by reading merged `main` — none are fixed yet.
+Branched from `main` @ `9487fc0` (PR #7 + dependabot bumps merged). Issues were reproduced or traced
+against merged `main`; the status column is kept current as phases land.
 
 | # | Issue | Severity | Status |
 |---|-------|----------|--------|
-| 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | Core fixed (0.3–0.5, 0.9); 0.6/0.7/0.10 open; manual smoke pending |
-| 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | Fixed 2026-08-19 (1.1–1.8); manual smoke pending |
+| 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | **Fixed** (0.3–0.6, 0.9); 0.7 and 0.10 open as hardening |
+| 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | **Fixed** (1.1–1.8, 1b, 1c); confirmed in the app by smoke S5 |
 | 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | Not started |
 | 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | Not started |
 | 4 | No root-level guide to which config files to edit | P3 | Not started |
 | 5 | `CalculateMaxLength` 20px floor lets heads leave the canvas | P2 | Not started |
-| 6 | Layout scoping is undocumented and invisible in the edit panel | P2 | Not started |
+| 6 | Layout scoping is undocumented and invisible in the edit panel | P2 | Partly — scoping documented; editor panel still does not show it (6.1) |
 
 ---
 

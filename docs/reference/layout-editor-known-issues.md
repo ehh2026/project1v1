@@ -244,10 +244,11 @@ intermittent. Please run them after each round of fixes and record the result he
 | S3 | Save on the whole map | Zoom out fully, Edit Layout, drag heads, Save | Pins stay put; other clusters' layouts unaffected |
 | S4 | Variant scoping | Save a named layout in cluster A, then open the editor in cluster B | B's dropdown does **not** list A's variant |
 | S5 | Reopen after save | Save, exit edit mode, re-enter | Your arrangement is still there, not stubs |
-| S6 | Resize while editing | Enter edit mode, drag heads, resize the window, then Save | Pins stay where you put them |
+| S6 | Resize while editing | Enter edit mode, drag heads, resize the window, then Save | The save is **refused** with `✗ SAVE ABORTED — VIEW CHANGED, RE-ENTER EDIT MODE`. Leave and re-open Edit Layout: your saved arrangement is reloaded, and saving then works |
 | S7 | Restart persistence | Save, close the app, reopen | Arrangement restored |
-| S9 | Zoomed-vs-unzoomed precedence | Arrange a lone pin on the whole map and save; click it to zoom in; Edit Layout, change angle, save; zoom out and back in | The zoomed version you saved is shown, without needing to click Edit Layout |
 | S8 | Sparse view still saveable | Zoom to an area with a few pins too far apart to cluster, Edit Layout, Save | Save **succeeds**. Stubs here are correct, and must not be refused as "collapsed" |
+| S9 | Zoomed-vs-unzoomed precedence | Arrange a lone pin on the whole map and save; click it to zoom in; Edit Layout, change angle, save; zoom out and back in | The zoomed version you saved is shown, without needing to click Edit Layout |
+| S10 | Deliberate all-anchor arrangement | In a dense cluster, drag **every** pin head onto its own location marker, then Save | Save **succeeds**. Dragging is a deliberate choice, so the collapse guard must not refuse it |
 
 If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That is the guard working:
 nothing was written, and the layout on disk is intact. Press Save again after a moment. Please
@@ -261,7 +262,7 @@ report the exact message if it happens repeatedly.
 | 2026-08-19 | `81e6ced` | S2 — Save As `taipei2` | ✅ Saved correctly, no stubs |
 | 2026-08-19 | `81e6ced` | S5 — load another layout, then reload `taipei2` | ❌ **FAILED** — all stubs again. **The saved file was verified intact** (real angles preserved); the fault was in redrawing a zoomed-in layout, not in saving it. Fixed below. |
 | 2026-08-19 | `83f716d` | S5 — save, load another layout, reload the new one | ✅ **PASSED** — arrangement redrawn correctly, no stubs. Confirms the redraw fix against the original failure |
-| _(pending)_ | `83f716d` | S1, S3, S4, S6, S7, S8 | ⬜ Not yet run |
+| _(pending)_ | `3db2514` | S1, S3, S4, S6, S7, S8, S9, S10 | ⬜ Not yet run. **S8 and S10 matter most** — both check that a valid save is *not* wrongly refused, which is the risk the collapse guard introduces |
 
 ---
 
@@ -274,14 +275,18 @@ report the exact message if it happens repeatedly.
 | 2 | Same layout name in every view | ◐ Cause fixed; labels still unclear |
 | 3 | "Delete and Recalculate" deletes everything | ⬜ Not started |
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |
-| 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 |
+| 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 — save now refused until you re-enter edit mode (S6) |
 | 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |
 | 5c | Zoomed arrangement saved but never shown | ✅ Fixed 2026-08-19 — needs confirmation (S9) |
 | 6 | Config changes hide cluster layouts | ⬜ Not started |
 | 7 | Dev tools toggle unrunnable from cmd | ⬜ Not started |
 
-**Not yet confirmed in the real app.** Both causes of item 1 are covered by automated tests, but the
-original failure was intermittent and has not been reproduced by hand since the fixes. If you still
-see pins collapse to stubs after saving, please report it — and note whether a
-`✗ SAVE ABORTED` message appeared, since that distinguishes "the guard caught it" from "there is a
-third cause we have not found".
+**Confirmed in the app:** the original stub failure no longer reproduces — S5 passed on 2026-08-19,
+covering save, load another layout, reload.
+
+**Still unconfirmed:** S1, S3, S4, S6, S7, S8, S9, S10. The two worth running first are **S8** and
+**S10**, because both check that a *valid* save is not wrongly refused — the failure mode the
+collapse guard could introduce, and the one automated tests approximate least well.
+
+If you do see pins collapse to stubs after saving, please note whether a `✗ SAVE ABORTED` message
+appeared: that distinguishes "a guard caught it" from a cause not yet found.
