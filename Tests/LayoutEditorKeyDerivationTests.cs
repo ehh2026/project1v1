@@ -176,22 +176,25 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
-    public void CollapseGuard_StandsDownOnlyWhenEveryJudgedMarkerWasMoved()
+    public void CollapseGuard_HasNoDragBasedBypass()
     {
-        // Dragging every head onto its own anchor is a legitimate arrangement of zero-length
-        // extensions, so the backstop must yield to it. But one drag — or a click with no motion —
-        // must not vouch for the whole group, or incidental input would let genuinely collapsed
-        // geometry through. Movement is therefore recorded per marker, and the guard stands down
-        // only when every marker it would judge is covered.
+        // The guard once stood down when the user had dragged every marker it would judge, to allow
+        // deliberately putting every head back on its own location marker. That was judged not a
+        // real use case (smoke S10, dropped 2026-08-20), so the exception and its per-marker drag
+        // tracking are gone and an all-anchor dense cluster is always refused.
+        //
+        // Pinned because the bypass was itself added in response to a review finding: without a
+        // test, it is the kind of thing that gets reintroduced the next time someone reasons about
+        // intent from coordinates.
         var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
 
-        Assert.Contains("expectedExtended.IsSubsetOf(_draggedLocationsThisEditSession)", source);
+        Assert.DoesNotContain("_draggedLocationsThisEditSession", source);
+        Assert.DoesNotContain("RecordDeliberateDrag", source);
+        Assert.DoesNotContain("RecordDeliberateDrag", ReadSource("MainWindow.LayoutEditorDrag.partial.cs"));
 
-        // A press without motion is not a decision about where the head belongs.
-        Assert.Contains("if (GeometryMath.ArePointsCoincident(from, to)) return;", source);
-
-        var dragSource = ReadSource("MainWindow.LayoutEditorDrag.partial.cs");
-        Assert.Contains("RecordDeliberateDrag(_draggedMarker,", dragSource);
+        // The guard itself must remain, judging only markers placement would extend (smoke S8).
+        Assert.Contains("IsCollapsedLayout(", source);
+        Assert.Contains("FindExpectedExtendedLocations(", source);
     }
 
     [Fact]

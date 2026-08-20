@@ -157,9 +157,12 @@ construction.
 
 ## Phase D — Fold in the deferred hardening
 
-- [ ] D.1 Revisit the collapse backstop. With an immutable session and per-marker drag tracking,
-      check whether the coordinate-based heuristic is still needed or whether session state answers
-      "was this arrangement deliberate?" directly. Prefer deleting it to keeping it.
+- [x] D.1 **Done 2026-08-20.** The collapse backstop kept its coordinate check but lost its
+      drag-based bypass. The bypass existed only to permit a deliberate all-anchor arrangement,
+      which the user judged not a real use case (S10 dropped), so per-marker drag tracking and the
+      "did the user move all of them" test are deleted rather than refined. Worth noting the
+      bypass was itself added in response to a review finding, for a case that turned out not to
+      exist — a test now pins its absence so it is not reintroduced by the same reasoning.
 - [ ] D.2 Re-examine `HasManualVariant`'s loader-alignment compromise (PR #13 Qodo findings 2 vs 4,
       which contradicted each other). A session that records its own scope may make the question
       unambiguous.
@@ -215,8 +218,8 @@ So if Phase C goes wrong, revert it and keep A+B rather than unwinding the whole
 
 **Baseline status (2026-08-20):** **S8 passed** — a sparse view still saves and is not wrongly
 refused as collapsed. **S10 was dropped by the user as not a real use case**, which has a
-consequence for D.1: the collapse guard's drag-tracking bypass exists only to serve S10, so that
-machinery is now deletable and D.1 should prefer deleting it over refining it.
+consequence for D.1: the collapse guard's drag-tracking bypass existed only to serve S10, so that
+machinery was deleted rather than refined (D.1, done).
 
 **Before starting Phase C:** the S8 baseline above is the one that mattered — it confirms a valid
 save is not wrongly refused — so the prerequisite is met. Smoke definitions live in

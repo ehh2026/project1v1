@@ -254,18 +254,18 @@ If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That
 nothing was written, and the layout on disk is intact. Press Save again after a moment. Please
 report the exact message if it happens repeatedly.
 
-### Simplification available (S10 dropped)
+### Simplification taken (S10 dropped) ✅
 
-The collapse guard refuses a save when every pin in a dense cluster would be stored sitting on its
-own location marker. It carries an exception: if you dragged every one of those pins yourself, the
-save is allowed, on the grounds that you meant it.
+The collapse guard refuses a save when every pin in a **dense cluster** would be stored sitting on
+its own location marker. It used to carry an exception: if you had dragged every one of those pins
+yourself, the save was allowed on the grounds that you meant it.
 
-That exception exists **only** to serve S10, which is now judged not a real use case. The machinery
-behind it — per-marker drag tracking and the "did the user move all of them" check — could be
-deleted, making the guard simply always refuse an all-anchor dense cluster.
+That exception existed **only** to serve S10, which was judged not a real use case. As of
+**2026-08-20** it and the per-marker drag tracking behind it are deleted, so an all-anchor dense
+cluster is now always refused.
 
-Not done yet: it makes a data-loss guard stricter, and the trade is that a genuinely deliberate
-all-anchor arrangement would become unsaveable. Worth doing if that stays hypothetical.
+Sparse views are unaffected — pins too far apart to form a cluster are still supposed to be plain
+stubs and still save normally (S8, passed).
 
 ### Smoke log
 

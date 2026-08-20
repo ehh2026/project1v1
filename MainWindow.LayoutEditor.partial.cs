@@ -256,11 +256,9 @@ namespace InteractiveWorldMap
                 _logger.LogWarning("Cannot enter layout edit - viewport is not ready for a session");
                 return;
             }
+            // Beginning a session re-captures the viewport, so staleness from a previous session
+            // is resolved here by construction.
             _layoutEditor.BeginEditSession(session);
-
-            // Entering the editor re-places markers against the current viewport, so any staleness
-            // from a previous session is resolved here.
-            ResetEditSessionGeometryState();
 
             _layoutEditor.EnterEditMode();
 

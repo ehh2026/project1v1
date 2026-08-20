@@ -43,34 +43,6 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Locations whose head the user actually moved in this edit session.
-        /// </summary>
-        /// <remarks>
-        /// Per marker, and only on effective movement: a click without motion, or dragging one pin,
-        /// must not vouch for the rest of the group. The collapse backstop stands down only when
-        /// every marker it would judge is in this set.
-        /// </remarks>
-        private readonly HashSet<string> _draggedLocationsThisEditSession = new(StringComparer.Ordinal);
-
-
-        /// <summary>Resets per-session capture state. Call when entering edit mode.</summary>
-        private void ResetEditSessionGeometryState() => _draggedLocationsThisEditSession.Clear();
-
-        /// <summary>
-        /// Records that the user moved this marker's head far enough to count as deliberate.
-        /// </summary>
-        private void RecordDeliberateDrag(LocationMarker marker, Point from, Point to)
-        {
-            var name = marker?.Location?.Name;
-            if (name == null) return;
-
-            // A press without motion is not a decision about where the head belongs.
-            if (GeometryMath.ArePointsCoincident(from, to)) return;
-
-            _draggedLocationsThisEditSession.Add(name);
-        }
-
-        /// <summary>
         /// Captures current marker positions as extensions, refusing when the result would corrupt
         /// a saved layout.
         /// </summary>
@@ -126,22 +98,20 @@ namespace InteractiveWorldMap
                 return ExtensionCollectionStatus.UnusableGeometry;
             }
 
-            // Backstop for an endpoint that resolved but resolved to the anchor. Two limits keep it
-            // from refusing valid work:
-            //   - it judges only markers the placement rules would extend, since a sparse view with
-            //     no dense group is legitimately all default stubs;
-            //   - it stands down only when the user moved *every* marker it would judge, since
-            //     placing all of them on their anchors is then a deliberate arrangement. One drag,
-            //     or a click without motion, must not vouch for the rest of the group.
+            // Backstop for an endpoint that resolved but resolved to the anchor. It judges only
+            // markers the placement rules would extend, since a sparse view with no dense group is
+            // legitimately all default stubs and must stay saveable (smoke S8).
+            //
+            // It used to stand down once the user had dragged every marker it would judge, on the
+            // grounds that they might have meant it. That case — arranging a dense cluster by
+            // putting every head back on its own location marker — was judged not a real use case
+            // (smoke S10, dropped 2026-08-20), so the exception and its per-marker drag tracking
+            // are gone. An all-anchor dense cluster is now always refused.
+            //
             // Lost renderer state is caught by the unresolved-endpoint check above, which does not
             // depend on the final coordinates at all.
-            var expectedExtended = _layoutEditor.FindExpectedExtendedLocations(markerData);
-            bool userPlacedEveryOne =
-                expectedExtended.Count > 0 &&
-                expectedExtended.IsSubsetOf(_draggedLocationsThisEditSession);
-
-            if (!userPlacedEveryOne &&
-                LayoutEditorController.IsCollapsedLayout(markerData, expectedExtended))
+            if (LayoutEditorController.IsCollapsedLayout(
+                    markerData, _layoutEditor.FindExpectedExtendedLocations(markerData)))
             {
                 return ExtensionCollectionStatus.CollapsedLayout;
             }
