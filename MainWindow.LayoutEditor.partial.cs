@@ -248,6 +248,16 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"[OnEditLayoutButtonClick] Derived cluster layout key={_layoutEditor.CurrentLayoutKey}");
             }
 
+            // Capture the scope once, immutably. Saves will read from this instead of re-deriving
+            // and re-checking the ambient key; during the migration both exist and must agree.
+            var session = TryBuildEditSession();
+            if (session == null)
+            {
+                _logger.LogWarning("Cannot enter layout edit - viewport is not ready for a session");
+                return;
+            }
+            _layoutEditor.BeginEditSession(session);
+
             // Entering the editor re-places markers against the current viewport, so any staleness
             // from a previous session is resolved here.
             ResetEditSessionGeometryState();
@@ -498,6 +508,7 @@ namespace InteractiveWorldMap
         {
             var wasFullMapSession = IsFullMapLayoutSessionActive();
             _layoutEditor.ExitEditMode();
+            _layoutEditor.EndEditSession();
 
             // Disable dragging on all markers
             foreach (var marker in _individualMarkers)

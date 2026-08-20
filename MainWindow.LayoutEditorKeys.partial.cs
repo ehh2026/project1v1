@@ -68,6 +68,35 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
+        /// Builds the immutable scope for an edit session from the view currently on screen.
+        /// Returns null when the viewport is not ready.
+        /// </summary>
+        /// <remarks>
+        /// Uses the same derivation as <see cref="LayoutKeyGenerator.DeriveEditSessionKey"/>, so a
+        /// session's key always matches what the current view would produce. The viewport and
+        /// container size are captured too: they define the coordinate space the session's marker
+        /// positions live in, which is what makes staleness detectable later.
+        /// </remarks>
+        private LayoutEditSession? TryBuildEditSession()
+        {
+            var viewport = MapDisplay.CurrentViewport;
+            if (viewport == null)
+                return null;
+
+            var locations = _currentZoomedCluster?.Locations;
+            var isCluster = locations != null && locations.Count > 0;
+
+            return new LayoutEditSession(
+                LayoutKey: LayoutKeyGenerator.DeriveEditSessionKey(
+                    locations, viewport, _visualConfig.RadialExtension),
+                Scope: isCluster ? LayoutScope.Cluster : LayoutScope.FullMap,
+                ScopeLocations: isCluster ? locations! : Array.Empty<Location>(),
+                Viewport: viewport,
+                ContainerWidth: MapDisplay.ActualWidth,
+                ContainerHeight: MapDisplay.ActualHeight);
+        }
+
+        /// <summary>
         /// True when the user has deliberately arranged the zoomed view for this cluster, i.e. a
         /// Manual layout exists under the key that view would edit.
         /// </summary>

@@ -86,17 +86,18 @@ reassess rather than layering more.
 
 ---
 
-## Phase A — Introduce the session alongside existing state
+## Phase A — Introduce the session alongside existing state ✅ done 2026-08-20
 
 Additive only; `CurrentLayoutKey` still exists and still works. No behaviour change.
+Verified: `.\scripts\verify.ps1` **PASSED**, all 11 steps, 915 passed / 2 known skips.
 
-- [ ] A.1 Add `Models/LayoutScope.cs` and `Models/LayoutEditSession.cs`.
-- [ ] A.2 Add `LayoutEditorController.BeginEditSession(LayoutEditSession)` / `EndEditSession()`, with
+- [x] A.1 `Models/LayoutEditSession.cs` holds both `LayoutScope` and the session record.
+- [x] A.2 Add `LayoutEditorController.BeginEditSession(LayoutEditSession)` / `EndEditSession()`, with
       `ActiveSession` exposed read-only. `EnterEditMode`/`ExitEditMode` keep working.
-- [ ] A.3 `OnEditLayoutButtonClick` builds the session from the view on screen — the derivation
+- [x] A.3 `OnEditLayoutButtonClick` builds the session from the view on screen — the derivation
       already exists in `LayoutKeyGenerator.DeriveEditSessionKey` — and begins it. Keep the existing
       `SetLayoutKey` call for now so display paths are untouched.
-- [ ] A.4 Unit-test session construction for both scopes, including that a cluster session's key
+- [x] A.4 Unit-test session construction for both scopes, including that a cluster session's key
       equals `DeriveEditSessionKey` for the same inputs.
 
 **Exit:** session exists and is populated; suite green; no behaviour change.
@@ -116,9 +117,25 @@ Additive only; `CurrentLayoutKey` still exists and still works. No behaviour cha
       clearing logic in `SetLayoutKey`.
 - [ ] B.5 Make `TryLoad` side-effect free and have callers update session variant identity
       explicitly. **Closes 0.10** — probe loads during navigation can no longer desync it.
-- [ ] B.6 Port the existing tests. Many use `SetLayoutKey("k")` as setup; they become
-      `BeginEditSession(...)`. Expect churn in `LayoutEditorControllerTests` and
-      `LayoutEditorGeometryTests`; the assertions should not change, only the setup.
+- [ ] B.6 Port the existing tests. **Audited 2026-08-20: 27 `SetLayoutKey` call sites across 24
+      tests, all in `Tests/LayoutEditorControllerTests.cs`, with no fixture choke point — the port
+      is per test.** 19 are the simple "set a key, then save/load/delete" shape and convert
+      mechanically. Four need judgement, because they encode behaviour the session model makes
+      unrepresentable:
+      - `SetLayoutKey_ChangingKey_ClearsActiveVariantIdentity` and
+        `TrySave_AfterKeyChange_DoesNotWriteIntoPreviousKeysVariant` change scope *mid-test*. You
+        cannot do that with an immutable session, which is the point — they become "a new session
+        does not inherit the previous one's variant identity", or are deleted as testing an
+        impossible state. Decide deliberately; do not silently drop them, they cover a real past bug.
+      - `SetLayoutKey_SameKey_PreservesActiveVariantIdentity` tests the setter's internal
+        same-key short-circuit. That logic disappears with the setter.
+      - `SetLayoutKey_Null_ClearsKey` becomes `EndEditSession`.
+      Three tests assert on `CurrentLayoutKey` directly and six assert on variant identity; both
+      groups move to the session.
+- [ ] B.7 Re-target the meta-test at `Tests/LayoutEditorKeyDerivationTests.cs:98`, which asserts by
+      source-text search that `TryLoadFullMapManualLayoutForAnimation` does not call `SetLayoutKey`.
+      Once the method is gone the string search passes vacuously — it must assert the replacement
+      property or be removed rather than left as a test that can no longer fail.
 
 **Exit:** no edit path reads `CurrentLayoutKey`; the guards listed above are deleted, not disabled.
 

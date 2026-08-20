@@ -62,6 +62,30 @@ namespace InteractiveWorldMap
         private readonly HashSet<string> _draggedLocationsThisEditSession = new(StringComparer.Ordinal);
 
         /// <summary>
+        /// Migration diagnostic: warns if the edit session and the ambient layout key disagree.
+        /// </summary>
+        /// <remarks>
+        /// Log-only, deliberately. Phase A runs the session alongside <c>CurrentLayoutKey</c> without
+        /// anything reading it yet, so this is the evidence that Phase B can switch the save paths
+        /// over safely. A warning here means navigation changed edit scope mid-session — exactly
+        /// the defect class the session exists to make impossible. Delete this with the ambient
+        /// field in Phase C.
+        /// </remarks>
+        private void WarnIfSessionDisagreesWithAmbientKey()
+        {
+            var session = _layoutEditor.ActiveSession;
+            if (session == null) return;
+
+            if (!string.Equals(session.LayoutKey, _layoutEditor.CurrentLayoutKey, StringComparison.Ordinal))
+            {
+                _logger.LogWarning(
+                    "[LayoutEditor] Edit session and ambient layout key disagree — " +
+                    $"session='{session.LayoutKey}' ambient='{_layoutEditor.CurrentLayoutKey}'. " +
+                    "The session is authoritative once the save paths move onto it.");
+            }
+        }
+
+        /// <summary>
         /// Records that captured geometry can no longer be trusted for saving. Cleared when the
         /// editor is next entered, which re-places markers against the current viewport.
         /// </summary>
@@ -117,6 +141,8 @@ namespace InteractiveWorldMap
 
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null) return ExtensionCollectionStatus.NotReady;
+
+            WarnIfSessionDisagreesWithAmbientKey();
 
             if (!CurrentLayoutKeyMatchesView()) return ExtensionCollectionStatus.WrongLayout;
 

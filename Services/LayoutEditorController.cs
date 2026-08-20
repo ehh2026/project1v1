@@ -86,6 +86,30 @@ public sealed class LayoutEditorController
 
     // ─── State transitions ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// The scope of the edit session in progress, or null when not editing.
+    /// </summary>
+    /// <remarks>
+    /// Captured once on entry and never mutated. Saves should read their key from here rather than
+    /// from <see cref="CurrentLayoutKey"/>, which navigation also writes — see
+    /// <see cref="LayoutEditSession"/>. During the migration both exist and agree; the ambient
+    /// field is removed once every path reads the session.
+    /// </remarks>
+    public LayoutEditSession? ActiveSession { get; private set; }
+
+    /// <summary>
+    /// Starts an edit session with a fixed scope. Replaces any session already in progress.
+    /// </summary>
+    public void BeginEditSession(LayoutEditSession session)
+    {
+        ActiveSession = session ?? throw new ArgumentNullException(nameof(session));
+        _logger.LogInfo(
+            $"[LayoutEditorController] Edit session begun: scope={session.Scope} key={session.LayoutKey}");
+    }
+
+    /// <summary>Ends the current edit session, if any.</summary>
+    public void EndEditSession() => ActiveSession = null;
+
     public void EnterEditMode()
     {
         IsEditMode = true;
