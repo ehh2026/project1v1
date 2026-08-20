@@ -360,11 +360,16 @@ public sealed class LayoutEditorController
     {
         if (markerData == null) throw new ArgumentNullException(nameof(markerData));
 
+        // Source-image coordinates, not screen. DetectDenseGroups applies
+        // ProximityThresholdPixels directly to whatever it is given, and
+        // MarkerPlacementOrchestrator feeds it Location.PixelX/PixelY. Passing projected screen
+        // positions instead would scale the threshold with the current zoom, so the guard would
+        // disagree with the placement it claims to mirror.
         var positions = new Dictionary<Location, Point>();
-        foreach (var (location, _, originalScreen) in markerData)
+        foreach (var (location, _, _) in markerData)
         {
             if (location != null)
-                positions[location] = originalScreen;
+                positions[location] = new Point(location.PixelX, location.PixelY);
         }
 
         var calculator = new RadialExtensionCalculator(_visualConfig.RadialExtension);

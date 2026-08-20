@@ -153,6 +153,35 @@ public class LayoutEditorGeometryTests
     }
 
     [Fact]
+    public void FindExpectedExtendedLocations_ClassifiesFromSourceCoordinates_NotScreen()
+    {
+        // DetectDenseGroups applies ProximityThresholdPixels to whatever positions it is handed,
+        // and placement hands it Location.PixelX/PixelY. Classifying from projected screen
+        // positions instead would scale the threshold with zoom, so the collapse guard would
+        // disagree with the placement it mirrors. Source coords are close enough to group; the
+        // screen coords supplied here are deliberately far apart.
+        var (ctrl, _, _, _) = Make();
+
+        var near1 = new Location { Id = "a", Name = "a", PixelX = 100, PixelY = 100 };
+        var near2 = new Location { Id = "b", Name = "b", PixelX = 102, PixelY = 100 };
+        var near3 = new Location { Id = "c", Name = "c", PixelX = 104, PixelY = 100 };
+
+        var markerData = new List<(Location, Point, Point)>
+        {
+            (near1, new Point(0, 0),      new Point(0, 0)),
+            (near2, new Point(900, 900),  new Point(900, 900)),
+            (near3, new Point(1800, 100), new Point(1800, 100))
+        };
+
+        var expected = ctrl.FindExpectedExtendedLocations(markerData);
+
+        Assert.Equal(3, expected.Count);
+        Assert.Contains("a", expected);
+        Assert.Contains("b", expected);
+        Assert.Contains("c", expected);
+    }
+
+    [Fact]
     public void IsCollapsedLayout_EmptyInput_IsFalse()
     {
         Assert.False(LayoutEditorController.IsCollapsedLayout(

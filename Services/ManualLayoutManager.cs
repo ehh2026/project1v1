@@ -162,11 +162,26 @@ namespace InteractiveWorldMap.Services
             {
                 var collection = LoadLayoutCollection();
 
-                if (collection.LayoutGroups.TryGetValue(key, out var group) && GroupHasManual(group))
-                    return true;
+                // Resolve the same group LoadLayout would use — exact first, then compatible — and
+                // ask whether *that* group holds a Manual variant.
+                //
+                // Both halves matter, and they answer opposite review findings. Checking the whole
+                // group rather than just the selected variant means a selected AutoSeed cannot hide
+                // a Manual one beside it. Refusing to look past the group the loader will choose
+                // means we never claim a Manual layout that will not actually be displayed: if an
+                // exact AutoSeed-only group exists, the loader returns that seed, and reporting
+                // "manual exists" from some other compatible group would suppress the full-map
+                // fallback while showing neither.
+                //
+                // The residual gap is size fragmentation — a Manual layout under a different window
+                // size is unreachable here because it is unreachable to the loader too. That is
+                // issue 6.8/6.9, and the fix belongs in key/lookup consistency, not in making this
+                // probe see further than the loader.
+                var group = collection.LayoutGroups.TryGetValue(key, out var exact)
+                    ? exact
+                    : FindCompatibleGroup(key, collection);
 
-                var compatible = FindCompatibleGroup(key, collection);
-                return compatible != null && GroupHasManual(compatible);
+                return group != null && GroupHasManual(group);
             }
             catch (Exception ex)
             {

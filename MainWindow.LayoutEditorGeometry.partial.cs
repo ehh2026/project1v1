@@ -51,8 +51,15 @@ namespace InteractiveWorldMap
         /// </summary>
         private string? _editGeometryStaleReason;
 
-        /// <summary>True once the user has actually dragged a pin head in this edit session.</summary>
-        private bool _markersDraggedThisEditSession;
+        /// <summary>
+        /// Locations whose head the user actually moved in this edit session.
+        /// </summary>
+        /// <remarks>
+        /// Per marker, and only on effective movement: a click without motion, or dragging one pin,
+        /// must not vouch for the rest of the group. The collapse backstop stands down only when
+        /// every marker it would judge is in this set.
+        /// </remarks>
+        private readonly HashSet<string> _draggedLocationsThisEditSession = new(StringComparer.Ordinal);
 
         /// <summary>
         /// Records that captured geometry can no longer be trusted for saving. Cleared when the
@@ -70,7 +77,21 @@ namespace InteractiveWorldMap
         private void ResetEditSessionGeometryState()
         {
             _editGeometryStaleReason = null;
-            _markersDraggedThisEditSession = false;
+            _draggedLocationsThisEditSession.Clear();
+        }
+
+        /// <summary>
+        /// Records that the user moved this marker's head far enough to count as deliberate.
+        /// </summary>
+        private void RecordDeliberateDrag(LocationMarker marker, Point from, Point to)
+        {
+            var name = marker?.Location?.Name;
+            if (name == null) return;
+
+            // A press without motion is not a decision about where the head belongs.
+            if (GeometryMath.ArePointsCoincident(from, to)) return;
+
+            _draggedLocationsThisEditSession.Add(name);
         }
 
         /// <summary>
@@ -129,12 +150,18 @@ namespace InteractiveWorldMap
             // from refusing valid work:
             //   - it judges only markers the placement rules would extend, since a sparse view with
             //     no dense group is legitimately all default stubs;
-            //   - it is skipped once the user has dragged in this session, because dragging every
-            //     head onto its anchor is a deliberate arrangement that must stay saveable. Lost
-            //     renderer state is caught by the unresolved-endpoint check above, which does not
-            //     depend on the final coordinates.
-            if (!_markersDraggedThisEditSession &&
-                _layoutEditor.IsCollapsedLayout(markerData))
+            //   - it stands down only when the user moved *every* marker it would judge, since
+            //     placing all of them on their anchors is then a deliberate arrangement. One drag,
+            //     or a click without motion, must not vouch for the rest of the group.
+            // Lost renderer state is caught by the unresolved-endpoint check above, which does not
+            // depend on the final coordinates at all.
+            var expectedExtended = _layoutEditor.FindExpectedExtendedLocations(markerData);
+            bool userPlacedEveryOne =
+                expectedExtended.Count > 0 &&
+                expectedExtended.IsSubsetOf(_draggedLocationsThisEditSession);
+
+            if (!userPlacedEveryOne &&
+                LayoutEditorController.IsCollapsedLayout(markerData, expectedExtended))
             {
                 return ExtensionCollectionStatus.CollapsedLayout;
             }

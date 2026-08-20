@@ -209,6 +209,26 @@ public class LayoutEditorControllerTests
     }
 
     [Fact]
+    public void HasManualLayout_WhenAnExactSeedOnlyGroupWins_IsFalse()
+    {
+        // The probe must not promise a Manual layout the loader will not return. With an exact
+        // AutoSeed-only group present, LoadLayout yields that seed; claiming "manual exists" from a
+        // different compatible group would suppress the full-map fallback and display neither.
+        var (ctrl, manager, _, _) = Make();
+        const string exactKey = "hash1_z55.00_c10.00_10.00_s100x100_m3_p10.0_l50.0_n13.0";
+        const string otherSize = "hash1_z55.00_c10.00_10.00_s200x200_m3_p10.0_l50.0_n13.0";
+
+        manager.SaveVariant(
+            otherSize, "hand-made", "Hand Made", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: true, setAsSelected: true);
+        manager.SaveVariant(
+            exactKey, "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,
+            OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        Assert.False(ctrl.HasManualLayout(exactKey));
+    }
+
+    [Fact]
     public void HasManualLayout_WithNoLayout_IsFalse()
     {
         var (ctrl, _, _, _) = Make();

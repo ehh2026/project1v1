@@ -152,18 +152,22 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
-    public void CollapseGuard_StandsDownOnceTheUserHasDragged()
+    public void CollapseGuard_StandsDownOnlyWhenEveryJudgedMarkerWasMoved()
     {
         // Dragging every head onto its own anchor is a legitimate arrangement of zero-length
-        // extensions. Inferring corruption from final coordinates alone would refuse it, so the
-        // backstop only applies before any drag. Lost renderer state is still caught by the
-        // unresolved-endpoint check, which does not depend on coordinates.
+        // extensions, so the backstop must yield to it. But one drag — or a click with no motion —
+        // must not vouch for the whole group, or incidental input would let genuinely collapsed
+        // geometry through. Movement is therefore recorded per marker, and the guard stands down
+        // only when every marker it would judge is covered.
         var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
 
-        Assert.Contains("!_markersDraggedThisEditSession &&", source);
+        Assert.Contains("expectedExtended.IsSubsetOf(_draggedLocationsThisEditSession)", source);
+
+        // A press without motion is not a decision about where the head belongs.
+        Assert.Contains("if (GeometryMath.ArePointsCoincident(from, to)) return;", source);
 
         var dragSource = ReadSource("MainWindow.LayoutEditorDrag.partial.cs");
-        Assert.Contains("_markersDraggedThisEditSession = true;", dragSource);
+        Assert.Contains("RecordDeliberateDrag(_draggedMarker,", dragSource);
     }
 
     [Fact]
