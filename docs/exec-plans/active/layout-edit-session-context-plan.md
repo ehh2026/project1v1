@@ -104,10 +104,10 @@ Verified: `.\scripts\verify.ps1` **PASSED**, all 11 steps, 915 passed / 2 known 
 
 ## Phase B — Move the *edit* paths onto the session
 
-- [ ] B.1 `TryCollectCurrentExtensions` takes the session and uses `session.LayoutKey`,
+- [x] B.1 `TryCollectCurrentExtensions` takes the session and uses `session.LayoutKey`,
       `session.Viewport`, `session.ContainerWidth/Height` instead of reading ambient state and the
       live viewport. Delete the `WrongLayout` branch and `CurrentLayoutKeyMatchesView`.
-- [ ] B.2 Derive staleness instead of flagging it: compare `session.Viewport` and container size
+- [x] B.2 Derive staleness instead of flagging it: compare `session.Viewport` and container size
       against current. Delete `MarkEditSessionGeometryStale` and `_editGeometryStaleReason`; keep
       the user-facing `✗ SAVE ABORTED — VIEW CHANGED` message and its smoke (S6).
 - [ ] B.3 `TrySave`, `TrySaveAsVariant`, `TryDelete`, `TryDeleteActiveVariant`, `SwitchToVariant`,

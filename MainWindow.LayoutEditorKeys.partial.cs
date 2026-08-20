@@ -52,22 +52,6 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Derives the layout key the view currently on screen should be using, independent of
-        /// whatever <c>CurrentLayoutKey</c> holds. Returns null when the viewport is not ready.
-        /// </summary>
-        private string? DeriveCurrentViewLayoutKey()
-        {
-            var viewport = MapDisplay.CurrentViewport;
-            if (viewport == null)
-                return null;
-
-            return LayoutKeyGenerator.DeriveEditSessionKey(
-                _currentZoomedCluster?.Locations,
-                viewport,
-                _visualConfig.RadialExtension);
-        }
-
-        /// <summary>
         /// Builds the immutable scope for an edit session from the view currently on screen.
         /// Returns null when the viewport is not ready.
         /// </summary>
@@ -115,19 +99,6 @@ namespace InteractiveWorldMap
                 cluster.Locations, viewport, _visualConfig.RadialExtension);
 
             return _layoutEditor.HasManualLayout(zoomedKey);
-        }
-
-        /// <summary>
-        /// True when <c>CurrentLayoutKey</c> still matches the view on screen. Destructive
-        /// operations verify this immediately before writing rather than trusting the field.
-        /// </summary>
-        private bool CurrentLayoutKeyMatchesView()
-        {
-            var expected = DeriveCurrentViewLayoutKey();
-            if (expected == null)
-                return false;
-
-            return string.Equals(expected, _layoutEditor.CurrentLayoutKey, StringComparison.Ordinal);
         }
     }
 }
