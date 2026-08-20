@@ -29,11 +29,8 @@ namespace InteractiveWorldMap
         {
             Ok,
 
-            /// <summary>No layout key, no active session, or no viewport yet.</summary>
+            /// <summary>No edit session or no viewport yet.</summary>
             NotReady,
-
-            /// <summary>The layout key does not belong to the view on screen.</summary>
-            WrongLayout,
 
             /// <summary>One or more markers had unresolvable or non-finite geometry.</summary>
             UnusableGeometry,
@@ -46,12 +43,6 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Set when something moved the view out from under an active edit session, making the
-        /// markers' screen coordinates inconsistent with the current viewport.
-        /// </summary>
-        private string? _editGeometryStaleReason;
-
-        /// <summary>
         /// Locations whose head the user actually moved in this edit session.
         /// </summary>
         /// <remarks>
@@ -61,24 +52,9 @@ namespace InteractiveWorldMap
         /// </remarks>
         private readonly HashSet<string> _draggedLocationsThisEditSession = new(StringComparer.Ordinal);
 
-        /// <summary>
-        /// Records that captured geometry can no longer be trusted for saving. Cleared when the
-        /// editor is next entered, which re-places markers against the current viewport.
-        /// </summary>
-        private void MarkEditSessionGeometryStale(string reason)
-        {
-            if (_editGeometryStaleReason != null) return;
-
-            _editGeometryStaleReason = reason;
-            _logger.LogWarning($"[LayoutEditor] Edit session geometry marked stale: {reason}");
-        }
 
         /// <summary>Resets per-session capture state. Call when entering edit mode.</summary>
-        private void ResetEditSessionGeometryState()
-        {
-            _editGeometryStaleReason = null;
-            _draggedLocationsThisEditSession.Clear();
-        }
+        private void ResetEditSessionGeometryState() => _draggedLocationsThisEditSession.Clear();
 
         /// <summary>
         /// Records that the user moved this marker's head far enough to count as deliberate.
@@ -111,16 +87,20 @@ namespace InteractiveWorldMap
             extensions = new List<RadialExtension>();
             blockedMarkers = Array.Empty<string>();
 
-            if (_layoutEditor.CurrentLayoutKey == null) return ExtensionCollectionStatus.NotReady;
-            if (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive())
-                return ExtensionCollectionStatus.NotReady;
+            // Scope comes from the session captured on entry, not from ambient state that
+            // navigation also writes. There is no "wrong layout" case left to check: a session
+            // cannot point somewhere other than where the edit began.
+            var session = _layoutEditor.ActiveSession;
+            if (session == null) return ExtensionCollectionStatus.NotReady;
 
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null) return ExtensionCollectionStatus.NotReady;
 
-            if (!CurrentLayoutKeyMatchesView()) return ExtensionCollectionStatus.WrongLayout;
-
-            if (_editGeometryStaleReason != null) return ExtensionCollectionStatus.GeometryStale;
+            // Staleness is derived, not flagged: if the live view no longer matches the one the
+            // session captured, the markers on screen are in a different coordinate space and
+            // saving would mix them with freshly projected anchors.
+            if (!session.MatchesView(viewport, MapDisplay.ActualWidth, MapDisplay.ActualHeight))
+                return ExtensionCollectionStatus.GeometryStale;
 
             // Explicit types, not var: MapDisplay is XAML-generated, so the formatting analyzer
             // cannot resolve it and infers these as unknown, which poisons the tuple element type.
@@ -189,14 +169,6 @@ namespace InteractiveWorldMap
         {
             switch (status)
             {
-                case ExtensionCollectionStatus.WrongLayout:
-                    _logger.LogError(
-                        $"Refusing to save: layout key '{_layoutEditor.CurrentLayoutKey}' does not " +
-                        $"match the current view (expected '{DeriveCurrentViewLayoutKey()}')");
-                    EditModeStatusText.Text = "✗ SAVE ABORTED — WRONG LAYOUT";
-                    EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
-                    break;
-
                 case ExtensionCollectionStatus.UnusableGeometry:
                     _logger.LogError(
                         $"Refusing to save: {blockedMarkers.Count} marker(s) have unusable geometry — " +
@@ -207,8 +179,8 @@ namespace InteractiveWorldMap
 
                 case ExtensionCollectionStatus.GeometryStale:
                     _logger.LogError(
-                        $"Refusing to save: {_editGeometryStaleReason}, so marker positions no " +
-                        "longer match the current view. Re-enter edit mode to re-place them.");
+                        "Refusing to save: the view changed since editing began, so marker " +
+                        "positions no longer match it. Re-enter edit mode to re-place them.");
                     EditModeStatusText.Text = "✗ SAVE ABORTED — VIEW CHANGED, RE-ENTER EDIT MODE";
                     EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
                     break;

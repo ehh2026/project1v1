@@ -86,6 +86,57 @@ public sealed class LayoutEditorController
 
     // ─── State transitions ───────────────────────────────────────────────────
 
+    /// <summary>
+    /// The scope of the edit session in progress, or null when not editing.
+    /// </summary>
+    /// <remarks>
+    /// Captured once on entry and never mutated. Saves should read their key from here rather than
+    /// from <see cref="CurrentLayoutKey"/>, which navigation also writes — see
+    /// <see cref="LayoutEditSession"/>. During the migration both exist and agree; the ambient
+    /// field is removed once every path reads the session.
+    /// </remarks>
+    public LayoutEditSession? ActiveSession { get; private set; }
+
+    /// <summary>
+    /// Starts an edit session with a fixed scope. Replaces any session already in progress.
+    /// </summary>
+    public void BeginEditSession(LayoutEditSession session)
+    {
+        ActiveSession = session ?? throw new ArgumentNullException(nameof(session));
+
+        // Variant ids are unique only within a group, so identity from a previous session must not
+        // survive into this one — that leak is how a save once landed in another layout's variant.
+        // Scope can only change by beginning a session, so clearing here makes the leak
+        // structurally impossible rather than something a setter has to remember to check.
+        ClearActiveVariant();
+
+        _logger.LogInfo(
+            $"[LayoutEditorController] Edit session begun: scope={session.Scope} key={session.LayoutKey}");
+    }
+
+    /// <summary>Ends the current edit session, if any.</summary>
+    public void EndEditSession()
+    {
+        ActiveSession = null;
+        ClearActiveVariant();
+    }
+
+    /// <summary>
+    /// The layout key the in-progress edit session reads and writes, or null when not editing.
+    /// </summary>
+    /// <remarks>
+    /// Every save, delete and variant operation resolves its key through here. Navigation cannot
+    /// write it, which is the whole point of the session.
+    /// </remarks>
+    private string? EditKey => ActiveSession?.LayoutKey;
+
+    private void ClearActiveVariant()
+    {
+        ActiveVariantId = null;
+        ActiveVariantOrigin = null;
+        ActiveVariantDisplayName = null;
+    }
+
     public void EnterEditMode()
     {
         IsEditMode = true;
@@ -139,15 +190,35 @@ public sealed class LayoutEditorController
     /// Loads the preferred layout variant for <paramref name="key"/>, or null if none exists.
     /// Updates <see cref="ActiveVariantId"/> and <see cref="ActiveVariantOrigin"/> on success.
     /// </summary>
-    public ManualLayout? TryLoad(string key)
+    public ManualLayout? TryLoad(string key) => _layoutManager.LoadLayout(key);
+
+    /// <summary>
+    /// Records the loaded layout's variant as the one the edit session is working on.
+    /// </summary>
+    /// <remarks>
+    /// Split out of <see cref="TryLoad"/>, which used to do this for any key it was handed. That
+    /// made probe loads during navigation — which pass a key that is not the edit scope — silently
+    /// rewrite the editor's variant identity. Loading and adopting are now separate decisions, so
+    /// only the editor adopts.
+    /// </remarks>
+    public void AdoptVariantIdentity(ManualLayout? layout)
     {
-        var layout = _layoutManager.LoadLayout(key);
-        if (layout != null)
-        {
-            ActiveVariantId = layout.VariantId;
-            ActiveVariantOrigin = layout.Origin;
-            ActiveVariantDisplayName = layout.DisplayName;
-        }
+        if (layout == null) return;
+
+        ActiveVariantId = layout.VariantId;
+        ActiveVariantOrigin = layout.Origin;
+        ActiveVariantDisplayName = layout.DisplayName;
+    }
+
+    /// <summary>
+    /// Loads the layout for the active edit session and adopts its variant identity.
+    /// </summary>
+    public ManualLayout? LoadForEditSession()
+    {
+        if (EditKey == null) return null;
+
+        var layout = TryLoad(EditKey);
+        AdoptVariantIdentity(layout);
         return layout;
     }
 
@@ -176,21 +247,21 @@ public sealed class LayoutEditorController
     /// </summary>
     public ManualLayout? SwitchToVariant(string variantId)
     {
-        if (CurrentLayoutKey == null) return null;
-        var layout = _layoutManager.LoadVariant(CurrentLayoutKey, variantId);
+        if (EditKey == null) return null;
+        var layout = _layoutManager.LoadVariant(EditKey, variantId);
         if (layout == null) return null;
-        _layoutManager.SetSelectedVariantId(CurrentLayoutKey, variantId);
+        _layoutManager.SetSelectedVariantId(EditKey, variantId);
         ActiveVariantId = variantId;
         ActiveVariantOrigin = layout.Origin;
         ActiveVariantDisplayName = layout.DisplayName;
         return layout;
     }
 
-    /// <summary>Returns the variant list for <see cref="CurrentLayoutKey"/>.</summary>
+    /// <summary>Returns the variant list for <see cref="EditKey"/>.</summary>
     public IReadOnlyList<ManualLayoutSummary> GetVariants()
     {
-        if (CurrentLayoutKey == null) return Array.Empty<ManualLayoutSummary>();
-        return _layoutManager.ListVariants(CurrentLayoutKey);
+        if (EditKey == null) return Array.Empty<ManualLayoutSummary>();
+        return _layoutManager.ListVariants(EditKey);
     }
 
     /// <summary>
@@ -439,9 +510,9 @@ public sealed class LayoutEditorController
         IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null)
     {
         if (extensions == null) throw new ArgumentNullException(nameof(extensions));
-        if (CurrentLayoutKey == null)
+        if (EditKey == null)
         {
-            _logger.LogWarning("LayoutEditorController.TrySave: CurrentLayoutKey is null — nothing saved");
+            _logger.LogWarning("LayoutEditorController.TrySave: no active edit session — nothing saved");
             return false;
         }
 
@@ -456,7 +527,7 @@ public sealed class LayoutEditorController
             setAsDefault = targetVariantId == "manual-default";
         }
 
-        bool ok = _layoutManager.SaveVariant(CurrentLayoutKey, targetVariantId, targetDisplayName,
+        bool ok = _layoutManager.SaveVariant(EditKey, targetVariantId, targetDisplayName,
             ManualLayoutOrigin.Manual, extensions, assignments,
             setAsDefault: setAsDefault, setAsSelected: true);
         if (ok)
@@ -466,7 +537,7 @@ public sealed class LayoutEditorController
             ActiveVariantDisplayName = targetDisplayName;
             SetManualLayoutActive(true);
             NotifyVariantsChanged();
-            _logger.LogInfo($"Saved manual layout variant '{targetVariantId}': {extensions.Count} markers, key={CurrentLayoutKey}");
+            _logger.LogInfo($"Saved manual layout variant '{targetVariantId}': {extensions.Count} markers, key={EditKey}");
         }
         return ok;
     }
@@ -480,9 +551,9 @@ public sealed class LayoutEditorController
         IReadOnlyDictionary<string, (string PairId, string HeadSourcePath)>? assignments = null)
     {
         if (extensions == null) throw new ArgumentNullException(nameof(extensions));
-        if (CurrentLayoutKey == null)
+        if (EditKey == null)
         {
-            _logger.LogWarning("LayoutEditorController.TrySaveAsVariant: CurrentLayoutKey is null");
+            _logger.LogWarning("LayoutEditorController.TrySaveAsVariant: no active edit session");
             return false;
         }
         if (string.IsNullOrWhiteSpace(displayName)) return false;
@@ -490,7 +561,7 @@ public sealed class LayoutEditorController
         var variantId = MakeVariantId(displayName);
         var basedOnId = ActiveVariantId;
 
-        bool ok = _layoutManager.SaveVariant(CurrentLayoutKey, variantId, displayName,
+        bool ok = _layoutManager.SaveVariant(EditKey, variantId, displayName,
             ManualLayoutOrigin.Manual, extensions, assignments,
             setAsDefault: false, setAsSelected: true, basedOnVariantId: basedOnId);
         if (ok)
@@ -500,7 +571,7 @@ public sealed class LayoutEditorController
             ActiveVariantDisplayName = displayName;
             SetManualLayoutActive(true);
             NotifyVariantsChanged();
-            _logger.LogInfo($"SaveAs variant '{variantId}' ({displayName}) for key={CurrentLayoutKey}");
+            _logger.LogInfo($"SaveAs variant '{variantId}' ({displayName}) for key={EditKey}");
         }
         return ok;
     }
@@ -512,16 +583,16 @@ public sealed class LayoutEditorController
     /// </summary>
     public bool TryDeleteActiveVariant()
     {
-        if (CurrentLayoutKey == null || string.IsNullOrEmpty(ActiveVariantId))
+        if (EditKey == null || string.IsNullOrEmpty(ActiveVariantId))
         {
             _logger.LogWarning("LayoutEditorController.TryDeleteActiveVariant: no active variant to delete");
             return false;
         }
 
-        bool ok = _layoutManager.DeleteVariant(CurrentLayoutKey, ActiveVariantId);
+        bool ok = _layoutManager.DeleteVariant(EditKey, ActiveVariantId);
         if (ok)
         {
-            var remaining = _layoutManager.ListVariants(CurrentLayoutKey);
+            var remaining = _layoutManager.ListVariants(EditKey);
             var next = remaining.FirstOrDefault(s => s.Origin == ManualLayoutOrigin.Manual)
                     ?? remaining.FirstOrDefault();
             ActiveVariantId = next?.VariantId;
@@ -530,24 +601,24 @@ public sealed class LayoutEditorController
             bool hasManual = remaining.Any(s => s.Origin == ManualLayoutOrigin.Manual);
             SetManualLayoutActive(hasManual);
             NotifyVariantsChanged();
-            _logger.LogInfo($"Deleted variant, key={CurrentLayoutKey}");
+            _logger.LogInfo($"Deleted variant, key={EditKey}");
         }
         return ok;
     }
 
     /// <summary>
-    /// Deletes the manual layout variant for <see cref="CurrentLayoutKey"/> (all Manual variants).
+    /// Deletes the manual layout variant for <see cref="EditKey"/> (all Manual variants).
     /// Sets <see cref="IsManualLayoutActive"/> to false on success.
     /// </summary>
     public bool TryDelete()
     {
-        if (CurrentLayoutKey == null)
+        if (EditKey == null)
         {
-            _logger.LogWarning("LayoutEditorController.TryDelete: CurrentLayoutKey is null — nothing deleted");
+            _logger.LogWarning("LayoutEditorController.TryDelete: no active edit session — nothing deleted");
             return false;
         }
 
-        bool ok = _layoutManager.DeleteLayout(CurrentLayoutKey);
+        bool ok = _layoutManager.DeleteLayout(EditKey);
         if (ok)
         {
             ActiveVariantId = null;
@@ -555,7 +626,7 @@ public sealed class LayoutEditorController
             ActiveVariantDisplayName = null;
             SetManualLayoutActive(false);
             NotifyVariantsChanged();
-            _logger.LogInfo($"Deleted manual layout, key={CurrentLayoutKey}");
+            _logger.LogInfo($"Deleted manual layout, key={EditKey}");
         }
         return ok;
     }

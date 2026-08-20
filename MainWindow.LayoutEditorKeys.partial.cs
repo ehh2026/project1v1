@@ -52,19 +52,32 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Derives the layout key the view currently on screen should be using, independent of
-        /// whatever <c>CurrentLayoutKey</c> holds. Returns null when the viewport is not ready.
+        /// Builds the immutable scope for an edit session from the view currently on screen.
+        /// Returns null when the viewport is not ready.
         /// </summary>
-        private string? DeriveCurrentViewLayoutKey()
+        /// <remarks>
+        /// Uses the same derivation as <see cref="LayoutKeyGenerator.DeriveEditSessionKey"/>, so a
+        /// session's key always matches what the current view would produce. The viewport and
+        /// container size are captured too: they define the coordinate space the session's marker
+        /// positions live in, which is what makes staleness detectable later.
+        /// </remarks>
+        private LayoutEditSession? TryBuildEditSession()
         {
             var viewport = MapDisplay.CurrentViewport;
             if (viewport == null)
                 return null;
 
-            return LayoutKeyGenerator.DeriveEditSessionKey(
-                _currentZoomedCluster?.Locations,
-                viewport,
-                _visualConfig.RadialExtension);
+            var locations = _currentZoomedCluster?.Locations;
+            var isCluster = locations != null && locations.Count > 0;
+
+            return new LayoutEditSession(
+                LayoutKey: LayoutKeyGenerator.DeriveEditSessionKey(
+                    locations, viewport, _visualConfig.RadialExtension),
+                Scope: isCluster ? LayoutScope.Cluster : LayoutScope.FullMap,
+                ScopeLocations: isCluster ? locations! : Array.Empty<Location>(),
+                Viewport: viewport,
+                ContainerWidth: MapDisplay.ActualWidth,
+                ContainerHeight: MapDisplay.ActualHeight);
         }
 
         /// <summary>
@@ -86,19 +99,6 @@ namespace InteractiveWorldMap
                 cluster.Locations, viewport, _visualConfig.RadialExtension);
 
             return _layoutEditor.HasManualLayout(zoomedKey);
-        }
-
-        /// <summary>
-        /// True when <c>CurrentLayoutKey</c> still matches the view on screen. Destructive
-        /// operations verify this immediately before writing rather than trusting the field.
-        /// </summary>
-        private bool CurrentLayoutKeyMatchesView()
-        {
-            var expected = DeriveCurrentViewLayoutKey();
-            if (expected == null)
-                return false;
-
-            return string.Equals(expected, _layoutEditor.CurrentLayoutKey, StringComparison.Ordinal);
         }
     }
 }

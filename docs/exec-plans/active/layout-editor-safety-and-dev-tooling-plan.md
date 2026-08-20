@@ -40,6 +40,14 @@ lands**; it carries a "Last updated" date that must move with it.
 | 2026-08-19 | **Phase 0.6 landed** (`58abd6f`): layout precedence by origin rather than scope, so a hand-made zoomed layout is displayed instead of being saved and ignored. | `.\scripts\verify.ps1` **PASSED**. 899 passed / 2 known skips. |
 | 2026-08-19 | **Qodo review addressed** (`3db2514`): three real defects — `HasManualLayout` masked by a selected seed; the `OnSizeChanged` guard leaving stale endpoints that a later save would mis-project; the collapse backstop refusing a deliberate all-anchor drag. Plus layering/size cleanups and the `LayoutEditorControllerTests` split. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 901 passed / 2 known skips. Masking fix verified failing against the old implementation. |
 
+**Durable fix for the whole 0.x class — tracked in [docs/TO_DO.md](../../TO_DO.md) under High
+priority:** replace ambient `CurrentLayoutKey` state with an **immutable edit-session context**
+captured once on editor entry (scope, viewport, expected key), which every save and delete reads
+from. Every defect in Phase 0, 1b and the two Qodo rounds traces back to that ambient state, and the
+guards now holding them closed are defence in depth rather than a fix at source — each round of
+guards has produced its own edge case. Subsumes 0.7 and 0.10. Recommended independently by the Qodo
+review of PR #13. Too large for this PR; do it before adding further behaviour to the editor.
+
 **Carried forward:** 0.7 and 0.10 remain open — the remaining `CurrentLayoutKey` writers should
 funnel through one guarded method, and `TryLoad` still mutates active-variant state from any key it
 is handed (0.10 is partly mitigated: `HasManualLayout` is side-effect free). Phase 1c leaves an open

@@ -248,6 +248,16 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"[OnEditLayoutButtonClick] Derived cluster layout key={_layoutEditor.CurrentLayoutKey}");
             }
 
+            // Capture the scope once, immutably. Saves will read from this instead of re-deriving
+            // and re-checking the ambient key; during the migration both exist and must agree.
+            var session = TryBuildEditSession();
+            if (session == null)
+            {
+                _logger.LogWarning("Cannot enter layout edit - viewport is not ready for a session");
+                return;
+            }
+            _layoutEditor.BeginEditSession(session);
+
             // Entering the editor re-places markers against the current viewport, so any staleness
             // from a previous session is resolved here.
             ResetEditSessionGeometryState();
@@ -260,21 +270,24 @@ namespace InteractiveWorldMap
             // Load the saved layout when one is active OR was unloaded this session (so opening the
             // editor reloads a layout the user previously unloaded). SetManualLayoutActive(true)
             // below clears the suppression flag.
+            // Load the session's layout unconditionally so the editor adopts its variant identity,
+            // then decide whether to apply it. Identity used to arrive as a side effect of
+            // navigation's probe loads; now that loading is side-effect free, the editor has to
+            // establish it, or a save would target "manual-default" instead of the loaded variant.
+            var sessionLayout = _layoutEditor.LoadForEditSession();
+
             bool loadedSaved = false;
             if ((_layoutEditor.IsManualLayoutActive || _layoutEditor.IsManualLayoutSuppressed) &&
-                _layoutEditor.CurrentLayoutKey != null)
+                sessionLayout != null)
             {
-                var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
-                if (layout != null)
-                {
-                    if (!CanUseCompositePins())
-                        RestoreBaseMarkerVisuals();
-                    _extensionLineRenderer.Clear();
-                    ApplyManualLayout(layout);
-                    _layoutEditor.SetManualLayoutActive(true);
-                    _logger.LogInfo($"[OnEditLayoutButtonClick] Restored saved layout for key={_layoutEditor.CurrentLayoutKey}");
-                    loadedSaved = true;
-                }
+                if (!CanUseCompositePins())
+                    RestoreBaseMarkerVisuals();
+                _extensionLineRenderer.Clear();
+                ApplyManualLayout(sessionLayout);
+                _layoutEditor.SetManualLayoutActive(true);
+                _logger.LogInfo(
+                    $"[OnEditLayoutButtonClick] Restored saved layout for key={session.LayoutKey}");
+                loadedSaved = true;
             }
             if (!loadedSaved)
                 UpdateMarkerPositions();
@@ -497,7 +510,12 @@ namespace InteractiveWorldMap
         private void ExitEditMode()
         {
             var wasFullMapSession = IsFullMapLayoutSessionActive();
+
+            // Capture the scope before ending the session; the replay below still needs its key.
+            var sessionKey = _layoutEditor.ActiveSession?.LayoutKey;
+
             _layoutEditor.ExitEditMode();
+            _layoutEditor.EndEditSession();
 
             // Disable dragging on all markers
             foreach (var marker in _individualMarkers)
@@ -513,12 +531,12 @@ namespace InteractiveWorldMap
             _logger.LogInfo("Edit mode deactivated");
 
             // If a manual layout is active, replay it so composite pins appear at the saved positions.
-            if (_layoutEditor.IsManualLayoutActive && _layoutEditor.CurrentLayoutKey != null)
+            if (_layoutEditor.IsManualLayoutActive && sessionKey != null)
             {
-                var layout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey);
+                var layout = _layoutEditor.TryLoad(sessionKey);
                 if (layout != null)
                 {
-                    _logger.LogInfo($"[ExitEditMode] Replaying manual layout for key={_layoutEditor.CurrentLayoutKey}");
+                    _logger.LogInfo($"[ExitEditMode] Replaying manual layout for key={sessionKey}");
                     ApplyManualLayout(layout);
                     if (wasFullMapSession)
                         ClearFullMapLayoutSession();

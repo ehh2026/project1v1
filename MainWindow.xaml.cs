@@ -717,11 +717,11 @@ namespace InteractiveWorldMap
                 //
                 // Skipping the update leaves marker and line endpoints in the pre-resize screen
                 // space while the viewport has moved on, so a save would mix old endpoints with
-                // newly projected anchors and persist wrong angles and lengths. Mark the session
-                // untrustworthy instead; the save path refuses until the editor is re-entered.
+                // newly projected anchors and persist wrong angles and lengths. No flag is needed:
+                // the edit session captured the viewport it was derived against, so the save path
+                // sees the mismatch and refuses until the editor is re-entered.
                 if (_layoutEditor.IsEditMode)
                 {
-                    MarkEditSessionGeometryStale("window resized during edit");
                     UpdateEditLayoutButtonVisibility();
                     return;
                 }

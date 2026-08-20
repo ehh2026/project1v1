@@ -65,7 +65,7 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
-    public void GuardedCapture_ChecksScopeAndGeometryBeforeBuilding()
+    public void GuardedCapture_TakesScopeFromTheSessionAndChecksGeometryBeforeBuilding()
     {
         var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
 
@@ -73,12 +73,24 @@ public class LayoutEditorKeyDerivationTests
             "private ExtensionCollectionStatus TryCollectCurrentExtensions", StringComparison.Ordinal);
         Assert.True(methodIndex >= 0, "TryCollectCurrentExtensions not found.");
 
-        var scopeIndex = source.IndexOf("CurrentLayoutKeyMatchesView()", methodIndex, StringComparison.Ordinal);
+        // Scope is no longer re-derived and re-checked: it comes from the session captured on
+        // entry, which navigation cannot write. There is no "wrong layout" case left to test.
+        var sessionIndex = source.IndexOf("_layoutEditor.ActiveSession", methodIndex, StringComparison.Ordinal);
+        var staleIndex = source.IndexOf("session.MatchesView(", methodIndex, StringComparison.Ordinal);
         var geometryIndex = source.IndexOf("FindNonFiniteMarkers", methodIndex, StringComparison.Ordinal);
         var buildIndex = source.IndexOf("BuildExtensions(", methodIndex, StringComparison.Ordinal);
 
-        Assert.True(scopeIndex >= 0 && scopeIndex < buildIndex, "Scope must be verified before building.");
-        Assert.True(geometryIndex >= 0 && geometryIndex < buildIndex, "Geometry must be verified before building.");
+        Assert.True(sessionIndex >= 0 && sessionIndex < buildIndex,
+            "Capture must take its scope from the edit session, not ambient state.");
+        Assert.True(staleIndex >= 0 && staleIndex < buildIndex,
+            "Capture must reject geometry captured against a view the session no longer matches.");
+        Assert.True(geometryIndex >= 0 && geometryIndex < buildIndex,
+            "Geometry must be verified before building.");
+
+        // The ambient key must not creep back into the capture path.
+        var methodEnd = source.IndexOf("private ", buildIndex, StringComparison.Ordinal);
+        var body = source.Substring(methodIndex, methodEnd - methodIndex);
+        Assert.DoesNotContain("CurrentLayoutKey", body);
     }
 
     [Fact]
@@ -95,7 +107,21 @@ public class LayoutEditorKeyDerivationTests
         Assert.True(methodEnd > methodIndex, "Could not bound TryLoadFullMapManualLayoutForAnimation.");
 
         var body = source.Substring(methodIndex, methodEnd - methodIndex);
+
+        // The animation load path must not claim edit scope by any means — neither the ambient
+        // setter nor a session.
         Assert.DoesNotContain("SetLayoutKey", body);
+        Assert.DoesNotContain("BeginEditSession", body);
+
+        // Sentinel: a "does not contain" test passes for free once the thing it names is gone.
+        // Assert at least one scope-claiming symbol still exists somewhere, so deleting
+        // SetLayoutKey in Phase C makes this test fail and demand re-targeting rather than
+        // quietly protecting nothing.
+        var controller = ReadSource("Services/LayoutEditorController.cs");
+        Assert.True(
+            controller.Contains("SetLayoutKey", StringComparison.Ordinal) ||
+            controller.Contains("BeginEditSession", StringComparison.Ordinal),
+            "Neither scope-claiming API exists any more — re-target this test at whatever replaced them.");
     }
 
     [Fact]
@@ -142,13 +168,11 @@ public class LayoutEditorKeyDerivationTests
             "marker-to-line map a save depends on.");
 
         // Skipping the update leaves endpoints in pre-resize screen space while the viewport moves
-        // on, so the session must be marked untrustworthy rather than silently saved later.
-        var staleIndex = source.IndexOf(
-            "MarkEditSessionGeometryStale(", handlerIndex, StringComparison.Ordinal);
-        Assert.True(
-            staleIndex >= 0 && staleIndex < updateIndex,
-            "Skipping the mid-edit update must mark the session's geometry stale, otherwise a " +
-            "later save mixes pre-resize endpoints with newly projected anchors.");
+        // on. That no longer needs flagging here: the session captured the viewport it was derived
+        // against, so the save path detects the mismatch itself. Behaviour is covered by
+        // LayoutEditSessionTests.MatchesView_AfterAResize_IsFalse; this only pins that the handler
+        // does not resurrect a flag to do the same job.
+        Assert.DoesNotContain("MarkEditSessionGeometryStale", source);
     }
 
     [Fact]
