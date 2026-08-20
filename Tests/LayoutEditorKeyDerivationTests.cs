@@ -19,20 +19,23 @@ public class LayoutEditorKeyDerivationTests
         File.ReadAllText(Path.Combine(RepoRoot, fileName));
 
     [Fact]
-    public void OnEditLayoutButtonClick_DerivesClusterKey_RatherThanInheritingIt()
+    public void OnEditLayoutButtonClick_BeginsASessionScopedToTheViewOnScreen()
     {
         var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
 
         var handlerIndex = source.IndexOf("private void OnEditLayoutButtonClick", StringComparison.Ordinal);
         Assert.True(handlerIndex >= 0, "OnEditLayoutButtonClick not found.");
 
-        var deriveIndex = source.IndexOf(
-            "LayoutKeyGenerator.DeriveEditSessionKey", handlerIndex, StringComparison.Ordinal);
+        var buildIndex = source.IndexOf("TryBuildEditSession()", handlerIndex, StringComparison.Ordinal);
+        var beginIndex = source.IndexOf("BeginEditSession(", handlerIndex, StringComparison.Ordinal);
+
         Assert.True(
-            deriveIndex >= 0,
-            "Entering edit mode while zoomed must re-derive the cluster layout key. Inheriting " +
-            "CurrentLayoutKey lets a 'fullmap' key set by the zoom animation survive into a " +
-            "cluster edit session, so the save overwrites the full-map layout.");
+            buildIndex >= 0 && beginIndex > buildIndex,
+            "Entering edit mode must build a session from the view on screen and begin it. That " +
+            "session is the only record of what the edit will write to.");
+
+        // There is no ambient key to inherit any more; this pins that none reappears.
+        Assert.DoesNotContain("CurrentLayoutKey", source);
     }
 
     [Fact]
@@ -138,7 +141,7 @@ public class LayoutEditorKeyDerivationTests
 
         var guardIndex = source.IndexOf(
             "HasManualLayoutForZoomedView(cluster)", methodIndex, StringComparison.Ordinal);
-        var applyIndex = source.IndexOf("ApplyManualLayout(layout)", methodIndex, StringComparison.Ordinal);
+        var applyIndex = source.IndexOf("ApplyManualLayout(layout, key)", methodIndex, StringComparison.Ordinal);
 
         Assert.True(guardIndex >= 0, "The full-map replay must yield to a hand-made zoomed layout.");
         Assert.True(guardIndex < applyIndex, "The precedence check must run before applying.");

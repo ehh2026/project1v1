@@ -75,7 +75,7 @@ namespace InteractiveWorldMap.Services
         /// </summary>
         /// <remarks>
         /// The editor must re-derive its key on every entry rather than inheriting whatever
-        /// <c>CurrentLayoutKey</c> happens to hold: zoom animations and full-map probes both
+        /// an ambient key happens to hold: zoom animations and full-map probes both
         /// write that field, so an inherited key can point at "fullmap" while the user is
         /// editing a cluster — which then saves cluster geometry into the full-map layout.
         /// </remarks>

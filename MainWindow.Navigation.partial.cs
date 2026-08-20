@@ -182,10 +182,9 @@ namespace InteractiveWorldMap
             if (!FullMapLayoutContainsLocation(layout, locationName))
                 return false;
 
-            _layoutEditor.SetLayoutKey(key);
             _logger.LogInfo(
                 $"[TryApplyFullMapLayoutForZoomedSingle] Replaying full-map layout for '{locationName}' at key={key}");
-            ApplyManualLayout(layout);
+            ApplyManualLayout(layout, key);
             _layoutEditor.SetManualLayoutActive(true);
             return true;
         }
@@ -255,17 +254,19 @@ namespace InteractiveWorldMap
 
                         if (!preferFullMapLayout)
                         {
-                            _layoutEditor.SetLayoutKey(LayoutKeyGenerator.GenerateKey(
+                            // Local, not stored: this is the *display* key for the cluster being
+                            // shown. The editor derives its own key when it opens, so nothing here
+                            // needs to leave a value behind for it to find.
+                            var clusterKey = LayoutKeyGenerator.GenerateKey(
                                 cluster.Locations,
                                 viewport,
-                                _visualConfig.RadialExtension));
+                                _visualConfig.RadialExtension);
 
-                            _logger.LogInfo($"  Generated layout key: {_layoutEditor.CurrentLayoutKey}");
+                            _logger.LogInfo($"  Generated layout key: {clusterKey}");
 
-                            // Try to load saved layout. The layout key is still set above (so Edit
-                            // Layout works), but a session unload means we do not stage it for
-                            // auto-apply — the cluster reverts to auto-placement.
-                            var savedLayout = _layoutEditor.TryLoad(_layoutEditor.CurrentLayoutKey!);
+                            // A session unload means we do not stage the layout for auto-apply —
+                            // the cluster reverts to auto-placement.
+                            var savedLayout = _layoutEditor.TryLoad(clusterKey);
                             if (savedLayout != null && !_layoutEditor.IsManualLayoutSuppressed)
                             {
                                 _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
@@ -273,7 +274,7 @@ namespace InteractiveWorldMap
                             }
                             else
                             {
-                                _logger.LogInfo($"  No saved layout found for key: {_layoutEditor.CurrentLayoutKey}");
+                                _logger.LogInfo($"  No saved layout found for key: {clusterKey}");
                             }
                         }
                     }
@@ -468,10 +469,13 @@ namespace InteractiveWorldMap
             if (layout == null)
                 return;
 
-            _layoutEditor.SetLayoutKey(string.IsNullOrWhiteSpace(layout.GroupKey)
+            // Resolved per call, not stored. This runs on the zoom-animation path, so it must stay
+            // a cheap string choice — no key derivation, no hashing.
+            var animationKey = string.IsNullOrWhiteSpace(layout.GroupKey)
                 ? GenerateCurrentFullMapGroupKey()
-                : layout.GroupKey);
-            ApplyManualLayout(layout);
+                : layout.GroupKey;
+
+            ApplyManualLayout(layout, animationKey);
             _layoutEditor.SetManualLayoutActive(true);
         }
 

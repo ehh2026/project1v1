@@ -34,7 +34,7 @@ namespace InteractiveWorldMap.Services
         /// </summary>
         /// <param name="layout">The layout whose markers define the content hash.</param>
         /// <param name="config">Pin-part configuration affecting render output.</param>
-        /// <param name="groupKey">Layout group key (from <c>LayoutEditorController.CurrentLayoutKey</c>).</param>
+        /// <param name="groupKey">Layout group key, passed explicitly by the caller.</param>
         /// <param name="absoluteGeometryPath">Full path to <c>pin_part_geometry.json</c>.</param>
         /// <param name="cacheKey">Computed cache key (use in <see cref="SaveIfMissed"/>).</param>
         public IReadOnlyDictionary<string, CompositePinRenderPlan>? TryCacheLoad(

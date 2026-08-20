@@ -139,17 +139,17 @@ Verified: `.\scripts\verify.ps1` **PASSED**, all 11 steps, 915 passed / 2 known 
 
 **Exit:** no edit path reads `CurrentLayoutKey`; the guards listed above are deleted, not disabled.
 
-## Phase C — Give display/replay its own explicit key
+## Phase C — Give display/replay its own explicit key ✅ done 2026-08-20
 
-- [ ] C.1 Thread the group key explicitly into `ApplyManualLayout` instead of
+- [x] C.1 Thread the group key explicitly into `ApplyManualLayout` instead of
       `CurrentLayoutKey ?? layout.GroupKey`. It already has `layout.GroupKey`; the ambient read is
       the fallback that lets navigation state leak into the plan-cache key.
-- [ ] C.2 `TryApplyFullMapManualLayout`, `TryApplyFullMapLayoutForZoomedSingle`, `ShowZoomedView`
+- [x] C.2 `TryApplyFullMapManualLayout`, `TryApplyFullMapLayoutForZoomedSingle`, `ShowZoomedView`
       and `ApplyManualLayoutDuringAnimation` use locals for their key and stop calling
       `SetLayoutKey`. Precedence behaviour (Manual zoomed → Manual full-map → seed) must not change —
       it has a test and a smoke (S9).
-- [ ] C.3 Delete `SetLayoutKey` and `CurrentLayoutKey`.
-- [ ] C.4 Check the zoom-animation hot path for regressions: `ApplyManualLayoutDuringAnimation` runs
+- [x] C.3 Delete `SetLayoutKey` and `CurrentLayoutKey`.
+- [x] C.4 Check the zoom-animation hot path for regressions: `ApplyManualLayoutDuringAnimation` runs
       per frame, so the key must not be recomputed per frame. Hoist it out of the frame callback.
 
 **Exit:** `CurrentLayoutKey` no longer exists; navigation cannot influence edit scope by
