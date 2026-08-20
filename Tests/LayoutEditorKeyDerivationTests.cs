@@ -107,7 +107,21 @@ public class LayoutEditorKeyDerivationTests
         Assert.True(methodEnd > methodIndex, "Could not bound TryLoadFullMapManualLayoutForAnimation.");
 
         var body = source.Substring(methodIndex, methodEnd - methodIndex);
+
+        // The animation load path must not claim edit scope by any means — neither the ambient
+        // setter nor a session.
         Assert.DoesNotContain("SetLayoutKey", body);
+        Assert.DoesNotContain("BeginEditSession", body);
+
+        // Sentinel: a "does not contain" test passes for free once the thing it names is gone.
+        // Assert at least one scope-claiming symbol still exists somewhere, so deleting
+        // SetLayoutKey in Phase C makes this test fail and demand re-targeting rather than
+        // quietly protecting nothing.
+        var controller = ReadSource("Services/LayoutEditorController.cs");
+        Assert.True(
+            controller.Contains("SetLayoutKey", StringComparison.Ordinal) ||
+            controller.Contains("BeginEditSession", StringComparison.Ordinal),
+            "Neither scope-claiming API exists any more — re-target this test at whatever replaced them.");
     }
 
     [Fact]

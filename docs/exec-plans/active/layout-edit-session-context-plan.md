@@ -102,7 +102,7 @@ Verified: `.\scripts\verify.ps1` **PASSED**, all 11 steps, 915 passed / 2 known 
 
 **Exit:** session exists and is populated; suite green; no behaviour change.
 
-## Phase B — Move the *edit* paths onto the session
+## Phase B — Move the *edit* paths onto the session ✅ done 2026-08-20
 
 - [x] B.1 `TryCollectCurrentExtensions` takes the session and uses `session.LayoutKey`,
       `session.Viewport`, `session.ContainerWidth/Height` instead of reading ambient state and the
@@ -110,14 +110,14 @@ Verified: `.\scripts\verify.ps1` **PASSED**, all 11 steps, 915 passed / 2 known 
 - [x] B.2 Derive staleness instead of flagging it: compare `session.Viewport` and container size
       against current. Delete `MarkEditSessionGeometryStale` and `_editGeometryStaleReason`; keep
       the user-facing `✗ SAVE ABORTED — VIEW CHANGED` message and its smoke (S6).
-- [ ] B.3 `TrySave`, `TrySaveAsVariant`, `TryDelete`, `TryDeleteActiveVariant`, `SwitchToVariant`,
+- [x] B.3 `TrySave`, `TrySaveAsVariant`, `TryDelete`, `TryDeleteActiveVariant`, `SwitchToVariant`,
       `GetVariants` take the session (or a key argument) rather than reading `CurrentLayoutKey`.
-- [ ] B.4 Move active-variant identity (`ActiveVariantId`/`Origin`/`DisplayName`) into session state,
+- [x] B.4 Move active-variant identity (`ActiveVariantId`/`Origin`/`DisplayName`) into session state,
       which makes the cross-scope leak unrepresentable. **Closes 0.9 structurally** and removes the
       clearing logic in `SetLayoutKey`.
-- [ ] B.5 Make `TryLoad` side-effect free and have callers update session variant identity
+- [x] B.5 Make `TryLoad` side-effect free and have callers update session variant identity
       explicitly. **Closes 0.10** — probe loads during navigation can no longer desync it.
-- [ ] B.6 Port the existing tests. **Audited 2026-08-20: 27 `SetLayoutKey` call sites across 24
+- [x] B.6 Port the existing tests. **Audited 2026-08-20: 27 `SetLayoutKey` call sites across 24
       tests, all in `Tests/LayoutEditorControllerTests.cs`, with no fixture choke point — the port
       is per test.** 19 are the simple "set a key, then save/load/delete" shape and convert
       mechanically. Four need judgement, because they encode behaviour the session model makes
@@ -132,7 +132,7 @@ Verified: `.\scripts\verify.ps1` **PASSED**, all 11 steps, 915 passed / 2 known 
       - `SetLayoutKey_Null_ClearsKey` becomes `EndEditSession`.
       Three tests assert on `CurrentLayoutKey` directly and six assert on variant identity; both
       groups move to the session.
-- [ ] B.7 Re-target the meta-test at `Tests/LayoutEditorKeyDerivationTests.cs:98`, which asserts by
+- [x] B.7 Re-target the meta-test at `Tests/LayoutEditorKeyDerivationTests.cs:98`, which asserts by
       source-text search that `TryLoadFullMapManualLayoutForAnimation` does not call `SetLayoutKey`.
       Once the method is gone the string search passes vacuously — it must assert the replacement
       property or be removed rather than left as a test that can no longer fail.

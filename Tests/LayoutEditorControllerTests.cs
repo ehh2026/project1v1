@@ -98,51 +98,45 @@ public class LayoutEditorControllerTests
         Assert.True(raised);
     }
 
-    [Fact]
-    public void SetLayoutKey_UpdatesCurrentLayoutKey()
-    {
-        var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-abc");
-        Assert.Equal("key-abc", ctrl.CurrentLayoutKey);
-    }
+    // Scope is now set by beginning a session rather than by a setter, so the tests that covered
+    // that setter move with it. Two are kept because they cover a real past bug — variant identity
+    // leaking between scopes — restated against sessions. Two are dropped, noted below, because
+    // they described logic that no longer exists rather than behaviour that changed.
 
     [Fact]
-    public void SetLayoutKey_Null_ClearsKey()
+    public void BeginEditSession_SetsTheScopeTheEditWillWriteTo()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-abc");
-        ctrl.SetLayoutKey(null);
-        Assert.Null(ctrl.CurrentLayoutKey);
+
+        ctrl.BeginEditSession(SessionFor("key-abc"));
+
+        Assert.Equal("key-abc", ctrl.ActiveSession!.LayoutKey);
     }
 
+    // Dropped with the setter: SetLayoutKey_Null_ClearsKey. Ending a session is now the way to
+    // leave a scope, covered by LayoutEditSessionTests.EndEditSession_ClearsTheSession.
+    //
+    // Dropped with the setter: SetLayoutKey_SameKey_PreservesActiveVariantIdentity. It pinned the
+    // setter's same-key short-circuit, which only existed to avoid clearing identity on a no-op
+    // write. Beginning a session always clears, and the editor immediately re-establishes identity
+    // via LoadForEditSession, so there is no no-op case left to protect.
+
     [Fact]
-    public void SetLayoutKey_ChangingKey_ClearsActiveVariantIdentity()
+    public void BeginEditSession_DoesNotInheritThePreviousSessionsVariantIdentity()
     {
-        // Variant ids are only unique within a group. Carrying one across a scope change makes
-        // TrySave target a variant belonging to the previous layout.
+        // Variant ids are only unique within a group, so identity crossing a scope change made
+        // TrySave target a variant belonging to the previous layout. Scope can now only change by
+        // beginning a session, which is where the clearing happens.
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-first");
+        ctrl.BeginEditSession(SessionFor("key-first"));
         ctrl.TrySave(OneExtension());
         Assert.Equal("manual-default", ctrl.ActiveVariantId);
 
-        ctrl.SetLayoutKey("key-second");
+        ctrl.BeginEditSession(SessionFor("key-second"));
 
         Assert.Null(ctrl.ActiveVariantId);
         Assert.Null(ctrl.ActiveVariantOrigin);
         Assert.Null(ctrl.ActiveVariantDisplayName);
-    }
-
-    [Fact]
-    public void SetLayoutKey_SameKey_PreservesActiveVariantIdentity()
-    {
-        var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-same");
-        ctrl.TrySave(OneExtension());
-
-        ctrl.SetLayoutKey("key-same");
-
-        Assert.Equal("manual-default", ctrl.ActiveVariantId);
-        Assert.Equal(ManualLayoutOrigin.Manual, ctrl.ActiveVariantOrigin);
     }
 
     [Fact]
@@ -151,12 +145,12 @@ public class LayoutEditorControllerTests
         // Regression: a stale active variant plus a changed key wrote the new scope's geometry
         // into the previous scope's named variant.
         var (ctrl, manager, _, _) = Make();
-        ctrl.SetLayoutKey("key-origin");
+        ctrl.BeginEditSession(SessionFor("key-origin"));
         ctrl.TrySaveAsVariant("Layout One", OneExtension());
         var originVariants = manager.ListVariants("key-origin");
         Assert.Single(originVariants);
 
-        ctrl.SetLayoutKey("key-elsewhere");
+        ctrl.BeginEditSession(SessionFor("key-elsewhere"));
         ctrl.TrySave(OneExtension());
 
         // The original group is untouched; the new group got its own default variant.
@@ -172,7 +166,7 @@ public class LayoutEditorControllerTests
     public void HasManualLayout_WithSavedManualLayout_IsTrue()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-zoomed");
+        ctrl.BeginEditSession(SessionFor("key-zoomed"));
         ctrl.TrySave(OneExtension());
 
         Assert.True(ctrl.HasManualLayout("key-zoomed"));
@@ -240,16 +234,16 @@ public class LayoutEditorControllerTests
     [Fact]
     public void HasManualLayout_DoesNotDisturbActiveVariantState()
     {
-        // Called during navigation, where mutating editor state would be wrong. TryLoad has that
-        // side effect; this probe must not.
+        // Called during navigation, where mutating editor state would be wrong. Probing another
+        // key must leave both the session's scope and its variant identity alone.
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-current");
+        ctrl.BeginEditSession(SessionFor("key-current"));
         ctrl.TrySave(OneExtension());
         var activeBefore = ctrl.ActiveVariantId;
 
         ctrl.HasManualLayout("some-other-key");
 
-        Assert.Equal("key-current", ctrl.CurrentLayoutKey);
+        Assert.Equal("key-current", ctrl.ActiveSession!.LayoutKey);
         Assert.Equal(activeBefore, ctrl.ActiveVariantId);
     }
 
@@ -258,7 +252,7 @@ public class LayoutEditorControllerTests
     {
         var (ctrl, _, _, tempDir) = Make();
         var layoutPath = Path.Combine(tempDir, "layouts.json");
-        ctrl.SetLayoutKey("key-backup");
+        ctrl.BeginEditSession(SessionFor("key-backup"));
 
         ctrl.TrySave(OneExtension());
         Assert.True(File.Exists(layoutPath));
@@ -338,7 +332,7 @@ public class LayoutEditorControllerTests
     public void TrySave_NullExtensions_Throws()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key1");
+        ctrl.BeginEditSession(SessionFor("key1"));
         Assert.Throws<ArgumentNullException>(() => ctrl.TrySave(null!));
     }
 
@@ -356,7 +350,7 @@ public class LayoutEditorControllerTests
     public void TrySave_ValidKey_ReturnsTrueAndSetsActive()
     {
         var (ctrl, _, _, tempDir) = Make();
-        ctrl.SetLayoutKey("key-save");
+        ctrl.BeginEditSession(SessionFor("key-save"));
         var ext = new List<RadialExtension>
         {
             new RadialExtension
@@ -376,7 +370,7 @@ public class LayoutEditorControllerTests
     public void TrySave_ValidKey_RaisesManualLayoutActivityChanged()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-save-event");
+        ctrl.BeginEditSession(SessionFor("key-save-event"));
         bool? activeState = null;
         ctrl.ManualLayoutActivityChanged += active => activeState = active;
 
@@ -410,7 +404,7 @@ public class LayoutEditorControllerTests
     public void TryDelete_AfterSave_ReturnsTrueAndClearsActive()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-del");
+        ctrl.BeginEditSession(SessionFor("key-del"));
         var ext = new List<RadialExtension>
         {
             new RadialExtension
@@ -433,7 +427,7 @@ public class LayoutEditorControllerTests
     public void TryDelete_AfterSave_RaisesManualLayoutActivityChanged()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-del-event");
+        ctrl.BeginEditSession(SessionFor("key-del-event"));
         ctrl.TrySave(new List<RadialExtension>
         {
             new RadialExtension
@@ -467,7 +461,7 @@ public class LayoutEditorControllerTests
     public void TryLoad_AfterSave_ReturnsLayout()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-load");
+        ctrl.BeginEditSession(SessionFor("key-load"));
         var ext = new List<RadialExtension>
         {
             new RadialExtension
@@ -492,7 +486,7 @@ public class LayoutEditorControllerTests
     public void ExitEditMode_AfterTrySave_IsManualLayoutActiveRemainsTrue()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-exit-roundtrip");
+        ctrl.BeginEditSession(SessionFor("key-exit-roundtrip"));
         ctrl.TrySave(new List<RadialExtension>
         {
             new RadialExtension
@@ -515,7 +509,7 @@ public class LayoutEditorControllerTests
     public void TryLoad_AfterSaveAndExitEditMode_ReturnsLayout()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-load-after-exit");
+        ctrl.BeginEditSession(SessionFor("key-load-after-exit"));
         ctrl.TrySave(new List<RadialExtension>
         {
             new RadialExtension
@@ -546,7 +540,7 @@ public class LayoutEditorControllerTests
     public void GetVariants_WithCurrentLayoutKey_ReturnsSavedVariants()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-variants");
+        ctrl.BeginEditSession(SessionFor("key-variants"));
         Assert.True(ctrl.TrySave(new List<RadialExtension>
         {
             new()
@@ -577,7 +571,7 @@ public class LayoutEditorControllerTests
     public void SwitchToVariant_WithMissingVariant_ReturnsNull()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-switch");
+        ctrl.BeginEditSession(SessionFor("key-switch"));
         Assert.True(ctrl.TrySave(new List<RadialExtension>
         {
             new()
@@ -596,7 +590,7 @@ public class LayoutEditorControllerTests
     public void SwitchToVariant_WithValidVariant_UpdatesActiveVariant()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-switch-valid");
+        ctrl.BeginEditSession(SessionFor("key-switch-valid"));
         var extensions = new List<RadialExtension>
         {
             new()
@@ -625,27 +619,27 @@ public class LayoutEditorControllerTests
     public void TrySaveAsVariant_WithNullExtensions_Throws()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-save-as-null");
+        ctrl.BeginEditSession(SessionFor("key-save-as-null"));
 
         Assert.Throws<ArgumentNullException>(() => ctrl.TrySaveAsVariant("Variant", null!));
     }
 
     [Fact]
-    public void TrySaveAsVariant_WithNoCurrentLayoutKey_ReturnsFalse()
+    public void TrySaveAsVariant_WithNoEditSession_ReturnsFalse()
     {
         var (ctrl, _, logger, _) = Make();
 
         var saved = ctrl.TrySaveAsVariant("Variant", new List<RadialExtension>());
 
         Assert.False(saved);
-        Assert.Contains(logger.WarningMessages, message => message.Contains("CurrentLayoutKey"));
+        Assert.Contains(logger.WarningMessages, message => message.Contains("no active edit session"));
     }
 
     [Fact]
     public void TrySaveAsVariant_WithBlankName_ReturnsFalse()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-save-as-blank");
+        ctrl.BeginEditSession(SessionFor("key-save-as-blank"));
 
         var saved = ctrl.TrySaveAsVariant("  ", new List<RadialExtension>());
 
@@ -656,7 +650,7 @@ public class LayoutEditorControllerTests
     public void TrySaveAsVariant_WithName_SlugifiesVariantIdAndRaisesEvent()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-save-as");
+        ctrl.BeginEditSession(SessionFor("key-save-as"));
         var events = 0;
         ctrl.VariantsChanged += _ => events++;
         var extensions = new List<RadialExtension>
@@ -692,7 +686,7 @@ public class LayoutEditorControllerTests
     public void TryDeleteActiveVariant_WithSavedManualVariant_DeletesAndRaisesEvent()
     {
         var (ctrl, _, _, _) = Make();
-        ctrl.SetLayoutKey("key-delete-active");
+        ctrl.BeginEditSession(SessionFor("key-delete-active"));
         var events = 0;
         ctrl.VariantsChanged += _ => events++;
         var extensions = new List<RadialExtension>
