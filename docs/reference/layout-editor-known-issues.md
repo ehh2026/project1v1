@@ -248,11 +248,24 @@ intermittent. Please run them after each round of fixes and record the result he
 | S7 | Restart persistence | Save, close the app, reopen | Arrangement restored |
 | S8 | Sparse view still saveable | Zoom to an area with a few pins too far apart to cluster, Edit Layout, Save | Save **succeeds**. Stubs here are correct, and must not be refused as "collapsed" |
 | S9 | Zoomed-vs-unzoomed precedence | Arrange a lone pin on the whole map and save; click it to zoom in; Edit Layout, change angle, save; zoom out and back in | The zoomed version you saved is shown, without needing to click Edit Layout |
-| S10 | Deliberate all-anchor arrangement | In a dense cluster, drag **every** pin head onto its own location marker, then Save | Save **succeeds**. Dragging is a deliberate choice, so the collapse guard must not refuse it |
+| ~~S10~~ | ~~Deliberate all-anchor arrangement~~ | Dropped 2026-08-20 — not a real use case. See "Simplification available" below |
 
 If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That is the guard working:
 nothing was written, and the layout on disk is intact. Press Save again after a moment. Please
 report the exact message if it happens repeatedly.
+
+### Simplification available (S10 dropped)
+
+The collapse guard refuses a save when every pin in a dense cluster would be stored sitting on its
+own location marker. It carries an exception: if you dragged every one of those pins yourself, the
+save is allowed, on the grounds that you meant it.
+
+That exception exists **only** to serve S10, which is now judged not a real use case. The machinery
+behind it — per-marker drag tracking and the "did the user move all of them" check — could be
+deleted, making the guard simply always refuse an all-anchor dense cluster.
+
+Not done yet: it makes a data-loss guard stricter, and the trade is that a genuinely deliberate
+all-anchor arrangement would become unsaveable. Worth doing if that stays hypothetical.
 
 ### Smoke log
 
@@ -262,7 +275,9 @@ report the exact message if it happens repeatedly.
 | 2026-08-19 | `81e6ced` | S2 — Save As `taipei2` | ✅ Saved correctly, no stubs |
 | 2026-08-19 | `81e6ced` | S5 — load another layout, then reload `taipei2` | ❌ **FAILED** — all stubs again. **The saved file was verified intact** (real angles preserved); the fault was in redrawing a zoomed-in layout, not in saving it. Fixed below. |
 | 2026-08-19 | `83f716d` | S5 — save, load another layout, reload the new one | ✅ **PASSED** — arrangement redrawn correctly, no stubs. Confirms the redraw fix against the original failure |
-| _(pending)_ | `3db2514` | S1, S3, S4, S6, S7, S8, S9, S10 | ⬜ Not yet run. **S8 and S10 matter most** — both check that a valid save is *not* wrongly refused, which is the risk the collapse guard introduces |
+| 2026-08-20 | post-#13 | S8 — sparse view still saveable | ✅ **PASSED** — a zoomed view of scattered pins saves without being refused as "collapsed" |
+| 2026-08-20 | — | S10 — deliberate all-anchor drag | ⏭️ **Dropped, not a real use case.** Nobody arranges a dense cluster by dragging every head onto its own location marker. Kept in the table only to record the decision; see the note below |
+| _(pending)_ | `1de8109` | S1, S3, S4, S6, S7, S9 | ⬜ Not yet run |
 
 ---
 

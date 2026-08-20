@@ -28,7 +28,7 @@ fixes were guards around it rather than a fix at source. The pattern is now well
 | Phase 0 | Editor inherited a stale key; fixing it exposed the display/editor precedence conflict (user's Ohio report) |
 | Phase 1 | Guarded `OnSaveLayoutButtonClick`; **Save As was a second unguarded copy** — user's `taipei1` failure |
 | Phase 1 | `OnSizeChanged` guard fixed one corruption and **introduced** the stale-coordinate one |
-| Phase 1b | Collapse backstop then wrongly refused a deliberate all-anchor drag |
+| Phase 1b | Collapse backstop then wrongly refused a deliberate all-anchor drag (later judged not a real use case — see Baseline status) |
 | Qodo round 2 | **Two of four findings were defects introduced by round one's fixes** |
 
 That last row is the signal. Each layer of guards defends state that six call sites can write, and
@@ -213,7 +213,11 @@ deliberately stop short of Phase C. This is the point the "Sequencing and risk" 
 
 So if Phase C goes wrong, revert it and keep A+B rather than unwinding the whole refactor.
 
-**Before starting Phase C:** run smokes S8 and S10 against PR #14 (see
-[../../reference/layout-editor-known-issues.md](../../reference/layout-editor-known-issues.md)).
-Both check that a *valid* save is not wrongly refused. Without that baseline a regression after C
-cannot be attributed to C.
+**Baseline status (2026-08-20):** **S8 passed** — a sparse view still saves and is not wrongly
+refused as collapsed. **S10 was dropped by the user as not a real use case**, which has a
+consequence for D.1: the collapse guard's drag-tracking bypass exists only to serve S10, so that
+machinery is now deletable and D.1 should prefer deleting it over refining it.
+
+**Before starting Phase C:** the S8 baseline above is the one that mattered — it confirms a valid
+save is not wrongly refused — so the prerequisite is met. Smoke definitions live in
+[../../reference/layout-editor-known-issues.md](../../reference/layout-editor-known-issues.md).
