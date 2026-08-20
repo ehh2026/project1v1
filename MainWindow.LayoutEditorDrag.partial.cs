@@ -75,6 +75,13 @@ namespace InteractiveWorldMap
             if (e.LeftButton == MouseButtonState.Pressed)
             {
                 var currentPosition = e.GetPosition(MapDisplay.Markers);
+
+                // Moving a head makes its resulting endpoint the user's deliberate choice, even if
+                // that lands back on its own anchor. Recorded per marker and only on real movement,
+                // so a click without motion — or dragging one pin — cannot stand down the collapse
+                // backstop for the whole group.
+                if (TryGetMarkerEndpoint(_draggedMarker, out var beforeDragEndpoint))
+                    RecordDeliberateDrag(_draggedMarker, beforeDragEndpoint, currentPosition);
                 var viewport = MapDisplay.CurrentViewport;
                 var cw = MapDisplay.ActualWidth;
                 var ch = MapDisplay.ActualHeight;

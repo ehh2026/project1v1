@@ -146,6 +146,54 @@ namespace InteractiveWorldMap.Services
             }
         }
 
+        /// <summary>
+        /// True when the group for <paramref name="key"/> holds any Manual variant, whether or not
+        /// it is the selected one.
+        /// </summary>
+        /// <remarks>
+        /// Distinct from loading and inspecting <c>Origin</c>: <see cref="LoadLayout"/> returns the
+        /// *selected* variant, and a selected AutoSeed would mask a Manual variant sitting beside it
+        /// in the same group. Navigation precedence asks "has the user arranged this view at all?",
+        /// which is a question about the group, not about the current selection.
+        /// </remarks>
+        public bool HasManualVariant(string key)
+        {
+            try
+            {
+                var collection = LoadLayoutCollection();
+
+                // Resolve the same group LoadLayout would use — exact first, then compatible — and
+                // ask whether *that* group holds a Manual variant.
+                //
+                // Both halves matter, and they answer opposite review findings. Checking the whole
+                // group rather than just the selected variant means a selected AutoSeed cannot hide
+                // a Manual one beside it. Refusing to look past the group the loader will choose
+                // means we never claim a Manual layout that will not actually be displayed: if an
+                // exact AutoSeed-only group exists, the loader returns that seed, and reporting
+                // "manual exists" from some other compatible group would suppress the full-map
+                // fallback while showing neither.
+                //
+                // The residual gap is size fragmentation — a Manual layout under a different window
+                // size is unreachable here because it is unreachable to the loader too. That is
+                // issue 6.8/6.9, and the fix belongs in key/lookup consistency, not in making this
+                // probe see further than the loader.
+                var group = collection.LayoutGroups.TryGetValue(key, out var exact)
+                    ? exact
+                    : FindCompatibleGroup(key, collection);
+
+                return group != null && GroupHasManual(group);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"[ManualLayoutManager] HasManualVariant failed: {ex.Message}");
+                return false;
+            }
+        }
+
+        private static bool GroupHasManual(ManualLayoutGroup group) =>
+            group.Variants != null &&
+            group.Variants.Any(v => v.Origin == ManualLayoutOrigin.Manual);
+
         public bool LayoutExists(string key)
         {
             try
@@ -516,9 +564,31 @@ namespace InteractiveWorldMap.Services
             if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
                 Directory.CreateDirectory(directory);
 
+            TryBackupBeforeOverwrite();
+
             var json = JsonSerializer.Serialize(collection, LayoutJsonOptions);
             File.WriteAllText(_layoutFilePath, json);
             _cachedLayouts = null;
+        }
+
+        /// <summary>
+        /// Keeps a copy of the previous layout file next to it, so a save that turns out to be
+        /// destructive can be recovered by hand. Deliberately a single rolling <c>.bak</c> rather
+        /// than timestamped copies: it is bounded, needs no cleanup policy, and covers the case
+        /// that matters — the save that just ran.
+        /// </summary>
+        private void TryBackupBeforeOverwrite()
+        {
+            try
+            {
+                if (File.Exists(_layoutFilePath))
+                    File.Copy(_layoutFilePath, _layoutFilePath + ".bak", overwrite: true);
+            }
+            catch (Exception ex)
+            {
+                // A failed backup must never block the save the user asked for.
+                _logger.LogWarning($"[ManualLayoutManager] Could not back up layouts before save: {ex.Message}");
+            }
         }
 
         private static ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)

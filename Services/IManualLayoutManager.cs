@@ -11,6 +11,9 @@ public interface IManualLayoutManager
     ManualLayout? LoadLayout(string key);
     bool DeleteLayout(string key);
     bool LayoutExists(string key);
+
+    /// <summary>True when the group holds any Manual variant, selected or not.</summary>
+    bool HasManualVariant(string key);
     List<string> GetAllLayoutKeys();
     bool ApplyLayout(ManualLayout layout, List<RadialExtension> extensions);
 

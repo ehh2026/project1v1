@@ -205,7 +205,7 @@ namespace InteractiveWorldMap.Services
         {
             if (application.SourceExtendedX.HasValue && application.SourceExtendedY.HasValue && haveSource)
             {
-                return ProjectSourceExtendedPosition(
+                var projected = ProjectSourceExtendedPosition(
                     application,
                     viewport,
                     fullMapViewport,
@@ -213,6 +213,21 @@ namespace InteractiveWorldMap.Services
                     containerHeight,
                     source,
                     originalPos);
+
+                // A layout authored zoomed in stores a head offset that is tiny in source space —
+                // a 59-screen-pixel drag at zoom 55 is about one source pixel. Re-projected at the
+                // full-map reference scale that becomes a fraction of a pixel, landing under the
+                // extension threshold so the pin replays as an auto stub. When the marker was saved
+                // with a real extension, trust the saved screen geometry instead of the collapsed
+                // projection. Full-map layouts are unaffected: their source offsets are large
+                // enough to survive the projection, so this branch never fires for them.
+                if (!ManualLayoutPlacementPolicy.RequiresExtensionLine(originalPos, projected) &&
+                    application.LineLength > ManualLayoutPlacementPolicy.ExtensionLineThreshold)
+                {
+                    return ProjectAngledExtendedPosition(application, originalPos);
+                }
+
+                return projected;
             }
 
             return ProjectAngledExtendedPosition(application, originalPos);

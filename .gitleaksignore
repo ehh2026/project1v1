@@ -1,0 +1,16 @@
+# Accepted gitleaks findings (false positives).
+#
+# Format: <commit-sha>:<file>:<rule-id>:<start-line>
+# Add an entry only with a written justification. If a finding is a real secret, rotate the
+# credential and remove it from history instead of ignoring it here.
+
+# A manual layout group key hardcoded in a regression test, e.g.
+#   a8bdc43c8f9c007f_z55.00_c6375.80_2933.40_s161x101_m3_p10.0_l50.0_n13.0
+# The leading 16 characters are a SHA-256 prefix of the sorted *location names* in a map cluster
+# (public demo content), followed by viewport and radial-extension settings. It is a cache/lookup
+# identifier derived entirely from non-secret data — see Services/LayoutKeyGenerator.cs. The
+# generic-api-key rule matches it purely on shape: a long high-entropy string next to an assignment.
+#
+# The literal has since been removed from the test at HEAD, since the key was incidental to what the
+# test asserts. This entry covers the historical commit only.
+83f716d4a12b6072032df2125dbc50c47b9dece3:Tests/CompositePinApplicationServiceTests.cs:generic-api-key:260

@@ -100,13 +100,17 @@ public sealed class LayoutEditorController
 
     public void SetLayoutKey(string? key)
     {
-        CurrentLayoutKey = key;
-        if (key == null)
+        // Any change of key is a change of scope. Variant ids are only unique within a group,
+        // so carrying the previous scope's active variant across would make TrySave target a
+        // variant belonging to a different layout. Clear on every change, not just on null.
+        if (!string.Equals(CurrentLayoutKey, key, StringComparison.Ordinal))
         {
             ActiveVariantId = null;
             ActiveVariantOrigin = null;
             ActiveVariantDisplayName = null;
         }
+
+        CurrentLayoutKey = key;
     }
 
     public void SetManualLayoutActive(bool active)
@@ -145,6 +149,25 @@ public sealed class LayoutEditorController
             ActiveVariantDisplayName = layout.DisplayName;
         }
         return layout;
+    }
+
+    /// <summary>
+    /// True when a user-made (<see cref="ManualLayoutOrigin.Manual"/>) layout exists for the key.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately side-effect free, unlike <see cref="TryLoad"/>, which updates the active-variant
+    /// fields from whatever key it is handed. This exists to answer "has the user deliberately
+    /// arranged this view?" during navigation, where mutating editor state would be wrong.
+    /// Auto-generated seeds return false: they are a starting point, not a decision.
+    /// </remarks>
+    public bool HasManualLayout(string? key)
+    {
+        if (string.IsNullOrEmpty(key)) return false;
+
+        // Asks the group, not the current selection. LoadLayout returns the *selected* variant, so
+        // a selected AutoSeed would hide a Manual variant beside it and precedence would wrongly
+        // fall back to the full-map layout.
+        return _layoutManager.HasManualVariant(key!);
     }
 
     /// <summary>
@@ -244,6 +267,123 @@ public sealed class LayoutEditorController
             });
         }
         return extensions;
+    }
+
+    /// <summary>
+    /// Returns the names of markers whose coordinates are not finite (NaN or infinity).
+    /// </summary>
+    /// <remarks>
+    /// <c>Canvas.GetLeft</c>/<c>GetTop</c> return NaN when a position was never explicitly set, so
+    /// a marker that has not been laid out yields NaN coordinates. Persisting those produces a
+    /// layout file that cannot be read back as geometry, so a save carrying any of them is refused.
+    /// <para>
+    /// Note that a *zero-length* extension is not an error: a pin with no radial extension sits
+    /// exactly on its anchor, so <c>MarkerCenter == OriginalScreen</c> is legitimate. Whether the
+    /// endpoint could be resolved at all is tracked separately, at the point the endpoint is read.
+    /// </para>
+    /// </remarks>
+    public static IReadOnlyList<string> FindNonFiniteMarkers(
+        IEnumerable<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+
+        var bad = new List<string>();
+        foreach (var (location, markerCenter, originalScreen) in markerData)
+        {
+            if (!IsFinite(markerCenter) || !IsFinite(originalScreen))
+                bad.Add(location?.Name ?? "(unnamed)");
+        }
+        return bad;
+    }
+
+    private static bool IsFinite(Point p) =>
+        !double.IsNaN(p.X) && !double.IsNaN(p.Y) &&
+        !double.IsInfinity(p.X) && !double.IsInfinity(p.Y);
+
+    /// <summary>
+    /// True when every marker that the placement rules say should carry a radial extension has
+    /// instead collapsed onto its own anchor — the signature of lost endpoints.
+    /// </summary>
+    /// <param name="markerData">Markers being captured for saving.</param>
+    /// <param name="expectedExtendedLocations">
+    /// Names of locations belonging to a dense group, i.e. the ones the renderer would extend.
+    /// Obtain these from <c>RadialExtensionCalculator.DetectDenseGroups</c> so this uses the same
+    /// rule as placement rather than a second guess at it.
+    /// </param>
+    /// <remarks>
+    /// A zero-length extension is <em>not</em> in itself wrong. A pin with no radial extension is
+    /// drawn as a default stub, and a sparsely populated view where no pins are close enough to
+    /// group is legitimately all stubs — refusing that would block valid saves. What cannot happen
+    /// legitimately is a <em>dense</em> group, which the renderer always extends, arriving here
+    /// with every member on its anchor.
+    /// </remarks>
+    public static bool IsCollapsedLayout(
+        IEnumerable<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData,
+        ISet<string> expectedExtendedLocations)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+        if (expectedExtendedLocations == null || expectedExtendedLocations.Count == 0)
+            return false;
+
+        int considered = 0;
+        foreach (var (location, markerCenter, originalScreen) in markerData)
+        {
+            if (location?.Name == null || !expectedExtendedLocations.Contains(location.Name))
+                continue;
+
+            considered++;
+            if (!GeometryMath.ArePointsCoincident(markerCenter, originalScreen))
+                return false;
+        }
+
+        return considered > 0;
+    }
+
+    /// <summary>
+    /// Overload that works out the expected-extension set itself, using the same dense-group
+    /// detection the renderer uses so the two cannot drift apart.
+    /// </summary>
+    public bool IsCollapsedLayout(
+        IReadOnlyList<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+
+        return IsCollapsedLayout(markerData, FindExpectedExtendedLocations(markerData));
+    }
+
+    /// <summary>
+    /// Names of the locations the renderer would give a radial extension. Pins outside any dense
+    /// group are drawn as default stubs by design, so they must never be judged as collapsed.
+    /// </summary>
+    public ISet<string> FindExpectedExtendedLocations(
+        IReadOnlyList<(Location Location, Point MarkerCenter, Point OriginalScreen)> markerData)
+    {
+        if (markerData == null) throw new ArgumentNullException(nameof(markerData));
+
+        // Source-image coordinates, not screen. DetectDenseGroups applies
+        // ProximityThresholdPixels directly to whatever it is given, and
+        // MarkerPlacementOrchestrator feeds it Location.PixelX/PixelY. Passing projected screen
+        // positions instead would scale the threshold with the current zoom, so the guard would
+        // disagree with the placement it claims to mirror.
+        var positions = new Dictionary<Location, Point>();
+        foreach (var (location, _, _) in markerData)
+        {
+            if (location != null)
+                positions[location] = new Point(location.PixelX, location.PixelY);
+        }
+
+        var calculator = new RadialExtensionCalculator(_visualConfig.RadialExtension);
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var group in calculator.DetectDenseGroups(positions))
+        {
+            foreach (var location in group.Locations)
+            {
+                if (location?.Name != null)
+                    names.Add(location.Name);
+            }
+        }
+
+        return names;
     }
 
     /// <summary>
