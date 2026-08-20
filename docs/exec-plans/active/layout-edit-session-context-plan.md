@@ -198,3 +198,22 @@ ambient state by then, which is where the data-loss defects lived.
   toggle. Defaulting to rebuild unless it proves annoying in use.
 - Does anything outside the editor legitimately need to know the *edit* scope? If not, `ActiveSession`
   can stay internal to the controller and the MainWindow partials.
+
+---
+
+## Rollback point (PR #14)
+
+Phases A and B were shipped as [PR #14](https://github.com/ehh2026/project1v1/pull/14) and
+deliberately stop short of Phase C. This is the point the "Sequencing and risk" section names:
+
+- **Every data-loss defect lived in the edit paths**, and those no longer read ambient state.
+- Phase C deletes `SetLayoutKey`/`CurrentLayoutKey` and rewires navigation and the per-frame zoom
+  animation — least automated coverage, most manual-smoke reliance — for cleanup value, not further
+  data-loss protection.
+
+So if Phase C goes wrong, revert it and keep A+B rather than unwinding the whole refactor.
+
+**Before starting Phase C:** run smokes S8 and S10 against PR #14 (see
+[../../reference/layout-editor-known-issues.md](../../reference/layout-editor-known-issues.md)).
+Both check that a *valid* save is not wrongly refused. Without that baseline a regression after C
+cannot be attributed to C.
