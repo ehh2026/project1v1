@@ -46,42 +46,63 @@ function Write-ConfigEntry([string]$path, [string]$controls, [string]$note) {
     Write-Host ''
 }
 
+function Get-DeveloperToolsState([string]$runtimeConfigPath) {
+    if (-not (Test-Path $runtimeConfigPath)) {
+        return 'not created yet - seeded from the defaults on first run'
+    }
+    try {
+        $json = Get-Content -Raw -Path $runtimeConfigPath | ConvertFrom-Json
+        if ($json.PSObject.Properties.Name -contains 'EnableDeveloperTools') {
+            if ([bool]$json.EnableDeveloperTools) { return 'ON' } else { return 'OFF' }
+        }
+        return 'OFF (setting absent)'
+    } catch {
+        return 'unreadable - the file may not be valid JSON'
+    }
+}
+
 Write-Heading 'Interactive World Map - configuration files'
 
-Write-Host '  Edit these with any text editor. Paths below are resolved for this machine.' -ForegroundColor DarkGray
-Write-Host ''
+Write-Host '  The app reads everything from the folder its .exe is in, never from the repo root.' -ForegroundColor DarkGray
+Write-Host '  Both are listed below, because which one to edit depends on what you are doing.' -ForegroundColor DarkGray
 
-# Content lives under a tracked folder, so these paths are stable.
+# --- Source copies, tracked in git -------------------------------------------------------------
+# These are what a build copies into the output folder. Editing one here changes what *future*
+# builds get; it does not change a build that already exists until the next build runs.
+Write-Heading 'Source copies (tracked in git - change these for good)'
+
 $contentDir = Join-Path $repoRoot 'Images&Content\Demo-Content'
 
 Write-ConfigEntry `
     (Join-Path $contentDir 'locations.json') `
     'Markers and locations - what appears on the map, and where' `
-    'Names here are also what layout keys are derived from; renaming a location orphans its saved layouts.'
+    'Names here are what layout keys are derived from; renaming a location orphans its saved layouts.'
 
 Write-ConfigEntry `
     (Join-Path $contentDir 'manual-layouts.json') `
     'Saved manual layouts - hand-placed pin positions' `
-    'Written by the in-app layout editor. Hand-editing is possible but rarely necessary.'
+    'Careful: the app writes the output copy, not this one. A build can overwrite in-app work (see below).'
 
 Write-ConfigEntry `
     (Join-Path $repoRoot 'visual-config.default.json') `
-    'Shipped defaults - tracked in git, seeds a new runtime config' `
-    'Change this to alter the defaults everyone gets. For a local-only change, use the runtime config below.'
+    'Shipped defaults - the seed for a new runtime config' `
+    'For a local-only change, edit the runtime visual-config.json below instead.'
 
-# The runtime config is the one the app actually reads, and it lives next to whichever exe was
-# built. There may be several (Debug, Release, publish output), so list every one that exists
-# rather than guessing at a single path.
-Write-Heading 'Live visual settings (visual-config.json, next to the built exe)'
-Write-Host '  Git-ignored, seeded from the defaults on first run. This is the file the app reads.' -ForegroundColor DarkGray
-Write-Host ''
+# --- What the running app actually reads -------------------------------------------------------
+# Every path the app resolves is relative to AppDomain.CurrentDomain.BaseDirectory, i.e. the folder
+# holding the .exe. There may be several (Debug, Release, a publish output), each with its own
+# independent copies, so list every one that exists rather than guessing at a single path.
+Write-Heading 'What the running app reads (next to each built .exe)'
 
 $binRoot = Join-Path $repoRoot 'bin'
+# @(...) so a single match stays an array rather than collapsing to a scalar.
 $exeDirs = @()
 if (Test-Path $binRoot) {
-    $exeDirs = Get-ChildItem -Path $binRoot -Recurse -File -Filter $exeName -ErrorAction SilentlyContinue |
-        ForEach-Object { $_.DirectoryName } |
-        Sort-Object -Unique
+    $exeDirs = @(
+        Get-ChildItem -Path $binRoot -Recurse -File -Filter $exeName -ErrorAction SilentlyContinue |
+            ForEach-Object { $_.DirectoryName } |
+            Sort-Object -Unique
+    )
 }
 
 if ($exeDirs.Count -eq 0) {
@@ -90,22 +111,36 @@ if ($exeDirs.Count -eq 0) {
     Write-Host ''
 } else {
     foreach ($dir in $exeDirs) {
+        Write-Host "  $dir" -ForegroundColor Cyan
+        Write-Host ''
+
         $runtimeConfig = Join-Path $dir 'visual-config.json'
-        $devTools = 'unknown'
-        if (Test-Path $runtimeConfig) {
-            try {
-                $json = Get-Content -Raw -Path $runtimeConfig | ConvertFrom-Json
-                if ($json.PSObject.Properties.Name -contains 'EnableDeveloperTools') {
-                    $devTools = if ([bool]$json.EnableDeveloperTools) { 'ON' } else { 'OFF' }
-                } else {
-                    $devTools = 'OFF (setting absent)'
-                }
-            } catch {
-                $devTools = 'unreadable - the file may not be valid JSON'
-            }
-        }
-        Write-ConfigEntry $runtimeConfig "Developer tools: $devTools" ''
+        Write-ConfigEntry `
+            $runtimeConfig `
+            ("visual-config.json - live settings. Developer tools: " + (Get-DeveloperToolsState $runtimeConfig)) `
+            'Git-ignored, and the only one of these a build never touches. Safe to edit by hand.'
+
+        Write-ConfigEntry `
+            (Join-Path $dir 'visual-config.default.json') `
+            'visual-config.default.json - the defaults this build actually falls back to' `
+            'A copy. Editing it works until the next build replaces it from the repo-root source.'
+
+        $outputContent = Join-Path $dir 'Images&Content\Demo-Content'
+        Write-ConfigEntry `
+            (Join-Path $outputContent 'locations.json') `
+            'locations.json - the markers this build shows' `
+            'A copy, same caveat.'
+
+        Write-ConfigEntry `
+            (Join-Path $outputContent 'manual-layouts.json') `
+            'manual-layouts.json - where the in-app editor saves your layouts' `
+            'This is the file that grows as you use Edit Layout. Back it up before editing the source copy.'
     }
+
+    Write-Host '  Copies are refreshed from the repo-root source whenever that source is newer, so' -ForegroundColor DarkYellow
+    Write-Host '  editing the source manual-layouts.json and rebuilding will discard layouts saved' -ForegroundColor DarkYellow
+    Write-Host '  in the app. To keep them, copy the output file back over the source instead.' -ForegroundColor DarkYellow
+    Write-Host ''
 }
 
 Write-Heading 'Developer tools'
