@@ -61,11 +61,16 @@ The tuning panel (F12 when enabled) provides a UI for adjusting cluster distance
 
 ### Toggling developer tools
 
-The repo includes `scripts\toggle-dev-tools.ps1` for flipping `EnableDeveloperTools` without hand-editing JSON. However, it only works for **local build outputs** (`bin\Debug\net6.0-windows\` and `bin\Release\net6.0-windows\`) — it does not currently scan publish output folders.
+Run `toggle-dev-tools.bat` at the project root to flip `EnableDeveloperTools` without hand-editing JSON. Use the `.bat`, not `scripts\toggle-dev-tools.ps1` directly: cmd.exe and Explorer cannot execute a `.ps1`, so double-clicking or typing the script name there makes Windows ask how to open the file and nothing happens.
 
-For **published/distributed builds**, either:
-1. **Edit `visual-config.json` directly** — it sits next to the `.exe` in the publish folder. Set `"EnableDeveloperTools": true` (or `false`) and relaunch.
-2. **Copy the script** — place `toggle-dev-tools.ps1` in the same folder as the published `.exe` (or adjust the hardcoded paths in the script to point at your publish output), then run it from there.
+```
+toggle-dev-tools.bat -State on
+toggle-dev-tools.bat -State on -PublishDir D:\Gallery\App
+```
+
+It updates the `visual-config.json` next to **every** built or published exe it finds under `bin\` (Debug, Release, `publish\`, self-contained). For a publish output written outside the repo, pass `-PublishDir`. Editing that `visual-config.json` by hand next to the `.exe` also works and needs no script.
+
+`configure.ps1` at the project root lists every config file with its resolved path and the current developer-tools state, and offers to run the toggle for you.
 
 ## Decision points (with trade-offs)
 

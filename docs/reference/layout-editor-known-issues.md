@@ -1,6 +1,6 @@
 # Layout Editor — What Was Broken, and What Changes
 
-**Started:** 2026-08-18 · **Last updated:** 2026-08-19 · **Status:** in progress
+**Started:** 2026-08-18 · **Last updated:** 2026-08-20 · **Status:** in progress
 
 Plain-language companion to
 [../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md](../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md),
@@ -206,12 +206,13 @@ layout is identified. Change one and the app looks for a layout under a differen
 **Important:** nothing is deleted. The layouts are still in the file; the app just cannot find them.
 Restoring the old values brings them back.
 
-**What it should do:** warn before you change these, and a planned config helper script will call
-this out.
+**What it should do:** warn before you change these. As of 2026-08-20 the config helper script
+exists — run `.\configure.ps1` at the project root and it lists every config file, where it is on
+your machine, and what it controls. The warning about these four values is still to come.
 
 ---
 
-## 7. The developer tools toggle did not work ⬜ not started
+## 7. The developer tools toggle did not work ✅ fixed
 
 **What you saw:** running `.\scripts\toggle-dev-tools.ps1 -State on` made Windows ask "How do you
 want to open this file?", and developer tools stayed off afterwards.
@@ -219,14 +220,19 @@ want to open this file?", and developer tools stayed off afterwards.
 **Why:** the script was being run from a `cmd.exe` window, which cannot execute PowerShell scripts —
 it hands them to Windows to open instead. The script never ran, so nothing changed.
 
-**Workaround today**, from a PowerShell window at the project root:
+**What changed (2026-08-20):** there is now a `toggle-dev-tools.bat` at the project root, next to
+`run-demo.bat`. It works from a cmd window, a PowerShell window, or a double-click in Explorer, and
+takes the same options as before:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\toggle-dev-tools.ps1 -State on
+```
+toggle-dev-tools.bat              flip whatever it is now
+toggle-dev-tools.bat -State on    force on
+toggle-dev-tools.bat -State off   force off
 ```
 
-**What it should do:** a `toggle-dev-tools.bat` at the project root, next to `run-demo.bat`, that
-works from anywhere you double-click or type it.
+It prints which state it moved to and which file it wrote, so a no-op is visible rather than silent,
+and it reports a failure (for example, no built copy of the app to configure) instead of appearing
+to succeed. Relaunch the app for the change to take effect.
 
 ---
 
@@ -293,8 +299,8 @@ all-anchor arrangement would become unsaveable. Worth doing if that stays hypoth
 | 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 — save now refused until you re-enter edit mode (S6) |
 | 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |
 | 5c | Zoomed arrangement saved but never shown | ✅ Fixed 2026-08-19 — needs confirmation (S9) |
-| 6 | Config changes hide cluster layouts | ⬜ Not started |
-| 7 | Dev tools toggle unrunnable from cmd | ⬜ Not started |
+| 6 | Config changes hide cluster layouts | ◐ `configure.ps1` now shows where the configs are; the warning is still missing |
+| 7 | Dev tools toggle unrunnable from cmd | ✅ Fixed 2026-08-20 — use `toggle-dev-tools.bat` at the project root |
 
 **Confirmed in the app:** the original stub failure no longer reproduces — S5 passed on 2026-08-19,
 covering save, load another layout, reload.

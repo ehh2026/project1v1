@@ -71,8 +71,8 @@ against merged `main`; the status column is kept current as phases land.
 | 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | **Fixed** (0.3–0.6, 0.9); 0.7 and 0.10 open as hardening |
 | 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | **Fixed** (1.1–1.8, 1b, 1c); confirmed in the app by smoke S5 |
 | 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | Not started |
-| 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | Not started |
-| 4 | No root-level guide to which config files to edit | P3 | Not started |
+| 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | **Done** (3.1–3.4) |
+| 4 | No root-level guide to which config files to edit | P3 | **Done** (4.1–4.4) |
 | 5 | `CalculateMaxLength` 20px floor lets heads leave the canvas | P2 | Not started |
 | 6 | Layout scoping is undocumented and invisible in the edit panel | P2 | Partly — scoping documented; editor panel still does not show it (6.1) |
 
@@ -432,13 +432,18 @@ Also confirmed: `dotnet build` copies only `visual-config.default.json` to the o
 
 ### Steps
 
-- [ ] 3.1 Add root `toggle-dev-tools.bat` →
+- [x] 3.1 Add root `toggle-dev-tools.bat` →
       `powershell -ExecutionPolicy Bypass -File "%~dp0scripts\toggle-dev-tools.ps1" %*`,
       sitting next to `run-demo.bat` where it will actually be found.
-- [ ] 3.2 Echo the resulting state and the config path written, so a no-op is visible.
-- [ ] 3.3 Have the script fail loudly if no `visual-config.json` was updated (it currently warns and
+- [x] 3.2 Echo the resulting state and the config path written, so a no-op is visible. The
+      PowerShell script already did this; the wrapper passes it through unchanged.
+- [x] 3.3 Have the script fail loudly if no `visual-config.json` was updated (it currently warns and
       exits 1 — verify that survives the wrapper's exit code).
-- [ ] 3.4 Verify end-to-end: wrapper from cmd → `run-demo.bat` → tools actually visible.
+- [x] 3.4 Verify end-to-end: wrapper from cmd → `run-demo.bat` → tools actually visible.
+      Verified from a real cmd.exe: `.\toggle-dev-tools.bat -State off` then `-State on` flipped
+      both Debug and Release `visual-config.json` and printed each path. Exit-code propagation
+      through the wrapper confirmed separately (a script exiting 1 yields `ERRORLEVEL=1`).
+      The final leg — launching the app and seeing the tools — is left to the user.
 
 **Exit:** toggling dev tools works from cmd, PowerShell, and Explorer.
 
@@ -455,12 +460,12 @@ Config surface confirmed on merged `main`:
 | `Images&Content/Demo-Content/locations.json` | markers and locations |
 | `Images&Content/Demo-Content/manual-layouts.json` | saved manual layouts |
 
-- [ ] 4.1 Add root `configure.ps1` printing the table above with resolved absolute paths, flagging
+- [x] 4.1 Add root `configure.ps1` printing the table above with resolved absolute paths, flagging
       which files exist.
-- [ ] 4.2 Prompt to run the dev-tools toggle — invoking the **Phase 3 `.bat` wrapper**, not the raw
+- [x] 4.2 Prompt to run the dev-tools toggle — invoking the **Phase 3 `.bat` wrapper**, not the raw
       `.ps1`.
-- [ ] 4.3 Make it read-only apart from that opt-in prompt; never edit configs itself.
-- [ ] 4.4 Match existing root-script conventions (`UpdateLocations.ps1`, `ViewCoordinates.ps1`).
+- [x] 4.3 Make it read-only apart from that opt-in prompt; never edit configs itself.
+- [x] 4.4 Match existing root-script conventions (`UpdateLocations.ps1`, `ViewCoordinates.ps1`).
 
 ---
 
