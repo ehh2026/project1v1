@@ -37,7 +37,7 @@ public class ManualLayoutZoomAnimationTests
 
         // Cluster-key path: both the staging guard and the apply guard reference the flag.
         Assert.Contains("savedLayout != null && !_layoutEditor.IsManualLayoutSuppressed", source);
-        Assert.Contains("_savedLayoutToApply != null && !_layoutEditor.IsManualLayoutSuppressed", source);
+        Assert.Contains("staged != null && !_layoutEditor.IsManualLayoutSuppressed", source);
     }
 
     [Fact]

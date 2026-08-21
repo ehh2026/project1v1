@@ -230,6 +230,11 @@ namespace InteractiveWorldMap
                 ClearFullMapLayoutSession();
                 _currentZoomedCluster = cluster;
 
+                // Staging is scoped to this call. Clearing on entry means no path out of the method
+                // — an early return, the single-location full-map branch below, or the catch — can
+                // leave a layout staged for a cluster the user has already navigated away from.
+                _stagedClusterLayout = null;
+
                 var viewport = MapDisplay.CurrentViewport;
                 if (viewport != null)
                 {
@@ -270,8 +275,9 @@ namespace InteractiveWorldMap
                             if (savedLayout != null && !_layoutEditor.IsManualLayoutSuppressed)
                             {
                                 _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
-                                _savedLayoutToApply = savedLayout; // Store for later application
-                                _savedLayoutGroupKey = clusterKey; // ...under the key it was resolved for
+
+                                // Store for later application, under the key it was resolved for.
+                                _stagedClusterLayout = (savedLayout, clusterKey);
                             }
                             else
                             {
@@ -317,19 +323,15 @@ namespace InteractiveWorldMap
                     UpdateMarkerPositions();
 
                     // Apply saved cluster manual layout if one was found and not unloaded this session.
-                    if (_savedLayoutToApply != null && !_layoutEditor.IsManualLayoutSuppressed)
+                    var staged = _stagedClusterLayout;
+                    _stagedClusterLayout = null; // Consumed either way; a suppressed layout is dropped.
+
+                    if (staged != null && !_layoutEditor.IsManualLayoutSuppressed)
                     {
-                        ApplyManualLayout(_savedLayoutToApply, _savedLayoutGroupKey);
+                        ApplyManualLayout(staged.Value.Layout, staged.Value.GroupKey);
                         _layoutEditor.SetManualLayoutActive(true);
-                        _savedLayoutToApply = null; // Clear after applying
-                        _savedLayoutGroupKey = null;
 
                         _logger.LogInfo("Manual layout applied after high-res region loaded");
-                    }
-                    else
-                    {
-                        _savedLayoutToApply = null; // Drop any stale/suppressed staged layout.
-                        _savedLayoutGroupKey = null;
                     }
                 }
 

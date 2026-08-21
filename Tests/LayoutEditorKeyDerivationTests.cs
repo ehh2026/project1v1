@@ -174,12 +174,24 @@ public class LayoutEditorKeyDerivationTests
         // post-save invalidation never reaches.
         var source = ReadSource("MainWindow.Navigation.partial.cs");
 
-        var stageIndex = source.IndexOf("_savedLayoutGroupKey = clusterKey", StringComparison.Ordinal);
-        Assert.True(stageIndex >= 0, "Staging a cluster layout must record the key it was resolved for.");
-
+        // The layout and its key live in one field so they cannot be set or cleared separately and
+        // drift apart — a tuple assignment is the only way to stage either of them.
+        Assert.Contains("_stagedClusterLayout = (savedLayout, clusterKey)", source);
         Assert.Contains(
-            "ApplyManualLayout(_savedLayoutToApply, _savedLayoutGroupKey)",
+            "ApplyManualLayout(staged.Value.Layout, staged.Value.GroupKey)",
             source);
+
+        // Staging must not outlive the call that did it. Cleared on entry, so no exit path — an
+        // early return, the single-location full-map branch, or the catch — can leave a layout
+        // staged for a cluster the user has already navigated away from.
+        var methodIndex = source.IndexOf("private void ShowZoomedView", StringComparison.Ordinal);
+        Assert.True(methodIndex >= 0, "ShowZoomedView not found.");
+
+        var clearIndex = source.IndexOf("_stagedClusterLayout = null", methodIndex, StringComparison.Ordinal);
+        var stageIndex = source.IndexOf("_stagedClusterLayout = (", methodIndex, StringComparison.Ordinal);
+        Assert.True(
+            clearIndex >= 0 && clearIndex < stageIndex,
+            "ShowZoomedView must clear any previously staged layout before staging a new one.");
     }
 
     [Fact]
