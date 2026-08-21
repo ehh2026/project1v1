@@ -207,8 +207,9 @@ layout is identified. Change one and the app looks for a layout under a differen
 Restoring the old values brings them back.
 
 **What it should do:** warn before you change these. As of 2026-08-20 the config helper script
-exists — run `.\configure.ps1` at the project root and it lists every config file, where it is on
-your machine, and what it controls. The warning about these four values is still to come.
+exists — run `configure.bat` at the project root (or double-click it) and it lists every config
+file, where it is on your machine, and what it controls. The warning about these four values is
+still to come.
 
 ---
 
@@ -229,6 +230,9 @@ toggle-dev-tools.bat              flip whatever it is now
 toggle-dev-tools.bat -State on    force on
 toggle-dev-tools.bat -State off   force off
 ```
+
+There is a `configure.bat` next to it for the same reason. If you double-click either one, the
+window now stays open so you can read what it did instead of it flashing past.
 
 It prints which state it moved to and which file it wrote, so a no-op is visible rather than silent,
 and it reports a failure (for example, no built copy of the app to configure) instead of appearing

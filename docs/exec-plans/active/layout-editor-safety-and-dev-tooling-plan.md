@@ -460,7 +460,8 @@ Config surface confirmed on merged `main`:
 | `Images&Content/Demo-Content/locations.json` | markers and locations |
 | `Images&Content/Demo-Content/manual-layouts.json` | saved manual layouts |
 
-- [x] 4.1 Add root `configure.ps1` printing the table above with resolved absolute paths, flagging
+- [x] 4.1 Add root `configure.ps1` (plus a `configure.bat` wrapper, for the Phase 3 reason — cmd
+      and Explorer cannot run a `.ps1`) printing the table above with resolved absolute paths, flagging
       which files exist.
 - [x] 4.2 Prompt to run the dev-tools toggle — invoking the **Phase 3 `.bat` wrapper**, not the raw
       `.ps1`.
