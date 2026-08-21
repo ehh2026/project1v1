@@ -26,6 +26,27 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 $exeName = 'InteractiveWorldMap.exe'
 
+function Test-LaunchedFromExplorer {
+    # Explorer opens a console just for the script and closes it the moment the script ends, so
+    # everything printed here would flash past unread. A console you were already sitting in keeps
+    # the output. Those two cases have to be told apart, and the command line is no help: launching
+    # the wrapper from a PowerShell prompt produces almost exactly what a double-click does. Who
+    # started us does distinguish them, so walk up the process chain looking for explorer.exe.
+    try {
+        $id = $PID
+        for ($hop = 0; $hop -lt 4 -and $id; $hop++) {
+            $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$id" -ErrorAction Stop
+            if (-not $proc) { return $false }
+            if ($proc.Name -eq 'explorer.exe') { return $true }
+            $id = $proc.ParentProcessId
+        }
+    } catch {
+        # Not worth failing the script over; treat an unknown launcher as a console.
+        return $false
+    }
+    return $false
+}
+
 function Write-Heading([string]$text) {
     Write-Host ''
     Write-Host $text -ForegroundColor Cyan
@@ -148,27 +169,32 @@ Write-Host '  Turns on the Edit Layout button, the tuning panel, and the debug o
 Write-Host '  Toggle it any time with:  .\toggle-dev-tools.bat -State on' -ForegroundColor DarkGray
 Write-Host ''
 
-if ($NoPrompt) {
-    return
-}
+# No early returns past this point: the Explorer pause at the bottom has to be reached on every
+# path, or a double-click closes the window before any of the above can be read.
+if (-not $NoPrompt) {
+    # Only prompt when there is a console to answer on; otherwise Read-Host reads EOF and loops.
+    if (-not [Environment]::UserInteractive) {
+        Write-Host '  Non-interactive session - skipping the toggle prompt.' -ForegroundColor DarkGray
+    } else {
+        $answer = Read-Host '  Run the developer-tools toggle now? (on / off / no)'
+        $state = switch ($answer.Trim().ToLowerInvariant()) {
+            'on'  { 'on' }
+            'off' { 'off' }
+            default { $null }
+        }
 
-# Only prompt when there is a console to answer on; otherwise Read-Host reads EOF and loops.
-if ([Environment]::UserInteractive -eq $false) {
-    Write-Host '  Non-interactive session - skipping the toggle prompt.' -ForegroundColor DarkGray
-    return
-}
-
-$answer = Read-Host '  Run the developer-tools toggle now? (on / off / no)'
-switch ($answer.Trim().ToLowerInvariant()) {
-    'on'  { $state = 'on' }
-    'off' { $state = 'off' }
-    default {
-        Write-Host '  No changes made.' -ForegroundColor DarkGray
-        return
+        if ($state) {
+            # Go through the .bat wrapper rather than the .ps1 directly: it is the supported entry
+            # point, and using it here means this script exercises the same path a user would.
+            Write-Host ''
+            & (Join-Path $repoRoot 'toggle-dev-tools.bat') -State $state
+        } else {
+            Write-Host '  No changes made.' -ForegroundColor DarkGray
+        }
     }
 }
 
-# Go through the .bat wrapper rather than the .ps1 directly: it is the supported entry point,
-# and using it here means this script exercises the same path a user would.
-Write-Host ''
-& (Join-Path $repoRoot 'toggle-dev-tools.bat') -State $state
+if ((-not $NoPrompt) -and (Test-LaunchedFromExplorer)) {
+    Write-Host ''
+    Read-Host '  Press Enter to close' | Out-Null
+}

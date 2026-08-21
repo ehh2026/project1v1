@@ -38,6 +38,26 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+function Test-LaunchedFromExplorer {
+    # A double-click gets a console that closes the instant this script ends, so the lines below
+    # would flash past unread. A console you were already in keeps them. The command line cannot
+    # tell those apart -- running the .bat wrapper from a PowerShell prompt produces almost exactly
+    # what Explorer produces -- but the process that started us can.
+    try {
+        $id = $PID
+        for ($hop = 0; $hop -lt 4 -and $id; $hop++) {
+            $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$id" -ErrorAction Stop
+            if (-not $proc) { return $false }
+            if ($proc.Name -eq 'explorer.exe') { return $true }
+            $id = $proc.ParentProcessId
+        }
+    } catch {
+        return $false
+    }
+    return $false
+}
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $exeName = 'InteractiveWorldMap.exe'
 
@@ -106,6 +126,7 @@ foreach ($configPath in $configPaths) {
 
 if ($updated.Count -eq 0) {
     Write-Warning "No $exeName found under bin\ (or -PublishDir). Build/publish the app once, then re-run this script."
+    if (Test-LaunchedFromExplorer) { Read-Host "Press Enter to close" | Out-Null }
     exit 1
 }
 
@@ -116,3 +137,8 @@ foreach ($u in $updated) {
         $u.Path)
 }
 Write-Host "Relaunch the app for the change to take effect."
+
+if (Test-LaunchedFromExplorer) {
+    Write-Host ""
+    Read-Host "Press Enter to close" | Out-Null
+}
