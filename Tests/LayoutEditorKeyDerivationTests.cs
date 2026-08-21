@@ -36,6 +36,16 @@ public class LayoutEditorKeyDerivationTests
 
         // There is no ambient key to inherit any more; this pins that none reappears.
         Assert.DoesNotContain("CurrentLayoutKey", source);
+
+        // Entry must also adopt the session layout's variant identity. Identity used to arrive as
+        // a side effect of navigation's probe loads; now that loading is side-effect free, only
+        // this call establishes it, and without it a save silently targets "manual-default"
+        // instead of the variant the user is editing. The controller-level test for that property
+        // cannot see this wiring, so it is pinned here.
+        var adoptIndex = source.IndexOf("LoadForEditSession()", handlerIndex, StringComparison.Ordinal);
+        Assert.True(
+            adoptIndex >= 0,
+            "Entering edit mode must load the session's layout so its variant identity is adopted.");
     }
 
     [Fact]
