@@ -8,11 +8,10 @@ namespace InteractiveWorldMap
     /// Layout-key derivation for the manual layout editor.
     /// </summary>
     /// <remarks>
-    /// <c>LayoutEditorController.CurrentLayoutKey</c> is written from several places — zoom
-    /// animations, full-map probes, cluster navigation — so any operation that loads or writes a
-    /// layout derives the key it expects from the view currently on screen rather than trusting
-    /// whatever the field happens to hold. A stale key silently writes one scope's geometry into
-    /// another scope's layout.
+    /// Layout keys are derived per use and never stored: the editor takes its key from the session
+    /// captured on entry, and display and replay resolve theirs locally. There is deliberately no
+    /// shared "current key" field — when there was, zoom animations and full-map probes could
+    /// change what an in-progress edit would overwrite.
     /// </remarks>
     public partial class MainWindow
     {
@@ -36,13 +35,16 @@ namespace InteractiveWorldMap
             return LayoutKeyGenerator.GenerateFullMapGroupKey();
         }
 
+        /// <summary>
+        /// Marks this as a full-map edit session. The key comes from the session built on editor
+        /// entry, so nothing is stored here.
+        /// </summary>
         private bool TrySetFullMapLayoutKey(bool editSession)
         {
             if (!IsFullMapRootView())
                 return false;
 
             _isFullMapLayoutSession = editSession;
-            _layoutEditor.SetLayoutKey(GenerateCurrentFullMapGroupKey());
             return true;
         }
 

@@ -61,7 +61,15 @@ namespace InteractiveWorldMap
         private Point _dragStartPosition;
         private IManualLayoutManager? _layoutManager;
         private LocationCluster? _currentZoomedCluster = null;
-        private ManualLayout? _savedLayoutToApply = null;
+        // A cluster layout found early in ShowZoomedView and applied later, once the high-res region
+        // has landed. The key travels with it because it is not always the key the layout is stored
+        // under: LoadLayout falls back to a compatible group, so a legacy or near-zoom match returns
+        // a layout whose own GroupKey differs. Applying under the key the view resolved keeps the
+        // composite-plan cache in the group the post-save invalidation will reach.
+        //
+        // One field, not two, so the layout and its key cannot be set or cleared independently and
+        // drift apart.
+        private (ManualLayout Layout, string GroupKey)? _stagedClusterLayout = null;
         private bool _isFullMapLayoutSession = false;
 
         // Map image dimensions — single source of truth via MapMetadata (display space).
