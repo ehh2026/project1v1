@@ -164,6 +164,52 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
+    public void StagedClusterLayout_CarriesTheKeyItWasResolvedFor()
+    {
+        // ShowZoomedView loads a cluster layout under one key but applies it later, after the
+        // high-res region lands. LoadLayout can resolve a *compatible* group rather than an exact
+        // one (a legacy sized key, a near-zoom match), so the returned layout's own GroupKey is not
+        // always the key the view selected. Applying without the key lets ApplyManualLayout fall
+        // back to layout.GroupKey, which puts the composite plan cache in a group the
+        // post-save invalidation never reaches.
+        var source = ReadSource("MainWindow.Navigation.partial.cs");
+
+        var stageIndex = source.IndexOf("_savedLayoutGroupKey = clusterKey", StringComparison.Ordinal);
+        Assert.True(stageIndex >= 0, "Staging a cluster layout must record the key it was resolved for.");
+
+        Assert.Contains(
+            "ApplyManualLayout(_savedLayoutToApply, _savedLayoutGroupKey)",
+            source);
+    }
+
+    [Fact]
+    public void UnloadLogsTheSessionKeyItCaptured_NotOneReadAfterTheSessionEnds()
+    {
+        // ExitEditMode ends the session, so anything read from ActiveSession afterwards is null.
+        // The unload log is the only record of which saved group was suppressed; logging null
+        // there is silent, which is why this is pinned rather than left to review.
+        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+
+        var handlerIndex = source.IndexOf(
+            "private void OnUnloadLayoutButtonClick", StringComparison.Ordinal);
+        Assert.True(handlerIndex >= 0, "OnUnloadLayoutButtonClick not found.");
+
+        var handlerEnd = source.IndexOf(
+            "private void ExitEditMode", handlerIndex, StringComparison.Ordinal);
+        Assert.True(handlerEnd > handlerIndex, "Could not bound OnUnloadLayoutButtonClick.");
+
+        var body = source.Substring(handlerIndex, handlerEnd - handlerIndex);
+
+        var captureIndex = body.IndexOf(
+            "var sessionKey = _layoutEditor.ActiveSession.LayoutKey", StringComparison.Ordinal);
+        var exitIndex = body.IndexOf("ExitEditMode()", StringComparison.Ordinal);
+
+        Assert.True(captureIndex >= 0, "Unload must capture the session key before ending the session.");
+        Assert.True(captureIndex < exitIndex, "The capture must happen before ExitEditMode().");
+        Assert.DoesNotContain("ActiveSession?.LayoutKey", body);
+    }
+
+    [Fact]
     public void OnSizeChanged_DoesNotRePlaceMarkersDuringEdit()
     {
         var source = ReadSource("MainWindow.xaml.cs");
