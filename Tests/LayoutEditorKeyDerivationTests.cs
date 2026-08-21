@@ -19,20 +19,33 @@ public class LayoutEditorKeyDerivationTests
         File.ReadAllText(Path.Combine(RepoRoot, fileName));
 
     [Fact]
-    public void OnEditLayoutButtonClick_DerivesClusterKey_RatherThanInheritingIt()
+    public void OnEditLayoutButtonClick_BeginsASessionScopedToTheViewOnScreen()
     {
         var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
 
         var handlerIndex = source.IndexOf("private void OnEditLayoutButtonClick", StringComparison.Ordinal);
         Assert.True(handlerIndex >= 0, "OnEditLayoutButtonClick not found.");
 
-        var deriveIndex = source.IndexOf(
-            "LayoutKeyGenerator.DeriveEditSessionKey", handlerIndex, StringComparison.Ordinal);
+        var buildIndex = source.IndexOf("TryBuildEditSession()", handlerIndex, StringComparison.Ordinal);
+        var beginIndex = source.IndexOf("BeginEditSession(", handlerIndex, StringComparison.Ordinal);
+
         Assert.True(
-            deriveIndex >= 0,
-            "Entering edit mode while zoomed must re-derive the cluster layout key. Inheriting " +
-            "CurrentLayoutKey lets a 'fullmap' key set by the zoom animation survive into a " +
-            "cluster edit session, so the save overwrites the full-map layout.");
+            buildIndex >= 0 && beginIndex > buildIndex,
+            "Entering edit mode must build a session from the view on screen and begin it. That " +
+            "session is the only record of what the edit will write to.");
+
+        // There is no ambient key to inherit any more; this pins that none reappears.
+        Assert.DoesNotContain("CurrentLayoutKey", source);
+
+        // Entry must also adopt the session layout's variant identity. Identity used to arrive as
+        // a side effect of navigation's probe loads; now that loading is side-effect free, only
+        // this call establishes it, and without it a save silently targets "manual-default"
+        // instead of the variant the user is editing. The controller-level test for that property
+        // cannot see this wiring, so it is pinned here.
+        var adoptIndex = source.IndexOf("LoadForEditSession()", handlerIndex, StringComparison.Ordinal);
+        Assert.True(
+            adoptIndex >= 0,
+            "Entering edit mode must load the session's layout so its variant identity is adopted.");
     }
 
     [Fact]
@@ -138,7 +151,7 @@ public class LayoutEditorKeyDerivationTests
 
         var guardIndex = source.IndexOf(
             "HasManualLayoutForZoomedView(cluster)", methodIndex, StringComparison.Ordinal);
-        var applyIndex = source.IndexOf("ApplyManualLayout(layout)", methodIndex, StringComparison.Ordinal);
+        var applyIndex = source.IndexOf("ApplyManualLayout(layout, key)", methodIndex, StringComparison.Ordinal);
 
         Assert.True(guardIndex >= 0, "The full-map replay must yield to a hand-made zoomed layout.");
         Assert.True(guardIndex < applyIndex, "The precedence check must run before applying.");
@@ -148,6 +161,64 @@ public class LayoutEditorKeyDerivationTests
         Assert.Contains(
             "cluster.IsSingleLocation && !HasManualLayoutForZoomedView(cluster)",
             source);
+    }
+
+    [Fact]
+    public void StagedClusterLayout_CarriesTheKeyItWasResolvedFor()
+    {
+        // ShowZoomedView loads a cluster layout under one key but applies it later, after the
+        // high-res region lands. LoadLayout can resolve a *compatible* group rather than an exact
+        // one (a legacy sized key, a near-zoom match), so the returned layout's own GroupKey is not
+        // always the key the view selected. Applying without the key lets ApplyManualLayout fall
+        // back to layout.GroupKey, which puts the composite plan cache in a group the
+        // post-save invalidation never reaches.
+        var source = ReadSource("MainWindow.Navigation.partial.cs");
+
+        // The layout and its key live in one field so they cannot be set or cleared separately and
+        // drift apart — a tuple assignment is the only way to stage either of them.
+        Assert.Contains("_stagedClusterLayout = (savedLayout, clusterKey)", source);
+        Assert.Contains(
+            "ApplyManualLayout(staged.Value.Layout, staged.Value.GroupKey)",
+            source);
+
+        // Staging must not outlive the call that did it. Cleared on entry, so no exit path — an
+        // early return, the single-location full-map branch, or the catch — can leave a layout
+        // staged for a cluster the user has already navigated away from.
+        var methodIndex = source.IndexOf("private void ShowZoomedView", StringComparison.Ordinal);
+        Assert.True(methodIndex >= 0, "ShowZoomedView not found.");
+
+        var clearIndex = source.IndexOf("_stagedClusterLayout = null", methodIndex, StringComparison.Ordinal);
+        var stageIndex = source.IndexOf("_stagedClusterLayout = (", methodIndex, StringComparison.Ordinal);
+        Assert.True(
+            clearIndex >= 0 && clearIndex < stageIndex,
+            "ShowZoomedView must clear any previously staged layout before staging a new one.");
+    }
+
+    [Fact]
+    public void UnloadLogsTheSessionKeyItCaptured_NotOneReadAfterTheSessionEnds()
+    {
+        // ExitEditMode ends the session, so anything read from ActiveSession afterwards is null.
+        // The unload log is the only record of which saved group was suppressed; logging null
+        // there is silent, which is why this is pinned rather than left to review.
+        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+
+        var handlerIndex = source.IndexOf(
+            "private void OnUnloadLayoutButtonClick", StringComparison.Ordinal);
+        Assert.True(handlerIndex >= 0, "OnUnloadLayoutButtonClick not found.");
+
+        var handlerEnd = source.IndexOf(
+            "private void ExitEditMode", handlerIndex, StringComparison.Ordinal);
+        Assert.True(handlerEnd > handlerIndex, "Could not bound OnUnloadLayoutButtonClick.");
+
+        var body = source.Substring(handlerIndex, handlerEnd - handlerIndex);
+
+        var captureIndex = body.IndexOf(
+            "var sessionKey = _layoutEditor.ActiveSession.LayoutKey", StringComparison.Ordinal);
+        var exitIndex = body.IndexOf("ExitEditMode()", StringComparison.Ordinal);
+
+        Assert.True(captureIndex >= 0, "Unload must capture the session key before ending the session.");
+        Assert.True(captureIndex < exitIndex, "The capture must happen before ExitEditMode().");
+        Assert.DoesNotContain("ActiveSession?.LayoutKey", body);
     }
 
     [Fact]
@@ -176,22 +247,25 @@ public class LayoutEditorKeyDerivationTests
     }
 
     [Fact]
-    public void CollapseGuard_StandsDownOnlyWhenEveryJudgedMarkerWasMoved()
+    public void CollapseGuard_HasNoDragBasedBypass()
     {
-        // Dragging every head onto its own anchor is a legitimate arrangement of zero-length
-        // extensions, so the backstop must yield to it. But one drag — or a click with no motion —
-        // must not vouch for the whole group, or incidental input would let genuinely collapsed
-        // geometry through. Movement is therefore recorded per marker, and the guard stands down
-        // only when every marker it would judge is covered.
+        // The guard once stood down when the user had dragged every marker it would judge, to allow
+        // deliberately putting every head back on its own location marker. That was judged not a
+        // real use case (smoke S10, dropped 2026-08-20), so the exception and its per-marker drag
+        // tracking are gone and an all-anchor dense cluster is always refused.
+        //
+        // Pinned because the bypass was itself added in response to a review finding: without a
+        // test, it is the kind of thing that gets reintroduced the next time someone reasons about
+        // intent from coordinates.
         var source = ReadSource("MainWindow.LayoutEditorGeometry.partial.cs");
 
-        Assert.Contains("expectedExtended.IsSubsetOf(_draggedLocationsThisEditSession)", source);
+        Assert.DoesNotContain("_draggedLocationsThisEditSession", source);
+        Assert.DoesNotContain("RecordDeliberateDrag", source);
+        Assert.DoesNotContain("RecordDeliberateDrag", ReadSource("MainWindow.LayoutEditorDrag.partial.cs"));
 
-        // A press without motion is not a decision about where the head belongs.
-        Assert.Contains("if (GeometryMath.ArePointsCoincident(from, to)) return;", source);
-
-        var dragSource = ReadSource("MainWindow.LayoutEditorDrag.partial.cs");
-        Assert.Contains("RecordDeliberateDrag(_draggedMarker,", dragSource);
+        // The guard itself must remain, judging only markers placement would extend (smoke S8).
+        Assert.Contains("IsCollapsedLayout(", source);
+        Assert.Contains("FindExpectedExtendedLocations(", source);
     }
 
     [Fact]

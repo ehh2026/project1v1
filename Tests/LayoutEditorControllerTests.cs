@@ -340,7 +340,7 @@ public class LayoutEditorControllerTests
     public void TrySave_NullKey_ReturnsFalseAndLogs()
     {
         var (ctrl, _, logger, _) = Make();
-        // CurrentLayoutKey is null (default)
+        // No edit session begun (default)
         var result = ctrl.TrySave(new List<RadialExtension>());
         Assert.False(result);
         Assert.NotEmpty(logger.WarningMessages);
@@ -529,7 +529,7 @@ public class LayoutEditorControllerTests
 
 
     [Fact]
-    public void GetVariants_WithNoCurrentLayoutKey_ReturnsEmpty()
+    public void GetVariants_WithNoEditSession_ReturnsEmpty()
     {
         var (ctrl, _, _, _) = Make();
 
@@ -537,7 +537,7 @@ public class LayoutEditorControllerTests
     }
 
     [Fact]
-    public void GetVariants_WithCurrentLayoutKey_ReturnsSavedVariants()
+    public void GetVariants_WithEditSession_ReturnsSavedVariants()
     {
         var (ctrl, _, _, _) = Make();
         ctrl.BeginEditSession(SessionFor("key-variants"));
@@ -560,7 +560,7 @@ public class LayoutEditorControllerTests
     }
 
     [Fact]
-    public void SwitchToVariant_WithNoCurrentLayoutKey_ReturnsNull()
+    public void SwitchToVariant_WithNoEditSession_ReturnsNull()
     {
         var (ctrl, _, _, _) = Make();
 

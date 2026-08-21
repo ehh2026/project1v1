@@ -61,8 +61,6 @@ namespace InteractiveWorldMap
             }
 
             var key = GenerateCurrentFullMapGroupKey();
-            _layoutEditor.SetLayoutKey(key);
-
             var layout = _layoutEditor.TryLoad(key);
             if (layout == null)
             {
@@ -72,7 +70,7 @@ namespace InteractiveWorldMap
             }
 
             _logger.LogInfo($"[TryApplyFullMapManualLayout] Replaying full-map layout for key={key}");
-            ApplyManualLayout(layout);
+            ApplyManualLayout(layout, key);
             _layoutEditor.SetManualLayoutActive(true);
             UpdateEditLayoutButtonVisibility();
             return true;
@@ -229,38 +227,19 @@ namespace InteractiveWorldMap
             else
             {
                 ClearFullMapLayoutSession();
-
-                // Re-derive the cluster key from the view on screen. Inheriting whatever
-                // CurrentLayoutKey held would let a "fullmap" key set by the zoom animation
-                // survive into a cluster edit session, and the save would then overwrite the
-                // full-map layout with this cluster's handful of markers.
-                var editViewport = MapDisplay.CurrentViewport;
-                if (editViewport == null)
-                {
-                    _logger.LogWarning("Cannot enter cluster layout edit - viewport is not ready");
-                    return;
-                }
-
-                _layoutEditor.SetLayoutKey(LayoutKeyGenerator.DeriveEditSessionKey(
-                    _currentZoomedCluster.Locations,
-                    editViewport,
-                    _visualConfig.RadialExtension));
-                _logger.LogInfo($"[OnEditLayoutButtonClick] Derived cluster layout key={_layoutEditor.CurrentLayoutKey}");
             }
 
-            // Capture the scope once, immutably. Saves will read from this instead of re-deriving
-            // and re-checking the ambient key; during the migration both exist and must agree.
+            // Capture the scope once, immutably. This is the only thing that decides what the
+            // session edits — there is no ambient key to inherit from navigation any more.
             var session = TryBuildEditSession();
             if (session == null)
             {
                 _logger.LogWarning("Cannot enter layout edit - viewport is not ready for a session");
                 return;
             }
+            // Beginning a session re-captures the viewport, so staleness from a previous session
+            // is resolved here by construction.
             _layoutEditor.BeginEditSession(session);
-
-            // Entering the editor re-places markers against the current viewport, so any staleness
-            // from a previous session is resolved here.
-            ResetEditSessionGeometryState();
 
             _layoutEditor.EnterEditMode();
 
@@ -323,7 +302,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private async void OnSaveLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutEditor.CurrentLayoutKey == null ||
+            if (_layoutEditor.ActiveSession == null ||
                 (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
                 _logger.LogWarning("Cannot save layout - no layout key or active layout session");
@@ -381,8 +360,8 @@ namespace InteractiveWorldMap
                 _layoutEditor.TrySave(extensions, assignments);
 
                 // Phase 4: invalidate cached plans so next render builds fresh ones.
-                if (_layoutEditor.CurrentLayoutKey != null)
-                    _planApplicationService.InvalidateGroup(_layoutEditor.CurrentLayoutKey);
+                if (_layoutEditor.ActiveSession != null)
+                    _planApplicationService.InvalidateGroup(_layoutEditor.ActiveSession.LayoutKey);
 
                 // Pending overrides are now persisted — clear them and hide the indicator.
                 _overrideStore.ClearOverrides();
@@ -411,7 +390,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnDeleteLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutEditor.CurrentLayoutKey == null ||
+            if (_layoutEditor.ActiveSession == null ||
                 (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
                 _logger.LogWarning("Cannot delete layout - no layout key or active layout session");
@@ -456,7 +435,7 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnUnloadLayoutButtonClick(object sender, RoutedEventArgs e)
         {
-            if (_layoutEditor.CurrentLayoutKey == null ||
+            if (_layoutEditor.ActiveSession == null ||
                 (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
                 _logger.LogWarning("Cannot unload layout - no layout key or active layout session");
@@ -466,6 +445,11 @@ namespace InteractiveWorldMap
             try
             {
                 var wasFullMapSession = IsFullMapLayoutSessionActive();
+
+                // Capture the scope before ExitEditMode ends the session: the completion log below
+                // is the only record of which saved group was suppressed, and reading it afterwards
+                // would always report null.
+                var sessionKey = _layoutEditor.ActiveSession.LayoutKey;
 
                 // Suppress for this session; the saved JSON stays on disk.
                 _layoutEditor.UnloadManualLayout();
@@ -488,7 +472,7 @@ namespace InteractiveWorldMap
                     ShowZoomedView(_currentZoomedCluster);
                 }
 
-                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={_layoutEditor.CurrentLayoutKey}");
+                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={sessionKey}");
             }
             catch (Exception ex)
             {
@@ -555,11 +539,21 @@ namespace InteractiveWorldMap
         /// Phase 4: checks the composite render-plan disk cache before building plans;
         /// saves plans to cache on a miss.
         /// </summary>
-        private void ApplyManualLayout(ManualLayout layout)
+        /// <summary>
+        /// Applies a saved layout to the markers on screen.
+        /// </summary>
+        /// <param name="layout">The layout to apply.</param>
+        /// <param name="groupKey">
+        /// The group the layout belongs to, used to key the composite-pin plan cache. Passed
+        /// explicitly rather than read from ambient state: the caller always knows which layout it
+        /// just loaded, and reading a shared field here let navigation's key leak into the cache
+        /// key of an unrelated apply. Defaults to the layout's own group when omitted.
+        /// </param>
+        private void ApplyManualLayout(ManualLayout layout, string? groupKey = null)
         {
             _logger.LogInfo($"[ApplyManualLayout] Applying layout with {layout.Markers.Count} markers");
 
-            var groupKey = _layoutEditor.CurrentLayoutKey ?? layout.GroupKey;
+            var resolvedGroupKey = groupKey ?? layout.GroupKey;
 
             // 2.1: on the zoom-animation hot path, keep the existing extension-line pairs and
             // reposition them in place each frame (see the RequiresExtensionLine branch below)
@@ -601,7 +595,7 @@ namespace InteractiveWorldMap
                 cw,
                 ch,
                 _visualConfig.PinParts,
-                groupKey ?? string.Empty,
+                resolvedGroupKey,
                 geometryPath,
                 CanUseCompositePins() && _pinPartGeometryHash != null,
                 fullMapViewport);
@@ -611,11 +605,11 @@ namespace InteractiveWorldMap
                 ApplyManualLayoutInstruction(instruction, visibleMarkers);
             }
             // TryRepositionPinLine(marker...) is used inside ApplyManualLayoutInstruction during animation.
-            if (applyPlan.ShouldSaveToCache && !string.IsNullOrEmpty(groupKey))
+            if (applyPlan.ShouldSaveToCache && !string.IsNullOrEmpty(resolvedGroupKey))
             {
                 _planApplicationService.SaveIfMissed(
                     applyPlan.CacheKey,
-                    groupKey,
+                    resolvedGroupKey,
                     layout.VariantId,
                     layout.Markers.Select(m => m.LocationName));
             }

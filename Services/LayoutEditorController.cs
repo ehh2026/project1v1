@@ -23,7 +23,6 @@ public sealed class LayoutEditorController
 
     public bool IsEditMode { get; private set; }
     public bool IsManualLayoutActive { get; private set; }
-    public string? CurrentLayoutKey { get; private set; }
 
     /// <summary>
     /// True when the user has unloaded the saved layout for this session (see
@@ -69,7 +68,7 @@ public sealed class LayoutEditorController
     public event Action? EditModeExited;
     public event Action<bool>? ManualLayoutActivityChanged;
 
-    /// <summary>Fired whenever the variant list for <see cref="CurrentLayoutKey"/> changes (save, save-as, delete).</summary>
+    /// <summary>Fired whenever the variant list for the active edit session changes (save, save-as, delete).</summary>
     public event Action<IReadOnlyList<ManualLayoutSummary>>? VariantsChanged;
 
     // ─── Constructor ─────────────────────────────────────────────────────────
@@ -90,10 +89,11 @@ public sealed class LayoutEditorController
     /// The scope of the edit session in progress, or null when not editing.
     /// </summary>
     /// <remarks>
-    /// Captured once on entry and never mutated. Saves should read their key from here rather than
-    /// from <see cref="CurrentLayoutKey"/>, which navigation also writes — see
-    /// <see cref="LayoutEditSession"/>. During the migration both exist and agree; the ambient
-    /// field is removed once every path reads the session.
+    /// Captured once on entry and never mutated — this is the only record of what an edit is
+    /// scoped to. There is deliberately no shared "current layout key" alongside it: when there
+    /// was, navigation wrote it during zoom animations and full-map probes, so an in-progress edit
+    /// could silently change which layout it would overwrite. Display and replay resolve their own
+    /// keys locally instead. See <see cref="LayoutEditSession"/>.
     /// </remarks>
     public LayoutEditSession? ActiveSession { get; private set; }
 
@@ -147,21 +147,6 @@ public sealed class LayoutEditorController
     {
         IsEditMode = false;
         EditModeExited?.Invoke();
-    }
-
-    public void SetLayoutKey(string? key)
-    {
-        // Any change of key is a change of scope. Variant ids are only unique within a group,
-        // so carrying the previous scope's active variant across would make TrySave target a
-        // variant belonging to a different layout. Clear on every change, not just on null.
-        if (!string.Equals(CurrentLayoutKey, key, StringComparison.Ordinal))
-        {
-            ActiveVariantId = null;
-            ActiveVariantOrigin = null;
-            ActiveVariantDisplayName = null;
-        }
-
-        CurrentLayoutKey = key;
     }
 
     public void SetManualLayoutActive(bool active)
