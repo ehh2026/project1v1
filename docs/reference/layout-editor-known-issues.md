@@ -1,6 +1,6 @@
 # Layout Editor — What Was Broken, and What Changes
 
-**Started:** 2026-08-18 · **Last updated:** 2026-08-19 · **Status:** in progress
+**Started:** 2026-08-18 · **Last updated:** 2026-08-21 · **Status:** in progress
 
 Plain-language companion to
 [../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md](../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md),
@@ -277,7 +277,8 @@ stubs and still save normally (S8, passed).
 | 2026-08-19 | `83f716d` | S5 — save, load another layout, reload the new one | ✅ **PASSED** — arrangement redrawn correctly, no stubs. Confirms the redraw fix against the original failure |
 | 2026-08-20 | post-#13 | S8 — sparse view still saveable | ✅ **PASSED** — a zoomed view of scattered pins saves without being refused as "collapsed" |
 | 2026-08-20 | — | S10 — deliberate all-anchor drag | ⏭️ **Dropped, not a real use case.** Nobody arranges a dense cluster by dragging every head onto its own location marker. Kept in the table only to record the decision; see the note below |
-| _(pending)_ | `1de8109` | S1, S3, S4, S6, S7, S9 | ⬜ Not yet run |
+| 2026-08-21 | `0f79ad9` (Phase C) | S1, S2, S3, S4, S5, S7, S9 | ✅ **ALL PASSED** — run against the branch that deletes the ambient layout key. S9 in particular confirms zoomed-vs-unzoomed precedence, and S7 confirms an arrangement survives an app restart |
+| _(pending)_ | `0f79ad9` | S6 | ⏭️ Deprioritized 2026-08-21 — the resize-during-edit refusal is covered by automated tests and the scenario is not one you hit |
 
 ---
 
@@ -292,16 +293,18 @@ stubs and still save normally (S8, passed).
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |
 | 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 — save now refused until you re-enter edit mode (S6) |
 | 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |
-| 5c | Zoomed arrangement saved but never shown | ✅ Fixed 2026-08-19 — needs confirmation (S9) |
+| 5c | Zoomed arrangement saved but never shown | ✅ Fixed 2026-08-19 — confirmed in the app 2026-08-21 (S9) |
 | 6 | Config changes hide cluster layouts | ⬜ Not started |
 | 7 | Dev tools toggle unrunnable from cmd | ⬜ Not started |
 
-**Confirmed in the app:** the original stub failure no longer reproduces — S5 passed on 2026-08-19,
-covering save, load another layout, reload.
+**Confirmed in the app:** on 2026-08-21, S1, S2, S3, S4, S5, S7 and S9 all passed against the
+branch that deletes the ambient layout key — saving in a cluster and on the whole map, Save As,
+variant scoping, reopening after a save, surviving an app restart, and zoomed-vs-unzoomed
+precedence. S8 passed earlier. Every issue marked fixed above has now been seen working in the
+running app.
 
-**Still unconfirmed:** S1, S3, S4, S6, S7, S8, S9, S10. The two worth running first are **S8** and
-**S10**, because both check that a *valid* save is not wrongly refused — the failure mode the
-collapse guard could introduce, and the one automated tests approximate least well.
+**Still unrun:** S6 (resize mid-edit), deprioritized — it is covered by automated tests and is not
+a scenario you hit. S10 was dropped as unrealistic.
 
 If you do see pins collapse to stubs after saving, please note whether a `✗ SAVE ABORTED` message
 appeared: that distinguishes "a guard caught it" from a cause not yet found.

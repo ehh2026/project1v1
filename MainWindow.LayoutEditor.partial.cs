@@ -446,6 +446,11 @@ namespace InteractiveWorldMap
             {
                 var wasFullMapSession = IsFullMapLayoutSessionActive();
 
+                // Capture the scope before ExitEditMode ends the session: the completion log below
+                // is the only record of which saved group was suppressed, and reading it afterwards
+                // would always report null.
+                var sessionKey = _layoutEditor.ActiveSession.LayoutKey;
+
                 // Suppress for this session; the saved JSON stays on disk.
                 _layoutEditor.UnloadManualLayout();
 
@@ -467,7 +472,7 @@ namespace InteractiveWorldMap
                     ShowZoomedView(_currentZoomedCluster);
                 }
 
-                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={_layoutEditor.ActiveSession?.LayoutKey}");
+                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={sessionKey}");
             }
             catch (Exception ex)
             {

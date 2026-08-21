@@ -62,6 +62,13 @@ namespace InteractiveWorldMap
         private IManualLayoutManager? _layoutManager;
         private LocationCluster? _currentZoomedCluster = null;
         private ManualLayout? _savedLayoutToApply = null;
+
+        // The key the staged layout was resolved *for*, which is not always the key it is stored
+        // under: LoadLayout falls back to a compatible group, so a legacy or near-zoom match returns
+        // a layout whose own GroupKey differs. Carrying the resolved key to the apply call keeps the
+        // composite-plan cache in the same group the view selected, so the invalidation that runs
+        // after a save reaches it.
+        private string? _savedLayoutGroupKey = null;
         private bool _isFullMapLayoutSession = false;
 
         // Map image dimensions — single source of truth via MapMetadata (display space).

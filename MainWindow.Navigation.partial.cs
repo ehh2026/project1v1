@@ -271,6 +271,7 @@ namespace InteractiveWorldMap
                             {
                                 _logger.LogInfo($"  Found saved manual layout with {savedLayout.Markers.Count} markers");
                                 _savedLayoutToApply = savedLayout; // Store for later application
+                                _savedLayoutGroupKey = clusterKey; // ...under the key it was resolved for
                             }
                             else
                             {
@@ -318,15 +319,17 @@ namespace InteractiveWorldMap
                     // Apply saved cluster manual layout if one was found and not unloaded this session.
                     if (_savedLayoutToApply != null && !_layoutEditor.IsManualLayoutSuppressed)
                     {
-                        ApplyManualLayout(_savedLayoutToApply);
+                        ApplyManualLayout(_savedLayoutToApply, _savedLayoutGroupKey);
                         _layoutEditor.SetManualLayoutActive(true);
                         _savedLayoutToApply = null; // Clear after applying
+                        _savedLayoutGroupKey = null;
 
                         _logger.LogInfo("Manual layout applied after high-res region loaded");
                     }
                     else
                     {
                         _savedLayoutToApply = null; // Drop any stale/suppressed staged layout.
+                        _savedLayoutGroupKey = null;
                     }
                 }
 
