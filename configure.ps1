@@ -10,8 +10,9 @@
     action it can take is running the developer-tools toggle, and only if you say yes.
 
 .PARAMETER NoPrompt
-    Print the table and exit without offering to run the developer-tools toggle. Use this when
-    running from a script or a non-interactive shell.
+    Print the table and exit without offering to run the developer-tools toggle, and without
+    the "Press Enter to close" at the end. Use this when running from a script or a
+    non-interactive shell.
 
 .EXAMPLE
     .\configure.ps1
@@ -26,27 +27,6 @@ $ErrorActionPreference = 'Stop'
 $repoRoot = $PSScriptRoot
 $exeName = 'InteractiveWorldMap.exe'
 
-function Test-LaunchedFromExplorer {
-    # Explorer opens a console just for the script and closes it the moment the script ends, so
-    # everything printed here would flash past unread. A console you were already sitting in keeps
-    # the output. Those two cases have to be told apart, and the command line is no help: launching
-    # the wrapper from a PowerShell prompt produces almost exactly what a double-click does. Who
-    # started us does distinguish them, so walk up the process chain looking for explorer.exe.
-    try {
-        $id = $PID
-        for ($hop = 0; $hop -lt 4 -and $id; $hop++) {
-            $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$id" -ErrorAction Stop
-            if (-not $proc) { return $false }
-            if ($proc.Name -eq 'explorer.exe') { return $true }
-            $id = $proc.ParentProcessId
-        }
-    } catch {
-        # Not worth failing the script over; treat an unknown launcher as a console.
-        return $false
-    }
-    return $false
-}
-
 function Write-Heading([string]$text) {
     Write-Host ''
     Write-Host $text -ForegroundColor Cyan
@@ -55,10 +35,10 @@ function Write-Heading([string]$text) {
 
 function Write-ConfigEntry([string]$path, [string]$controls, [string]$note) {
     $exists = Test-Path $path
-    $marker = if ($exists) { '[found]  ' } else { '[missing]' }
+    $tag = if ($exists) { '[found]  ' } else { '[missing]' }
     $color  = if ($exists) { 'Green' } else { 'DarkYellow' }
 
-    Write-Host "  $marker " -ForegroundColor $color -NoNewline
+    Write-Host "  $tag " -ForegroundColor $color -NoNewline
     Write-Host $controls -ForegroundColor White
     Write-Host "            $path" -ForegroundColor Gray
     if ($note) {
@@ -96,7 +76,7 @@ $contentDir = Join-Path $repoRoot 'Images&Content\Demo-Content'
 
 Write-ConfigEntry `
     (Join-Path $contentDir 'locations.json') `
-    'Markers and locations - what appears on the map, and where' `
+    'Locations - the points the map shows a pin for, and where they sit' `
     'Names here are what layout keys are derived from; renaming a location orphans its saved layouts.'
 
 Write-ConfigEntry `
@@ -149,7 +129,7 @@ if ($exeDirs.Count -eq 0) {
         $outputContent = Join-Path $dir 'Images&Content\Demo-Content'
         Write-ConfigEntry `
             (Join-Path $outputContent 'locations.json') `
-            'locations.json - the markers this build shows' `
+            'locations.json - the locations this build shows' `
             'A copy, same caveat.'
 
         Write-ConfigEntry `
@@ -169,8 +149,10 @@ Write-Host '  Turns on the Edit Layout button, the tuning panel, and the debug o
 Write-Host '  Toggle it any time with:  .\toggle-dev-tools.bat -State on' -ForegroundColor DarkGray
 Write-Host ''
 
-# No early returns past this point: the Explorer pause at the bottom has to be reached on every
-# path, or a double-click closes the window before any of the above can be read.
+# No early returns past this point: the closing pause has to be reached on every path, or a
+# double-click closes the window before any of the above can be read.
+$exitCode = 0
+
 if (-not $NoPrompt) {
     # Only prompt when there is a console to answer on; otherwise Read-Host reads EOF and loops.
     if (-not [Environment]::UserInteractive) {
@@ -186,15 +168,30 @@ if (-not $NoPrompt) {
         if ($state) {
             # Go through the .bat wrapper rather than the .ps1 directly: it is the supported entry
             # point, and using it here means this script exercises the same path a user would.
+            # -NoPause because the pause below already covers this run.
             Write-Host ''
-            & (Join-Path $repoRoot 'toggle-dev-tools.bat') -State $state
+            & (Join-Path $repoRoot 'toggle-dev-tools.bat') -State $state -NoPause
+            $exitCode = $LASTEXITCODE
+
+            # The toggle exits 1 when it found nothing to write. Saying so here matters: the only
+            # action this script can take would otherwise appear to have succeeded, and the exit
+            # code has to reach the caller for a script to notice at all.
+            if ($exitCode -ne 0) {
+                Write-Host ''
+                Write-Host '  The developer-tools toggle failed - see its message above.' -ForegroundColor Red
+            }
         } else {
             Write-Host '  No changes made.' -ForegroundColor DarkGray
         }
+
+        # Always pause. Telling a double-click apart from a console you are already sitting in is
+        # not reliably possible: explorer.exe is an ancestor of both, and a double-click's command
+        # line is near-identical to what PowerShell produces when you run the wrapper from a prompt.
+        # An extra keypress in a console is a small cost; a window that closes before it can be read
+        # makes the script useless for the people most likely to double-click it.
+        Write-Host ''
+        Read-Host '  Press Enter to close' | Out-Null
     }
 }
 
-if ((-not $NoPrompt) -and (Test-LaunchedFromExplorer)) {
-    Write-Host ''
-    Read-Host '  Press Enter to close' | Out-Null
-}
+exit $exitCode

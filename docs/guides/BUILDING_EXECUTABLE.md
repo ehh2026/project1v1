@@ -70,7 +70,7 @@ toggle-dev-tools.bat -State on -PublishDir D:\Gallery\App
 
 It updates the `visual-config.json` next to **every** built or published exe it finds under `bin\` (Debug, Release, `publish\`, self-contained). For a publish output written outside the repo, pass `-PublishDir`. Editing that `visual-config.json` by hand next to the `.exe` also works and needs no script.
 
-`configure.bat` at the project root lists every config file with its resolved path and the current developer-tools state, and offers to run the toggle for you. It wraps `configure.ps1` for the same reason: cmd and Explorer cannot run the `.ps1`. Pass `-NoPrompt` to print the guide and exit without being asked anything.
+`configure.bat` at the project root lists every config file with its resolved path and the current developer-tools state, and offers to run the toggle for you. It wraps `configure.ps1` for the same reason: cmd and Explorer cannot run the `.ps1`. Both scripts wait for Enter before closing so an Explorer double-click stays readable; pass `-NoPrompt` (`configure`) or `-NoPause` (`toggle-dev-tools`) to skip that in a script.
 
 ## Decision points (with trade-offs)
 

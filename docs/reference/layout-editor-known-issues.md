@@ -231,8 +231,9 @@ toggle-dev-tools.bat -State on    force on
 toggle-dev-tools.bat -State off   force off
 ```
 
-There is a `configure.bat` next to it for the same reason. If you double-click either one, the
-window now stays open so you can read what it did instead of it flashing past.
+There is a `configure.bat` next to it for the same reason. Both wait for you to press Enter
+before closing, so a double-click from Explorer does not make the window vanish before you can
+read it. From a command prompt that is one extra keypress.
 
 It prints which state it moved to and which file it wrote, so a no-op is visible rather than silent,
 and it reports a failure (for example, no built copy of the app to configure) instead of appearing
