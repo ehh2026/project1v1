@@ -245,13 +245,50 @@ namespace InteractiveWorldMap.Services
             }
 
             if (allExtensions.Any() && _adjuster != null)
+            {
                 _adjuster.AdjustExtensions(allExtensions, locationMarkerSize);
+
+                // The adjuster separates overlapping heads by changing line lengths, and it can
+                // lengthen as well as shorten. It knows nothing about the canvas, so the bounds
+                // the calculator just applied are not binding on its output -- including its own
+                // MinimumLineLength floor, which near an edge is a floor on how far off-canvas a
+                // head sits. Re-clamp here, where the canvas size is known.
+                //
+                // Separation loses to bounds when they disagree: two heads slightly too close
+                // together are both still visible, and one pushed off the edge is not.
+                ClampExtensionsToCanvas(allExtensions, containerWidth, containerHeight);
+            }
 
             var extensionGroups = denseGroups
                 .Where(g => g.Extensions.Any())
                 .ToList();
 
             return new ExtensionPlacementPlan(denseGroups, extensionGroups, markersInGroups);
+        }
+
+        /// <summary>
+        /// Shortens any extension whose head sits outside the canvas until it is back inside,
+        /// leaving the angle and the ones already in bounds alone. No minimum length: a minimum
+        /// applied here is a minimum distance past the edge, and a head drawn outside the canvas
+        /// is not drawn at all.
+        /// </summary>
+        private static void ClampExtensionsToCanvas(
+            List<RadialExtension> extensions, double canvasWidth, double canvasHeight)
+        {
+            foreach (var ext in extensions)
+            {
+                var head = ext.ExtendedPosition;
+                if (head.X >= 0 && head.X <= canvasWidth && head.Y >= 0 && head.Y <= canvasHeight)
+                    continue;
+
+                var toEdge = CoordinateMapper.DistanceToCanvasEdge(
+                    ext.OriginalPosition, ext.Angle, canvasWidth, canvasHeight);
+
+                ext.ExtendedPosition = CoordinateMapper.OffsetAtAngle(
+                    ext.OriginalPosition,
+                    toEdge * RadialExtensionCalculator.CanvasEdgeMargin,
+                    ext.Angle);
+            }
         }
 
         private IReadOnlyList<MarkerScreenPlacement> BuildNonExtensionPlacements(
