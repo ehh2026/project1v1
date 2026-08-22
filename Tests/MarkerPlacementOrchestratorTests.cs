@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
@@ -124,6 +125,51 @@ public class MarkerPlacementOrchestratorTests
         Assert.Equal(MarkerPlacementMode.WithExtensions, result.Mode);
         Assert.NotEmpty(result.ExtensionGroups);
         Assert.All(result.ExtensionGroups, g => Assert.NotEmpty(g.Extensions));
+    }
+
+    [Fact]
+    public void Compute_DenseClusterAgainstTheTopEdge_KeepsEveryHeadOnTheCanvas()
+    {
+        // The calculator clamps to the canvas, but the adjuster runs afterwards, separates
+        // overlapping heads by changing line lengths, and can lengthen. It knows nothing about the
+        // canvas and enforces its own MinimumLineLength -- which near an edge is a minimum
+        // distance *past* the edge. MinimumLineLength is set well beyond the room available here
+        // so that any un-clamped lengthening lands outside the container.
+        var config = TestConfig();
+        config.RadialExtension.MinimumLineLength = 60;
+        config.RadialExtension.ProximityThresholdPixels = 50;
+
+        // A tight knot of markers a couple of source pixels below the top of the crop, so the
+        // upward extensions have only a few screen pixels of room.
+        var locs = new[]
+        {
+            new Location { Id = "e1", Name = "E1", PixelX = 1250, PixelY = 801.5 },
+            new Location { Id = "e2", Name = "E2", PixelX = 1252, PixelY = 801.6 },
+            new Location { Id = "e3", Name = "E3", PixelX = 1248, PixelY = 802.0 },
+            new Location { Id = "e4", Name = "E4", PixelX = 1250, PixelY = 803.5 }
+        };
+
+        const double containerWidth = 1920, containerHeight = 1080;
+        var result = CreateOrchestrator(config).Compute(
+            TestViewport(),
+            containerWidth,
+            containerHeight,
+            isAnimating: false,
+            locs.Select(l => (l, l.PixelX, l.PixelY)).ToList(),
+            Array.Empty<Point>());
+
+        var heads = result.ExtensionGroups.SelectMany(g => g.Extensions).ToList();
+        Assert.NotEmpty(heads);
+
+        foreach (var ext in heads)
+        {
+            Assert.True(
+                ext.ExtendedPosition.X >= 0 && ext.ExtendedPosition.X <= containerWidth &&
+                ext.ExtendedPosition.Y >= 0 && ext.ExtendedPosition.Y <= containerHeight,
+                $"{ext.Location.Name} head at ({ext.ExtendedPosition.X:F2}, " +
+                $"{ext.ExtendedPosition.Y:F2}) is outside the {containerWidth}x{containerHeight} " +
+                "canvas after adjustment.");
+        }
     }
 
     [Fact]

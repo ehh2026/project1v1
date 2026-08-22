@@ -18,6 +18,12 @@ namespace InteractiveWorldMap.Utilities
             _config = config ?? throw new ArgumentNullException(nameof(config));
         }
 
+        /// <summary>
+        /// Fraction of the available room to the canvas edge that a clamped line may use, so a
+        /// head that had to be shortened does not end up flush against the edge.
+        /// </summary>
+        internal const double CanvasEdgeMargin = 0.9;
+
         // Per-marker state threaded through the angle-adjustment pipeline.
         private sealed record LocationAngleInfo(Location Location, Point ScreenPosition, double NaturalAngle)
         {
@@ -125,23 +131,23 @@ namespace InteractiveWorldMap.Utilities
             for (int i = 0; i < items.Count; i++)
             {
                 var item = items[i];
-                double angleRadians = item.NaturalAngle * (Math.PI / 180.0);
-                double extendedX = item.ScreenPosition.X + _config.ExtensionLineLength * Math.Sin(angleRadians);
-                double extendedY = item.ScreenPosition.Y - _config.ExtensionLineLength * Math.Cos(angleRadians);
+                var extended = CoordinateMapper.OffsetAtAngle(
+                    item.ScreenPosition, _config.ExtensionLineLength, item.NaturalAngle);
 
-                double adjustedLength = _config.ExtensionLineLength;
-                if (extendedX < 0 || extendedX > canvasWidth || extendedY < 0 || extendedY > canvasHeight)
+                if (extended.X < 0 || extended.X > canvasWidth ||
+                    extended.Y < 0 || extended.Y > canvasHeight)
                 {
-                    adjustedLength = CalculateMaxLength(item.ScreenPosition, angleRadians, canvasWidth, canvasHeight);
-                    extendedX = item.ScreenPosition.X + adjustedLength * Math.Sin(angleRadians);
-                    extendedY = item.ScreenPosition.Y - adjustedLength * Math.Cos(angleRadians);
+                    double adjustedLength = CalculateMaxLength(
+                        item.ScreenPosition, item.NaturalAngle, canvasWidth, canvasHeight);
+                    extended = CoordinateMapper.OffsetAtAngle(
+                        item.ScreenPosition, adjustedLength, item.NaturalAngle);
                 }
 
                 extensions.Add(new RadialExtension
                 {
                     Location = item.Location,
                     OriginalPosition = item.ScreenPosition,
-                    ExtendedPosition = new Point(extendedX, extendedY),
+                    ExtendedPosition = extended,
                     Angle = item.NaturalAngle
                 });
             }
@@ -355,28 +361,19 @@ namespace InteractiveWorldMap.Utilities
             return new Point(sumX / locations.Count, sumY / locations.Count);
         }
 
-        private double CalculateMaxLength(Point center, double angleRadians, double canvasWidth, double canvasHeight)
+        private double CalculateMaxLength(Point center, double angleDegrees, double canvasWidth, double canvasHeight)
         {
-            double sinAngle = Math.Sin(angleRadians);
-            double cosAngle = Math.Cos(angleRadians);
-            double maxLength = _config.ExtensionLineLength;
-
-            if (sinAngle > 0) maxLength = Math.Min(maxLength, (canvasWidth - center.X) / sinAngle);
-            else if (sinAngle < 0) maxLength = Math.Min(maxLength, center.X / -sinAngle);
-
-            if (cosAngle > 0) maxLength = Math.Min(maxLength, center.Y / cosAngle);
-            else if (cosAngle < 0) maxLength = Math.Min(maxLength, (canvasHeight - center.Y) / -cosAngle);
+            // Where the edge is belongs to CoordinateMapper, so this and the post-adjustment clamp
+            // in MarkerPlacementOrchestrator cannot come to different conclusions about it.
+            double toEdge = CoordinateMapper.DistanceToCanvasEdge(
+                center, angleDegrees, canvasWidth, canvasHeight);
 
             // No minimum length. A floor here is a floor on how far past the edge the head is
             // allowed to sit: the only reason this returns a small number is that the marker is
             // that close to the edge, and lengthening the line back to some preferred minimum
             // puts the head off-canvas, where it is not drawn at all. A short line is worse to
             // look at than a long one; an invisible one is worse than both.
-            //
-            // Math.Max(0) guards the marker already sitting outside the canvas, where the
-            // distance to the edge comes back negative and would otherwise point the line
-            // backwards through the marker.
-            return Math.Max(0.0, maxLength * 0.9);
+            return Math.Min(_config.ExtensionLineLength, toEdge * CanvasEdgeMargin);
         }
 
         private static bool DoLinesIntersect(Point p1, Point p2, Point p3, Point p4)

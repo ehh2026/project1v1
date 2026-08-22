@@ -496,6 +496,13 @@ One real bug sits behind a skip; the audit of skipped tests is otherwise clean (
       `CalculateExtensions_MarkerCloserToTheEdgeThanTheOldFloor_...` pins the shape of the bug:
       it requires the line to come out *shorter than 20px*, not merely inside the bounds, so
       re-introducing a floor fails it. Both tests were confirmed to fail against the old clamp.
+      The same floor turned out to exist a second time downstream: `RadialExtensionAdjuster` runs
+      after the calculator, changes line lengths to separate overlapping heads (it can lengthen),
+      and applies `MinimumLineLength` with no canvas to check against, so the calculator's clamp
+      was not binding on the pipeline's output. `MarkerPlacementOrchestrator` re-clamps after
+      adjustment; `Compute_DenseClusterAgainstTheTopEdge_KeepsEveryHeadOnTheCanvas` covers it and
+      produces Y=-55.95 without the clamp. Where the edge is now lives once, in
+      `CoordinateMapper.DistanceToCanvasEdge`. Found by the Qodo review of PR #18.
 - [x] 5.2 Leave `AdjustExtensions_WithProtectedLocation_DoesNotMoveProtectedExtension` skipped —
       it needs a production seam and is not a product bug. Reason re-read and still accurate; it
       is now the only skipped test in the suite.

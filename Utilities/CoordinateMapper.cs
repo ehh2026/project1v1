@@ -82,6 +82,41 @@ public class CoordinateMapper
     }
 
     /// <summary>
+    /// Returns how far a ray leaving <paramref name="origin"/> at the supplied angle can travel
+    /// before it crosses the edge of a <paramref name="canvasWidth"/> x <paramref name="canvasHeight"/>
+    /// canvas. Same angle convention as <see cref="OffsetAtAngle"/>: 0 degrees points up, angles
+    /// increase clockwise.
+    ///
+    /// This exists so that everything shortening a line to fit the canvas agrees on where the edge
+    /// is. Two answers to that question is one more than the number of edges.
+    ///
+    /// Returns 0 for an origin already outside the canvas, rather than a negative distance -- a
+    /// negative one would send the caller backwards along the ray, past its own starting point.
+    /// </summary>
+    public static double DistanceToCanvasEdge(
+        Point origin, double angleDegrees, double canvasWidth, double canvasHeight)
+    {
+        var angleRadians = angleDegrees * Math.PI / 180.0;
+        var sin = Math.Sin(angleRadians);
+        var cos = Math.Cos(angleRadians);
+
+        // The ray crosses at most two of the four edges; take the nearer. An axis the ray does not
+        // move along (sin or cos of 0) cannot be crossed, so it constrains nothing.
+        var distance = double.PositiveInfinity;
+
+        if (sin > 0) distance = Math.Min(distance, (canvasWidth - origin.X) / sin);
+        else if (sin < 0) distance = Math.Min(distance, origin.X / -sin);
+
+        if (cos > 0) distance = Math.Min(distance, origin.Y / cos);
+        else if (cos < 0) distance = Math.Min(distance, (canvasHeight - origin.Y) / -cos);
+
+        // sin and cos cannot both be zero for a real angle, so the only way nothing constrained
+        // the ray is a NaN angle, where every comparison above is false.
+        if (double.IsPositiveInfinity(distance) || double.IsNaN(distance)) return 0.0;
+        return Math.Max(0.0, distance);
+    }
+
+    /// <summary>
     /// Returns the Euclidean distance between two screen points.
     /// </summary>
     public static double DistanceBetween(Point first, Point second)

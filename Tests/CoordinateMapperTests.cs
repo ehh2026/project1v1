@@ -214,4 +214,46 @@ public class CoordinateMapperTests
         Assert.Equal(point1.X * 2, point2.X, 1);
         Assert.Equal(point1.Y * 2, point2.Y, 1);
     }
+
+    // ─── DistanceToCanvasEdge ───────────────────────────────────────────────
+
+    [Theory]
+    [InlineData(0, 30)]      // north: room is the distance to y = 0
+    [InlineData(180, 70)]    // south: to y = height
+    [InlineData(90, 60)]     // east:  to x = width
+    [InlineData(270, 40)]    // west:  to x = 0
+    public void DistanceToCanvasEdge_AlongEachAxis_ReturnsTheRoomInThatDirection(
+        double angleDegrees, double expected)
+    {
+        var origin = new Point(40, 30);
+        var actual = CoordinateMapper.DistanceToCanvasEdge(origin, angleDegrees, 100, 100);
+        Assert.Equal(expected, actual, 6);
+    }
+
+    [Fact]
+    public void DistanceToCanvasEdge_Diagonal_StopsAtTheNearerEdge()
+    {
+        // North-east from (90, 50) on a 100x100 canvas: 10px of room to the right, 50 above. The
+        // right edge is reached first, so it is the one that decides.
+        var actual = CoordinateMapper.DistanceToCanvasEdge(new Point(90, 50), 45, 100, 100);
+
+        var head = CoordinateMapper.OffsetAtAngle(new Point(90, 50), actual, 45);
+        Assert.Equal(100, head.X, 6);
+        Assert.True(head.Y >= 0 && head.Y <= 100);
+    }
+
+    [Fact]
+    public void DistanceToCanvasEdge_OriginOutsideTheCanvas_ReturnsZeroRatherThanNegative()
+    {
+        // A negative distance would send the caller backwards along the ray, past the point it
+        // started from -- a line pointing through its own marker rather than away from it.
+        var actual = CoordinateMapper.DistanceToCanvasEdge(new Point(50, -20), 0, 100, 100);
+        Assert.Equal(0, actual);
+    }
+
+    [Fact]
+    public void DistanceToCanvasEdge_OriginOnTheEdge_ReturnsZero()
+    {
+        Assert.Equal(0, CoordinateMapper.DistanceToCanvasEdge(new Point(50, 0), 0, 100, 100), 6);
+    }
 }
