@@ -7,9 +7,9 @@ REM "configure.ps1" in a cmd window or double-clicking it in Explorer makes Wind
 REM you want to open this file?" and nothing runs. This is the more discovery-oriented of the two
 REM scripts, so it is the one people are likelier to double-click.
 REM
-REM Keeping the window open after a double-click is handled inside configure.ps1, which can see
-REM who launched it. A batch file only sees a command line, and a double-click's is nearly
-REM identical to the one PowerShell produces when you run this wrapper from a prompt.
+REM The closing "Press Enter to close" lives in configure.ps1. A double-click cannot be told
+REM apart from a console you are already in, so the pause is unconditional and -NoPrompt is the
+REM way to skip it.
 REM
 REM Usage (arguments are passed straight through to configure.ps1):
 REM   configure.bat              print the config guide, then offer to toggle developer tools

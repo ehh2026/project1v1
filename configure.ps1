@@ -5,9 +5,10 @@
     turn the developer tools on or off.
 
 .DESCRIPTION
-    Read-only. This script never edits a config itself - it prints the config surface with
-    resolved absolute paths and flags which files exist, so you know what to open. The one
-    action it can take is running the developer-tools toggle, and only if you say yes.
+    Read-only by default. It prints the config surface with resolved absolute paths and flags
+    which files exist, so you know what to open. It can take two actions, each only if you say
+    yes: run the developer-tools toggle, and move aside a visual-config.json that is not valid
+    JSON so the app re-creates it from the shipped defaults.
 
 .PARAMETER NoPrompt
     Print the table and exit without offering to run the developer-tools toggle, and without
@@ -62,6 +63,16 @@ function Write-ConfigEntry([string]$path, [string]$controls, [string]$note) {
     Write-Host ''
 }
 
+function Test-ConfigReadable([string]$runtimeConfigPath) {
+    if (-not (Test-Path $runtimeConfigPath)) { return $true }  # absent is fine, it gets re-seeded
+    try {
+        Get-Content -Raw -Path $runtimeConfigPath | ConvertFrom-Json | Out-Null
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 function Get-DeveloperToolsState([string]$runtimeConfigPath) {
     if (-not (Test-Path $runtimeConfigPath)) {
         return 'not created yet - seeded from the defaults on first run'
@@ -110,6 +121,7 @@ Write-ConfigEntry `
 # independent copies, so list every one that exists rather than guessing at a single path.
 Write-Heading 'What the running app reads (next to each built .exe)'
 
+$brokenConfigs = @()
 $binRoot = Join-Path $repoRoot 'bin'
 # @(...) so a single match stays an array rather than collapsing to a scalar.
 $exeDirs = @()
@@ -131,6 +143,7 @@ if ($exeDirs.Count -eq 0) {
         Write-Host ''
 
         $runtimeConfig = Join-Path $dir 'visual-config.json'
+        if (-not (Test-ConfigReadable $runtimeConfig)) { $brokenConfigs += $runtimeConfig }
         Write-ConfigEntry `
             $runtimeConfig `
             ("visual-config.json - live settings. Developer tools: " + (Get-DeveloperToolsState $runtimeConfig)) `
@@ -159,6 +172,17 @@ if ($exeDirs.Count -eq 0) {
     Write-Host ''
 }
 
+Write-Heading 'If the app ignores your settings'
+Write-Host '  A visual-config.json that is not valid JSON does not stop the app. It logs a warning and' -ForegroundColor DarkGray
+Write-Host '  falls back to built-in defaults, so the symptom is settings quietly reverting, not a crash.' -ForegroundColor DarkGray
+Write-Host '  Note those are the code defaults, not visual-config.default.json - so the file being broken' -ForegroundColor DarkGray
+Write-Host '  loses more than the edit that broke it.' -ForegroundColor DarkGray
+Write-Host ''
+Write-Host '  To reset: delete visual-config.json and relaunch. The app copies a fresh one from the' -ForegroundColor DarkGray
+Write-Host '  visual-config.default.json sitting beside it. Only your local tuning is lost - saved' -ForegroundColor DarkGray
+Write-Host '  layouts, locations and content are in different files and are untouched.' -ForegroundColor DarkGray
+Write-Host ''
+
 Write-Heading 'Developer tools'
 Write-Host '  Turns on the Edit Layout button, the tuning panel, and the debug overlays.' -ForegroundColor DarkGray
 Write-Host '  Toggle it any time with:  .\toggle-dev-tools.bat -State on' -ForegroundColor DarkGray
@@ -173,6 +197,28 @@ if (-not $NoPrompt) {
     if (-not [Environment]::UserInteractive) {
         Write-Host '  Non-interactive session - skipping the toggle prompt.' -ForegroundColor DarkGray
     } else {
+        # Offer the reset only when there is something to reset. Renaming rather than deleting:
+        # the file may hold tuning worth recovering by hand, and the app only needs it gone.
+        if ($brokenConfigs.Count -gt 0) {
+            Write-Host ''
+            Write-Host '  These visual-config.json files are not valid JSON:' -ForegroundColor Red
+            foreach ($broken in $brokenConfigs) {
+                Write-Host "    $broken" -ForegroundColor Red
+            }
+            $resetAnswer = Read-Host '  Move them aside so the app re-creates them from the defaults? (yes / no)'
+            if ($resetAnswer.Trim().ToLowerInvariant() -in @('y', 'yes')) {
+                foreach ($broken in $brokenConfigs) {
+                    $backup = "$broken.broken-" + (Get-Date -Format 'yyyyMMdd-HHmmss')
+                    Move-Item -Path $broken -Destination $backup
+                    Write-Host "    moved to $backup" -ForegroundColor Green
+                }
+                Write-Host '  Relaunch the app; a fresh config is copied from visual-config.default.json.' -ForegroundColor Green
+            } else {
+                Write-Host '  Left alone.' -ForegroundColor DarkGray
+            }
+            Write-Host ''
+        }
+
         $answer = Read-Host '  Run the developer-tools toggle now? (on / off / no)'
         $state = switch ($answer.Trim().ToLowerInvariant()) {
             'on'  { 'on' }
