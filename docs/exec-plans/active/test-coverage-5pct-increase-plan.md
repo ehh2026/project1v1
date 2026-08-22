@@ -53,7 +53,7 @@ started: 2026-08-10
 
 | Slice | File | Bug | Evidence |
 |-------|------|-----|----------|
-| B2 | `Utilities/RadialExtensionCalculator.cs` | `CalculateMaxLength` enforces a hard 20px floor (`Math.Max(20.0, maxLength * 0.9)` and a second `< 20` clamp), so heads can still leave the canvas when a marker is closer than 20px to an edge. | `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` — `[Fact(Skip = "BUG: …")]`; observed Y≈-6.09 on a 100×100 canvas |
+| B2 | `Utilities/RadialExtensionCalculator.cs` | **Fixed** (layout-editor-safety plan, Phase 5). `CalculateMaxLength` enforced a hard 20px floor (`Math.Max(20.0, maxLength * 0.9)` and a second `< 20` clamp), so heads could leave the canvas when a marker was closer than 20px to an edge. Both floors removed. | `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` is un-skipped and passing; observed Y≈-6.09 on a 100×100 canvas before the fix |
 
 **Skipped characterization (no seam, not a product bug):**
 - `AdjustExtensions_WithProtectedLocation_DoesNotMoveProtectedExtension` — `ProtectedFromOverlapAdjustment` is private per-call state; cannot seed across `AdjustExtensions` calls without a production seam.

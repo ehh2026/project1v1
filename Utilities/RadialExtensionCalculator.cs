@@ -133,7 +133,6 @@ namespace InteractiveWorldMap.Utilities
                 if (extendedX < 0 || extendedX > canvasWidth || extendedY < 0 || extendedY > canvasHeight)
                 {
                     adjustedLength = CalculateMaxLength(item.ScreenPosition, angleRadians, canvasWidth, canvasHeight);
-                    if (adjustedLength < 20.0) adjustedLength = 20.0;
                     extendedX = item.ScreenPosition.X + adjustedLength * Math.Sin(angleRadians);
                     extendedY = item.ScreenPosition.Y - adjustedLength * Math.Cos(angleRadians);
                 }
@@ -368,7 +367,16 @@ namespace InteractiveWorldMap.Utilities
             if (cosAngle > 0) maxLength = Math.Min(maxLength, center.Y / cosAngle);
             else if (cosAngle < 0) maxLength = Math.Min(maxLength, (canvasHeight - center.Y) / -cosAngle);
 
-            return Math.Max(20.0, maxLength * 0.9);
+            // No minimum length. A floor here is a floor on how far past the edge the head is
+            // allowed to sit: the only reason this returns a small number is that the marker is
+            // that close to the edge, and lengthening the line back to some preferred minimum
+            // puts the head off-canvas, where it is not drawn at all. A short line is worse to
+            // look at than a long one; an invisible one is worse than both.
+            //
+            // Math.Max(0) guards the marker already sitting outside the canvas, where the
+            // distance to the edge comes back negative and would otherwise point the line
+            // backwards through the marker.
+            return Math.Max(0.0, maxLength * 0.9);
         }
 
         private static bool DoLinesIntersect(Point p1, Point p2, Point p3, Point p4)

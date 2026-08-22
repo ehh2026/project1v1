@@ -73,7 +73,7 @@ against merged `main`; the status column is kept current as phases land.
 | 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | **Done** (2.1–2.5) |
 | 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | **Done** (3.1–3.4) |
 | 4 | No root-level guide to which config files to edit | P3 | **Done** (4.1–4.4) |
-| 5 | `CalculateMaxLength` 20px floor lets heads leave the canvas | P2 | Not started |
+| 5 | `CalculateMaxLength` 20px floor lets heads leave the canvas | P2 | **Done** (5.1-5.2) |
 | 6 | Layout scoping is undocumented and invisible in the edit panel | P2 | Partly — scoping documented; editor panel still does not show it (6.1) |
 
 ---
@@ -484,12 +484,21 @@ Config surface confirmed on merged `main`:
 
 One real bug sits behind a skip; the audit of skipped tests is otherwise clean (2 skips total).
 
-- [ ] 5.1 `Utilities/RadialExtensionCalculator.cs` — `CalculateMaxLength` enforces a hard 20px floor
-      (`Math.Max(20.0, maxLength * 0.9)` plus a second `< 20` clamp), so heads still leave the
-      canvas when a marker is closer than 20px to an edge. Observed Y≈-6.09 on a 100×100 canvas.
-      Fix the clamp, then un-skip `RadialExtensionCalculatorTests.cs:253`.
-- [ ] 5.2 Leave `AdjustExtensions_WithProtectedLocation_DoesNotMoveProtectedExtension` skipped —
-      it needs a production seam and is not a product bug. Confirm the reason is still accurate.
+- [x] 5.1 `Utilities/RadialExtensionCalculator.cs` — `CalculateMaxLength` enforced a hard 20px floor
+      (`Math.Max(20.0, maxLength * 0.9)` plus a second `< 20` clamp), so heads still left the
+      canvas when a marker was closer than 20px to an edge. Observed Y≈-6.09 on a 100×100 canvas.
+      Both floors are gone. A minimum length is a minimum distance past the edge: the clamp only
+      returns a small number because the marker is that close to the edge, and stretching the line
+      back to a preferred length puts the head where it is not drawn at all. `Math.Max(0.0, ...)`
+      remains, guarding a marker already outside the canvas, where the distance to the edge comes
+      back negative and would point the line backwards through the marker.
+      `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` is un-skipped, and
+      `CalculateExtensions_MarkerCloserToTheEdgeThanTheOldFloor_...` pins the shape of the bug:
+      it requires the line to come out *shorter than 20px*, not merely inside the bounds, so
+      re-introducing a floor fails it. Both tests were confirmed to fail against the old clamp.
+- [x] 5.2 Leave `AdjustExtensions_WithProtectedLocation_DoesNotMoveProtectedExtension` skipped —
+      it needs a production seam and is not a product bug. Reason re-read and still accurate; it
+      is now the only skipped test in the suite.
 
 ---
 

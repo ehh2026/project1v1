@@ -250,11 +250,15 @@ public class RadialExtensionCalculatorTests
 
     // ─── Slice B2: Canvas bounds enforcement ────────────────────────────────
 
-    [Fact(Skip = "BUG: CalculateMaxLength floor of 20px still overshoots when marker is <20px from edge; Y=-6.09 expected in [0,100]")]
+    [Fact]
     public void CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds()
     {
         // Use a small canvas and place markers near the top-left corner
         // so extensions would overshoot without clamping.
+        //
+        // This was skipped for a while: the clamp computed the distance to the edge correctly
+        // and then raised it back to a 20px minimum, so a marker 5px from the top still put its
+        // head at Y=-6.09. The floor is gone -- see CalculateMaxLength.
         var config = DefaultConfig();
         config.ExtensionLineLength = 200;
         var calc = new RadialExtensionCalculator(config);
@@ -285,6 +289,41 @@ public class RadialExtensionCalculatorTests
             Assert.True(ext.ExtendedPosition.Y >= 0 && ext.ExtendedPosition.Y <= canvasH,
                 $"Y={ext.ExtendedPosition.Y} out of bounds [0,{canvasH}] for {ext.Location.Name}");
         }
+    }
+
+    [Fact]
+    public void CalculateExtensions_MarkerCloserToTheEdgeThanTheOldFloor_DrawsAShortLineRatherThanLeaveTheCanvas()
+    {
+        // The specific shape of the old bug: the clamp worked out that only 5px of room remained
+        // and then lengthened the line back to a 20px minimum, putting the head outside the
+        // canvas. A minimum length is a minimum distance past the edge, so there is none -- the
+        // line here has to come out shorter than 20px, not merely inside the bounds.
+        var calc = new RadialExtensionCalculator(DefaultConfig());
+
+        var top = new Location { Id = "t", Name = "Top" };
+        var bottom = new Location { Id = "b", Name = "Bottom" };
+        var group = new DenseMarkerGroup
+        {
+            Locations = new List<Location> { top, bottom },
+            CenterPoint = new Point(50, 32.5)
+        };
+        var screenPositions = new Dictionary<Location, Point>
+        {
+            [top] = new Point(50, 5),      // 5px below the top edge, extending north
+            [bottom] = new Point(50, 60)
+        };
+
+        var extensions = calc.CalculateRadialExtensions(group, screenPositions, 100, 100);
+
+        var topExt = extensions.Single(e => e.Location.Id == "t");
+        Assert.True(topExt.ExtendedPosition.Y >= 0,
+            $"Head at Y={topExt.ExtendedPosition.Y} is above the canvas.");
+
+        var length = CoordinateMapper.DistanceBetween(topExt.OriginalPosition, topExt.ExtendedPosition);
+        Assert.True(length < 20.0,
+            $"Length {length:F2} means a minimum length is still being applied; 5px of room " +
+            "cannot produce a 20px line without the head leaving the canvas.");
+        Assert.True(length > 0, "The line should still be drawn, just short.");
     }
 
     // ─── Slice B2: Wrap-around angle spacing ────────────────────────────────
@@ -408,9 +447,6 @@ public class RadialExtensionCalculatorTests
         };
         // Horizontally separated so one natural angle is rightward (~90°) and
         // ExtensionLineLength 500 requires CalculateMaxLength clamping.
-        // Keep remaining room > CalculateMaxLength's 20px floor so this case
-        // exercises clamp-to-edge rather than the known floor overshoot
-        // (covered by CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds).
         var screenPositions = new Dictionary<Location, Point>
         {
             [locA] = new Point(750, 300),
