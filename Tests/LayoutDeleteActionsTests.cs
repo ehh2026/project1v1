@@ -40,21 +40,33 @@ public class LayoutDeleteActionsTests
     [Fact]
     public void BulkDelete_CountsAndConfirmsBeforeDestroyingAnything()
     {
-        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
         var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
 
-        var countIndex = body.IndexOf("GetVariants()", StringComparison.Ordinal);
-        var confirmIndex = body.IndexOf("MessageBox.Show(", StringComparison.Ordinal);
+        var countIndex = body.IndexOf("GetDeletableVariants()", StringComparison.Ordinal);
         var deleteIndex = body.IndexOf("_layoutEditor.TryDelete()", StringComparison.Ordinal);
 
+        // Anchor on the *decision* prompt, not on "MessageBox.Show(". The handler shows two
+        // dialogs -- an informational one for the nothing-to-delete case, then the confirmation --
+        // and the informational one comes first in the source. Matching the first Show() would let
+        // the confirmation move below the deletion while this test still passed.
+        var confirmIndex = body.IndexOf("MessageBoxButton.YesNo", StringComparison.Ordinal);
+
         Assert.True(deleteIndex >= 0, "The bulk handler must still be the one calling TryDelete.");
+        Assert.True(confirmIndex >= 0, "The bulk delete must ask a yes/no question.");
         Assert.True(
             countIndex >= 0 && countIndex < confirmIndex,
             "The variants must be counted before the prompt, so the prompt can state how many " +
             "are about to be destroyed.");
         Assert.True(
-            confirmIndex >= 0 && confirmIndex < deleteIndex,
+            confirmIndex < deleteIndex,
             "Nothing may be deleted before the user has confirmed.");
+
+        // The answer must also be acted on. Reaching the prompt is not the same as honouring it.
+        var bailIndex = body.IndexOf("!= MessageBoxResult.Yes", StringComparison.Ordinal);
+        Assert.True(
+            bailIndex >= 0 && bailIndex < deleteIndex,
+            "Anything other than Yes must return before the deletion.");
 
         // A prompt that is not read is not a confirmation: defaulting to No means a stray Enter
         // cancels rather than destroys.
@@ -70,7 +82,7 @@ public class LayoutDeleteActionsTests
         // The reported confusion was reaching for this button wanting automatic placement back,
         // not wanting saved work destroyed. Both the "nothing to delete" notice and the
         // confirmation name the action that actually does that.
-        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
         var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
 
         var mentions = body.Split(new[] { "Unload and Recalculate" }, StringSplitOptions.None).Length - 1;
@@ -82,7 +94,7 @@ public class LayoutDeleteActionsTests
     [Fact]
     public void SingleVariantDelete_NamesTheVariantAndDeletesOnlyIt()
     {
-        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
         var body = HandlerBody(source, "private void OnDeleteVariantButtonClick");
 
         Assert.Contains("ActiveVariantDisplayName", body);
@@ -96,9 +108,13 @@ public class LayoutDeleteActionsTests
     [Fact]
     public void OnlyTheBulkHandlerCanReachTryDelete()
     {
-        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+        // Every editor partial, not just the one that holds it today: the point is that no second
+        // caller appears anywhere, including in a file that does not exist yet.
+        var occurrences = Directory
+            .GetFiles(RepoRoot, "MainWindow*.cs")
+            .Sum(f => File.ReadAllText(f)
+                .Split(new[] { "_layoutEditor.TryDelete()" }, StringSplitOptions.None).Length - 1);
 
-        var occurrences = source.Split(new[] { "_layoutEditor.TryDelete()" }, StringSplitOptions.None).Length - 1;
         Assert.Equal(1, occurrences);
     }
 
@@ -136,6 +152,41 @@ public class LayoutDeleteActionsTests
         Assert.DoesNotContain(remaining, v => v.VariantId == doomedId);
         Assert.Contains(remaining, v => v.DisplayName == "Keep Me");
         Assert.Contains(remaining, v => v.VariantId == "manual-default");
+    }
+
+    [Fact]
+    public void PromptsNameVariantsThroughTheSanitiser()
+    {
+        // manual-layouts.json is documented as hand-editable, so a DisplayName can carry newlines
+        // or control characters. Interpolated raw into a delete confirmation, such a name can push
+        // the real warning out of view or fake one -- in the dialog that decides whether saved work
+        // is destroyed.
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
+
+        Assert.Contains("private static string FormatVariantNameForPrompt(", source);
+
+        foreach (var handler in new[]
+                 {
+                     "private void OnDeleteVariantButtonClick",
+                     "private void OnDeleteLayoutButtonClick"
+                 })
+        {
+            var body = HandlerBody(source, handler);
+            Assert.Contains("FormatVariantNameForPrompt(", body);
+        }
+    }
+
+    [Fact]
+    public void WhatBulkDeleteDestroys_IsDecidedByTheController()
+    {
+        // The set the prompt names and the set TryDelete removes have to be the same set. Deciding
+        // it in the click handler means two definitions of "deletable" that can drift, and the one
+        // the user reads is the one that is not authoritative.
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
+
+        Assert.Contains("GetDeletableVariants()", body);
+        Assert.DoesNotContain("ManualLayoutOrigin.Manual", body);
     }
 
     [Fact]

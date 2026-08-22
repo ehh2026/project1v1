@@ -200,14 +200,15 @@ public class LayoutEditorKeyDerivationTests
         // ExitEditMode ends the session, so anything read from ActiveSession afterwards is null.
         // The unload log is the only record of which saved group was suppressed; logging null
         // there is silent, which is why this is pinned rather than left to review.
-        var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
+        // Lives with the other two "stop using this layout" actions since the Phase 2 split.
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
 
         var handlerIndex = source.IndexOf(
             "private void OnUnloadLayoutButtonClick", StringComparison.Ordinal);
         Assert.True(handlerIndex >= 0, "OnUnloadLayoutButtonClick not found.");
 
-        var handlerEnd = source.IndexOf(
-            "private void ExitEditMode", handlerIndex, StringComparison.Ordinal);
+        // Last member in its file, so the class close bounds it.
+        var handlerEnd = source.LastIndexOf("    }", StringComparison.Ordinal);
         Assert.True(handlerEnd > handlerIndex, "Could not bound OnUnloadLayoutButtonClick.");
 
         var body = source.Substring(handlerIndex, handlerEnd - handlerIndex);

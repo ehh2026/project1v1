@@ -553,9 +553,10 @@ seeded sizes, the layout is applied to the map while the dropdown reports no var
 the scope being edited, so two different clusters are visually identical. The dropdown lists only
 the current key's variants, so changing view silently swaps the entire list with no explanation.
 
-The panel also now carries five actions — Save, Save As Variant, `Delete Variant` (`:246`),
-`Delete and Recalculate` (`:298`), `Unload Layout` (`:336`). Two already delete, which compounds the
-Phase 2 confusion.
+The panel carries five actions — Save, Save As Variant, `Delete This Layout` (`:246`),
+`Delete ALL Saved Layouts` (`:298`), `Unload and Recalculate` (`:336`). Phase 2 relabelled these and
+put a confirmation on both delete paths, so the remaining 6.3 work is arrangement and grouping
+rather than disambiguation.
 
 ### Steps
 

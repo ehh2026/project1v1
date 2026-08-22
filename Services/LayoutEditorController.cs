@@ -250,6 +250,18 @@ public sealed class LayoutEditorController
     }
 
     /// <summary>
+    /// Returns exactly the variants <see cref="TryDelete"/> would destroy: the hand-made ones.
+    /// AutoSeed and Imported variants survive it, so a confirmation counting anything wider would
+    /// promise to delete work that is still there afterwards.
+    /// </summary>
+    /// <remarks>
+    /// This lives here rather than in the click handler so that the set shown to the user and the
+    /// set actually removed cannot drift apart: both are defined by <see cref="ManualLayoutOrigin.Manual"/>.
+    /// </remarks>
+    public IReadOnlyList<ManualLayoutSummary> GetDeletableVariants() =>
+        GetVariants().Where(v => v.Origin == ManualLayoutOrigin.Manual).ToList();
+
+    /// <summary>
     /// Creates UI-neutral instructions for applying a saved layout to currently visible markers.
     /// The caller owns WPF marker lookup, Canvas positioning, and extension-line rendering.
     /// </summary>
