@@ -62,7 +62,6 @@
                    Visibility="Collapsed"
                    Margin="15,0,15,12"
                    Padding="20,8"
-                   Background="#FF2196F3"
                    Foreground="White"
                    BorderThickness="0"
                    FontSize="14"
@@ -71,6 +70,7 @@
                    Click="TranslateButton_Click">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#FF2196F3"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">

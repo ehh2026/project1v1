@@ -61,13 +61,13 @@
                     FontSize="14"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CC000000"
                     BorderBrush="White"
                     BorderThickness="2"
                     Cursor="Hand"
                     Click="OnBackButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CC000000"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -103,13 +103,13 @@
                 FontSize="14"
                 FontWeight="SemiBold"
                 Foreground="White"
-                Background="#CC1E90FF"
                 BorderBrush="White"
                 BorderThickness="2"
                 Cursor="Hand"
                 Click="OnEditLayoutButtonClick">
             <Button.Style>
                 <Style TargetType="Button">
+                    <Setter Property="Background" Value="#CC1E90FF"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
@@ -214,13 +214,13 @@
                     FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CC228B22"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnSaveLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CC228B22"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -314,13 +314,13 @@
                     FontSize="14"
                     FontWeight="Bold"
                     Foreground="White"
-                    Background="#CCDAA520"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnUnloadLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CCDAA520"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -368,13 +368,13 @@
                     FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CCDC143C"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnDeleteLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CCDC143C"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -398,21 +398,32 @@
                 </Button.Style>
             </Button>
 
-            <!-- Auto Assign Pins Button -->
+            <!-- Auto Assign Pins Button. Composite-only: it picks image shaft/head pairs to fit
+                 each pin. With drawn pins there is nothing to pick, so it is disabled rather than
+                 hidden - a button that vanishes reads as a broken feature, and the tooltip can
+                 then say what would bring it back. ShowOnDisabled so that tooltip survives being
+                 disabled, which WPF otherwise suppresses. -->
             <Button x:Name="ReassignPinsButton"
                     Content="Auto Assign Pins"
                     Padding="15,8"
                     Margin="5"
                     FontSize="13"
                     FontWeight="SemiBold"
-                    Foreground="White"
-                    Background="#CC8B4513"
-                    BorderBrush="White"
                     BorderThickness="1"
-                    Cursor="Hand"
+                    ToolTipService.ShowOnDisabled="True"
                     Click="OnReassignPinsButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <!-- Every appearance property a trigger below changes has to be set here
+                             rather than on the Button element. A value set directly on the element
+                             is a local value, and local values outrank style triggers in WPF's
+                             precedence order, so a trigger that sets one is simply ignored, with
+                             no error and no warning. That is why the first attempt at this left the
+                             disabled button looking exactly like the enabled one. -->
+                        <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Background" Value="#CC8B4513"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="White"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -431,6 +442,15 @@
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="#DDA0522D"/>
                             </Trigger>
+                            <!-- The custom template above replaces the default chrome, and with it
+                                 the greying WPF would normally apply. Without these the button
+                                 looks identical enabled and disabled. -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#44503010"/>
+                                <Setter Property="Foreground" Value="#77FFFFFF"/>
+                                <Setter Property="BorderBrush" Value="#44FFFFFF"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
+                            </Trigger>
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
@@ -444,13 +464,13 @@
                     FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CC696969"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnExitEditModeButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CC696969"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
