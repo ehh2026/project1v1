@@ -5,7 +5,7 @@
     diagnostics, etc.) on or off without hand-editing JSON.
 
 .DESCRIPTION
-    Flips "EnableDeveloperTools" in the runtime visual-config.json that the app reads — the local
+    Flips "EnableDeveloperTools" in the runtime visual-config.json that the app reads - the local
     user config next to the built executable. That file is git-ignored, so this never changes the
     shipped defaults or affects other machines.
 
@@ -45,6 +45,23 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# 'Stop' turns any failure here into a terminating one -- a malformed visual-config.json reaching
+# ConvertFrom-Json, a config that cannot be written -- which exits before the pause at the bottom.
+# For a double-click that closes the window on the single message explaining what went wrong.
+# Write-Host rather than Write-Error: under 'Stop' a Write-Error inside a trap is itself
+# terminating, which would lose the message it was trying to print.
+trap {
+    Write-Host ""
+    Write-Host "toggle-dev-tools failed: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.InvocationInfo) {
+        Write-Host "  at line $($_.InvocationInfo.ScriptLineNumber): $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkGray
+    }
+    if (-not $NoPause -and [Environment]::UserInteractive) {
+        Read-Host "Press Enter to close" | Out-Null
+    }
+    exit 1
+}
 
 
 $repoRoot = Split-Path -Parent $PSScriptRoot

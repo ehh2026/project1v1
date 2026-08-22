@@ -24,6 +24,21 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+
+# Same reason as toggle-dev-tools.ps1: under 'Stop' any failure terminates before the pause at the
+# bottom, and this script is the one most likely to be double-clicked, so the window would close
+# on the error. Write-Host rather than Write-Error, which under 'Stop' would itself terminate.
+trap {
+    Write-Host ""
+    Write-Host "configure failed: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.InvocationInfo) {
+        Write-Host "  at line $($_.InvocationInfo.ScriptLineNumber): $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkGray
+    }
+    if (-not $NoPrompt -and [Environment]::UserInteractive) {
+        Read-Host "Press Enter to close" | Out-Null
+    }
+    exit 1
+}
 $repoRoot = $PSScriptRoot
 $exeName = 'InteractiveWorldMap.exe'
 
