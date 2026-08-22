@@ -1,6 +1,6 @@
 # Layout Editor — What Was Broken, and What Changes
 
-**Started:** 2026-08-18 · **Last updated:** 2026-08-21 · **Status:** in progress
+**Started:** 2026-08-18 · **Last updated:** 2026-08-22 · **Status:** in progress
 
 Plain-language companion to
 [../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md](../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md),
@@ -106,21 +106,23 @@ and give generated layouts distinguishable names.
 
 ---
 
-## 3. "Delete and Recalculate" deleted more than expected ⬜ not started
+## 3. "Delete and Recalculate" deleted more than expected ✅ fixed
 
 **What you saw:** the button deleted your saved layout — and every other saved version for that
-view — with no confirmation.
+view — with no confirmation. The name sounded like it was just going to recalculate.
 
-**What it should do:**
+**What changed (2026-08-22):** the three buttons now say what they destroy, and nothing destructive
+happens without a prompt naming exactly what is about to go.
 
-| Button | Behavior |
-|--------|----------|
-| **Unload and Recalculate** | Reverts to automatic placement for now. Your saved layout stays on disk and comes back next time. Non-destructive. |
-| **Delete Saved Layout** | Deletes only the one version you are looking at, after asking. |
-| **Delete All Versions** | Deletes everything saved for this view, after a separate confirmation that says how many. |
+| Button | What it does |
+|--------|--------------|
+| **Unload and Recalculate** | Reverts to automatic placement for now. Your saved layouts stay on disk and come back next time. Destroys nothing. This is the one most people want, so it is now the prominent one. |
+| **Delete This Layout** | Deletes only the version you are looking at, after asking and naming it. The others are kept. |
+| **Delete ALL Saved Layouts** | Deletes every hand-made layout for this view, after a confirmation that lists them and states the count. Generated seeds are not touched. |
 
-A non-destructive "Unload Layout" button already exists today and does the safe thing — it is just
-not the obvious one to reach for.
+Both prompts default to "No", so pressing Enter out of habit cancels rather than deletes. If there
+is nothing to delete, the red button says so and points you at "Unload and Recalculate" instead of
+doing anything.
 
 ---
 
@@ -260,6 +262,9 @@ intermittent. Please run them after each round of fixes and record the result he
 | S8 | Sparse view still saveable | Zoom to an area with a few pins too far apart to cluster, Edit Layout, Save | Save **succeeds**. Stubs here are correct, and must not be refused as "collapsed" |
 | S9 | Zoomed-vs-unzoomed precedence | Arrange a lone pin on the whole map and save; click it to zoom in; Edit Layout, change angle, save; zoom out and back in | The zoomed version you saved is shown, without needing to click Edit Layout |
 | ~~S10~~ | ~~Deliberate all-anchor arrangement~~ | Dropped 2026-08-20 — not a real use case. See "Simplification available" below |
+| S11 | Delete one layout | Save two named layouts for a view, open the picker on one, press **Delete This Layout**, confirm | The prompt names that layout. Only it goes; the other is still in the dropdown |
+| S12 | Delete all, and cancelling | Press **Delete ALL Saved Layouts**, read the count, press **No**. Then repeat and press **Yes** | Cancelling changes nothing. Confirming removes every hand-made layout for the view; pins revert to automatic placement |
+| S13 | Unload is non-destructive | Press **Unload and Recalculate**, then leave and re-enter the view | Pins revert to automatic placement immediately, and the saved layout is still there afterwards |
 
 If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That is the guard working:
 nothing was written, and the layout on disk is intact. Press Save again after a moment. Please
@@ -300,7 +305,7 @@ stubs and still save normally (S8, passed).
 | 1 | Saving destroys the layout | ✅ Fixed 2026-08-19 |
 | 1b | Saved layout redraws as stubs when reloaded | ✅ Fixed 2026-08-19 — confirmed in the app (S5) |
 | 2 | Same layout name in every view | ◐ Cause fixed; labels still unclear |
-| 3 | "Delete and Recalculate" deletes everything | ⬜ Not started |
+| 3 | "Delete and Recalculate" deletes everything | ✅ Fixed 2026-08-22 — relabelled, and both delete actions confirm first (S11, S12) |
 | 4 | "Generated Seed" layouts | ℹ️ Working as intended |
 | 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 — save now refused until you re-enter edit mode (S6) |
 | 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |

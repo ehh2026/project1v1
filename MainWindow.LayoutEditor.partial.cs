@@ -186,7 +186,25 @@ namespace InteractiveWorldMap
 
         private void OnDeleteVariantButtonClick(object sender, RoutedEventArgs e)
         {
-            if (MessageBox.Show("Delete this variant?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
+            // Name the variant. "Delete this variant?" gave no way to tell, before committing to
+            // it, whether the thing about to be destroyed was the one on screen.
+            var name = _layoutEditor.ActiveVariantDisplayName ?? _layoutEditor.ActiveVariantId;
+            if (name == null)
+            {
+                _logger.LogWarning("Cannot delete variant - none is active");
+                return;
+            }
+
+            var confirmed = MessageBox.Show(
+                $"Delete the saved layout \"{name}\"?\n\n" +
+                "Only this one is deleted. Any other saved layouts for this view are kept.\n" +
+                "This cannot be undone.",
+                "Delete Layout",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (confirmed != MessageBoxResult.Yes) return;
+
             bool ok = _layoutEditor.TryDeleteActiveVariant();
             if (!ok) return;
             var nextId = _layoutEditor.ActiveVariantId;
@@ -386,7 +404,10 @@ namespace InteractiveWorldMap
         }
 
         /// <summary>
-        /// Handles Delete & Recalculate button click - removes saved layout and recalculates.
+        /// Handles the bulk delete button click - destroys every hand-made layout saved for this
+        /// view, then recalculates. The single-variant counterpart is
+        /// <see cref="OnDeleteVariantButtonClick"/>; the non-destructive one is
+        /// <see cref="OnUnloadLayoutButtonClick"/>.
         /// </summary>
         private void OnDeleteLayoutButtonClick(object sender, RoutedEventArgs e)
         {
@@ -394,6 +415,43 @@ namespace InteractiveWorldMap
                 (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
             {
                 _logger.LogWarning("Cannot delete layout - no layout key or active layout session");
+                return;
+            }
+
+            // This button was labelled "Delete and Recalculate" and destroyed every hand-made
+            // layout for the view with no confirmation at all — the whole point of the phase.
+            // Generated seeds survive, so count only what will actually be lost.
+            var doomed = _layoutEditor.GetVariants()
+                .Where(v => v.Origin == ManualLayoutOrigin.Manual)
+                .ToList();
+
+            if (doomed.Count == 0)
+            {
+                _logger.LogInfo("Bulk delete requested but no hand-made layouts exist for this view");
+                MessageBox.Show(
+                    "There are no hand-made layouts saved for this view.\n\n" +
+                    "To go back to automatic placement without deleting anything, " +
+                    "use \"Unload and Recalculate\".",
+                    "Nothing to Delete",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+                return;
+            }
+
+            var names = string.Join("\n", doomed.Select(v => "    " + (v.DisplayName ?? v.VariantId)));
+            var confirmed = MessageBox.Show(
+                $"Delete ALL {doomed.Count} saved layout(s) for this view?\n\n" +
+                names + "\n\n" +
+                "Every one of them is destroyed, not just the one on screen. This cannot be undone.\n\n" +
+                "To go back to automatic placement while keeping these, cancel and use " +
+                "\"Unload and Recalculate\" instead.",
+                $"Delete All {doomed.Count} Saved Layouts",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            if (confirmed != MessageBoxResult.Yes)
+            {
+                _logger.LogInfo($"Bulk delete of {doomed.Count} variant(s) cancelled at the confirmation");
                 return;
             }
 

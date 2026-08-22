@@ -70,7 +70,7 @@ against merged `main`; the status column is kept current as phases land.
 |---|-------|----------|--------|
 | 0 | Stale `CurrentLayoutKey` — editor edits/saves the wrong scope's layout | **P0 — data loss** | **Fixed** (0.3–0.6, 0.9); 0.7 and 0.10 open as hardening |
 | 1 | Saving a layout sometimes rewrites every pin as a short vertical stub | **P0 — data loss** | **Fixed** (1.1–1.8, 1b, 1c); confirmed in the app by smoke S5 |
-| 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | Not started |
+| 2 | "Delete and Recalculate" deletes *all* saved variants for the key | **P1 — data loss** | **Done** (2.1–2.5) |
 | 3 | `toggle-dev-tools.ps1` cannot be run from cmd.exe / Explorer | P2 | **Done** (3.1–3.4) |
 | 4 | No root-level guide to which config files to edit | P3 | **Done** (4.1–4.4) |
 | 5 | `CalculateMaxLength` 20px floor lets heads leave the canvas | P2 | Not started |
@@ -397,16 +397,26 @@ the behavior originally wanted from the red button.
 
 ### Steps
 
-- [ ] 2.1 Repoint the red button from `TryDelete()` to `TryDeleteActiveVariant()` — delete the
-      active variant only, never the whole group.
-- [ ] 2.2 Add a confirmation dialog naming the specific variant about to be deleted.
-- [ ] 2.3 Relabel: red button → **"Delete Saved Layout"**; `MainWindow.xaml:337` →
-      **"Unload and Recalculate"**, and give it the visual weight of the primary action.
-- [ ] 2.4 Keep bulk delete reachable but explicit — a separate, separately-confirmed
-      "Delete All Variants for This Map". **Decided 2026-08-18: approved, behind its own
-      confirmation.** The confirmation must state how many variants will be destroyed.
-- [ ] 2.5 Tests: deleting one variant leaves the others intact; the group survives while any
-      variant remains; bulk delete only triggers on the explicit path.
+- [x] 2.1 **Done differently, deliberately.** Repointing the red button at
+      `TryDeleteActiveVariant()` would have made it identical to the existing "Delete Variant"
+      button, and then 2.4's bulk action needed a third button — three delete controls, two of
+      them the same. Instead the existing single-variant button keeps that job (relabelled
+      **"Delete This Layout"**) and the red button stays the bulk action, which is what 2.4 asks
+      for anyway. The defect was never that bulk delete existed; it was that it was unlabelled,
+      unconfirmed, and sitting behind the mildest-sounding name in the panel.
+- [x] 2.2 Both delete paths confirm. Single names the variant; bulk lists every variant and states
+      the count. Both default to `MessageBoxResult.No`, so a reflexive Enter cancels.
+- [x] 2.3 Relabelled: red → **"Delete ALL Saved Layouts"** (stronger than the planned wording,
+      since it is the bulk action), variant → **"Delete This Layout"**, unload →
+      **"Unload and Recalculate"** at 14pt Bold, the panel's most prominent action.
+- [x] 2.4 Bulk delete is the red button, separately confirmed, and its prompt states the count and
+      lists the names. When there is nothing to delete it says so and points at
+      "Unload and Recalculate" rather than acting.
+- [x] 2.5 `Tests/LayoutDeleteActionsTests.cs`: controller-level tests that one delete leaves the
+      others and that bulk spares AutoSeed variants, plus source guards that the count precedes the
+      prompt, the prompt precedes the deletion, `TryDelete()` is reachable from exactly one handler,
+      and no button is labelled "Delete and Recalculate" again. Verified to fail against the
+      pre-fix source.
 
 **Exit:** no single click can destroy more than the one named variant it announced.
 
