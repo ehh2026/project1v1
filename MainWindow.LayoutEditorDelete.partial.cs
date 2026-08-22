@@ -21,6 +21,13 @@ namespace InteractiveWorldMap
         /// </summary>
         private static string FormatVariantNameForPrompt(string name)
         {
+            if (string.IsNullOrEmpty(name)) return "(unnamed)";
+
+            // Bound the input, not just the output. The length of a hand-edited name is not
+            // something this code gets to assume, and everything past the first few hundred
+            // characters is discarded by the truncation below anyway.
+            if (name.Length > 400) name = name.Substring(0, 400);
+
             var cleaned = new string(name.Select(c => char.IsControl(c) ? ' ' : c).ToArray());
             cleaned = System.Text.RegularExpressions.Regex.Replace(cleaned, @"\s+", " ").Trim();
 
@@ -98,13 +105,23 @@ namespace InteractiveWorldMap
                 "\n",
                 doomed.Select(v => "    " + FormatVariantNameForPrompt(v.DisplayName ?? v.VariantId)));
 
+            // Say "hand-made", not "all". Generated seeds are saved layouts too and TryDelete
+            // leaves them alone, so a prompt promising to destroy everything would describe
+            // something the button does not do -- the same mismatch this phase exists to remove,
+            // just pointed the other way.
+            var kept = _layoutEditor.GetVariants().Count - doomed.Count;
+            var keptNote = kept > 0
+                ? $"The {kept} generated layout(s) for this view are not hand-made and are kept.\n\n"
+                : "";
+
             var confirmed = MessageBox.Show(
-                $"Delete ALL {doomed.Count} saved layout(s) for this view?\n\n" +
+                $"Delete all {doomed.Count} hand-made layout(s) saved for this view?\n\n" +
                 names + "\n\n" +
                 "Every one of them is destroyed, not just the one on screen. This cannot be undone.\n\n" +
+                keptNote +
                 "To go back to automatic placement while keeping these, cancel and use " +
                 "\"Unload and Recalculate\" instead.",
-                $"Delete All {doomed.Count} Saved Layouts",
+                $"Delete {doomed.Count} Hand-Made Layouts",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,
                 MessageBoxResult.No);

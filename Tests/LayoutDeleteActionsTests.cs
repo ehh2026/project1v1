@@ -77,6 +77,25 @@ public class LayoutDeleteActionsTests
     }
 
     [Fact]
+    public void BulkDelete_PromptDoesNotClaimToDestroyTheSeeds()
+    {
+        // TryDelete leaves AutoSeed and Imported variants alone, so a prompt saying it removes
+        // "ALL saved layouts" would promise destruction that does not happen. Wrong in the safe
+        // direction, but it is the same defect as the one this phase fixed -- a button whose words
+        // and behaviour disagree -- and it would push someone toward cancelling to save work that
+        // was never at risk.
+        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
+
+        var confirmIndex = body.IndexOf("MessageBoxButton.YesNo", StringComparison.Ordinal);
+        Assert.True(confirmIndex >= 0);
+        var prompt = body.Substring(0, confirmIndex);
+
+        Assert.Contains("hand-made layout(s) saved for this view", prompt);
+        Assert.DoesNotContain("saved layout(s) for this view?", prompt);
+    }
+
+    [Fact]
     public void BulkDelete_PointsAtTheNonDestructiveActionInstead()
     {
         // The reported confusion was reaching for this button wanting automatic placement back,
