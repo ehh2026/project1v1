@@ -151,3 +151,7 @@ if (-not $NoPause -and [Environment]::UserInteractive) {
     Write-Host ""
     Read-Host "Press Enter to close" | Out-Null
 }
+
+# Explicit, so $LASTEXITCODE reads as this run rather than keeping whatever the previous command
+# in the session left behind. The failure paths already exit 1.
+exit 0
