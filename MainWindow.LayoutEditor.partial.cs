@@ -184,21 +184,6 @@ namespace InteractiveWorldMap
             await ResetEditModeStatusAfterDelayAsync(2000);
         }
 
-        private void OnDeleteVariantButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (MessageBox.Show("Delete this variant?", "Confirm Delete", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-            bool ok = _layoutEditor.TryDeleteActiveVariant();
-            if (!ok) return;
-            var nextId = _layoutEditor.ActiveVariantId;
-            if (nextId != null) SwitchToVariantInEditor(nextId);
-            else
-            {
-                UpdateMarkerPositions();
-                if (IsFullMapLayoutSessionActive())
-                    TryApplyFullMapManualLayout();
-            }
-        }
-
         // Marker capture for saving lives in MainWindow.LayoutEditorGeometry.partial.cs
         // (TryCollectCurrentExtensions). Every save path must go through it — see the note there.
 
@@ -383,109 +368,6 @@ namespace InteractiveWorldMap
                 EditModeStatusText.Text = "✗ SAVE FAILED";
                 EditModeStatusText.Foreground = new SolidColorBrush(Colors.Red);
             }
-        }
-
-        /// <summary>
-        /// Handles Delete & Recalculate button click - removes saved layout and recalculates.
-        /// </summary>
-        private void OnDeleteLayoutButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (_layoutEditor.ActiveSession == null ||
-                (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
-            {
-                _logger.LogWarning("Cannot delete layout - no layout key or active layout session");
-                return;
-            }
-
-            try
-            {
-                var wasFullMapSession = IsFullMapLayoutSessionActive();
-
-                // Delete saved layout (controller sets IsManualLayoutActive and logs)
-                _layoutEditor.TryDelete();
-
-                // Clear any pending overrides — layout is gone.
-                _overrideStore.ClearAll();
-                UpdateOverrideIndicator();
-
-                // Exit edit mode
-                ExitEditMode();
-
-                // Recalculate positions
-                if (wasFullMapSession)
-                {
-                    UpdateMarkerPositions();
-                    TryApplyFullMapManualLayout();
-                }
-                else if (_currentZoomedCluster != null)
-                {
-                    ShowZoomedView(_currentZoomedCluster);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to delete layout: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Handles Unload Layout button click - reverts to auto-placement for this session while
-        /// leaving the saved layout file on disk untouched (non-destructive counterpart to
-        /// Delete &amp; Recalculate). The layout returns on the next edit or app restart.
-        /// </summary>
-        private void OnUnloadLayoutButtonClick(object sender, RoutedEventArgs e)
-        {
-            if (_layoutEditor.ActiveSession == null ||
-                (_currentZoomedCluster == null && !IsFullMapLayoutSessionActive()))
-            {
-                _logger.LogWarning("Cannot unload layout - no layout key or active layout session");
-                return;
-            }
-
-            try
-            {
-                var wasFullMapSession = IsFullMapLayoutSessionActive();
-
-                // Capture the scope before ExitEditMode ends the session: the completion log below
-                // is the only record of which saved group was suppressed, and reading it afterwards
-                // would always report null.
-                var sessionKey = _layoutEditor.ActiveSession.LayoutKey;
-
-                // Suppress for this session; the saved JSON stays on disk.
-                _layoutEditor.UnloadManualLayout();
-
-                // Drop pending in-session edits — nothing is lost, the file is untouched.
-                _overrideStore.ClearAll();
-                UpdateOverrideIndicator();
-
-                ExitEditMode();
-
-                // Revert to auto-placement. The auto-apply paths are now no-ops (suppressed), so
-                // markers stay auto-placed instead of reloading the saved layout.
-                if (wasFullMapSession)
-                {
-                    UpdateMarkerPositions();
-                    TryApplyFullMapManualLayout();
-                }
-                else if (_currentZoomedCluster != null)
-                {
-                    ShowZoomedView(_currentZoomedCluster);
-                }
-
-                _logger.LogInfo($"Unloaded manual layout (kept on disk) for key={sessionKey}");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError($"Failed to unload layout: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Handles Exit Edit Mode button click - exits edit mode without saving.
-        /// </summary>
-        private void OnExitEditModeButtonClick(object sender, RoutedEventArgs e)
-        {
-            ExitEditMode();
         }
 
         /// <summary>

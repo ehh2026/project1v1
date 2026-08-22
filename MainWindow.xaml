@@ -242,9 +242,10 @@
                     Cursor="Hand"
                     Click="OnSaveAsVariantButtonClick"/>
 
-            <!-- Delete Variant Button (Manual only; service enforces guard) -->
+            <!-- Delete Variant Button (Manual only; service enforces guard).
+                 Deletes only the variant on screen - see DeleteLayoutButton for the bulk action. -->
             <Button x:Name="DeleteVariantButton"
-                    Content="Delete Variant"
+                    Content="Delete This Layout"
                     Padding="15,8"
                     Margin="5,2,5,5"
                     FontSize="13"
@@ -294,9 +295,10 @@
                 </Button.Style>
             </Button>
 
-            <!-- Delete & Recalculate Button -->
+            <!-- Bulk delete: destroys every hand-made layout for this view. Confirmed in the
+                 handler, which names them and states the count. -->
             <Button x:Name="DeleteLayoutButton"
-                    Content="Delete and Recalculate"
+                    Content="Delete ALL Saved Layouts"
                     Padding="15,8"
                     Margin="5"
                     FontSize="13"
@@ -334,11 +336,11 @@
 
             <!-- Unload Layout Button (non-destructive: reverts to auto-placement, keeps file on disk) -->
             <Button x:Name="UnloadLayoutButton"
-                    Content="Unload Layout"
-                    Padding="15,8"
+                    Content="Unload and Recalculate"
+                    Padding="15,10"
                     Margin="5"
-                    FontSize="13"
-                    FontWeight="SemiBold"
+                    FontSize="14"
+                    FontWeight="Bold"
                     Foreground="White"
                     Background="#CCDAA520"
                     BorderBrush="White"
