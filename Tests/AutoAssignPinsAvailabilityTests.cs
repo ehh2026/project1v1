@@ -65,6 +65,34 @@ public class AutoAssignPinsAvailabilityTests
     }
 
     [Fact]
+    public void DisabledButton_ActuallyLooksDisabled()
+    {
+        // WPF property precedence puts a local value above a style trigger, so any appearance
+        // property set on the Button element makes the trigger below it silently dead -- no error,
+        // no warning, the button simply never changes. That is exactly what happened on the first
+        // attempt: IsEnabled went false, the tooltip and cursor changed, and the button stayed the
+        // same colour. Everything the disabled trigger touches has to be a Setter in the Style.
+        var xaml = Read("MainWindow.xaml");
+
+        var start = xaml.IndexOf("x:Name=\"ReassignPinsButton\"", StringComparison.Ordinal);
+        Assert.True(start >= 0, "ReassignPinsButton not found.");
+
+        var declarationEnd = xaml.IndexOf(">", xaml.IndexOf("Click=\"OnReassignPinsButtonClick\"", start),
+            StringComparison.Ordinal);
+        var elementAttributes = xaml.Substring(start, declarationEnd - start);
+
+        foreach (var triggered in new[] { "Background=", "Foreground=", "BorderBrush=", "Cursor=" })
+        {
+            Assert.DoesNotContain(
+                triggered,
+                elementAttributes);
+        }
+
+        var style = xaml.Substring(declarationEnd, 2600);
+        Assert.Contains("<Trigger Property=\"IsEnabled\" Value=\"False\">", style);
+    }
+
+    [Fact]
     public void DisabledButton_CanStillExplainItself()
     {
         // WPF swallows tooltips on disabled controls unless asked not to, which would leave the

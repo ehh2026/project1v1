@@ -409,18 +409,21 @@
                     Margin="5"
                     FontSize="13"
                     FontWeight="SemiBold"
-                    Foreground="White"
-                    Background="#CC8B4513"
-                    BorderBrush="White"
                     BorderThickness="1"
                     ToolTipService.ShowOnDisabled="True"
                     Click="OnReassignPinsButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
-                        <!-- Cursor lives here rather than on the button: a value set directly on
-                             the element wins over any style setter, so a disabled button would
-                             keep the hand cursor and go on inviting the click. -->
+                        <!-- Every appearance property a trigger below changes has to be set here
+                             rather than on the Button element. A value set directly on the element
+                             is a local value, and local values outrank style triggers in WPF's
+                             precedence order, so a trigger that sets one is simply ignored, with
+                             no error and no warning. That is why the first attempt at this left the
+                             disabled button looking exactly like the enabled one. -->
                         <Setter Property="Cursor" Value="Hand"/>
+                        <Setter Property="Background" Value="#CC8B4513"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="BorderBrush" Value="White"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -443,9 +446,9 @@
                                  the greying WPF would normally apply. Without these the button
                                  looks identical enabled and disabled. -->
                             <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Background" Value="#66503010"/>
-                                <Setter Property="Foreground" Value="#88FFFFFF"/>
-                                <Setter Property="BorderBrush" Value="#55FFFFFF"/>
+                                <Setter Property="Background" Value="#44503010"/>
+                                <Setter Property="Foreground" Value="#77FFFFFF"/>
+                                <Setter Property="BorderBrush" Value="#44FFFFFF"/>
                                 <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                         </Style.Triggers>
