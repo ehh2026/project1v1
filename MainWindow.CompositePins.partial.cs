@@ -132,6 +132,25 @@ namespace InteractiveWorldMap
                    _visualConfig.PinParts.UseCompositeRendering;
         }
 
+        /// <summary>
+        /// Enables "Auto Assign Pins" only when composite rendering is on. The button re-picks an
+        /// image shaft/head pair for each pin; with drawn pins there is no pair to pick.
+        ///
+        /// Disabled rather than hidden: a button that disappears reads as a broken feature, and
+        /// composite rendering can be switched on from the tuning panel without leaving edit mode,
+        /// so this has to be re-evaluated rather than decided once.
+        /// </summary>
+        private void UpdateAutoAssignPinsAvailability()
+        {
+            var available = CanUseCompositePins();
+
+            ReassignPinsButton.IsEnabled = available;
+            ReassignPinsButton.ToolTip = available
+                ? "Re-pick the best-fitting pin shaft and head for each marker at its current position."
+                : "Only available with composite image pins. The map is currently drawing its pins, "
+                  + "so there are no shaft and head images to assign.";
+        }
+
         private bool EnsurePinPartGeometryLoaded()
         {
             if (_pinPartGeometry != null && _pinPartGeometry.Count > 0)
@@ -414,6 +433,18 @@ namespace InteractiveWorldMap
         /// </summary>
         private void OnReassignPinsButtonClick(object sender, RoutedEventArgs e)
         {
+            // The button is disabled in drawn-pin mode, but check anyway: nothing on the apply path
+            // does. ApplyCompositePinTargetToMarker will happily replace a drawn pin with a
+            // composite one, so a click reaching here with composites off does not fail -- it
+            // switches the rendering mode out from under the config, for the pins it touches only.
+            if (!CanUseCompositePins())
+            {
+                _logger.LogWarning(
+                    "[ReassignPins] Ignored - composite pin rendering is off, so there are no " +
+                    "shaft/head pairs to assign.");
+                return;
+            }
+
             if (!EnsurePinPartGeometryLoaded() || _pinPartGeometry == null)
             {
                 _logger.LogWarning("[ReassignPins] Pin part geometry not loaded, cannot reassign.");

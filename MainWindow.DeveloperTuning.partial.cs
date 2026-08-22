@@ -263,6 +263,10 @@ namespace InteractiveWorldMap
             _visualConfig.AutoOpenSingleLocationContentAfterZoom = e.AutoOpenSingleLocationContentAfterZoom;
             ApplyPinMarkerTuning(e);
             ApplyContentWindowTuning(e);
+
+            // The composite toggle above decides whether Auto Assign Pins has anything to do, and
+            // the tuning panel can be used without leaving edit mode.
+            UpdateAutoAssignPinsAvailability();
         }
 
         private void ApplyPinMarkerTuning(TuningPanelEventArgs e)

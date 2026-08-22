@@ -398,7 +398,11 @@
                 </Button.Style>
             </Button>
 
-            <!-- Auto Assign Pins Button -->
+            <!-- Auto Assign Pins Button. Composite-only: it picks image shaft/head pairs to fit
+                 each pin. With drawn pins there is nothing to pick, so it is disabled rather than
+                 hidden - a button that vanishes reads as a broken feature, and the tooltip can
+                 then say what would bring it back. ShowOnDisabled so that tooltip survives being
+                 disabled, which WPF otherwise suppresses. -->
             <Button x:Name="ReassignPinsButton"
                     Content="Auto Assign Pins"
                     Padding="15,8"
@@ -410,6 +414,7 @@
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
+                    ToolTipService.ShowOnDisabled="True"
                     Click="OnReassignPinsButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
