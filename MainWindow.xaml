@@ -163,8 +163,23 @@
                        Padding="10,8"
                        TextAlignment="Center"/>
             
-            <!-- Variant Picker -->
-            <TextBlock Text="Variants:"
+            <!-- What this session is editing. Layouts are per view; without this the panel looks
+                 identical for the whole map and for every cluster, so there is no way to tell what
+                 a save is about to write to. Set from LayoutEditSession.ScopeDescription, which is
+                 derived from the session that actually performs the save. -->
+            <TextBlock x:Name="EditScopeText"
+                       Text=""
+                       Foreground="#FFFFFF"
+                       FontSize="12"
+                       FontWeight="SemiBold"
+                       Padding="10,0,10,8"
+                       TextAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="220"/>
+
+            <!-- Variant Picker. Labelled "for this view" so an empty list reads as a fact about
+                 the current view rather than as missing work. -->
+            <TextBlock Text="Saved layouts for this view:"
                        Foreground="#BBBBBB"
                        FontSize="11"
                        FontWeight="SemiBold"
@@ -190,6 +205,44 @@
                        FontSize="10"
                        Padding="10,2"
                        TextAlignment="Center"/>
+
+            <!-- Save Layout Button -->
+            <Button x:Name="SaveLayoutButton"
+                    Content="Save Layout"
+                    Padding="15,8"
+                    Margin="5"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CC228B22"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    Click="OnSaveLayoutButtonClick">
+                <Button.Style>
+                    <Style TargetType="Button">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="Button">
+                                    <Border Background="{TemplateBinding Background}"
+                                            BorderBrush="{TemplateBinding BorderBrush}"
+                                            BorderThickness="{TemplateBinding BorderThickness}"
+                                            CornerRadius="6"
+                                            Padding="{TemplateBinding Padding}">
+                                        <ContentPresenter HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"/>
+                                    </Border>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#DD32CD32"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
 
             <!-- Inline Save-As input row (shown on Save As click) -->
             <Grid x:Name="SaveAsInputRow" Visibility="Collapsed" Margin="5,2">
@@ -242,34 +295,30 @@
                     Cursor="Hand"
                     Click="OnSaveAsVariantButtonClick"/>
 
-            <!-- Delete Variant Button (Manual only; service enforces guard).
-                 Deletes only the variant on screen - see DeleteLayoutButton for the bulk action. -->
-            <Button x:Name="DeleteVariantButton"
-                    Content="Delete This Layout"
-                    Padding="15,8"
-                    Margin="5,2,5,5"
-                    FontSize="13"
-                    FontWeight="SemiBold"
-                    Foreground="White"
-                    Background="#CCDC143C"
-                    BorderBrush="White"
-                    BorderThickness="1"
-                    Cursor="Hand"
-                    Click="OnDeleteVariantButtonClick"/>
+            <!-- Separator: everything above adds or updates a layout; everything below stops one
+                 being used. Phase 2 made the labels honest about what each destroys; the grouping
+                 is so the two are not read as one list of five similar buttons. -->
+            <Border Height="1" Background="#55FFFFFF" Margin="10,10,10,2"/>
+            <TextBlock Text="Stop using this layout"
+                       Foreground="#BBBBBB"
+                       FontSize="11"
+                       FontWeight="SemiBold"
+                       Padding="10,2,10,4"
+                       TextAlignment="Center"/>
 
-            <!-- Save Layout Button -->
-            <Button x:Name="SaveLayoutButton"
-                    Content="Save Layout"
-                    Padding="15,8"
+            <!-- Unload Layout Button (non-destructive: reverts to auto-placement, keeps file on disk) -->
+            <Button x:Name="UnloadLayoutButton"
+                    Content="Unload and Recalculate"
+                    Padding="15,10"
                     Margin="5"
-                    FontSize="13"
-                    FontWeight="SemiBold"
+                    FontSize="14"
+                    FontWeight="Bold"
                     Foreground="White"
-                    Background="#CC228B22"
+                    Background="#CCDAA520"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
-                    Click="OnSaveLayoutButtonClick">
+                    Click="OnUnloadLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
                         <Setter Property="Template">
@@ -288,12 +337,27 @@
                         </Setter>
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#DD32CD32"/>
+                                <Setter Property="Background" Value="#DDFFC125"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>
                 </Button.Style>
             </Button>
+
+            <!-- Delete Variant Button (Manual only; service enforces guard).
+                 Deletes only the variant on screen - see DeleteLayoutButton for the bulk action. -->
+            <Button x:Name="DeleteVariantButton"
+                    Content="Delete This Layout"
+                    Padding="15,8"
+                    Margin="5,2,5,5"
+                    FontSize="13"
+                    FontWeight="SemiBold"
+                    Foreground="White"
+                    Background="#CCDC143C"
+                    BorderBrush="White"
+                    BorderThickness="1"
+                    Cursor="Hand"
+                    Click="OnDeleteVariantButtonClick"/>
 
             <!-- Bulk delete: destroys every hand-made layout for this view. Confirmed in the
                  handler, which names them and states the count. -->
@@ -328,44 +392,6 @@
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="#DDFF1493"/>
-                            </Trigger>
-                        </Style.Triggers>
-                    </Style>
-                </Button.Style>
-            </Button>
-
-            <!-- Unload Layout Button (non-destructive: reverts to auto-placement, keeps file on disk) -->
-            <Button x:Name="UnloadLayoutButton"
-                    Content="Unload and Recalculate"
-                    Padding="15,10"
-                    Margin="5"
-                    FontSize="14"
-                    FontWeight="Bold"
-                    Foreground="White"
-                    Background="#CCDAA520"
-                    BorderBrush="White"
-                    BorderThickness="1"
-                    Cursor="Hand"
-                    Click="OnUnloadLayoutButtonClick">
-                <Button.Style>
-                    <Style TargetType="Button">
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="Button">
-                                    <Border Background="{TemplateBinding Background}"
-                                            BorderBrush="{TemplateBinding BorderBrush}"
-                                            BorderThickness="{TemplateBinding BorderThickness}"
-                                            CornerRadius="6"
-                                            Padding="{TemplateBinding Padding}">
-                                        <ContentPresenter HorizontalAlignment="Center"
-                                                        VerticalAlignment="Center"/>
-                                    </Border>
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                        <Style.Triggers>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#DDFFC125"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>

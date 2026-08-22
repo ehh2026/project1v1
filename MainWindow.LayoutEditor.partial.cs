@@ -127,7 +127,14 @@ namespace InteractiveWorldMap
         private void UpdateVariantUI()
         {
             var active = VariantPickerComboBox.SelectedItem as ManualLayoutSummary;
-            VariantStatusText.Text = active != null ? $"Loaded: {active.DisplayName} ({active.Origin})" : "";
+
+            // An empty dropdown next to a blank status line reads as "my layouts are gone" -- the
+            // reported complaint -- when they are usually filed under a different view. Saying so
+            // needs care in the other direction though: an empty list does not prove nothing is
+            // saved, because the picker matches keys exactly while loading falls back to a
+            // compatible one. VariantStatusDescriber keeps those two cases apart.
+            VariantStatusText.Text = VariantStatusDescriber.Describe(
+                active, VariantPickerComboBox.Items.Count, _layoutEditor.ActiveVariantId);
             DeleteVariantButton.IsEnabled = active?.Origin == ManualLayoutOrigin.Manual;
         }
 
@@ -227,6 +234,11 @@ namespace InteractiveWorldMap
             _layoutEditor.BeginEditSession(session);
 
             _layoutEditor.EnterEditMode();
+
+            // Name the view being edited. The session decides this, not the panel: it is the same
+            // object the save writes through, so the label cannot describe a different scope than
+            // the one about to be written to.
+            EditScopeText.Text = "Editing: " + session.ScopeDescription;
 
             // If a manual layout is saved, restore those positions for draggable editing.
             // Phase 4: when composite rendering is active, skip RestoreBaseMarkerVisuals so
@@ -382,6 +394,10 @@ namespace InteractiveWorldMap
 
             _layoutEditor.ExitEditMode();
             _layoutEditor.EndEditSession();
+
+            // The session is over, so nothing is being edited. Leaving the old text up would name
+            // a scope no save could reach.
+            EditScopeText.Text = "";
 
             // Disable dragging on all markers
             foreach (var marker in _individualMarkers)
