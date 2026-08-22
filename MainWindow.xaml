@@ -413,11 +413,14 @@
                     Background="#CC8B4513"
                     BorderBrush="White"
                     BorderThickness="1"
-                    Cursor="Hand"
                     ToolTipService.ShowOnDisabled="True"
                     Click="OnReassignPinsButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <!-- Cursor lives here rather than on the button: a value set directly on
+                             the element wins over any style setter, so a disabled button would
+                             keep the hand cursor and go on inviting the click. -->
+                        <Setter Property="Cursor" Value="Hand"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -435,6 +438,15 @@
                         <Style.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="#DDA0522D"/>
+                            </Trigger>
+                            <!-- The custom template above replaces the default chrome, and with it
+                                 the greying WPF would normally apply. Without these the button
+                                 looks identical enabled and disabled. -->
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Background" Value="#66503010"/>
+                                <Setter Property="Foreground" Value="#88FFFFFF"/>
+                                <Setter Property="BorderBrush" Value="#55FFFFFF"/>
+                                <Setter Property="Cursor" Value="Arrow"/>
                             </Trigger>
                         </Style.Triggers>
                     </Style>

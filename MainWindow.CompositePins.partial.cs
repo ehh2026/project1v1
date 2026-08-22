@@ -134,11 +134,16 @@ namespace InteractiveWorldMap
 
         /// <summary>
         /// Enables "Auto Assign Pins" only when composite rendering is on. The button re-picks an
-        /// image shaft/head pair for each pin; with drawn pins there is no pair to pick.
+        /// image shaft and head for each pin; with drawn pins there is no pair to pick.
         ///
         /// Disabled rather than hidden: a button that disappears reads as a broken feature, and
-        /// composite rendering can be switched on from the tuning panel without leaving edit mode,
-        /// so this has to be re-evaluated rather than decided once.
+        /// the tooltip can then say what would bring it back.
+        ///
+        /// Called when the edit panel opens and again after a tuning apply. Today the second call
+        /// is belt and braces -- <c>CanRunTuningAction</c> refuses to apply tuning while edit mode
+        /// is active, so the mode cannot change while this button is on screen. It is kept because
+        /// the button's correctness should not rest on that guard staying in place; if the guard is
+        /// ever relaxed, the enablement is already right rather than silently stale.
         /// </summary>
         private void UpdateAutoAssignPinsAvailability()
         {
@@ -146,7 +151,7 @@ namespace InteractiveWorldMap
 
             ReassignPinsButton.IsEnabled = available;
             ReassignPinsButton.ToolTip = available
-                ? "Re-pick the best-fitting pin shaft and head for each marker at its current position."
+                ? "Re-pick the best-fitting shaft and head for each pin at its current position."
                 : "Only available with composite image pins. The map is currently drawing its pins, "
                   + "so there are no shaft and head images to assign.";
         }
@@ -437,6 +442,7 @@ namespace InteractiveWorldMap
             // does. ApplyCompositePinTargetToMarker will happily replace a drawn pin with a
             // composite one, so a click reaching here with composites off does not fail -- it
             // switches the rendering mode out from under the config, for the pins it touches only.
+            // A disabled button is a claim about what happens; this is what makes the claim true.
             if (!CanUseCompositePins())
             {
                 _logger.LogWarning(
