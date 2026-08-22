@@ -206,12 +206,14 @@ layout is identified. Change one and the app looks for a layout under a differen
 **Important:** nothing is deleted. The layouts are still in the file; the app just cannot find them.
 Restoring the old values brings them back.
 
-**What it should do:** warn before you change these, and a planned config helper script will call
-this out.
+**What it should do:** warn before you change these. As of 2026-08-20 the config helper script
+exists — run `configure.bat` at the project root (or double-click it) and it lists every config
+file, where it is on your machine, and what it controls. The warning about these four values is
+still to come.
 
 ---
 
-## 7. The developer tools toggle did not work ⬜ not started
+## 7. The developer tools toggle did not work ✅ fixed
 
 **What you saw:** running `.\scripts\toggle-dev-tools.ps1 -State on` made Windows ask "How do you
 want to open this file?", and developer tools stayed off afterwards.
@@ -219,14 +221,23 @@ want to open this file?", and developer tools stayed off afterwards.
 **Why:** the script was being run from a `cmd.exe` window, which cannot execute PowerShell scripts —
 it hands them to Windows to open instead. The script never ran, so nothing changed.
 
-**Workaround today**, from a PowerShell window at the project root:
+**What changed (2026-08-20):** there is now a `toggle-dev-tools.bat` at the project root, next to
+`run-demo.bat`. It works from a cmd window, a PowerShell window, or a double-click in Explorer, and
+takes the same options as before:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\toggle-dev-tools.ps1 -State on
+```
+toggle-dev-tools.bat              flip whatever it is now
+toggle-dev-tools.bat -State on    force on
+toggle-dev-tools.bat -State off   force off
 ```
 
-**What it should do:** a `toggle-dev-tools.bat` at the project root, next to `run-demo.bat`, that
-works from anywhere you double-click or type it.
+There is a `configure.bat` next to it for the same reason. Both wait for you to press Enter
+before closing, so a double-click from Explorer does not make the window vanish before you can
+read it. From a command prompt that is one extra keypress.
+
+It prints which state it moved to and which file it wrote, so a no-op is visible rather than silent,
+and it reports a failure (for example, no built copy of the app to configure) instead of appearing
+to succeed. Relaunch the app for the change to take effect.
 
 ---
 
@@ -294,8 +305,8 @@ stubs and still save normally (S8, passed).
 | 5 | Resize while editing loses positions | ✅ Fixed 2026-08-19 — save now refused until you re-enter edit mode (S6) |
 | 5b | Different monitor hides layouts from the list | ⬜ Not started — nothing lost, display only |
 | 5c | Zoomed arrangement saved but never shown | ✅ Fixed 2026-08-19 — confirmed in the app 2026-08-21 (S9) |
-| 6 | Config changes hide cluster layouts | ⬜ Not started |
-| 7 | Dev tools toggle unrunnable from cmd | ⬜ Not started |
+| 6 | Config changes hide cluster layouts | ◐ `configure.bat` now shows where the configs are; the warning is still missing |
+| 7 | Dev tools toggle unrunnable from cmd | ✅ Fixed 2026-08-20 — use `toggle-dev-tools.bat` at the project root |
 
 **Confirmed in the app:** on 2026-08-21, S1, S2, S3, S4, S5, S7 and S9 all passed against the
 branch that deletes the ambient layout key — saving in a cluster and on the whole map, Save As,

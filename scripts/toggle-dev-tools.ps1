@@ -5,7 +5,7 @@
     diagnostics, etc.) on or off without hand-editing JSON.
 
 .DESCRIPTION
-    Flips "EnableDeveloperTools" in the runtime visual-config.json that the app reads — the local
+    Flips "EnableDeveloperTools" in the runtime visual-config.json that the app reads - the local
     user config next to the built executable. That file is git-ignored, so this never changes the
     shipped defaults or affects other machines.
 
@@ -19,6 +19,11 @@
 
 .PARAMETER State
     on | off | toggle (default: toggle). "toggle" flips whatever the config currently has.
+
+.PARAMETER NoPause
+    Skip the "Press Enter to close" at the end. Pass this from scripts and CI; without it the
+    script waits, so that a double-click in Explorer does not close the window before the result
+    can be read.
 
 .PARAMETER PublishDir
     Optional extra folder to include (e.g. a publish output written outside the repo with
@@ -34,10 +39,31 @@ param(
     [ValidateSet('on', 'off', 'toggle')]
     [string]$State = 'toggle',
 
-    [string]$PublishDir
+    [string]$PublishDir,
+
+    [switch]$NoPause
 )
 
 $ErrorActionPreference = 'Stop'
+
+# 'Stop' turns any failure here into a terminating one -- a malformed visual-config.json reaching
+# ConvertFrom-Json, a config that cannot be written -- which exits before the pause at the bottom.
+# For a double-click that closes the window on the single message explaining what went wrong.
+# Write-Host rather than Write-Error: under 'Stop' a Write-Error inside a trap is itself
+# terminating, which would lose the message it was trying to print.
+trap {
+    Write-Host ""
+    Write-Host "toggle-dev-tools failed: $($_.Exception.Message)" -ForegroundColor Red
+    if ($_.InvocationInfo) {
+        Write-Host "  at line $($_.InvocationInfo.ScriptLineNumber): $($_.InvocationInfo.Line.Trim())" -ForegroundColor DarkGray
+    }
+    if (-not $NoPause -and [Environment]::UserInteractive) {
+        Read-Host "Press Enter to close" | Out-Null
+    }
+    exit 1
+}
+
+
 $repoRoot = Split-Path -Parent $PSScriptRoot
 $exeName = 'InteractiveWorldMap.exe'
 
@@ -106,6 +132,7 @@ foreach ($configPath in $configPaths) {
 
 if ($updated.Count -eq 0) {
     Write-Warning "No $exeName found under bin\ (or -PublishDir). Build/publish the app once, then re-run this script."
+    if (-not $NoPause -and [Environment]::UserInteractive) { Read-Host "Press Enter to close" | Out-Null }
     exit 1
 }
 
@@ -116,3 +143,15 @@ foreach ($u in $updated) {
         $u.Path)
 }
 Write-Host "Relaunch the app for the change to take effect."
+
+# Always pause unless told not to. A double-click cannot be told apart from a console you are
+# already in -- explorer.exe is an ancestor of both -- so the choice is an extra keypress in a
+# console, or output that vanishes for whoever double-clicked. -NoPause is for scripts.
+if (-not $NoPause -and [Environment]::UserInteractive) {
+    Write-Host ""
+    Read-Host "Press Enter to close" | Out-Null
+}
+
+# Explicit, so $LASTEXITCODE reads as this run rather than keeping whatever the previous command
+# in the session left behind. The failure paths already exit 1.
+exit 0

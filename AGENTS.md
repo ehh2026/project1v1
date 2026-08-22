@@ -31,7 +31,8 @@ dotnet test Tests/InteractiveWorldMap.Tests.csproj --settings .runsettings
 dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 .\run-demo.bat                                    # Windows: build + launch
 .\scripts\validate_startup.ps1                  # Headless startup check (Windows)
-.\scripts\toggle-dev-tools.ps1 -State on        # Enable/disable in-app developer tools (on|off|toggle)
+.\toggle-dev-tools.bat -State on               # Enable/disable in-app developer tools (on|off|toggle)
+.\configure.bat                                 # Show which config file controls what, on this machine
 
 # Local quality gates
 dotnet format InteractiveWorldMap.sln --verify-no-changes
