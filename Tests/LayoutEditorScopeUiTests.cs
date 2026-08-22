@@ -63,11 +63,15 @@ public class LayoutEditorScopeUiTests
     }
 
     [Fact]
-    public void EmptyVariantList_SaysSoRatherThanShowingNothing()
+    public void EmptyVariantList_ExplainsItselfThroughTheDescriber()
     {
+        // The panel must not decide this itself. An empty list has two causes -- nothing saved, or
+        // saved but unlistable at this window size -- and only one of them is safe to state as
+        // fact. VariantStatusDescriber owns that distinction and is tested directly.
         var source = ReadSource("MainWindow.LayoutEditor.partial.cs");
 
-        Assert.Contains("None saved for this view yet", source);
+        Assert.Contains("VariantStatusDescriber.Describe(", source);
+        Assert.DoesNotContain("None saved for this view yet", source);
     }
 
     [Fact]

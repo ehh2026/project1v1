@@ -128,13 +128,13 @@ namespace InteractiveWorldMap
         {
             var active = VariantPickerComboBox.SelectedItem as ManualLayoutSummary;
 
-            // With nothing saved for this view, say so. An empty dropdown next to a blank status
-            // line reads as "my layouts are gone" -- the reported complaint -- when the layouts are
-            // simply somewhere else, under the view they were saved from.
-            VariantStatusText.Text =
-                active != null ? $"Loaded: {active.DisplayName} ({active.Origin})"
-                : VariantPickerComboBox.Items.Count == 0 ? "None saved for this view yet"
-                : "";
+            // An empty dropdown next to a blank status line reads as "my layouts are gone" -- the
+            // reported complaint -- when they are usually filed under a different view. Saying so
+            // needs care in the other direction though: an empty list does not prove nothing is
+            // saved, because the picker matches keys exactly while loading falls back to a
+            // compatible one. VariantStatusDescriber keeps those two cases apart.
+            VariantStatusText.Text = VariantStatusDescriber.Describe(
+                active, VariantPickerComboBox.Items.Count, _layoutEditor.ActiveVariantId);
             DeleteVariantButton.IsEnabled = active?.Origin == ManualLayoutOrigin.Manual;
         }
 

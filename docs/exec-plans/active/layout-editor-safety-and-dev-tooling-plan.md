@@ -584,9 +584,13 @@ rather than disambiguation.
       Cleared on `EndEditSession`, so a scope never outlives the session that could act on it.
       Past three locations the rest become a count: the panel is a fixed-width overlay, and a
       dozen names would push the buttons off it.
-- [x] 6.2 Label the variant dropdown `Saved layouts for this view:`, and say
-      `None saved for this view yet` when the list is empty. An empty dropdown over a blank status
-      line was the "my layouts are gone" report; both now state which view they are describing.
+- [x] 6.2 Label the variant dropdown `Saved layouts for this view:`, and name the reason the list
+      is empty. An empty dropdown over a blank status line was the "my layouts are gone" report.
+      Two causes, kept apart by `Utilities/VariantStatusDescriber`: `None saved for this view yet`
+      only when nothing is loaded either, and `Layout loaded, but not listed at this window size`
+      when Trap 3 has hidden an applied layout from the picker. Saying "none saved" over a visibly
+      applied layout would be worse than the blank line it replaced — it invites the user to redo
+      work that already exists. Caught by the Qodo review of PR #19.
 - [x] 6.3 Regrouped the five actions: Save and Save As, a separator captioned
       `Stop using this layout`, then Unload, Delete This Layout, Delete ALL. Previously the two
       saves were separated by a delete, so the column read as five similar options. Unload leads
