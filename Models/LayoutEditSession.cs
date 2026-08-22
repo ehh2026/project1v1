@@ -52,6 +52,39 @@ namespace InteractiveWorldMap.Models
         /// <summary>True when this session edits the unzoomed whole-map layout.</summary>
         public bool IsFullMap => Scope == LayoutScope.FullMap;
 
+        /// <summary>How many cluster locations to name before summarising the rest.</summary>
+        private const int NamedLocationLimit = 3;
+
+        /// <summary>
+        /// A short, human description of what this session is editing -- "Whole map", or a cluster
+        /// named by its locations.
+        ///
+        /// Layouts are per view and always have been, but the panel never said which view, so two
+        /// different clusters looked identical while editing and saving into either felt the same.
+        /// Derived from the session rather than stored alongside it, so it cannot describe a scope
+        /// the session is not actually writing to.
+        /// </summary>
+        public string ScopeDescription
+        {
+            get
+            {
+                if (IsFullMap) return "Whole map";
+                if (ScopeLocations == null || ScopeLocations.Count == 0) return "Cluster";
+
+                var named = new List<string>();
+                foreach (var location in ScopeLocations)
+                {
+                    if (named.Count == NamedLocationLimit) break;
+                    var name = location?.Name;
+                    named.Add(string.IsNullOrWhiteSpace(name) ? "(unnamed)" : name!.Trim());
+                }
+
+                var remaining = ScopeLocations.Count - named.Count;
+                var suffix = remaining > 0 ? $", +{remaining} more" : "";
+                return "Cluster: " + string.Join(", ", named) + suffix;
+            }
+        }
+
         /// <summary>
         /// True when the live view still matches the one this session was derived against. When
         /// false, marker positions on screen no longer share the session's coordinate space, so

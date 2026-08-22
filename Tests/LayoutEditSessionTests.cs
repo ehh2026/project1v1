@@ -185,4 +185,60 @@ public class LayoutEditSessionTests
 
         Assert.Same(second, ctrl.ActiveSession);
     }
+
+    // ─── Phase 6.1: naming the scope being edited ───────────────────────────
+
+    private static LayoutEditSession ClusterOf(params string[] names) =>
+        new("k",
+            LayoutScope.Cluster,
+            System.Array.ConvertAll(names, n => new Location { Id = n, Name = n }),
+            SessionViewport(),
+            SessionContainerWidth,
+            SessionContainerHeight);
+
+    [Fact]
+    public void ScopeDescription_FullMap_SaysWholeMap()
+    {
+        var session = new LayoutEditSession(
+            "fullmap", LayoutScope.FullMap, new List<Location>(),
+            SessionViewport(), SessionContainerWidth, SessionContainerHeight);
+
+        Assert.Equal("Whole map", session.ScopeDescription);
+    }
+
+    [Fact]
+    public void ScopeDescription_Cluster_NamesItsLocations()
+    {
+        // The hash in the layout key distinguishes clusters perfectly well and tells the user
+        // nothing. Names are the only part of a cluster identity anyone can recognise on sight.
+        Assert.Equal("Cluster: New York, Newark", ClusterOf("New York", "Newark").ScopeDescription);
+    }
+
+    [Fact]
+    public void ScopeDescription_LargeCluster_NamesAFewAndCountsTheRest()
+    {
+        // The panel is a fixed-width overlay, not a list view. A dozen names would push the buttons
+        // off it, so past a few the count carries the rest.
+        var description = ClusterOf("A", "B", "C", "D", "E").ScopeDescription;
+
+        Assert.Equal("Cluster: A, B, C, +2 more", description);
+    }
+
+    [Fact]
+    public void ScopeDescription_ClusterWithNoLocations_StillSaysItIsACluster()
+    {
+        // Degenerate, but the label must never come out empty: a blank scope line reads as
+        // "no scope" when the session very much has one and a save will write to it.
+        var session = new LayoutEditSession(
+            "k", LayoutScope.Cluster, new List<Location>(),
+            SessionViewport(), SessionContainerWidth, SessionContainerHeight);
+
+        Assert.Equal("Cluster", session.ScopeDescription);
+    }
+
+    [Fact]
+    public void ScopeDescription_UnnamedLocation_DoesNotProduceAGap()
+    {
+        Assert.Equal("Cluster: (unnamed), B", ClusterOf("  ", "B").ScopeDescription);
+    }
 }

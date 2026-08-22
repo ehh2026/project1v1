@@ -32,6 +32,7 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 - Config: `VisualConfig.LoadFromFile()` only — never raw `JObject` in Views
 - Content paths: `IContentLoader` / `ContentLoader` only — never raw string concat
 - Coordinate math: `Utilities/CoordinateMapper` only
+- Manual layouts are **per view**, never global — read [docs/reference/manual-layout-scoping.md](docs/reference/manual-layout-scoping.md) before touching layout keys, saving, or loading
 - Logging: `ILogger` injected — no `Console.WriteLine` in Services/Views
 - File size: keep `.cs` files under 800 lines; split when larger
 

@@ -577,16 +577,25 @@ rather than disambiguation.
 
 ### Steps
 
-- [ ] 6.1 Show the active scope in the edit panel: `Editing: Whole map` or
-      `Editing: cluster — New York, Newark, …` (location names, not the hash). Derive from the
-      current key so it cannot drift from reality.
-- [ ] 6.2 Label the variant dropdown with the same scope, so an emptied list reads as
-      "no variants for *this view*" rather than "my layouts are gone."
-- [ ] 6.3 Rationalize the five actions after Phase 2 relabeling; ensure the two delete actions are
-      visually distinct from each other and from unload.
-- [ ] 6.4 Write `docs/manual-layout-scoping.md`: the table above, both traps, and which file stores
-      what. Link it from `docs/index.md` and from `CLAUDE.md`'s key-conventions list so agents hit
-      it before touching layout code.
+- [x] 6.1 Show the active scope in the edit panel: `Editing: Whole map` or
+      `Editing: Cluster: New York, Newark, +2 more` (location names, not the hash). Derived from
+      `LayoutEditSession.ScopeDescription` rather than rebuilt in the panel — the session is the
+      object a save writes through, so the label cannot name a scope the save will not reach.
+      Cleared on `EndEditSession`, so a scope never outlives the session that could act on it.
+      Past three locations the rest become a count: the panel is a fixed-width overlay, and a
+      dozen names would push the buttons off it.
+- [x] 6.2 Label the variant dropdown `Saved layouts for this view:`, and say
+      `None saved for this view yet` when the list is empty. An empty dropdown over a blank status
+      line was the "my layouts are gone" report; both now state which view they are describing.
+- [x] 6.3 Regrouped the five actions: Save and Save As, a separator captioned
+      `Stop using this layout`, then Unload, Delete This Layout, Delete ALL. Previously the two
+      saves were separated by a delete, so the column read as five similar options. Unload leads
+      its group because it is what reaching for the red button usually meant.
+- [x] 6.4 Written as [`docs/reference/manual-layout-scoping.md`](../../reference/manual-layout-scoping.md)
+      (under `reference/`, matching the other layout docs, rather than at `docs/` root). Covers the
+      two key shapes, all three traps, which file the app actually reads, and where
+      `Generated Seed` comes from. Linked from `docs/index.md` and from `CLAUDE.md`'s key
+      conventions.
 - [ ] 6.5 Have the Phase 4 `configure.ps1` warn that editing the `RadialExtension` config values
       orphans saved cluster layouts (Trap 1) — that is the most likely way a user destroys their
       own work without touching the editor.
