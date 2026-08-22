@@ -489,9 +489,10 @@ One real bug sits behind a skip; the audit of skipped tests is otherwise clean (
       canvas when a marker was closer than 20px to an edge. Observed Y≈-6.09 on a 100×100 canvas.
       Both floors are gone. A minimum length is a minimum distance past the edge: the clamp only
       returns a small number because the marker is that close to the edge, and stretching the line
-      back to a preferred length puts the head where it is not drawn at all. `Math.Max(0.0, ...)`
-      remains, guarding a marker already outside the canvas, where the distance to the edge comes
-      back negative and would point the line backwards through the marker.
+      back to a preferred length puts the head where it is not drawn at all. The one clamp kept is
+      for the marker already outside the canvas: the intermediate distance-to-edge candidate comes
+      out negative there, which would point the line backwards through its own marker, so
+      `DistanceToCanvasEdge` returns 0 rather than that value. It never returns a negative number.
       `CalculateExtensions_WithCanvasBounds_KeepsHeadsInsideBounds` is un-skipped, and
       `CalculateExtensions_MarkerCloserToTheEdgeThanTheOldFloor_...` pins the shape of the bug:
       it requires the line to come out *shorter than 20px*, not merely inside the bounds, so
