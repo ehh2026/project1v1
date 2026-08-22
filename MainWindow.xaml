@@ -61,13 +61,13 @@
                     FontSize="14"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CC000000"
                     BorderBrush="White"
                     BorderThickness="2"
                     Cursor="Hand"
                     Click="OnBackButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CC000000"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -103,13 +103,13 @@
                 FontSize="14"
                 FontWeight="SemiBold"
                 Foreground="White"
-                Background="#CC1E90FF"
                 BorderBrush="White"
                 BorderThickness="2"
                 Cursor="Hand"
                 Click="OnEditLayoutButtonClick">
             <Button.Style>
                 <Style TargetType="Button">
+                    <Setter Property="Background" Value="#CC1E90FF"/>
                     <Setter Property="Template">
                         <Setter.Value>
                             <ControlTemplate TargetType="Button">
@@ -214,13 +214,13 @@
                     FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CC228B22"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnSaveLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CC228B22"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -314,13 +314,13 @@
                     FontSize="14"
                     FontWeight="Bold"
                     Foreground="White"
-                    Background="#CCDAA520"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnUnloadLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CCDAA520"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -368,13 +368,13 @@
                     FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CCDC143C"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnDeleteLayoutButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CCDC143C"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
@@ -464,13 +464,13 @@
                     FontSize="13"
                     FontWeight="SemiBold"
                     Foreground="White"
-                    Background="#CC696969"
                     BorderBrush="White"
                     BorderThickness="1"
                     Cursor="Hand"
                     Click="OnExitEditModeButtonClick">
                 <Button.Style>
                     <Style TargetType="Button">
+                        <Setter Property="Background" Value="#CC696969"/>
                         <Setter Property="Template">
                             <Setter.Value>
                                 <ControlTemplate TargetType="Button">
