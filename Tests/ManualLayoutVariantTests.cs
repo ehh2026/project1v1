@@ -16,7 +16,7 @@ namespace InteractiveWorldMap.Tests;
 /// </summary>
 public class ManualLayoutVariantTests
 {
-    private const string GroupKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+    private const string GroupKey = "clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
 
     private static ManualLayoutManager CreateManager(string layoutPath) =>
         new ManualLayoutManager(layoutPath, new MockLogger());

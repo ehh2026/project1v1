@@ -11,7 +11,7 @@ namespace InteractiveWorldMap.Services
     /// <summary>
     /// Manages saving, loading, and deleting manual layouts, including multi-variant CRUD.
     /// </summary>
-    public class ManualLayoutManager : IManualLayoutManager
+    public partial class ManualLayoutManager : IManualLayoutManager
     {
         private const int ManualVariantCap = 10;
 
@@ -109,6 +109,12 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
+
+                // Same resolution as the listing: the confirmation named the variants of whichever
+                // group is in play, so this has to remove that group's variants and not a different
+                // group that merely shares the session's key.
+                var resolved = ResolveGroupKey(key, collection);
+                if (resolved != null) key = resolved;
 
                 if (collection.LayoutGroups.TryGetValue(key, out var group))
                 {
@@ -258,10 +264,18 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group))
+
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
                     return Array.Empty<ManualLayoutSummary>();
 
-                var selectedId = GetSelectedVariantIdFromCollection(collection, groupKey);
+                if (!string.Equals(resolvedKey, groupKey, StringComparison.Ordinal))
+                {
+                    _logger.LogInfo(
+                        $"[ManualLayoutManager] ListVariants for {groupKey} resolved to compatible group {resolvedKey}");
+                }
+
+                var selectedId = GetSelectedVariantIdFromCollection(collection, resolvedKey);
                 return group.Variants
                     .Select(v => new ManualLayoutSummary(
                         v.GroupKey,
@@ -286,8 +300,11 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group))
+
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
                     return null;
+
                 return group.Variants.FirstOrDefault(v =>
                     string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase));
             }
@@ -326,6 +343,12 @@ namespace InteractiveWorldMap.Services
 
                 var collection = LoadLayoutCollection();
 
+                // Saving deliberately does not resolve compatible keys. Reading does, because a
+                // layout that exists should be found; writing does not, because collapsing two
+                // compatible-but-distinct groups on save decides where layouts are *stored* rather
+                // than where they are found. Two groups that differ only by pan position are kept
+                // apart here on purpose -- see HasManualLayout, which relies on an exact group
+                // winning over a compatible one.
                 if (!collection.LayoutGroups.TryGetValue(groupKey, out var group))
                 {
                     group = new ManualLayoutGroup { GroupKey = groupKey };
@@ -411,7 +434,13 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group)) return false;
+
+                // Resolve first: the variant the user is looking at may live under a compatible key,
+                // and deleting "this one" has to remove the one that was listed and shown.
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
+                    return false;
+                groupKey = resolvedKey;
 
                 var target = group.Variants.FirstOrDefault(v =>
                     string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase));
@@ -465,7 +494,10 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group)) return false;
+
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
+                    return false;
                 var target = group.Variants.FirstOrDefault(v =>
                     string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase));
                 if (target == null) return false;
@@ -486,7 +518,11 @@ namespace InteractiveWorldMap.Services
 
         public string? GetSelectedVariantId(string groupKey)
         {
-            return GetSelectedVariantIdFromCollection(LoadLayoutCollection(), groupKey);
+            var collection = LoadLayoutCollection();
+            var resolvedKey = ResolveGroupKey(groupKey, collection);
+            return resolvedKey == null
+                ? null
+                : GetSelectedVariantIdFromCollection(collection, resolvedKey);
         }
 
         public bool SetSelectedVariantId(string groupKey, string variantId)
@@ -494,10 +530,18 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group)) return false;
+
+                // Store the choice against the group it was chosen from. Keying it by the session's
+                // own key would write it where nothing reads it back: every read of SelectedVariants
+                // goes through the resolved key, so the selection would appear to save and then be
+                // gone on the next load.
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
+                    return false;
+
                 if (!group.Variants.Any(v => string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase)))
                     return false;
-                collection.SelectedVariants[groupKey] = variantId;
+                collection.SelectedVariants[resolvedKey] = variantId;
                 UpdateLegacyLayoutIndex(collection);
                 SaveLayoutCollection(collection);
                 _cachedLayouts = collection;
@@ -566,6 +610,11 @@ namespace InteractiveWorldMap.Services
 
             TryBackupBeforeOverwrite();
 
+            // Migrate on the way out as well as on the way in. Several callers re-cache the
+            // collection object after saving, so migrating only on load would leave the session
+            // holding un-merged groups until a restart -- and would write them back out again.
+            MergeSizedClusterGroups(collection);
+
             var json = JsonSerializer.Serialize(collection, LayoutJsonOptions);
             File.WriteAllText(_layoutFilePath, json);
             _cachedLayouts = null;
@@ -591,7 +640,7 @@ namespace InteractiveWorldMap.Services
             }
         }
 
-        private static ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)
+        private ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)
         {
             collection.LayoutGroups ??= new Dictionary<string, ManualLayoutGroup>();
             collection.Layouts ??= new Dictionary<string, ManualLayout>();
@@ -619,6 +668,8 @@ namespace InteractiveWorldMap.Services
                     };
                 }
             }
+
+            MergeSizedClusterGroups(collection);
 
             UpdateLegacyLayoutIndex(collection);
             return collection;
@@ -655,82 +706,10 @@ namespace InteractiveWorldMap.Services
                 .ToDictionary(e => e.Key, e => e.PreferredVariant!, StringComparer.Ordinal);
         }
 
-        /// <summary>
-        /// Returns the best variant, honouring an explicit <paramref name="selectedVariantId"/> first,
-        /// then falling back to priority (Manual IsDefault > AutoSeed IsDefault > …) + recency.
-        /// </summary>
-        private static ManualLayout? SelectPreferredVariant(ManualLayoutGroup group, string? selectedVariantId = null)
-        {
-            if (!string.IsNullOrEmpty(selectedVariantId))
-            {
-                var selected = group.Variants.FirstOrDefault(v =>
-                    string.Equals(v.VariantId, selectedVariantId, StringComparison.OrdinalIgnoreCase));
-                if (selected != null) return selected;
-                // Stale id — fall through to priority order.
-            }
-
-            return group.Variants
-                .OrderByDescending(GetVariantPriority)
-                .ThenByDescending(v => v.UpdatedUtc)
-                .ThenByDescending(v => v.Timestamp)
-                .FirstOrDefault();
-        }
-
-        private static int GetVariantPriority(ManualLayout variant)
-        {
-            if (variant.Origin == ManualLayoutOrigin.Manual && variant.IsDefault) return 6;
-            if (variant.Origin == ManualLayoutOrigin.AutoSeed && variant.IsDefault) return 5;
-            if (variant.Origin == ManualLayoutOrigin.Manual) return 4;
-            if (variant.Origin == ManualLayoutOrigin.AutoSeed) return 3;
-            if (variant.IsDefault) return 2;
-            return 1;
-        }
-
         private static void SetDefaultForOriginClass(ManualLayoutGroup group, string variantId, ManualLayoutOrigin origin)
         {
             foreach (var v in group.Variants.Where(v => v.Origin == origin))
                 v.IsDefault = string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string? GetSelectedVariantIdFromCollection(ManualLayoutCollection collection, string groupKey)
-        {
-            if (collection.SelectedVariants == null) return null;
-            collection.SelectedVariants.TryGetValue(groupKey, out var sel);
-            return string.IsNullOrEmpty(sel) ? null : sel;
-        }
-
-        private static ManualLayout? FindCompatibleLayout(string key, ManualLayoutCollection collection)
-        {
-            return collection.Layouts
-                .Where(entry => LayoutKeyGenerator.AreKeysCompatible(entry.Key, key))
-                .Select(entry => new
-                {
-                    Layout = entry.Value,
-                    ZoomDifference = Math.Abs(ExtractZoomLevel(entry.Key) - ExtractZoomLevel(key))
-                })
-                .OrderBy(c => c.ZoomDifference)
-                .ThenByDescending(c => c.Layout.Timestamp)
-                .Select(c => c.Layout)
-                .FirstOrDefault();
-        }
-
-        private static ManualLayoutGroup? FindCompatibleGroup(string key, ManualLayoutCollection collection)
-        {
-            return collection.LayoutGroups
-                .Where(entry => LayoutKeyGenerator.AreKeysCompatible(entry.Key, key))
-                .Select(entry => new
-                {
-                    Group = entry.Value,
-                    ZoomDifference = Math.Abs(ExtractZoomLevel(entry.Key) - ExtractZoomLevel(key)),
-                    PreferredVariant = SelectPreferredVariant(
-                        entry.Value,
-                        collection.SelectedVariants?.GetValueOrDefault(entry.Key))
-                })
-                .OrderBy(c => c.ZoomDifference)
-                .ThenByDescending(c => c.PreferredVariant?.UpdatedUtc ?? DateTime.MinValue)
-                .ThenByDescending(c => c.PreferredVariant?.Timestamp ?? DateTime.MinValue)
-                .Select(c => c.Group)
-                .FirstOrDefault();
         }
 
         private static string GetDefaultDisplayName(ManualLayoutOrigin origin) => origin switch
@@ -747,12 +726,5 @@ namespace InteractiveWorldMap.Services
             return options;
         }
 
-        private static double ExtractZoomLevel(string key)
-        {
-            var parts = key.Split('_');
-            if (parts.Length > 1 && parts[1].StartsWith("z") && double.TryParse(parts[1].Substring(1), out var zoom))
-                return zoom;
-            return 0;
-        }
     }
 }

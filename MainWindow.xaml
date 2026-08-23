@@ -191,7 +191,7 @@
                 <ComboBox.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding DisplayName}"/>
+                            <TextBlock Text="{Binding Label}"/>
                             <TextBlock Text=" [" Foreground="#999"/>
                             <TextBlock Text="{Binding Origin}" Foreground="#999"/>
                             <TextBlock Text="]" Foreground="#999"/>

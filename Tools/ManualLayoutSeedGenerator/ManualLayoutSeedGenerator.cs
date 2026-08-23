@@ -124,7 +124,10 @@ public sealed class ManualLayoutSeedGenerator
                     GroupKey = key,
                     Key = key,
                     VariantId = "seed-default",
-                    DisplayName = "Generated Seed",
+                    // Named after the cluster rather than "Generated Seed". This file gets read by
+                    // hand often enough -- not least by anyone wondering where layouts they never
+                    // made came from -- that sixteen identical names is a poor answer.
+                    DisplayName = DescribeSeed(cluster.Locations),
                     Origin = ManualLayoutOrigin.AutoSeed,
                     IsDefault = true,
                     GeneratorVersion = GeneratorVersion,
@@ -223,6 +226,25 @@ public sealed class ManualLayoutSeedGenerator
                 StringComparer.Ordinal);
     }
 
+    /// <summary>
+    /// A seed name that says which cluster it belongs to. Three locations then a count, for the
+    /// same reason the edit panel truncates: this is read in a narrow dropdown, not a report.
+    /// </summary>
+    private static string DescribeSeed(List<Location> locations)
+    {
+        if (locations == null || locations.Count == 0) return "Generated Seed";
+
+        var named = locations
+            .Select(l => string.IsNullOrWhiteSpace(l?.Name) ? "(unnamed)" : l!.Name.Trim())
+            .OrderBy(n => n, StringComparer.Ordinal)
+            .Take(3)
+            .ToList();
+
+        var remaining = locations.Count - named.Count;
+        var suffix = remaining > 0 ? $", +{remaining} more" : "";
+        return "Seed: " + string.Join(", ", named) + suffix;
+    }
+
     private static int GetVariantPriority(ManualLayout variant)
     {
         if (variant.Origin == ManualLayoutOrigin.Manual && variant.IsDefault) return 6;
@@ -231,5 +253,6 @@ public sealed class ManualLayoutSeedGenerator
         if (variant.Origin == ManualLayoutOrigin.AutoSeed) return 3;
         if (variant.IsDefault) return 2;
         return 1;
+
     }
 }

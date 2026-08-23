@@ -606,11 +606,21 @@ rather than disambiguation.
 - [ ] 6.6 Test: full-map and cluster keys never collide; two distinct clusters produce distinct
       keys; changing a `RadialExtensionConfig` value changes the cluster key (pin the trap so it is
       a known, documented property rather than a surprise).
-- [ ] 6.7 **Make variant labels distinguishable.** Seeds are all named `Generated Seed`, so every
+- [x] 6.7 **Make variant labels distinguishable.** Done by rebuilding the label on read
+      (`ManualLayoutSummary.Label`: name, pin count, default marker) rather than by rewriting stored
+      names, so files already on disk are covered — what is there cannot be assumed to have been
+      chosen. New seeds are additionally named after their cluster, which also makes the raw JSON
+      readable. Scope is *not* repeated per row: 6.1 names the view once above the picker, and the
+      panel is a fixed-width overlay where every row belongs to that one view anyway.
+      Original wording: Seeds are all named `Generated Seed`, so every
       view's dropdown looks the same. Include the scope (cluster location names, or "Whole map") in
       the generated seed's `DisplayName`, and/or render scope in the dropdown item template. Covers
       existing files too — do not rely on regenerating seeds.
-- [ ] 6.8 **Fix Trap 3:** give `ListVariants` the same compatibility fallback `LoadLayout` already
+- [x] 6.8 **Fixed**, wider than described: `LoadVariant`, `DeleteVariant` and `DeleteLayout`
+      matched exactly too, so giving only `ListVariants` a fallback would have listed variants that
+      could not be selected and promised deletions that did not happen. All four resolve through
+      `ResolveGroupKey`. Saving still writes under the current view's key — that is 6.9.
+      Original wording: give `ListVariants` the same compatibility fallback `LoadLayout` already
       uses, so the dropdown never reports "no variants" for a layout that is actively applied.
       Test at a window size outside the seeded `s{W}x{H}` set.
 **Where the size variants actually come from (user, 2026-08-19):** running the app on a different
@@ -625,7 +635,16 @@ from the variant dropdown on another** while still being applied to the map. The
 dropdown just cannot find it. Worth confirming during the 6.8 fix that a dock/undock round trip
 keeps every variant listed.
 
-- [ ] 6.9 Consider whether `s{W}x{H}` belongs in the cluster key at all. `AreKeysCompatible` already
+- [x] 6.9 **Removed.** It was in the key and never in the compatibility check, so it fragmented
+      each cluster into one group per window size and found nothing extra for it. Legacy sized keys
+      still resolve — `AreKeysCompatible` only ever read the hash and the zoom — and
+      `MergeSizedClusterGroups` collapses groups still keyed that way when the file is next read or
+      written, so the duplication actually goes away rather than being tolerated. Colliding
+      hand-made variants are kept under a suffixed id rather than dropped: an awkward name is
+      recoverable, a missing layout is not. Seeds are the exception, being reproducible.
+      Migration runs on save as well as load, because several callers re-cache the collection after
+      writing and would otherwise hold un-merged groups until a restart.
+      Original wording: `AreKeysCompatible` already
       ignores it and full-map keys deliberately dropped it for exactly this reason; keeping it
       fragments every cluster into one group per window size (4× duplication in the current file).
       Removing it is a persistence-format change — needs a migration path for existing keys.

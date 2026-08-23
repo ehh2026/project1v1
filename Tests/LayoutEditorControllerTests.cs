@@ -209,8 +209,11 @@ public class LayoutEditorControllerTests
         // AutoSeed-only group present, LoadLayout yields that seed; claiming "manual exists" from a
         // different compatible group would suppress the full-map fallback and display neither.
         var (ctrl, manager, _, _) = Make();
-        const string exactKey = "hash1_z55.00_c10.00_10.00_s100x100_m3_p10.0_l50.0_n13.0";
-        const string otherSize = "hash1_z55.00_c10.00_10.00_s200x200_m3_p10.0_l50.0_n13.0";
+        // Same cluster and zoom, different pan position: distinct keys that AreKeysCompatible
+        // treats as interchangeable. Since Phase 6.9 this is what a "compatible other group" looks
+        // like -- window size no longer produces one.
+        const string exactKey = "hash1_z55.00_c10.00_10.00_m3_p10.0_l50.0_n13.0";
+        const string otherSize = "hash1_z55.00_c900.00_900.00_m3_p10.0_l50.0_n13.0";
 
         manager.SaveVariant(
             otherSize, "hand-made", "Hand Made", ManualLayoutOrigin.Manual,

@@ -162,9 +162,10 @@ namespace InteractiveWorldMap
             }
         }
         /// <summary>
-        /// Handles Unload Layout button click - reverts to auto-placement for this session while
-        /// leaving the saved layout file on disk untouched (non-destructive counterpart to
-        /// Delete &amp; Recalculate). The layout returns on the next edit or app restart.
+        /// Handles Unload Layout button click - reverts to auto-placement while leaving the saved
+        /// layout file on disk untouched (the non-destructive counterpart to the two delete
+        /// actions). It holds for the rest of the run, including across trips into the editor;
+        /// saving brings the layout back, as does restarting, since the file was never touched.
         /// </summary>
         private void OnUnloadLayoutButtonClick(object sender, RoutedEventArgs e)
         {
