@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.RegularExpressions;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
@@ -113,16 +114,17 @@ public class LayoutKeyGeneratorTests
         var key = LayoutKeyGenerator.GenerateKey(locations, vp, cfg);
         var parts = key.Split('_');
 
-        // hash _ z{zoom} _ c{cx}_{cy} _ s{w}x{h} _ m{min} _ p{prox} _ l{len} _ n{minlen}
-        Assert.True(parts.Length >= 8, $"Expected at least 8 underscore-separated parts, got: {key}");
+        // hash _ z{zoom} _ c{cx}_{cy} _ m{min} _ p{prox} _ l{len} _ n{minlen}
+        // No viewport size since Phase 6.9: it was in the key but never in the compatibility
+        // check, so it split one cluster into a group per window size and found nothing extra.
+        Assert.True(parts.Length >= 7, $"Expected at least 7 underscore-separated parts, got: {key}");
         Assert.Matches(@"^[0-9a-f]{16}$", parts[0]);          // 16-char hex hash
         Assert.StartsWith("z", parts[1]);                     // zoom
         Assert.StartsWith("c", parts[2]);                     // center x
-        Assert.Contains("x", parts[4]);                     // viewport size
-        Assert.Equal("m3", parts[5]);                     // MinLocationsForExtension
-        Assert.Equal("p10.0", parts[6]);                     // ProximityThresholdPixels
-        Assert.Equal("l50.0", parts[7]);                     // ExtensionLineLength
-        Assert.Equal("n13.0", parts[8]);                     // MinimumLineLength
+        Assert.Equal("m3", parts[4]);                     // MinLocationsForExtension
+        Assert.Equal("p10.0", parts[5]);                     // ProximityThresholdPixels
+        Assert.Equal("l50.0", parts[6]);                     // ExtensionLineLength
+        Assert.Equal("n13.0", parts[7]);                     // MinimumLineLength
     }
 
     [Fact]
@@ -193,19 +195,23 @@ public class LayoutKeyGeneratorTests
     }
 
     [Fact]
-    public void AreKeysCompatible_DifferentViewportSizeSameHash_ReturnsTrue()
+    public void AreKeysCompatible_LegacySizedKeySameHash_ReturnsTrue()
     {
-        // Different s{w}x{h} components should still be compatible (only hash+zoom checked)
+        // Since Phase 6.9 new keys carry no s{w}x{h}, but keys written before it do, and they have
+        // to keep resolving -- the migration only runs when the file is next read or written.
         var locations = new List<Location>
         {
             new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
             new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
         };
-        var k1920 = LayoutKeyGenerator.GenerateKey(locations, MakeZoomedViewport(), MakeConfig());
-        var k1440 = Regex.Replace(k1920, @"s\d+x\d+", "s161x101");
+        var current = LayoutKeyGenerator.GenerateKey(locations, MakeZoomedViewport(), MakeConfig());
 
-        Assert.NotEqual(k1920, k1440);
-        Assert.True(LayoutKeyGenerator.AreKeysCompatible(k1920, k1440));
+        var parts = current.Split('_').ToList();
+        parts.Insert(4, "s161x101");
+        var legacy = string.Join("_", parts);
+
+        Assert.NotEqual(current, legacy);
+        Assert.True(LayoutKeyGenerator.AreKeysCompatible(current, legacy));
     }
 
     [Fact]

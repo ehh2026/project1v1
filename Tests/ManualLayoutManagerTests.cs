@@ -27,7 +27,7 @@ public class ManualLayoutManagerTests
 
             var manager = new ManualLayoutManager(layoutPath, new MockLogger());
 
-            var loaded = manager.LoadLayout("anykey_z1.00_c0_0_s100x100_m3_p10.0_l50.0_n13.0");
+            var loaded = manager.LoadLayout("anykey_z1.00_c0_0_m3_p10.0_l50.0_n13.0");
 
             Assert.Null(loaded);
             Assert.True(File.Exists(layoutPath + ".corrupt"), "Unreadable layout file should be backed up.");
@@ -50,8 +50,8 @@ public class ManualLayoutManagerTests
 
         try
         {
-            var compatibleKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
-            var requestedKey = "clusterhash_z55.05_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+            var compatibleKey = "clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
+            var requestedKey = "clusterhash_z55.05_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
             var savedLayout = new ManualLayout(
                 compatibleKey,
                 new List<ManualLayoutMarker>
@@ -98,15 +98,15 @@ public class ManualLayoutManagerTests
 
         try
         {
-            var groupKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+            var groupKey = "clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
             var json = @"
 {
   ""LayoutGroups"": {
-    ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"": {
-      ""GroupKey"": ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"",
+    ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"": {
+      ""GroupKey"": ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"",
       ""Variants"": [
         {
-          ""Key"": ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"",
+          ""Key"": ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"",
           ""VariantId"": ""seed-default"",
           ""DisplayName"": ""Generated Seed"",
           ""Origin"": ""AutoSeed"",
@@ -126,7 +126,7 @@ public class ManualLayoutManagerTests
           ]
         },
         {
-          ""Key"": ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"",
+          ""Key"": ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"",
           ""VariantId"": ""manual-default"",
           ""DisplayName"": ""Manual Default"",
           ""Origin"": ""Manual"",
@@ -177,15 +177,15 @@ public class ManualLayoutManagerTests
 
         try
         {
-            var groupKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+            var groupKey = "clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
             var json = @"
 {
   ""LayoutGroups"": {
-    ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"": {
-      ""GroupKey"": ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"",
+    ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"": {
+      ""GroupKey"": ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"",
       ""Variants"": [
         {
-          ""Key"": ""clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0"",
+          ""Key"": ""clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0"",
           ""VariantId"": ""seed-default"",
           ""DisplayName"": ""Generated Seed"",
           ""Origin"": ""AutoSeed"",
@@ -419,14 +419,14 @@ public class ManualLayoutManagerTests
         try
         {
             var manager = new ManualLayoutManager(layoutPath, new MockLogger());
-            var savedKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
-            var compatibleKey = "clusterhash_z55.05_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+            var savedKey = "clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
+            var compatibleKey = "clusterhash_z55.05_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
 
             Assert.True(manager.SaveLayout(savedKey, OneExtension("Alpha", 30, 30)));
 
             Assert.True(manager.LayoutExists(savedKey));
             Assert.True(manager.LayoutExists(compatibleKey));
-            Assert.False(manager.LayoutExists("different_z55.00_c1_1_s179x101_m3_p10.0_l50.0_n13.0"));
+            Assert.False(manager.LayoutExists("different_z55.00_c1_1_m3_p10.0_l50.0_n13.0"));
         }
         finally
         {
@@ -510,7 +510,7 @@ public class ManualLayoutManagerTests
     public void DeleteLayout_RemovesManualVariantsButPreservesAutoSeed()
     {
         var tempDir = CreateTempLayoutDir(out var layoutPath);
-        var groupKey = "clusterhash_z55.00_c2458.10_2571.57_s179x101_m3_p10.0_l50.0_n13.0";
+        var groupKey = "clusterhash_z55.00_c2458.10_2571.57_m3_p10.0_l50.0_n13.0";
 
         try
         {

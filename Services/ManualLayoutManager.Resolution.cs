@@ -115,5 +115,138 @@ namespace InteractiveWorldMap.Services
                 return zoom;
             return 0;
         }
+        /// <summary>
+        /// Collapses cluster groups that differ only by the viewport size that used to be baked into
+        /// their key, so a cluster laid out on one monitor stops being a separate group from the same
+        /// cluster on another.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Runs on load, so files written before the size was dropped migrate themselves. Without it
+        /// the old groups keep working — <see cref="LayoutKeyGenerator.AreKeysCompatible"/> never looked
+        /// at the size, so they still resolve — but every save would add another group beside them and
+        /// the duplication would never go away.
+        /// </para>
+        /// <para>
+        /// Merging can collide: each sized group has its own <c>manual-default</c>. Hand-made work is
+        /// never dropped for a collision — the loser keeps its layout under a suffixed id, so the worst
+        /// case is a variant with an awkward name rather than a layout that quietly disappeared.
+        /// Generated seeds are the exception: they are reproducible from the coordinate source, and
+        /// keeping four of them would leave the picker as cluttered as the groups were.
+        /// </para>
+        /// </remarks>
+        private void MergeSizedClusterGroups(ManualLayoutCollection collection)
+        {
+            var sized = collection.LayoutGroups.Keys
+                .Where(k => !k.StartsWith("fullmap", StringComparison.Ordinal))
+                .Where(k => StripSizeComponent(k) != k)
+                .ToList();
+
+            if (sized.Count == 0) return;
+
+            foreach (var oldKey in sized)
+            {
+                var newKey = StripSizeComponent(oldKey);
+                var group = collection.LayoutGroups[oldKey];
+                collection.LayoutGroups.Remove(oldKey);
+
+                if (collection.SelectedVariants.TryGetValue(oldKey, out var selected))
+                {
+                    collection.SelectedVariants.Remove(oldKey);
+                    // First writer wins: an arbitrary choice, but the alternative is letting the last
+                    // group merged silently override a selection the user made under another size.
+                    if (!collection.SelectedVariants.ContainsKey(newKey))
+                        collection.SelectedVariants[newKey] = selected;
+                }
+
+                if (!collection.LayoutGroups.TryGetValue(newKey, out var target))
+                {
+                    group.GroupKey = newKey;
+                    foreach (var variant in group.Variants)
+                    {
+                        variant.GroupKey = newKey;
+                        variant.Key = newKey;
+                    }
+                    collection.LayoutGroups[newKey] = group;
+                    continue;
+                }
+
+                foreach (var variant in group.Variants)
+                    MergeVariantInto(target, variant, newKey, oldKey);
+            }
+
+            _logger.LogInfo(
+                $"[ManualLayoutManager] Merged {sized.Count} size-keyed cluster group(s) into " +
+                $"size-independent keys");
+        }
+
+        private void MergeVariantInto(
+            ManualLayoutGroup target, ManualLayout variant, string newKey, string oldKey)
+        {
+            variant.GroupKey = newKey;
+            variant.Key = newKey;
+
+            var clash = target.Variants.FirstOrDefault(v =>
+                string.Equals(v.VariantId, variant.VariantId, StringComparison.OrdinalIgnoreCase));
+
+            if (clash == null)
+            {
+                target.Variants.Add(variant);
+                return;
+            }
+
+            if (variant.Origin == ManualLayoutOrigin.AutoSeed)
+            {
+                // Regenerable, and one seed per cluster is the whole point of dropping the size.
+                if (variant.UpdatedUtc > clash.UpdatedUtc)
+                {
+                    target.Variants.Remove(clash);
+                    target.Variants.Add(variant);
+                }
+                return;
+            }
+
+            // Hand-made: keep it, under a name that says where it came from.
+            variant.VariantId = MakeUniqueVariantId(target, variant.VariantId, oldKey);
+            variant.DisplayName = $"{variant.DisplayName} (from {DescribeSize(oldKey)})";
+            variant.IsDefault = false;
+            target.Variants.Add(variant);
+
+            _logger.LogInfo(
+                $"[ManualLayoutManager] Kept colliding manual variant as '{variant.VariantId}' " +
+                $"while merging {oldKey} into {newKey}");
+        }
+
+        private static string MakeUniqueVariantId(ManualLayoutGroup target, string variantId, string oldKey)
+        {
+            var candidate = $"{variantId}-{DescribeSize(oldKey)}";
+            var suffix = 2;
+            while (target.Variants.Any(v => string.Equals(v.VariantId, candidate, StringComparison.OrdinalIgnoreCase)))
+                candidate = $"{variantId}-{DescribeSize(oldKey)}-{suffix++}";
+
+            return candidate;
+        }
+
+        /// <summary>The <c>s{W}x{H}</c> component of a key, or "unsized" when it has none.</summary>
+        private static string DescribeSize(string key) =>
+            key.Split('_').FirstOrDefault(IsSizeComponent)?.Substring(1) ?? "unsized";
+
+        /// <summary>
+        /// The key with its <c>s{W}x{H}</c> component removed; unchanged when there is none.
+        /// </summary>
+        private static string StripSizeComponent(string key) =>
+            string.Join("_", key.Split('_').Where(part => !IsSizeComponent(part)));
+
+        /// <summary>
+        /// True for the viewport-size part, e.g. <c>s161x101</c>. Deliberately strict: the centre part
+        /// is also numeric, and a loose match would strip coordinates out of the key.
+        /// </summary>
+        private static bool IsSizeComponent(string part) =>
+            part.Length > 1
+            && part[0] == 's'
+            && part.Count(c => c == 'x') == 1
+            && part.Substring(1).Split('x') is { Length: 2 } halves
+            && halves.All(h => h.Length > 0 && h.All(char.IsDigit));
+
     }
 }

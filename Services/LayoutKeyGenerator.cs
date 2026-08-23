@@ -36,7 +36,12 @@ namespace InteractiveWorldMap.Services
                 locationHash,
                 $"z{viewport.ZoomLevel:F2}",
                 $"c{centerX:F2}_{centerY:F2}",
-                $"s{viewport.ViewportWidth:F0}x{viewport.ViewportHeight:F0}",
+                // No s{W}x{H}. The viewport size was in the key but never in the compatibility
+                // check, so it fragmented every cluster into one group per window size while
+                // changing nothing about which layout was found -- four copies of the same four
+                // clusters in the shipped file, one per size someone happened to run at. Full-map
+                // keys dropped it for the same reason. Legacy sized keys still resolve, since
+                // AreKeysCompatible only ever looked at the hash and the zoom.
                 $"m{config.MinLocationsForExtension}",
                 $"p{config.ProximityThresholdPixels:F1}",
                 $"l{config.ExtensionLineLength:F1}",

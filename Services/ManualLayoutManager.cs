@@ -343,6 +343,12 @@ namespace InteractiveWorldMap.Services
 
                 var collection = LoadLayoutCollection();
 
+                // Saving deliberately does not resolve compatible keys. Reading does, because a
+                // layout that exists should be found; writing does not, because collapsing two
+                // compatible-but-distinct groups on save decides where layouts are *stored* rather
+                // than where they are found. Two groups that differ only by pan position are kept
+                // apart here on purpose -- see HasManualLayout, which relies on an exact group
+                // winning over a compatible one.
                 if (!collection.LayoutGroups.TryGetValue(groupKey, out var group))
                 {
                     group = new ManualLayoutGroup { GroupKey = groupKey };
@@ -604,6 +610,11 @@ namespace InteractiveWorldMap.Services
 
             TryBackupBeforeOverwrite();
 
+            // Migrate on the way out as well as on the way in. Several callers re-cache the
+            // collection object after saving, so migrating only on load would leave the session
+            // holding un-merged groups until a restart -- and would write them back out again.
+            MergeSizedClusterGroups(collection);
+
             var json = JsonSerializer.Serialize(collection, LayoutJsonOptions);
             File.WriteAllText(_layoutFilePath, json);
             _cachedLayouts = null;
@@ -629,7 +640,7 @@ namespace InteractiveWorldMap.Services
             }
         }
 
-        private static ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)
+        private ManualLayoutCollection NormalizeCollection(ManualLayoutCollection collection)
         {
             collection.LayoutGroups ??= new Dictionary<string, ManualLayoutGroup>();
             collection.Layouts ??= new Dictionary<string, ManualLayout>();
@@ -657,6 +668,8 @@ namespace InteractiveWorldMap.Services
                     };
                 }
             }
+
+            MergeSizedClusterGroups(collection);
 
             UpdateLegacyLayoutIndex(collection);
             return collection;

@@ -635,7 +635,16 @@ from the variant dropdown on another** while still being applied to the map. The
 dropdown just cannot find it. Worth confirming during the 6.8 fix that a dock/undock round trip
 keeps every variant listed.
 
-- [ ] 6.9 Consider whether `s{W}x{H}` belongs in the cluster key at all. `AreKeysCompatible` already
+- [x] 6.9 **Removed.** It was in the key and never in the compatibility check, so it fragmented
+      each cluster into one group per window size and found nothing extra for it. Legacy sized keys
+      still resolve — `AreKeysCompatible` only ever read the hash and the zoom — and
+      `MergeSizedClusterGroups` collapses groups still keyed that way when the file is next read or
+      written, so the duplication actually goes away rather than being tolerated. Colliding
+      hand-made variants are kept under a suffixed id rather than dropped: an awkward name is
+      recoverable, a missing layout is not. Seeds are the exception, being reproducible.
+      Migration runs on save as well as load, because several callers re-cache the collection after
+      writing and would otherwise hold un-merged groups until a restart.
+      Original wording: `AreKeysCompatible` already
       ignores it and full-map keys deliberately dropped it for exactly this reason; keeping it
       fragments every cluster into one group per window size (4× duplication in the current file).
       Removing it is a persistence-format change — needs a migration path for existing keys.
