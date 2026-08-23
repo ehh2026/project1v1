@@ -1,10 +1,10 @@
 using System;
-using System.IO;
 using System.Linq;
 using InteractiveWorldMap.Models;
 using Xunit;
 
 using static InteractiveWorldMap.Tests.TestHelpers.LayoutEditorTestFixtures;
+using static InteractiveWorldMap.Tests.TestHelpers.SourceGuard;
 
 namespace InteractiveWorldMap.Tests;
 
@@ -19,29 +19,11 @@ namespace InteractiveWorldMap.Tests;
 /// </summary>
 public class LayoutDeleteActionsTests
 {
-    private static readonly string RepoRoot =
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
-
-    private static string ReadSource(string fileName) =>
-        File.ReadAllText(Path.Combine(RepoRoot, fileName));
-
-    private static string HandlerBody(string source, string handler)
-    {
-        var start = source.IndexOf(handler, StringComparison.Ordinal);
-        Assert.True(start >= 0, $"{handler} not found.");
-
-        // Bounded by the next member declaration, which is enough to keep one handler's
-        // assertions from being satisfied by a neighbour's code.
-        var end = source.IndexOf("        private ", start + handler.Length, StringComparison.Ordinal);
-        if (end < 0) end = source.Length;
-        return source.Substring(start, end - start);
-    }
-
     [Fact]
     public void BulkDelete_CountsAndConfirmsBeforeDestroyingAnything()
     {
-        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
-        var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
+        var source = Read("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = MemberBody(source, "private void OnDeleteLayoutButtonClick");
 
         var countIndex = body.IndexOf("GetDeletableVariants()", StringComparison.Ordinal);
         var deleteIndex = body.IndexOf("_layoutEditor.TryDelete()", StringComparison.Ordinal);
@@ -84,8 +66,8 @@ public class LayoutDeleteActionsTests
         // direction, but it is the same defect as the one this phase fixed -- a button whose words
         // and behaviour disagree -- and it would push someone toward cancelling to save work that
         // was never at risk.
-        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
-        var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
+        var source = Read("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = MemberBody(source, "private void OnDeleteLayoutButtonClick");
 
         var confirmIndex = body.IndexOf("MessageBoxButton.YesNo", StringComparison.Ordinal);
         Assert.True(confirmIndex >= 0);
@@ -101,8 +83,8 @@ public class LayoutDeleteActionsTests
         // The reported confusion was reaching for this button wanting automatic placement back,
         // not wanting saved work destroyed. Both the "nothing to delete" notice and the
         // confirmation name the action that actually does that.
-        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
-        var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
+        var source = Read("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = MemberBody(source, "private void OnDeleteLayoutButtonClick");
 
         var mentions = body.Split(new[] { "Unload and Recalculate" }, StringSplitOptions.None).Length - 1;
         Assert.True(
@@ -113,8 +95,8 @@ public class LayoutDeleteActionsTests
     [Fact]
     public void SingleVariantDelete_NamesTheVariantAndDeletesOnlyIt()
     {
-        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
-        var body = HandlerBody(source, "private void OnDeleteVariantButtonClick");
+        var source = Read("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = MemberBody(source, "private void OnDeleteVariantButtonClick");
 
         Assert.Contains("ActiveVariantDisplayName", body);
         Assert.Contains("TryDeleteActiveVariant()", body);
@@ -129,9 +111,8 @@ public class LayoutDeleteActionsTests
     {
         // Every editor partial, not just the one that holds it today: the point is that no second
         // caller appears anywhere, including in a file that does not exist yet.
-        var occurrences = Directory
-            .GetFiles(RepoRoot, "MainWindow*.cs")
-            .Sum(f => File.ReadAllText(f)
+        var occurrences = Files("MainWindow*.cs")
+            .Sum(f => System.IO.File.ReadAllText(f)
                 .Split(new[] { "_layoutEditor.TryDelete()" }, StringSplitOptions.None).Length - 1);
 
         Assert.Equal(1, occurrences);
@@ -140,7 +121,7 @@ public class LayoutDeleteActionsTests
     [Fact]
     public void ButtonLabels_SayWhatEachActionDestroys()
     {
-        var xaml = ReadSource("MainWindow.xaml");
+        var xaml = Read("MainWindow.xaml");
 
         // "Delete and Recalculate" read as a benign recalculation while being the most
         // destructive action in the panel.
@@ -180,7 +161,7 @@ public class LayoutDeleteActionsTests
         // or control characters. Interpolated raw into a delete confirmation, such a name can push
         // the real warning out of view or fake one -- in the dialog that decides whether saved work
         // is destroyed.
-        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
+        var source = Read("MainWindow.LayoutEditorDelete.partial.cs");
 
         Assert.Contains("private static string FormatVariantNameForPrompt(", source);
 
@@ -190,7 +171,7 @@ public class LayoutDeleteActionsTests
                      "private void OnDeleteLayoutButtonClick"
                  })
         {
-            var body = HandlerBody(source, handler);
+            var body = MemberBody(source, handler);
             Assert.Contains("FormatVariantNameForPrompt(", body);
         }
     }
@@ -201,8 +182,8 @@ public class LayoutDeleteActionsTests
         // The set the prompt names and the set TryDelete removes have to be the same set. Deciding
         // it in the click handler means two definitions of "deletable" that can drift, and the one
         // the user reads is the one that is not authoritative.
-        var source = ReadSource("MainWindow.LayoutEditorDelete.partial.cs");
-        var body = HandlerBody(source, "private void OnDeleteLayoutButtonClick");
+        var source = Read("MainWindow.LayoutEditorDelete.partial.cs");
+        var body = MemberBody(source, "private void OnDeleteLayoutButtonClick");
 
         Assert.Contains("GetDeletableVariants()", body);
         Assert.DoesNotContain("ManualLayoutOrigin.Manual", body);

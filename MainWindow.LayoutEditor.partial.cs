@@ -83,6 +83,7 @@ namespace InteractiveWorldMap
                 _mode = InteractionMode.Editing;
                 EditLayoutButton.Visibility = Visibility.Collapsed;
                 EditModePanel.Visibility = Visibility.Visible;
+                UpdateAutoAssignPinsAvailability();
                 UpdateOverrideIndicator(); // hide indicator while in edit mode
             };
 
