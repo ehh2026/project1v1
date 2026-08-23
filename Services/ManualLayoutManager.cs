@@ -488,7 +488,10 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group)) return false;
+
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
+                    return false;
                 var target = group.Variants.FirstOrDefault(v =>
                     string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase));
                 if (target == null) return false;
@@ -509,7 +512,11 @@ namespace InteractiveWorldMap.Services
 
         public string? GetSelectedVariantId(string groupKey)
         {
-            return GetSelectedVariantIdFromCollection(LoadLayoutCollection(), groupKey);
+            var collection = LoadLayoutCollection();
+            var resolvedKey = ResolveGroupKey(groupKey, collection);
+            return resolvedKey == null
+                ? null
+                : GetSelectedVariantIdFromCollection(collection, resolvedKey);
         }
 
         public bool SetSelectedVariantId(string groupKey, string variantId)
@@ -517,10 +524,18 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group)) return false;
+
+                // Store the choice against the group it was chosen from. Keying it by the session's
+                // own key would write it where nothing reads it back: every read of SelectedVariants
+                // goes through the resolved key, so the selection would appear to save and then be
+                // gone on the next load.
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
+                    return false;
+
                 if (!group.Variants.Any(v => string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase)))
                     return false;
-                collection.SelectedVariants[groupKey] = variantId;
+                collection.SelectedVariants[resolvedKey] = variantId;
                 UpdateLegacyLayoutIndex(collection);
                 SaveLayoutCollection(collection);
                 _cachedLayouts = collection;

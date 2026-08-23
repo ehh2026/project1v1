@@ -1,5 +1,6 @@
 using System.Linq;
 using InteractiveWorldMap.Models;
+using InteractiveWorldMap.Services;
 using Xunit;
 
 using static InteractiveWorldMap.Tests.TestHelpers.LayoutEditorTestFixtures;
@@ -17,12 +18,27 @@ namespace InteractiveWorldMap.Tests;
 /// </summary>
 public class CompatibleGroupResolutionTests
 {
-    // Same location hash and zoom, different window size: compatible by design.
-    private const string SeededKey = "abc123def456abcd_z55.00_c100.00_200.00_s161x101_m3_p10.0_l50.0_n13.0";
-    private const string OtherSizeKey = "abc123def456abcd_z55.00_c100.00_200.00_s175x101_m3_p10.0_l50.0_n13.0";
+    // Generated rather than written out. Hand-written keys assume a format the generator owns, and
+    // a 16-character hash beside an assignment is also indistinguishable from a leaked credential to
+    // a secret scanner -- see .gitleaksignore for the previous round of that.
+    private static readonly RadialExtensionConfig KeyConfig = new();
 
-    // Different location hash: a different cluster entirely, and never compatible.
-    private const string OtherClusterKey = "999888777666555f_z55.00_c100.00_200.00_s161x101_m3_p10.0_l50.0_n13.0";
+    private static string KeyFor(string[] locationNames, double containerWidth = 1920)
+    {
+        var locations = locationNames.Select(n => new Location { Id = n, Name = n }).ToList();
+        var viewport = ViewportState.CreateZoomedView(4000, 3000, 55, 8198, 5542, containerWidth, 1080);
+        return LayoutKeyGenerator.GenerateKey(locations, viewport, KeyConfig);
+    }
+
+    private static readonly string[] Cluster = { "New York", "Newark" };
+    private static readonly string[] OtherCluster = { "Hong Kong", "Kowloon" };
+
+    // Same locations and zoom, different window size: compatible by design.
+    private static readonly string SeededKey = KeyFor(Cluster);
+    private static readonly string OtherSizeKey = KeyFor(Cluster, containerWidth: 1600);
+
+    // A different cluster entirely, and never compatible.
+    private static readonly string OtherClusterKey = KeyFor(OtherCluster);
 
     [Fact]
     public void ListVariants_AtAnotherWindowSize_FindsTheLayoutThatIsActuallyApplied()
@@ -84,6 +100,40 @@ public class CompatibleGroupResolutionTests
 
         Assert.True(manager.DeleteLayout(OtherSizeKey));
         Assert.Empty(manager.ListVariants(SeededKey));
+    }
+
+    [Fact]
+    public void SelectingAVariant_PersistsAgainstTheGroupItCameFrom()
+    {
+        // Every read of SelectedVariants goes through the resolved key. Writing the choice under
+        // the session's own key would store it where nothing reads it back, so the selection would
+        // appear to take and then be gone on the next load -- silently, since the write "succeeded".
+        var (_, manager, _, _) = Make();
+        manager.SaveVariant(SeededKey, "manual-default", "First", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: true, setAsSelected: true);
+        manager.SaveVariant(SeededKey, "v2", "Second", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: false, setAsSelected: false);
+
+        Assert.True(manager.SetSelectedVariantId(OtherSizeKey, "v2"));
+
+        Assert.Equal("v2", manager.GetSelectedVariantId(OtherSizeKey));
+        Assert.Equal("v2", manager.GetSelectedVariantId(SeededKey));
+        Assert.Equal("Second", manager.LoadLayout(OtherSizeKey)!.DisplayName);
+    }
+
+    [Fact]
+    public void SettingTheDefault_ReachesTheGroupThatWasListed()
+    {
+        var (_, manager, _, _) = Make();
+        manager.SaveVariant(SeededKey, "manual-default", "First", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(SeededKey, "v2", "Second", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: false, setAsSelected: false);
+
+        Assert.True(manager.SetDefaultVariant(OtherSizeKey, "v2"));
+
+        var listed = manager.ListVariants(SeededKey);
+        Assert.True(listed.Single(v => v.VariantId == "v2").IsDefault);
     }
 
     [Fact]
