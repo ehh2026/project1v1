@@ -1,6 +1,8 @@
+using System.IO;
 using System.Linq;
 using InteractiveWorldMap.Models;
 using InteractiveWorldMap.Services;
+using InteractiveWorldMap.Tests.TestHelpers;
 using Xunit;
 
 using static InteractiveWorldMap.Tests.TestHelpers.LayoutEditorTestFixtures;
@@ -254,6 +256,70 @@ public class SizeKeyMigrationTests
         Assert.Equal("seed-default", manager.GetSelectedVariantId(current));
         Assert.Equal(ManualLayoutOrigin.AutoSeed, manager.ListVariants(current).Single().Origin);
     }
+
+    [Fact]
+    public void ABlankSelectionDoesNotBlockARealOne()
+    {
+        // Written as a file rather than built through the manager: saving migrates, so there is no
+        // way to *produce* two sized groups through the API any more. This is a file that was
+        // already on disk, and hand-edited -- which manual-layouts.json is documented to be. The
+        // app cannot write a blank selection itself, since SetSelectedVariantId requires a matching
+        // variant.
+        //
+        // Carried across, the blank would win first-writer-wins for the merged group and shut out
+        // the real selection behind it with a value that selects nothing.
+        var (_, _, _, dir) = Make();
+        var path = Path.Combine(dir, "hand-edited.json");
+        var current = CurrentKey("New York", "Newark");
+        var blankGroup = LegacySizedKey(current, "s149x112");
+        var realGroup = LegacySizedKey(current, "s241x101");
+
+        File.WriteAllText(path, $@"
+{{
+  ""LayoutGroups"": {{
+    ""{blankGroup}"": {{
+      ""GroupKey"": ""{blankGroup}"",
+      ""Variants"": [ {Variant(blankGroup, "first", "First")} ]
+    }},
+    ""{realGroup}"": {{
+      ""GroupKey"": ""{realGroup}"",
+      ""Variants"": [ {Variant(realGroup, "second", "Second")} ]
+    }}
+  }},
+  ""SelectedVariants"": {{
+    ""{blankGroup}"": ""  "",
+    ""{realGroup}"": ""second""
+  }}
+}}");
+
+        var manager = new ManualLayoutManager(path, new MockLogger());
+
+        Assert.Equal("second", manager.GetSelectedVariantId(current));
+        Assert.Equal(2, manager.ListVariants(current).Count);
+    }
+
+    private static string Variant(string key, string variantId, string displayName) => $@"
+        {{
+          ""Key"": ""{key}"",
+          ""GroupKey"": ""{key}"",
+          ""VariantId"": ""{variantId}"",
+          ""DisplayName"": ""{displayName}"",
+          ""Origin"": ""Manual"",
+          ""IsDefault"": false,
+          ""Timestamp"": ""2026-06-05T00:00:00Z"",
+          ""CreatedUtc"": ""2026-06-05T00:00:00Z"",
+          ""UpdatedUtc"": ""2026-06-05T00:00:00Z"",
+          ""LocationCount"": 1,
+          ""Markers"": [
+            {{
+              ""LocationName"": ""Alpha"",
+              ""OriginalPosition"": {{ ""X"": 10.0, ""Y"": 10.0 }},
+              ""ExtendedPosition"": {{ ""X"": 20.0, ""Y"": 20.0 }},
+              ""Angle"": 15.0,
+              ""LineLength"": 14.0
+            }}
+          ]
+        }}";
 
     [Fact]
     public void TheMigration_IsIdempotent()

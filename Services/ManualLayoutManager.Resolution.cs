@@ -278,14 +278,20 @@ namespace InteractiveWorldMap.Services
         /// <remarks>
         /// First writer wins. Arbitrary between two equally valid choices, but the alternative lets
         /// whichever group happens to be merged last silently override a selection made under
-        /// another window size. A null id means the selected variant did not survive the merge;
+        /// another window size. A null or blank id means the selected variant did not survive the
+        /// merge, or there was never a real one;
         /// leaving the group unselected hands it to origin-priority fallback, which is what an
         /// unselected group has always done.
         /// </remarks>
         private static void CarrySelectionOver(
             ManualLayoutCollection collection, string newKey, string? variantId)
         {
-            if (variantId == null) return;
+            // Blank counts as no selection, the same way GetSelectedVariantIdFromCollection reads
+            // it. The app cannot write one -- SetSelectedVariantId requires a matching variant --
+            // but manual-layouts.json is documented as hand-editable, and carrying a blank across
+            // would win first-writer-wins for the merged group and block a later group's real
+            // selection with a value that selects nothing.
+            if (string.IsNullOrWhiteSpace(variantId)) return;
             if (collection.SelectedVariants.ContainsKey(newKey)) return;
 
             collection.SelectedVariants[newKey] = variantId;
