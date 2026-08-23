@@ -305,4 +305,104 @@ public class LayoutKeyGeneratorTests
         Assert.NotEqual(newYork, hongKong);
         Assert.False(LayoutKeyGenerator.AreKeysCompatible(newYork, hongKong));
     }
+    // ─── Phase 6.6: the properties the scoping doc claims ────────────────────
+
+    /// <summary>Two locations, enough to form a cluster.</summary>
+    private static List<Location> ClusterLocations() => new()
+    {
+        new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+        new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+    };
+
+    [Theory]
+    [InlineData("MinLocationsForExtension")]
+    [InlineData("ProximityThresholdPixels")]
+    [InlineData("ExtensionLineLength")]
+    [InlineData("MinimumLineLength")]
+    public void ChangingARadialExtensionSetting_RekeysClusterLayoutsWithoutOrphaningThem(string setting)
+    {
+        // Each of the four is part of every cluster key, so changing one in visual-config.json
+        // gives every cluster a different key. The plan and the scoping doc both said that orphaned
+        // the saved layouts. It does not, and never did: AreKeysCompatible only ever compared the
+        // location hash and the zoom, so the old group is still compatible with the new key and
+        // still resolves. Measured through ManualLayoutManager, not inferred -- see
+        // ConfigChangeDoesNotHideSavedLayoutsTests.
+        //
+        // What is left is real but milder, and is what configure.ps1 now says: the key moves, so
+        // every save afterwards lands in a new group, and the pins are placed by settings the
+        // layout was not drawn against.
+        var locations = ClusterLocations();
+        var viewport = MakeZoomedViewport();
+
+        var before = MakeConfig();
+        var after = MakeConfig();
+        switch (setting)
+        {
+            case "MinLocationsForExtension": after.MinLocationsForExtension += 1; break;
+            case "ProximityThresholdPixels": after.ProximityThresholdPixels += 1; break;
+            case "ExtensionLineLength": after.ExtensionLineLength += 1; break;
+            case "MinimumLineLength": after.MinimumLineLength += 1; break;
+        }
+
+        var keyBefore = LayoutKeyGenerator.GenerateKey(locations, viewport, before);
+        var keyAfter = LayoutKeyGenerator.GenerateKey(locations, viewport, after);
+
+        Assert.NotEqual(keyBefore, keyAfter);
+        Assert.True(
+            LayoutKeyGenerator.AreKeysCompatible(keyBefore, keyAfter),
+            $"Changing {setting} made the keys incompatible. Saved cluster layouts would now be " +
+            "unreachable, which is the failure the docs used to describe and the warning in " +
+            "configure.ps1 is written on the assumption does not happen.");
+    }
+
+    [Fact]
+    public void ChangingARadialExtensionSetting_LeavesTheFullMapLayoutAlone()
+    {
+        // The counterpart, and why the warning says "cluster layouts" rather than "layouts".
+        var before = MakeConfig();
+        var after = MakeConfig();
+        after.ExtensionLineLength += 1;
+
+        Assert.Equal(
+            LayoutKeyGenerator.DeriveEditSessionKey(null, MakeZoomedViewport(), before),
+            LayoutKeyGenerator.DeriveEditSessionKey(null, MakeZoomedViewport(), after));
+    }
+
+    [Fact]
+    public void TwoDifferentClusters_AreNotJustDifferentKeysButIncompatibleOnes()
+    {
+        // Distinct strings are not enough: lookup falls back through AreKeysCompatible, so if two
+        // clusters were compatible one would show the other's layout under its own name.
+        var newYork = new List<Location>
+        {
+            new() { Name = "New York", PixelX = 100, PixelY = 200 },
+            new() { Name = "Newark",   PixelX = 110, PixelY = 210 }
+        };
+        var hongKong = new List<Location>
+        {
+            new() { Name = "Hong Kong", PixelX = 100, PixelY = 200 },
+            new() { Name = "Kowloon",   PixelX = 110, PixelY = 210 }
+        };
+
+        var a = LayoutKeyGenerator.GenerateKey(newYork, MakeZoomedViewport(), MakeConfig());
+        var b = LayoutKeyGenerator.GenerateKey(hongKong, MakeZoomedViewport(), MakeConfig());
+
+        Assert.NotEqual(a, b);
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(a, b));
+    }
+
+    [Fact]
+    public void AFullMapKeyAndAClusterKey_NeverCollideOrResolveToEachOther()
+    {
+        // The guarantee the scoping doc leads with. A cluster layout applied to the whole map, or
+        // the reverse, would put every pin somewhere arbitrary.
+        var cluster = LayoutKeyGenerator.DeriveEditSessionKey(
+            ClusterLocations(), MakeZoomedViewport(), MakeConfig());
+        var fullMap = LayoutKeyGenerator.DeriveEditSessionKey(
+            null, MakeZoomedViewport(), MakeConfig());
+
+        Assert.NotEqual(cluster, fullMap);
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(cluster, fullMap));
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(fullMap, cluster));
+    }
 }

@@ -176,14 +176,12 @@ never re-derives it on entry.
       **Consequence to surface in the UI (feeds 6.1):** a pin can now legitimately have two saved
       layouts — one unzoomed, one zoomed. The editor panel must say which scope is in effect, or
       "why did my change not show up" becomes ambiguous in a new way.
-- [ ] 0.7 Narrow the writers. Six call sites mutate `CurrentLayoutKey`. Partially addressed (0.5
-      removed one, 0.3/0.4 make the editor independent of it); the remaining writers should funnel
-      through one guarded method.
-- [ ] 0.10 **(new, found during the audit)** `TryLoad(key)` mutates `ActiveVariantId`/`Origin`/
-      `DisplayName` without checking `key == CurrentLayoutKey`. Three probe-loads call it with
-      locally computed keys (`Navigation:169`, `Navigation:237`,
-      `TryLoadFullMapManualLayoutForAnimation`), desyncing variant identity from the current key.
-      Either make probe loads side-effect-free or require the key to match.
+- [x] 0.7 **Overtaken by Phase C, which deleted the field rather than funnelling its writers.**
+      `CurrentLayoutKey` and `SetLayoutKey` no longer exist; the only occurrences left in the repo
+      are tests asserting their absence. There is nothing to narrow.
+- [x] 0.10 **Done by Phase C**, taking the first option: `TryLoad` is now
+      `_layoutManager.LoadLayout(key)` and mutates nothing. Variant identity is adopted once, on
+      edit entry, by `AdoptVariantIdentity`/`LoadForEditSession`, so a probe load cannot desync it.
 - [x] 0.8 **Manual smoke S5 passed 2026-08-19 against `83f716d`** — save, load another variant,
       reload: the arrangement redraws correctly, no stubs. This is the first confirmation against the
       originally reported failure. Note the true cause turned out to be Phase 1c (replay), not the
@@ -248,7 +246,7 @@ so an endpoint/start asymmetry is **not** the cause.
 - [x] 1.5 `GetMarkerEndpoint` split into `TryGetMarkerEndpoint(marker, out Point)`, returning false
       only for the last-resort marker-anchor guess. The four authoritative sources return true.
       Extracted to `MainWindow.LayoutEditorGeometry.partial.cs` (800-line limit).
-- [ ] 1.6 **Close the race at its source — but narrowly.** `UpdateMarkerPositions()`
+- [x] 1.6 **Close the race at its source — but narrowly.** `UpdateMarkerPositions()`
       (`MainWindow.MarkerPlacement.partial.cs:38`) calls `_extensionLineRenderer.Clear()` guarded
       only by `if (!IsAnimating)`.
       **Correction (2026-08-18 audit):** do *not* blanket-guard `UpdateMarkerPositions` with
@@ -526,11 +524,21 @@ So: a New York cluster layout, a Hong Kong cluster layout, and the zoomed-out fu
 three independent saved layouts. `AreKeysCompatible` hard-guarantees a full-map key never matches a
 cluster key.
 
-**Trap 1 — config edits silently orphan cluster layouts.** The `m`/`p`/`l`/`n` key components are
-`RadialExtensionConfig` values (`MinLocationsForExtension`, `ProximityThresholdPixels`,
-`ExtensionLineLength`, `MinimumLineLength`). Changing any of them in `visual-config.json` changes
-every cluster key, so saved cluster layouts stop resolving. They are not deleted — just unfindable.
-Presents to the user as "my layouts vanished." Full-map layouts are unaffected.
+**Trap 1 — config edits re-key cluster layouts (but do not orphan them).** The `m`/`p`/`l`/`n`
+key components are `RadialExtensionConfig` values (`MinLocationsForExtension`,
+`ProximityThresholdPixels`, `ExtensionLineLength`, `MinimumLineLength`). Changing any of them in
+`visual-config.json` changes every cluster key.
+
+**Corrected 2026-08-23.** This section used to say saved cluster layouts then stop resolving and
+present as "my layouts vanished". They do not: `AreKeysCompatible` compares only the location hash
+and the zoom, so the old group is still compatible with the new key and still loads. Verified in
+`ConfigChangeDoesNotHideSavedLayoutsTests` rather than argued from the key format, which is how the
+wrong version survived this long. The "vanished" reports were Trap 3 — the dropdown emptying while
+the map kept showing the layout — fixed in Phase 6.8.
+
+What remains is real but milder: saving keys exactly, so anything saved after the change lands in a
+new group beside the old one, and pins auto-placed around the hand-placed ones are recalculated with
+the new numbers. Full-map layouts are unaffected.
 
 **Trap 2 — compatibility is looser than the key.** `AreKeysCompatible` compares only the location
 hash and zoom (±0.1 tolerance). Viewport center and size are in the key but not in the check, so a
@@ -600,10 +608,20 @@ rather than disambiguation.
       two key shapes, all three traps, which file the app actually reads, and where
       `Generated Seed` comes from. Linked from `docs/index.md` and from `CLAUDE.md`'s key
       conventions.
-- [ ] 6.5 Have the Phase 4 `configure.ps1` warn that editing the `RadialExtension` config values
+- [x] 6.5 **Done, saying something different from what was planned.** The planned warning was
+      that these edits orphan saved cluster layouts. They do not — see the corrected Trap 1 above —
+      so `configure.ps1` says what actually happens instead: layouts still load, but later saves
+      land in a separate group, and auto-placed pins are recalculated around the hand-placed ones.
+      Writing the planned text would have taught users to fear the wrong thing.
+      Original wording:
       orphans saved cluster layouts (Trap 1) — that is the most likely way a user destroys their
       own work without touching the editor.
-- [ ] 6.6 Test: full-map and cluster keys never collide; two distinct clusters produce distinct
+- [x] 6.6 **Done.** Full-map and cluster keys are asserted neither equal nor compatible in
+      either direction; two distinct clusters likewise, since distinct strings alone would not stop
+      one cluster resolving to another's layout. The config-change property is pinned as what it is
+      — the key moves, the layout still resolves — with `ConfigChangeDoesNotHideSavedLayoutsTests`
+      measuring it end to end through `ManualLayoutManager`.
+      Original wording:
       keys; changing a `RadialExtensionConfig` value changes the cluster key (pin the trap so it is
       a known, documented property rather than a surprise).
 - [x] 6.7 **Make variant labels distinguishable.** Done by rebuilding the label on read
@@ -687,8 +705,19 @@ fully reproduce. Phase 3 needs verification from a real cmd.exe window specifica
 
 - ~~Phase 2.4: keep a bulk "delete all variants" action?~~ **Resolved 2026-08-18: keep it, behind
   its own confirmation stating the number of variants affected.**
-- Phase 1.6: is a re-render during an active edit session ever legitimate? A render pass calls
-  `ExtensionLineRenderer.Clear()`, which empties `_markerToLine` — the only store of each pin's true
-  endpoint — before repopulating it. A save landing inside that window loses every endpoint at once.
-  If no such pass is ever legitimate mid-edit, suppressing renders while `IsEditMode` closes the
-  window entirely; otherwise the save boundary must guard instead.
+- ~~Phase 1.6: is a re-render during an active edit session ever legitimate?~~ **Resolved by
+  the 2026-08-18 audit: yes, two of them are.** `OnDeleteVariantButtonClick` and
+  `OnEditLayoutButtonClick` both re-place markers mid-edit on purpose, so a blanket `IsEditMode`
+  guard on `UpdateMarkerPositions` would break them. `OnSizeChanged` was the one illegitimate
+  caller and now returns early during edit. The save boundary guards the rest: the session captured
+  the viewport it was derived against, so a save after a resize is refused rather than written from
+  mixed coordinate spaces.
+
+- ~~Does editing a `RadialExtensionConfig` value orphan saved cluster layouts ("Trap 1")?~~
+  **Resolved 2026-08-23: no, and it never did.** Those values are in the cluster key, but
+  `AreKeysCompatible` has only ever compared the location hash and the zoom, so the old group stays
+  compatible with the new key and still resolves. Measured through `ManualLayoutManager` in
+  `ConfigChangeDoesNotHideSavedLayoutsTests`. What people saw was Trap 3 — `ListVariants` matched
+  exactly, so the dropdown emptied while the map went on showing the layout — which Phase 6.8
+  fixed. The claim had been repeated in the plan, the scoping doc and this section without anyone
+  running it.

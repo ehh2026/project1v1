@@ -51,7 +51,7 @@ prints both paths and says which is which.
 
 ---
 
-## Trap 1 — editing the config orphans cluster layouts
+## Trap 1 — editing the config re-keys cluster layouts
 
 The `m`, `p`, `l` and `n` components of a cluster key are `RadialExtensionConfig` values:
 
@@ -62,13 +62,24 @@ The `m`, `p`, `l` and `n` components of a cluster key are `RadialExtensionConfig
 | `l` | `ExtensionLineLength` |
 | `n` | `MinimumLineLength` |
 
-Change any of them in `visual-config.json` and **every cluster key changes**, so every saved cluster
-layout stops resolving. Nothing is deleted; the layouts are simply unfindable under the new keys.
-Restoring the old values brings them back.
+Change any of them in `visual-config.json` and **every cluster key changes**.
 
-Full-map layouts are unaffected.
+Your layouts still load. Lookup compares the cluster and the zoom, not these settings, so a group
+saved under the old values stays compatible with the new key. This page previously said the layouts
+stopped resolving and "vanished"; that was wrong, and is now checked by
+`ConfigChangeDoesNotHideSavedLayoutsTests` rather than argued from the key format. The reports of
+layouts vanishing were Trap 3 below — the dropdown going empty while the map still showed the
+layout — fixed in Phase 6.8.
 
-This is the most likely way to lose your own work without going near the editor.
+Two things do change, and `configure.ps1` says so before you edit:
+
+- Saving keys exactly, so anything saved afterwards lands in a **new group** beside the old one, and
+  the file accumulates one set of layouts per settings combination.
+- Hand-placed pins keep their positions, but everything auto-placed around them is recalculated with
+  the new numbers, so a view can end up half-arranged.
+
+Putting the old values back restores the previous behaviour. Nothing is deleted at any point, and
+full-map layouts are unaffected.
 
 ## Trap 2 — compatibility is looser than the key
 

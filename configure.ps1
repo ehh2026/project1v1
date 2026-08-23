@@ -183,6 +183,23 @@ Write-Host '  visual-config.default.json sitting beside it. Only your local tuni
 Write-Host '  layouts, locations and content are in different files and are untouched.' -ForegroundColor DarkGray
 Write-Host ''
 
+Write-Heading 'Before you edit the radial-extension settings'
+Write-Host '  MinLocationsForExtension, ProximityThresholdPixels, ExtensionLineLength and' -ForegroundColor DarkGray
+Write-Host '  MinimumLineLength are part of the identity of every saved cluster layout. Change one' -ForegroundColor DarkGray
+Write-Host '  and each zoomed-in cluster gets a new identity.' -ForegroundColor DarkGray
+Write-Host ''
+Write-Host '  Your saved layouts are not lost, and they still load - the app matches them on the' -ForegroundColor DarkGray
+Write-Host '  cluster and zoom level, not on these settings. Two things do change:' -ForegroundColor DarkGray
+Write-Host ''
+Write-Host '    - Anything you save afterwards is stored separately from what you saved before,' -ForegroundColor DarkYellow
+Write-Host '      so the same cluster ends up with one set of layouts per settings combination.' -ForegroundColor DarkYellow
+Write-Host '    - Pins you placed by hand keep their positions, but everything auto-placed around' -ForegroundColor DarkYellow
+Write-Host '      them is recalculated with the new numbers, so a view can end up half-arranged.' -ForegroundColor DarkYellow
+Write-Host ''
+Write-Host '  Putting the old values back restores the previous behaviour; nothing is deleted at' -ForegroundColor DarkGray
+Write-Host '  any point. Whole-map layouts are unaffected either way.' -ForegroundColor DarkGray
+Write-Host ''
+
 Write-Heading 'Developer tools'
 Write-Host '  Turns on the Edit Layout button, the tuning panel, and the debug overlays.' -ForegroundColor DarkGray
 Write-Host '  Toggle it any time with:  .\toggle-dev-tools.bat -State on' -ForegroundColor DarkGray
