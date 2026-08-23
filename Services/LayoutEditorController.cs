@@ -161,8 +161,15 @@ public sealed class LayoutEditorController
     /// <summary>
     /// Non-destructively unloads the active manual layout: flags it suppressed so the auto-apply
     /// paths skip it (markers revert to auto-placement) while leaving the saved JSON on disk intact.
-    /// The layout returns when it next becomes active — re-entering the editor or restarting the app.
     /// </summary>
+    /// <remarks>
+    /// The suppression lasts the rest of the run. It is deliberately not cleared by re-entering the
+    /// editor — opening a view to work on it says nothing about wanting the unloaded layout back,
+    /// and treating it as a request made Unload unable to survive the next click. Saving does clear
+    /// it, through <see cref="SetManualLayoutActive"/>, because a save is an explicit statement
+    /// about what this view should look like. Restarting the app also restores it: the file was
+    /// never touched, and the flag lives only in memory.
+    /// </remarks>
     public void UnloadManualLayout()
     {
         IsManualLayoutSuppressed = true;

@@ -244,18 +244,22 @@ namespace InteractiveWorldMap
             // If a manual layout is saved, restore those positions for draggable editing.
             // Phase 4: when composite rendering is active, skip RestoreBaseMarkerVisuals so
             // composite pins remain composite during editing.
-            // Load the saved layout when one is active OR was unloaded this session (so opening the
-            // editor reloads a layout the user previously unloaded). SetManualLayoutActive(true)
-            // below clears the suppression flag.
+            //
             // Load the session's layout unconditionally so the editor adopts its variant identity,
             // then decide whether to apply it. Identity used to arrive as a side effect of
             // navigation's probe loads; now that loading is side-effect free, the editor has to
             // establish it, or a save would target "manual-default" instead of the loaded variant.
+            // Adopting identity is not the same as applying the layout: a suppressed layout still
+            // needs its variant known, so that saving over it updates that variant rather than
+            // silently creating a second one.
             var sessionLayout = _layoutEditor.LoadForEditSession();
 
+            // Suppressed means the user unloaded it and asked for automatic placement. Re-entering
+            // the editor used to count as "becoming active again" and bring it straight back, which
+            // left Unload able to do nothing that outlived the next click. Editing a view is not a
+            // request to undo the unload; saving is, and that clears the flag on its own.
             bool loadedSaved = false;
-            if ((_layoutEditor.IsManualLayoutActive || _layoutEditor.IsManualLayoutSuppressed) &&
-                sessionLayout != null)
+            if (_layoutEditor.IsManualLayoutActive && sessionLayout != null)
             {
                 if (!CanUseCompositePins())
                     RestoreBaseMarkerVisuals();
