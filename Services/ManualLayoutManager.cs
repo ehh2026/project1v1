@@ -110,6 +110,12 @@ namespace InteractiveWorldMap.Services
             {
                 var collection = LoadLayoutCollection();
 
+                // Same resolution as the listing: the confirmation named the variants of whichever
+                // group is in play, so this has to remove that group's variants and not a different
+                // group that merely shares the session's key.
+                var resolved = ResolveGroupKey(key, collection);
+                if (resolved != null) key = resolved;
+
                 if (collection.LayoutGroups.TryGetValue(key, out var group))
                 {
                     var removedCount = group.Variants.RemoveAll(v => v.Origin == ManualLayoutOrigin.Manual);
@@ -258,10 +264,18 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group))
+
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
                     return Array.Empty<ManualLayoutSummary>();
 
-                var selectedId = GetSelectedVariantIdFromCollection(collection, groupKey);
+                if (!string.Equals(resolvedKey, groupKey, StringComparison.Ordinal))
+                {
+                    _logger.LogInfo(
+                        $"[ManualLayoutManager] ListVariants for {groupKey} resolved to compatible group {resolvedKey}");
+                }
+
+                var selectedId = GetSelectedVariantIdFromCollection(collection, resolvedKey);
                 return group.Variants
                     .Select(v => new ManualLayoutSummary(
                         v.GroupKey,
@@ -286,8 +300,11 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group))
+
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
                     return null;
+
                 return group.Variants.FirstOrDefault(v =>
                     string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase));
             }
@@ -411,7 +428,13 @@ namespace InteractiveWorldMap.Services
             try
             {
                 var collection = LoadLayoutCollection();
-                if (!collection.LayoutGroups.TryGetValue(groupKey, out var group)) return false;
+
+                // Resolve first: the variant the user is looking at may live under a compatible key,
+                // and deleting "this one" has to remove the one that was listed and shown.
+                var resolvedKey = ResolveGroupKey(groupKey, collection);
+                if (resolvedKey == null || !collection.LayoutGroups.TryGetValue(resolvedKey, out var group))
+                    return false;
+                groupKey = resolvedKey;
 
                 var target = group.Variants.FirstOrDefault(v =>
                     string.Equals(v.VariantId, variantId, StringComparison.OrdinalIgnoreCase));
@@ -712,6 +735,26 @@ namespace InteractiveWorldMap.Services
                 .ThenByDescending(c => c.Layout.Timestamp)
                 .Select(c => c.Layout)
                 .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// The key of the group that <paramref name="key"/> actually resolves to: itself when a
+        /// group exists under it, otherwise the compatible group <see cref="LoadLayout"/> would
+        /// fall back to. Null when nothing matches.
+        /// </summary>
+        /// <remarks>
+        /// Everything scoped to a layout group has to agree about this. Loading fell back to a
+        /// compatible key while listing, selecting and deleting matched exactly, so outside the
+        /// seeded window sizes the map showed a layout the dropdown could not list — and had it
+        /// been listed, the delete and select paths would have been operating on a different group
+        /// than the one on screen. The disagreement is the bug, not the fallback.
+        /// </remarks>
+        private static string? ResolveGroupKey(string key, ManualLayoutCollection collection)
+        {
+            if (collection.LayoutGroups.ContainsKey(key)) return key;
+
+            var compatible = FindCompatibleGroup(key, collection);
+            return compatible?.GroupKey;
         }
 
         private static ManualLayoutGroup? FindCompatibleGroup(string key, ManualLayoutCollection collection)

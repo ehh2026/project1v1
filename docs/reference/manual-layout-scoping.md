@@ -66,18 +66,26 @@ This is the most likely way to lose your own work without going near the editor.
 are in the key but not in the check, so **a cluster layout is intentionally reused across pan
 positions at the same zoom**. That is deliberate: panning slightly should not lose your layout.
 
-## Trap 3 — the two lookup paths disagree about viewport size
+## Trap 3 — the two lookup paths disagreed about viewport size *(fixed)*
 
 `LoadLayout` falls back through `FindCompatibleGroup` → `AreKeysCompatible`, which ignores the
-`s{W}x{H}` component. `ManualLayoutManager.ListVariants` does a bare `TryGetValue` with no fallback.
+`s{W}x{H}` component. `ListVariants`, `LoadVariant`, `DeleteVariant` and `DeleteLayout` each did a
+bare `TryGetValue` with no fallback.
 
-At any window size outside the seeded ones, **the layout is applied to the map while the dropdown
-reports no variants at all**. Moving the app between monitors, or docking and undocking, changes the
-window size and so the `s{W}x{H}` in the key — which is why the live file holds the same four
-clusters under four different sizes.
+At any window size outside the seeded ones, **the layout was applied to the map while the dropdown
+reported no variants at all** — and had it listed them, selecting or deleting one would have been
+looking in a different group than the one on screen. Moving the app between monitors, or docking and
+undocking, changes the window size and so the `s{W}x{H}` in the key, which is why the live file holds
+the same four clusters under four different sizes.
 
-Not yet fixed; tracked as Phase 6.8 in
-[the layout-editor safety plan](../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md).
+All of those now resolve the group through one place, `ResolveGroupKey`: the exact key when a group
+exists under it, otherwise the same compatible group loading would have used. The fallback is no
+wider than `AreKeysCompatible`, so a different cluster is still a different layout.
+
+**Saving is not covered by this.** A save still writes under the current view's key, so laying out a
+cluster at a new window size creates a group for that size rather than updating the one you were
+shown. That is the same fragmentation described above, and removing `s{W}x{H}` from cluster keys
+(Phase 6.9) is the fix for it.
 
 ---
 
