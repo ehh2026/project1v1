@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using Xunit;
 
@@ -26,6 +27,24 @@ public class XamlLocalValueTests
     private static string RepoRoot() =>
         Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", ".."));
 
+    /// <summary>
+    /// Loads XAML with DTD processing and external entity resolution off. These are already the
+    /// defaults on .NET Core, so this is a statement of intent rather than a change of behaviour:
+    /// it survives the defaults changing, and says out loud that nothing here should ever reach
+    /// outside the file it was handed.
+    /// </summary>
+    private static XDocument Load(string path)
+    {
+        var settings = new XmlReaderSettings
+        {
+            DtdProcessing = DtdProcessing.Prohibit,
+            XmlResolver = null
+        };
+
+        using var reader = XmlReader.Create(path, settings);
+        return XDocument.Load(reader);
+    }
+
     public static IEnumerable<object[]> XamlFiles() =>
         Directory.GetFiles(RepoRoot(), "*.xaml", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")
@@ -40,7 +59,7 @@ public class XamlLocalValueTests
         // XAML is XML, so read it as XML. Bounding elements by regex works only until markup is
         // nested or reordered, and getting it subtly wrong here means the guard reports success
         // while checking something other than what it claims.
-        var root = XDocument.Load(fullPath).Root;
+        var root = Load(fullPath).Root;
         Assert.NotNull(root);
 
         var offenders = new List<string>();
@@ -88,11 +107,22 @@ public class XamlLocalValueTests
         if (styleHolder == null) return properties;
 
         foreach (var setter in styleHolder.Descendants()
-                     .Where(e => e.Name.LocalName is "Trigger" or "MultiTrigger" or "DataTrigger")
+                     .Where(e => e.Name.LocalName is "Trigger" or "MultiTrigger"
+                                                  or "DataTrigger" or "MultiDataTrigger")
                      .SelectMany(t => t.Elements().Where(e => e.Name.LocalName == "Setter")))
         {
+            // A setter with TargetName applies to a named child inside the control template, not to
+            // the control itself, so the control's own local value never comes into it.
+            if (setter.Attribute("TargetName") != null) continue;
+
             var property = setter.Attribute("Property")?.Value;
-            if (property != null) properties.Add(property);
+            if (property == null) continue;
+
+            // Setters may qualify the property with its owning type -- Control.Background,
+            // Button.Background -- which names the same property as a bare Background and is
+            // overridden by a local value in exactly the same way.
+            var lastDot = property.LastIndexOf('.');
+            properties.Add(lastDot >= 0 ? property.Substring(lastDot + 1) : property);
         }
 
         return properties;
