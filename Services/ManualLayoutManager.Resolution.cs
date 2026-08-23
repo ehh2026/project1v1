@@ -197,7 +197,20 @@ namespace InteractiveWorldMap.Services
 
             if (variant.Origin == ManualLayoutOrigin.AutoSeed)
             {
-                // Regenerable, and one seed per cluster is the whole point of dropping the size.
+                // Only a seed may replace a seed. A hand-made or imported variant that happens to
+                // share an id -- "manual-default" is the obvious way for that to happen -- is the
+                // user's work, and the seed arriving beside it is regenerable. Discarding the seed
+                // costs a rerun of the generator; discarding the variant costs whatever was laid
+                // out by hand.
+                if (clash.Origin != ManualLayoutOrigin.AutoSeed)
+                {
+                    _logger.LogInfo(
+                        $"[ManualLayoutManager] Discarded seed '{variant.VariantId}' from {oldKey}: " +
+                        $"a {clash.Origin} variant already holds that id in {newKey}");
+                    return;
+                }
+
+                // One seed per cluster is the whole point of dropping the size from the key.
                 if (variant.UpdatedUtc > clash.UpdatedUtc)
                 {
                     target.Variants.Remove(clash);

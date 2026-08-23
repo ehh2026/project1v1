@@ -29,8 +29,9 @@ per size someone happened to run at.
 Keys written before that change still resolve, and groups still keyed that way are merged into their
 size-independent form the next time the file is read or written. Where two of them hold a variant
 with the same id, hand-made work is never dropped: the second keeps its layout under a suffixed id
-and a name saying which size it came from. Generated seeds are the exception — they are reproducible
-from the coordinate source, and keeping four of them would leave the picker as cluttered as the
+and a name saying which size it came from, and a generated seed sharing an id with a hand-made
+variant is discarded rather than replacing it. Two seeds collapse to the newer one — they are
+reproducible from the coordinate source, and keeping four would leave the picker as cluttered as the
 groups were.
 
 Since Phase 6, the edit panel names the scope you are in: `Editing: Whole map`, or

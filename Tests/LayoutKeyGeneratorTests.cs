@@ -117,7 +117,9 @@ public class LayoutKeyGeneratorTests
         // hash _ z{zoom} _ c{cx}_{cy} _ m{min} _ p{prox} _ l{len} _ n{minlen}
         // No viewport size since Phase 6.9: it was in the key but never in the compatibility
         // check, so it split one cluster into a group per window size and found nothing extra.
-        Assert.True(parts.Length >= 7, $"Expected at least 7 underscore-separated parts, got: {key}");
+        // Eight, not seven: the centre contributes two of them (c{cx} and {cy}). Asserting seven
+        // while reading parts[7] below would throw an index error instead of naming the problem.
+        Assert.True(parts.Length >= 8, $"Expected at least 8 underscore-separated parts, got: {key}");
         Assert.Matches(@"^[0-9a-f]{16}$", parts[0]);          // 16-char hex hash
         Assert.StartsWith("z", parts[1]);                     // zoom
         Assert.StartsWith("c", parts[2]);                     // center x

@@ -116,10 +116,9 @@ happens without a prompt naming exactly what is about to go.
 
 | Button | What it does |
 |--------|--------------|
-| **Unload and Recalculate** | Reverts to automatic placement for now. Your saved layouts stay on disk and come back next time. Destroys nothing. This is the one most people want, so it is now the prominent one. |
+| **Unload and Recalculate** | Reverts this view to automatic placement. Destroys nothing — your saved layouts stay on disk. It holds for the rest of the run, including if you re-open the editor; saving puts a layout back, and so does restarting. This is the one most people want, so it is now the prominent one. |
 | **Delete This Layout** | Deletes only the version you are looking at, after asking and naming it. The others are kept. |
 | **Delete ALL Saved Layouts** | Deletes every hand-made layout for this view, after a confirmation that lists them and states the count. Generated seeds are not touched. |
-| **Unload and Recalculate** | Reverts this view to automatic placement and destroys nothing. Holds for the rest of the run, including if you re-open the editor. Saving puts a layout back; so does restarting, since the file was never touched. |
 
 Both prompts default to "No", so pressing Enter out of habit cancels rather than deletes. If there
 is nothing to delete, the red button says so and points you at "Unload and Recalculate" instead of

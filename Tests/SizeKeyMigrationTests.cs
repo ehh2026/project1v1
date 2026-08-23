@@ -115,6 +115,28 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
+    public void ASeedNeverEvictsAHandMadeVariantSharingItsId()
+    {
+        // The seed generator writes "seed-default", but nothing stops a hand-made variant holding
+        // that id -- an imported file, or an older save. Replacing on recency alone would let a
+        // regenerable seed delete the user's layout during a migration they never asked for, which
+        // is the worst place for it: no prompt, no undo, and it looks like the file was corrupt.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "seed-default", "Actually mine",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "seed-default", "Generated Seed",
+            ManualLayoutOrigin.AutoSeed, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+
+        var variants = manager.ListVariants(current);
+
+        Assert.Single(variants);
+        Assert.Equal("Actually mine", variants[0].DisplayName);
+        Assert.Equal(ManualLayoutOrigin.Manual, variants[0].Origin);
+    }
+
+    [Fact]
     public void TheMigration_IsIdempotent()
     {
         var (_, manager, _, _) = Make();

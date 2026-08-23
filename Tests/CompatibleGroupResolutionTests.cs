@@ -10,11 +10,14 @@ namespace InteractiveWorldMap.Tests;
 /// <summary>
 /// Trap 3, from docs/reference/manual-layout-scoping.md.
 ///
-/// A cluster key carries the viewport size, and <c>AreKeysCompatible</c> deliberately ignores it —
-/// so moving the window, or the app to another monitor, still finds your layout. Loading used that
-/// fallback; listing, selecting and deleting matched the key exactly. At any window size outside the
-/// seeded ones the map therefore showed a saved layout the dropdown reported as absent, and every
-/// group-scoped action would have operated on a different group than the one on screen.
+/// A cluster key carries the viewport centre, and <c>AreKeysCompatible</c> deliberately ignores it —
+/// so panning does not lose your layout. Loading used that fallback; listing, selecting and deleting
+/// matched the key exactly. The map therefore showed a saved layout the dropdown reported as absent,
+/// and every group-scoped action would have operated on a different group than the one on screen.
+///
+/// The original report was about window size rather than pan, since the size was in the key too.
+/// Phase 6.9 removed it; the disagreement between the lookup paths is the part that mattered, and it
+/// is the same for any key component compatibility ignores.
 /// </summary>
 public class CompatibleGroupResolutionTests
 {
@@ -23,42 +26,56 @@ public class CompatibleGroupResolutionTests
     // a secret scanner -- see .gitleaksignore for the previous round of that.
     private static readonly RadialExtensionConfig KeyConfig = new();
 
-    private static string KeyFor(string[] locationNames, double containerWidth = 1920)
+    private static string KeyFor(string[] locationNames, double centreX = 4000)
     {
         var locations = locationNames.Select(n => new Location { Id = n, Name = n }).ToList();
-        var viewport = ViewportState.CreateZoomedView(4000, 3000, 55, 8198, 5542, containerWidth, 1080);
+        var viewport = ViewportState.CreateZoomedView(centreX, 3000, 55, 8198, 5542, 1920, 1080);
         return LayoutKeyGenerator.GenerateKey(locations, viewport, KeyConfig);
     }
 
     private static readonly string[] Cluster = { "New York", "Newark" };
     private static readonly string[] OtherCluster = { "Hong Kong", "Kowloon" };
 
-    // Same locations and zoom, different window size: compatible by design.
+    // Same locations and zoom, panned: the centre is in the key and deliberately not in the
+    // compatibility check, so these are distinct keys that resolve to each other.
+    //
+    // This used to vary the window size. Phase 6.9 took the size out of the key, which made the two
+    // keys identical and quietly emptied this whole suite of meaning -- it went on passing while
+    // testing nothing. Pan is what a compatible-but-distinct key looks like now.
     private static readonly string SeededKey = KeyFor(Cluster);
-    private static readonly string OtherSizeKey = KeyFor(Cluster, containerWidth: 1600);
+    private static readonly string PannedKey = KeyFor(Cluster, centreX: 4600);
 
     // A different cluster entirely, and never compatible.
     private static readonly string OtherClusterKey = KeyFor(OtherCluster);
 
     [Fact]
-    public void ListVariants_AtAnotherWindowSize_FindsTheLayoutThatIsActuallyApplied()
+    public void TheTwoKeysUsedHere_AreActuallyDistinctAndActuallyCompatible()
+    {
+        // Guards the premise. Every other test in this file is vacuous if either half fails.
+        Assert.NotEqual(SeededKey, PannedKey);
+        Assert.True(LayoutKeyGenerator.AreKeysCompatible(SeededKey, PannedKey));
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(SeededKey, OtherClusterKey));
+    }
+
+    [Fact]
+    public void ListVariants_ForAPannedView_FindsTheLayoutThatIsActuallyApplied()
     {
         var (_, manager, _, _) = Make();
         manager.SaveVariant(SeededKey, "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,
             OneExtension(), null, setAsDefault: true, setAsSelected: false);
 
         // The map finds it...
-        Assert.NotNull(manager.LoadLayout(OtherSizeKey));
+        Assert.NotNull(manager.LoadLayout(PannedKey));
 
         // ...so the dropdown has to as well. Reporting "none saved" over a layout the user can see
         // invites them to redo work that already exists.
-        var variants = manager.ListVariants(OtherSizeKey);
+        var variants = manager.ListVariants(PannedKey);
         Assert.Single(variants);
         Assert.Equal(SeededKey, variants[0].GroupKey);
     }
 
     [Fact]
-    public void LoadVariant_AtAnotherWindowSize_CanSelectWhatWasListed()
+    public void LoadVariant_ForAPannedView_CanSelectWhatWasListed()
     {
         // Listing without this would trade one inconsistency for another: variants shown in the
         // picker that selecting them silently fails to load.
@@ -66,15 +83,15 @@ public class CompatibleGroupResolutionTests
         manager.SaveVariant(SeededKey, "manual-default", "Mine", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: true, setAsSelected: true);
 
-        var listed = manager.ListVariants(OtherSizeKey).Single();
-        var loaded = manager.LoadVariant(OtherSizeKey, listed.VariantId);
+        var listed = manager.ListVariants(PannedKey).Single();
+        var loaded = manager.LoadVariant(PannedKey, listed.VariantId);
 
         Assert.NotNull(loaded);
         Assert.Equal("Mine", loaded!.DisplayName);
     }
 
     [Fact]
-    public void DeleteVariant_AtAnotherWindowSize_RemovesTheOneThatWasListed()
+    public void DeleteVariant_ForAPannedView_RemovesTheOneThatWasListed()
     {
         // The delete confirmation names variants from the listing. If deletion matched the exact
         // key while listing fell back, it would report success having removed nothing.
@@ -84,7 +101,7 @@ public class CompatibleGroupResolutionTests
         manager.SaveVariant(SeededKey, "v2", "Doomed", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: false, setAsSelected: false);
 
-        Assert.True(manager.DeleteVariant(OtherSizeKey, "v2"));
+        Assert.True(manager.DeleteVariant(PannedKey, "v2"));
 
         var remaining = manager.ListVariants(SeededKey);
         Assert.Single(remaining);
@@ -92,13 +109,13 @@ public class CompatibleGroupResolutionTests
     }
 
     [Fact]
-    public void DeleteLayout_AtAnotherWindowSize_RemovesTheGroupThatWasListed()
+    public void DeleteLayout_ForAPannedView_RemovesTheGroupThatWasListed()
     {
         var (_, manager, _, _) = Make();
         manager.SaveVariant(SeededKey, "manual-default", "Mine", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: true, setAsSelected: false);
 
-        Assert.True(manager.DeleteLayout(OtherSizeKey));
+        Assert.True(manager.DeleteLayout(PannedKey));
         Assert.Empty(manager.ListVariants(SeededKey));
     }
 
@@ -114,11 +131,11 @@ public class CompatibleGroupResolutionTests
         manager.SaveVariant(SeededKey, "v2", "Second", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: false, setAsSelected: false);
 
-        Assert.True(manager.SetSelectedVariantId(OtherSizeKey, "v2"));
+        Assert.True(manager.SetSelectedVariantId(PannedKey, "v2"));
 
-        Assert.Equal("v2", manager.GetSelectedVariantId(OtherSizeKey));
+        Assert.Equal("v2", manager.GetSelectedVariantId(PannedKey));
         Assert.Equal("v2", manager.GetSelectedVariantId(SeededKey));
-        Assert.Equal("Second", manager.LoadLayout(OtherSizeKey)!.DisplayName);
+        Assert.Equal("Second", manager.LoadLayout(PannedKey)!.DisplayName);
     }
 
     [Fact]
@@ -130,7 +147,7 @@ public class CompatibleGroupResolutionTests
         manager.SaveVariant(SeededKey, "v2", "Second", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: false, setAsSelected: false);
 
-        Assert.True(manager.SetDefaultVariant(OtherSizeKey, "v2"));
+        Assert.True(manager.SetDefaultVariant(PannedKey, "v2"));
 
         var listed = manager.ListVariants(SeededKey);
         Assert.True(listed.Single(v => v.VariantId == "v2").IsDefault);
@@ -156,10 +173,10 @@ public class CompatibleGroupResolutionTests
         var (_, manager, _, _) = Make();
         manager.SaveVariant(SeededKey, "manual-default", "Seeded size", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: true, setAsSelected: false);
-        manager.SaveVariant(OtherSizeKey, "manual-default", "This size", ManualLayoutOrigin.Manual,
+        manager.SaveVariant(PannedKey, "manual-default", "This size", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: true, setAsSelected: false);
 
-        var variants = manager.ListVariants(OtherSizeKey);
+        var variants = manager.ListVariants(PannedKey);
         Assert.Single(variants);
         Assert.Equal("This size", variants[0].DisplayName);
     }

@@ -30,6 +30,12 @@ public sealed class LayoutEditorController
     /// pins stay at their auto-placed positions. Session-scoped: cleared whenever a layout next
     /// becomes active (re-edit) and not persisted, so a restart restores normal auto-apply.
     /// </summary>
+    /// <summary>
+    /// True when the user unloaded the layout for this view. Cleared only by
+    /// <see cref="SetManualLayoutActive"/> with <c>true</c> — saving, or another explicit
+    /// reactivation. Re-entering the editor does not clear it; see
+    /// <see cref="UnloadManualLayout"/>.
+    /// </summary>
     public bool IsManualLayoutSuppressed { get; private set; }
 
     /// <summary>VariantId of the variant that is currently loaded into the editor.</summary>
