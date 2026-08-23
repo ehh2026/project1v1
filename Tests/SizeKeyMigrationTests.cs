@@ -322,6 +322,67 @@ public class SizeKeyMigrationTests
         }}";
 
     [Fact]
+    public void AReplacedSeedDoesNotLeaveTwoSeedDefaults()
+    {
+        // Needs three groups. The target ends up holding a default seed under one id and a
+        // non-default seed under another; replacing the non-default one with a newer default seed
+        // then leaves two AutoSeed defaults, and which layout loads depends on enumeration order.
+        //
+        // Written as a file for the same reason as the blank-selection test: saving migrates, so
+        // several sized groups cannot be produced through the API any more.
+        var (_, _, _, dir) = Make();
+        var path = Path.Combine(dir, "three-sized-groups.json");
+        var current = CurrentKey("New York", "Newark");
+
+        File.WriteAllText(path, $@"
+{{
+  ""LayoutGroups"": {{
+    ""{LegacySizedKey(current, "s149x112")}"": {{
+      ""GroupKey"": ""{LegacySizedKey(current, "s149x112")}"",
+      ""Variants"": [ {Seed(LegacySizedKey(current, "s149x112"), "seed-a", isDefault: true, updated: "2026-06-01")} ]
+    }},
+    ""{LegacySizedKey(current, "s161x101")}"": {{
+      ""GroupKey"": ""{LegacySizedKey(current, "s161x101")}"",
+      ""Variants"": [ {Seed(LegacySizedKey(current, "s161x101"), "seed-b", isDefault: false, updated: "2026-06-01")} ]
+    }},
+    ""{LegacySizedKey(current, "s241x101")}"": {{
+      ""GroupKey"": ""{LegacySizedKey(current, "s241x101")}"",
+      ""Variants"": [ {Seed(LegacySizedKey(current, "s241x101"), "seed-b", isDefault: true, updated: "2026-07-01")} ]
+    }}
+  }},
+  ""SelectedVariants"": {{ }}
+}}");
+
+        var variants = new ManualLayoutManager(path, new MockLogger()).ListVariants(current);
+
+        Assert.Equal(2, variants.Count);
+        Assert.Single(variants.Where(v => v.IsDefault));
+    }
+
+    private static string Seed(string key, string variantId, bool isDefault, string updated) => $@"
+        {{
+          ""Key"": ""{key}"",
+          ""GroupKey"": ""{key}"",
+          ""VariantId"": ""{variantId}"",
+          ""DisplayName"": ""Generated Seed"",
+          ""Origin"": ""AutoSeed"",
+          ""IsDefault"": {(isDefault ? "true" : "false")},
+          ""Timestamp"": ""{updated}T00:00:00Z"",
+          ""CreatedUtc"": ""{updated}T00:00:00Z"",
+          ""UpdatedUtc"": ""{updated}T00:00:00Z"",
+          ""LocationCount"": 1,
+          ""Markers"": [
+            {{
+              ""LocationName"": ""Alpha"",
+              ""OriginalPosition"": {{ ""X"": 10.0, ""Y"": 10.0 }},
+              ""ExtendedPosition"": {{ ""X"": 20.0, ""Y"": 20.0 }},
+              ""Angle"": 15.0,
+              ""LineLength"": 14.0
+            }}
+          ]
+        }}";
+
+    [Fact]
     public void TheMigration_IsIdempotent()
     {
         var (_, manager, _, _) = Make();

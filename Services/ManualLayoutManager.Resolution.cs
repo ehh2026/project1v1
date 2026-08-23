@@ -206,20 +206,7 @@ namespace InteractiveWorldMap.Services
 
             if (clash == null)
             {
-                // Different ids do not mean no conflict: each sized group has its own default, and
-                // "the default" is a property of the group, not of a variant. Two of them in one
-                // origin class makes which layout loads depend on enumeration order.
-                // Per exact origin, matching SetDefaultForOriginClass: a seed default and a
-                // hand-made default coexist by design, two hand-made defaults do not.
-                if (variant.IsDefault && target.Variants.Any(v =>
-                        v.IsDefault && v.Origin == variant.Origin))
-                {
-                    variant.IsDefault = false;
-                    _logger.LogInfo(
-                        $"[ManualLayoutManager] Cleared the default flag on '{variant.VariantId}' " +
-                        $"from {oldKey}: {newKey} already has a default {variant.Origin} variant");
-                }
-
+                ClearDefaultIfTargetAlreadyHasOne(target, variant, newKey, oldKey);
                 target.Variants.Add(variant);
                 return variant.VariantId;
             }
@@ -251,6 +238,12 @@ namespace InteractiveWorldMap.Services
                 if (variant.UpdatedUtc > clash.UpdatedUtc)
                 {
                     target.Variants.Remove(clash);
+
+                    // After the removal, so the seed being replaced does not count as the existing
+                    // default. Reachable from three groups: if the target's default seed is not the
+                    // one being replaced, adding another default here leaves two.
+                    ClearDefaultIfTargetAlreadyHasOne(target, variant, newKey, oldKey);
+
                     target.Variants.Add(variant);
                     return variant.VariantId;
                 }
@@ -295,6 +288,30 @@ namespace InteractiveWorldMap.Services
             if (collection.SelectedVariants.ContainsKey(newKey)) return;
 
             collection.SelectedVariants[newKey] = variantId;
+        }
+
+        /// <summary>
+        /// Clears <paramref name="variant"/>'s default flag when <paramref name="target"/> already
+        /// has a default of the same origin.
+        /// </summary>
+        /// <remarks>
+        /// Different variant ids do not mean no conflict: each sized group arrives with its own
+        /// default, and "the default" belongs to the group rather than to a variant. Two in one
+        /// origin makes the layout that loads depend on enumeration order.
+        ///
+        /// Per exact origin, matching <c>SetDefaultForOriginClass</c>: a seed default and a
+        /// hand-made default coexist by design, two hand-made defaults do not.
+        /// </remarks>
+        private void ClearDefaultIfTargetAlreadyHasOne(
+            ManualLayoutGroup target, ManualLayout variant, string newKey, string oldKey)
+        {
+            if (!variant.IsDefault) return;
+            if (!target.Variants.Any(v => v.IsDefault && v.Origin == variant.Origin)) return;
+
+            variant.IsDefault = false;
+            _logger.LogInfo(
+                $"[ManualLayoutManager] Cleared the default flag on '{variant.VariantId}' " +
+                $"from {oldKey}: {newKey} already has a default {variant.Origin} variant");
         }
 
         private static string MakeUniqueVariantId(ManualLayoutGroup target, string variantId, string oldKey)
