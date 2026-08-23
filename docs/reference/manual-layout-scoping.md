@@ -98,9 +98,14 @@ Every stored entry in the shipped file is named `Generated Seed`, with `VariantI
 Re-running the generator is safe: it calls `CloneWithoutAutoSeeds`, which strips only `AutoSeed`
 entries and preserves every hand-made variant.
 
-Because seeds are all named identically and the dropdown shows only the name and origin, **every
-cluster's dropdown looks the same**. The layouts underneath are distinct; the labels are not. That
-is a UI defect, tracked as Phase 6.7 — not evidence that scoping is broken.
+Seeds used to be named identically, so every cluster's dropdown looked the same — the layouts
+underneath were always distinct, only the labels were not. Two changes: the picker now shows a label
+built when the list is read (`ManualLayoutSummary.Label`), adding the pin count and whether the
+variant is the default, so rows in files already on disk are told apart without rewriting them; and
+newly generated seeds are named after their cluster (`Seed: New York, Newark, +2 more`) rather than
+`Generated Seed`, which also makes the raw JSON readable.
+
+The view being edited is named once, above the picker, rather than repeated on every row.
 
 `Delete ALL Saved Layouts` removes only hand-made variants. Seeds survive it, which is why its
 confirmation counts hand-made layouts rather than all of them.

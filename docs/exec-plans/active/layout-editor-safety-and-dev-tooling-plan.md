@@ -606,11 +606,21 @@ rather than disambiguation.
 - [ ] 6.6 Test: full-map and cluster keys never collide; two distinct clusters produce distinct
       keys; changing a `RadialExtensionConfig` value changes the cluster key (pin the trap so it is
       a known, documented property rather than a surprise).
-- [ ] 6.7 **Make variant labels distinguishable.** Seeds are all named `Generated Seed`, so every
+- [x] 6.7 **Make variant labels distinguishable.** Done by rebuilding the label on read
+      (`ManualLayoutSummary.Label`: name, pin count, default marker) rather than by rewriting stored
+      names, so files already on disk are covered — what is there cannot be assumed to have been
+      chosen. New seeds are additionally named after their cluster, which also makes the raw JSON
+      readable. Scope is *not* repeated per row: 6.1 names the view once above the picker, and the
+      panel is a fixed-width overlay where every row belongs to that one view anyway.
+      Original wording: Seeds are all named `Generated Seed`, so every
       view's dropdown looks the same. Include the scope (cluster location names, or "Whole map") in
       the generated seed's `DisplayName`, and/or render scope in the dropdown item template. Covers
       existing files too — do not rely on regenerating seeds.
-- [ ] 6.8 **Fix Trap 3:** give `ListVariants` the same compatibility fallback `LoadLayout` already
+- [x] 6.8 **Fixed**, wider than described: `LoadVariant`, `DeleteVariant` and `DeleteLayout`
+      matched exactly too, so giving only `ListVariants` a fallback would have listed variants that
+      could not be selected and promised deletions that did not happen. All four resolve through
+      `ResolveGroupKey`. Saving still writes under the current view's key — that is 6.9.
+      Original wording: give `ListVariants` the same compatibility fallback `LoadLayout` already
       uses, so the dropdown never reports "no variants" for a layout that is actively applied.
       Test at a window size outside the seeded `s{W}x{H}` set.
 **Where the size variants actually come from (user, 2026-08-19):** running the app on a different
