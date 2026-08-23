@@ -180,6 +180,82 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
+    public void TwoGroupsWithTheirOwnDefault_LeaveOneDefaultBehind()
+    {
+        // Different ids, so nothing collides and both variants survive -- but each sized group had
+        // its own default, and "the default" belongs to the group rather than to a variant. Two of
+        // them in one origin makes which layout loads depend on enumeration order.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "laptop", "On the laptop",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "desk", "On the big screen",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+
+        var variants = manager.ListVariants(current);
+
+        Assert.Equal(2, variants.Count);
+        Assert.Single(variants.Where(v => v.IsDefault));
+    }
+
+    [Fact]
+    public void ASeedDefaultAndAHandMadeDefault_BothSurvive()
+    {
+        // The counterpart: one default per origin is the existing rule, not one per group, so
+        // clearing across origins would break the fallback the loader depends on.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "seed-default", "Generated Seed",
+            ManualLayoutOrigin.AutoSeed, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "mine", "Mine",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+
+        var variants = manager.ListVariants(current);
+
+        Assert.Equal(2, variants.Count);
+        Assert.True(variants.Single(v => v.Origin == ManualLayoutOrigin.AutoSeed).IsDefault);
+        Assert.True(variants.Single(v => v.Origin == ManualLayoutOrigin.Manual).IsDefault);
+    }
+
+    [Fact]
+    public void ASelectedSeedLosingToAHandMadeVariant_LeavesTheGroupUnselected()
+    {
+        // The seed the user selected is gone. The variant that survives holds the same id, so
+        // recording it as the selection would resolve -- and would claim they chose a hand-made
+        // layout they have never seen. Unselected hands it to origin priority, which is honest
+        // about the choice no longer existing.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "seed-default", "Actually mine",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "seed-default", "Generated Seed",
+            ManualLayoutOrigin.AutoSeed, OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        Assert.Null(manager.GetSelectedVariantId(current));
+        Assert.Equal("Actually mine", manager.ListVariants(current).Single().DisplayName);
+    }
+
+    [Fact]
+    public void ASelectedSeedLosingToANewerSeed_StillPointsAtASeed()
+    {
+        // Unlike the case above, the survivor is the same generated layout for the same cluster
+        // under the same id, so the selection still names what was chosen.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "seed-default", "Generated Seed",
+            ManualLayoutOrigin.AutoSeed, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "seed-default", "Generated Seed",
+            ManualLayoutOrigin.AutoSeed, OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        Assert.Equal("seed-default", manager.GetSelectedVariantId(current));
+        Assert.Equal(ManualLayoutOrigin.AutoSeed, manager.ListVariants(current).Single().Origin);
+    }
+
+    [Fact]
     public void TheMigration_IsIdempotent()
     {
         var (_, manager, _, _) = Make();

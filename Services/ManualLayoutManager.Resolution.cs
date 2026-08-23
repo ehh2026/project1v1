@@ -206,6 +206,20 @@ namespace InteractiveWorldMap.Services
 
             if (clash == null)
             {
+                // Different ids do not mean no conflict: each sized group has its own default, and
+                // "the default" is a property of the group, not of a variant. Two of them in one
+                // origin class makes which layout loads depend on enumeration order.
+                // Per exact origin, matching SetDefaultForOriginClass: a seed default and a
+                // hand-made default coexist by design, two hand-made defaults do not.
+                if (variant.IsDefault && target.Variants.Any(v =>
+                        v.IsDefault && v.Origin == variant.Origin))
+                {
+                    variant.IsDefault = false;
+                    _logger.LogInfo(
+                        $"[ManualLayoutManager] Cleared the default flag on '{variant.VariantId}' " +
+                        $"from {oldKey}: {newKey} already has a default {variant.Origin} variant");
+                }
+
                 target.Variants.Add(variant);
                 return variant.VariantId;
             }
@@ -223,12 +237,17 @@ namespace InteractiveWorldMap.Services
                         $"[ManualLayoutManager] Discarded seed '{variant.VariantId}' from {oldKey}: " +
                         $"a {clash.Origin} variant already holds that id in {newKey}");
 
-                    // The surviving variant carries the id the selection named, so a selection
-                    // pointing at the discarded seed still resolves rather than dangling.
-                    return clash.VariantId;
+                    // Null, not the survivor's id. The id would resolve -- the collision is by id --
+                    // but it would resolve to a hand-made layout the user never chose, recorded as
+                    // though they had. Leaving the group unselected lets origin priority decide,
+                    // which is honest about the fact that the chosen layout is gone.
+                    return null;
                 }
 
                 // One seed per cluster is the whole point of dropping the size from the key.
+                // Either way the survivor is the same generated layout for the same cluster under
+                // the same id, so a selection naming it still names what was chosen -- unlike the
+                // cross-origin case above, where the survivor is somebody's hand-made work.
                 if (variant.UpdatedUtc > clash.UpdatedUtc)
                 {
                     target.Variants.Remove(clash);

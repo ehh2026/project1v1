@@ -30,7 +30,7 @@ Keys written before that change still resolve, and groups still keyed that way a
 size-independent form the next time the file is read or written. Where two of them hold a variant
 with the same id, hand-made work is never dropped: the second keeps its layout under a suffixed id
 and a name saying which size it came from, and a generated seed sharing an id with a hand-made
-variant is discarded rather than replacing it. A selection follows its variant through the merge, including a rename, rather than being left naming whatever else holds that id. Two seeds collapse to the newer one — they are
+variant is discarded rather than replacing it. A selection follows its variant through the merge, including a rename, rather than being left naming whatever else holds that id; where the selected variant is discarded in favour of one of a different origin, the group is left unselected rather than credited with a choice nobody made. Each merged group keeps one default per origin, since two sized groups each arrive with their own. Two seeds collapse to the newer one — they are
 reproducible from the coordinate source, and keeping four would leave the picker as cluttered as the
 groups were.
 
