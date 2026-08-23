@@ -137,6 +137,49 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
+    public void ASelectionFollowsItsVariantThroughARename()
+    {
+        // The selected variant is renamed by the merge, because the group it lands in already has a
+        // "manual-default". Carrying the old id across unchanged would leave the selection naming
+        // the *other* group's layout: a different layout, silently selected, with nothing on screen
+        // to say the choice was reassigned.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "manual-default", "First saved",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "manual-default", "The one I picked",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        var selectedId = manager.GetSelectedVariantId(current);
+        var variants = manager.ListVariants(current);
+
+        Assert.Equal(2, variants.Count);
+        var picked = variants.Single(v => v.DisplayName.StartsWith("The one I picked"));
+        Assert.Equal(picked.VariantId, selectedId);
+        Assert.True(picked.IsSelected);
+        // Loading honours the selection, and the layout it returns is the renamed one -- the
+        // suffix records which window size it came from, so the choice stays recognisable.
+        Assert.StartsWith("The one I picked (from ", manager.LoadLayout(current)!.DisplayName);
+    }
+
+    [Fact]
+    public void ASelectionSurvivingUnrenamed_IsStillCarriedOver()
+    {
+        // The plain case: nothing collides, so the id is unchanged and the selection just moves.
+        var (_, manager, _, _) = Make();
+        var current = CurrentKey("New York", "Newark");
+
+        manager.SaveVariant(LegacySizedKey(current, "s161x101"), "manual-default", "First saved",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: true, setAsSelected: false);
+        manager.SaveVariant(LegacySizedKey(current, "s241x101"), "v2", "The one I picked",
+            ManualLayoutOrigin.Manual, OneExtension(), null, setAsDefault: false, setAsSelected: true);
+
+        Assert.Equal("v2", manager.GetSelectedVariantId(current));
+        Assert.Equal("The one I picked", manager.LoadLayout(current)!.DisplayName);
+    }
+
+    [Fact]
     public void TheMigration_IsIdempotent()
     {
         var (_, manager, _, _) = Make();

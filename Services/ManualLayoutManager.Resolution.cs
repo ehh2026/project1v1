@@ -150,14 +150,8 @@ namespace InteractiveWorldMap.Services
                 var group = collection.LayoutGroups[oldKey];
                 collection.LayoutGroups.Remove(oldKey);
 
-                if (collection.SelectedVariants.TryGetValue(oldKey, out var selected))
-                {
-                    collection.SelectedVariants.Remove(oldKey);
-                    // First writer wins: an arbitrary choice, but the alternative is letting the last
-                    // group merged silently override a selection the user made under another size.
-                    if (!collection.SelectedVariants.ContainsKey(newKey))
-                        collection.SelectedVariants[newKey] = selected;
-                }
+                collection.SelectedVariants.TryGetValue(oldKey, out var selected);
+                collection.SelectedVariants.Remove(oldKey);
 
                 if (!collection.LayoutGroups.TryGetValue(newKey, out var target))
                 {
@@ -168,11 +162,26 @@ namespace InteractiveWorldMap.Services
                         variant.Key = newKey;
                     }
                     collection.LayoutGroups[newKey] = group;
+                    CarrySelectionOver(collection, newKey, selected);
                     continue;
                 }
 
+                // Merge first, then carry the selection, because merging can rename the variant the
+                // selection points at. Copying the id across beforehand leaves it naming whatever
+                // else in the target group already holds that id -- a different layout, silently
+                // selected, with nothing to show anything went wrong.
+                string? selectedAfterMerge = null;
                 foreach (var variant in group.Variants)
-                    MergeVariantInto(target, variant, newKey, oldKey);
+                {
+                    var wasSelected = selected != null
+                        && string.Equals(variant.VariantId, selected, StringComparison.OrdinalIgnoreCase);
+
+                    var finalId = MergeVariantInto(target, variant, newKey, oldKey);
+
+                    if (wasSelected) selectedAfterMerge = finalId;
+                }
+
+                CarrySelectionOver(collection, newKey, selectedAfterMerge);
             }
 
             _logger.LogInfo(
@@ -180,7 +189,13 @@ namespace InteractiveWorldMap.Services
                 $"size-independent keys");
         }
 
-        private void MergeVariantInto(
+        /// <summary>
+        /// Adds <paramref name="variant"/> to <paramref name="target"/> and returns the variant id
+        /// it ended up under, which is not always the one it arrived with, or null when it was
+        /// discarded. The caller needs that to keep a selection pointing at the layout the user
+        /// actually chose.
+        /// </summary>
+        private string? MergeVariantInto(
             ManualLayoutGroup target, ManualLayout variant, string newKey, string oldKey)
         {
             variant.GroupKey = newKey;
@@ -192,7 +207,7 @@ namespace InteractiveWorldMap.Services
             if (clash == null)
             {
                 target.Variants.Add(variant);
-                return;
+                return variant.VariantId;
             }
 
             if (variant.Origin == ManualLayoutOrigin.AutoSeed)
@@ -207,7 +222,10 @@ namespace InteractiveWorldMap.Services
                     _logger.LogInfo(
                         $"[ManualLayoutManager] Discarded seed '{variant.VariantId}' from {oldKey}: " +
                         $"a {clash.Origin} variant already holds that id in {newKey}");
-                    return;
+
+                    // The surviving variant carries the id the selection named, so a selection
+                    // pointing at the discarded seed still resolves rather than dangling.
+                    return clash.VariantId;
                 }
 
                 // One seed per cluster is the whole point of dropping the size from the key.
@@ -215,8 +233,10 @@ namespace InteractiveWorldMap.Services
                 {
                     target.Variants.Remove(clash);
                     target.Variants.Add(variant);
+                    return variant.VariantId;
                 }
-                return;
+
+                return clash.VariantId;
             }
 
             // Hand-made: keep it, under a name that says where it came from.
@@ -228,6 +248,28 @@ namespace InteractiveWorldMap.Services
             _logger.LogInfo(
                 $"[ManualLayoutManager] Kept colliding manual variant as '{variant.VariantId}' " +
                 $"while merging {oldKey} into {newKey}");
+
+            return variant.VariantId;
+        }
+
+        /// <summary>
+        /// Records the surviving selection for a merged group, if there is one and the group does
+        /// not already have one.
+        /// </summary>
+        /// <remarks>
+        /// First writer wins. Arbitrary between two equally valid choices, but the alternative lets
+        /// whichever group happens to be merged last silently override a selection made under
+        /// another window size. A null id means the selected variant did not survive the merge;
+        /// leaving the group unselected hands it to origin-priority fallback, which is what an
+        /// unselected group has always done.
+        /// </remarks>
+        private static void CarrySelectionOver(
+            ManualLayoutCollection collection, string newKey, string? variantId)
+        {
+            if (variantId == null) return;
+            if (collection.SelectedVariants.ContainsKey(newKey)) return;
+
+            collection.SelectedVariants[newKey] = variantId;
         }
 
         private static string MakeUniqueVariantId(ManualLayoutGroup target, string variantId, string oldKey)
