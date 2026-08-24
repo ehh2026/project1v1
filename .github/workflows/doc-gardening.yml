@@ -6,6 +6,12 @@ on:
     - cron: "0 14 * * 1"
   workflow_dispatch:
 
+# Read-only by default. Nothing here writes to the repo, comments on a PR, or
+# publishes: these jobs check out the code and run builds, tests and scripts.
+# A job that later needs to write should widen this itself rather than removing it.
+permissions:
+  contents: read
+
 jobs:
   doc-gardening:
     runs-on: ubuntu-latest

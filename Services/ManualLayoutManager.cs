@@ -168,8 +168,8 @@ namespace InteractiveWorldMap.Services
             {
                 var collection = LoadLayoutCollection();
 
-                // Resolve the same group LoadLayout would use — exact first, then compatible — and
-                // ask whether *that* group holds a Manual variant.
+                // Resolve the same group the loader would use, then ask whether *that* group holds
+                // a Manual variant.
                 //
                 // Both halves matter, and they answer opposite review findings. Checking the whole
                 // group rather than just the selected variant means a selected AutoSeed cannot hide
@@ -179,15 +179,18 @@ namespace InteractiveWorldMap.Services
                 // "manual exists" from some other compatible group would suppress the full-map
                 // fallback while showing neither.
                 //
-                // The residual gap is size fragmentation — a Manual layout under a different window
-                // size is unreachable here because it is unreachable to the loader too. That is
-                // issue 6.8/6.9, and the fix belongs in key/lookup consistency, not in making this
-                // probe see further than the loader.
-                var group = collection.LayoutGroups.TryGetValue(key, out var exact)
-                    ? exact
-                    : FindCompatibleGroup(key, collection);
+                // The compromise recorded a residual gap here — a Manual layout saved at a
+                // different window size was invisible to this probe because it was invisible to the
+                // loader too — and named 6.8/6.9 as where it belonged. Both shipped: the size is out
+                // of cluster keys and every group-scoped path resolves through ResolveGroupKey. So
+                // the gap is closed at its source, and the way this stays correct is by asking the
+                // same resolver as everything else rather than keeping a second copy of the rule
+                // that could drift from the loader it is defined against.
+                var groupKey = ResolveGroupKey(key, collection);
+                if (groupKey == null) return false;
 
-                return group != null && GroupHasManual(group);
+                return collection.LayoutGroups.TryGetValue(groupKey, out var group)
+                       && GroupHasManual(group);
             }
             catch (Exception ex)
             {

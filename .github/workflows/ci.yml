@@ -7,6 +7,12 @@ on:
   pull_request:
     branches: [main, master]
 
+# Read-only by default. Nothing here writes to the repo, comments on a PR, or
+# publishes: these jobs check out the code and run builds, tests and scripts.
+# A job that later needs to write should widen this itself rather than removing it.
+permissions:
+  contents: read
+
 jobs:
   build-and-test:
     runs-on: windows-latest
