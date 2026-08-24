@@ -3,7 +3,7 @@
 **Started:** 2026-08-18 · **Last updated:** 2026-08-22 · **Status:** in progress
 
 Plain-language companion to
-[../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md](../exec-plans/active/layout-editor-safety-and-dev-tooling-plan.md),
+[../exec-plans/completed/layout-editor-safety-and-dev-tooling-plan.md](../exec-plans/completed/layout-editor-safety-and-dev-tooling-plan.md),
 which has the technical detail. This page describes the *behavior* — what went wrong when you used
 the app, and what it should do instead. Updated as each fix lands.
 

@@ -1,7 +1,8 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-08-20
+completed: 2026-08-24
 ---
 
 # Replace Ambient Layout-Key State With an Edit-Session Context

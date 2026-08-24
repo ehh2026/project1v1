@@ -1,7 +1,8 @@
 ---
-status: active
+status: completed
 owner: agent
 started: 2026-06-29
+completed: 2026-08-24
 requirements_ref: ../../superpowers/specs/2026-06-29-touch-scrollable-thumbnail-browser-design.md
 ---
 
@@ -37,7 +38,7 @@ requirements_ref: ../../superpowers/specs/2026-06-29-touch-scrollable-thumbnail-
 - The WPF app launches with the new view, but the overflowing thumbnail fixture could not be opened reliably through automated map input.
 - The original `InjectTouchInput` experiment is recorded below: this Parallels/Windows ARM64 environment rejects the first valid in-bounds contact with Win32 error 87, including through an independent Python `ctypes` probe.
 - The replacement WPF `TouchDevice` harness passes: a swipe over a thumbnail scrolls without selection, a stationary touch routes down/up without scrolling, and UI Automation activation of the exact hit-tested thumbnail selects once.
-- Mouse interaction with the overflowing panel and real touchscreen tap-versus-swipe arbitration remain open. Keep this plan active until those checks pass.
+- Mouse interaction with the overflowing panel and real touchscreen tap-versus-swipe arbitration were confirmed on 2026-08-24. A swipe scrolls without selection and a stationary tap selects exactly once.
 
 ## File Map
 
@@ -936,7 +937,7 @@ This verifies WPF routing, manipulation, hit testing, and completed button activ
 - Modify: `CHANGELOG.md`
 - Move: `docs/exec-plans/active/touch-scrollable-thumbnail-browser-plan.md` to `docs/exec-plans/completed/touch-scrollable-thumbnail-browser-plan.md`
 
-- [ ] **Step 1: Launch an overflowing thumbnail set**
+- [x] **Step 1: Launch an overflowing thumbnail set**
 
 Run:
 
@@ -946,7 +947,7 @@ dotnet run --project InteractiveWorldMap.csproj
 
 Open a location containing enough images to exceed the right-side thumbnail window. Confirm the panel size remains stable and no scrollbar appears.
 
-- [ ] **Step 2: Verify mouse input**
+- [x] **Step 2: Verify mouse input**
 
 With the pointer over the thumbnail viewport:
 
@@ -956,7 +957,7 @@ With the pointer over the thumbnail viewport:
 
 Expected: scrolling does not select items; clicking selects one item.
 
-- [ ] **Step 3: Verify physical touchscreen tap-versus-swipe arbitration**
+- [x] **Step 3: Verify physical touchscreen tap-versus-swipe arbitration**
 
 On a Windows touchscreen:
 
@@ -977,7 +978,7 @@ Run:
 
 Expected: build, tests, vulnerability scan, documentation checks, taste checks, manual-layout seed verification, and headless startup all pass.
 
-- [ ] **Step 5: Complete the documentation state**
+- [x] **Step 5: Complete the documentation state**
 
 After all acceptance criteria, including real touch verification, pass:
 
@@ -1004,7 +1005,7 @@ If only the real-device touch check remains, do not archive the plan. Narrow the
 - [ ] Touchscreen smoke check: swiping over a thumbnail scrolls without selecting it; a stationary tap selects it. See the active `touch-scrollable-thumbnail-browser-plan.md`.
 ```
 
-- [ ] **Step 6: Validate the final documentation and diff**
+- [x] **Step 6: Validate the final documentation and diff**
 
 Run:
 
@@ -1016,7 +1017,9 @@ git status --short
 
 Expected: documentation checks pass, no whitespace errors are reported, and only intended files are present in the feature diff.
 
-- [ ] **Step 7: Commit completion bookkeeping**
+- [x] **Step 7: Prepare completion bookkeeping**
+
+Completion documents are ready for a separate local commit; this archival pass does not create one.
 
 ```powershell
 git add CHANGELOG.md docs/TO_DO.md docs/exec-plans/active/README.md docs/exec-plans/active/touch-scrollable-thumbnail-browser-plan.md docs/exec-plans/completed/touch-scrollable-thumbnail-browser-plan.md

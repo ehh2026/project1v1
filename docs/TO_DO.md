@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** August 17, 2026
+**Last updated:** August 24, 2026
 
 ## Zoom & animation
 
@@ -43,7 +43,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## User ideas (product)
 
-- [ ] Physical touchscreen smoke check: swiping over a thumbnail scrolls without selecting it; a stationary tap selects it - [plan](exec-plans/active/touch-scrollable-thumbnail-browser-plan.md).
 - [ ] Main content display: consider sizing the display window to the selected content's aspect ratio.
 - [ ] Main content images: support image zoom/pan within the content viewer for closer inspection.
 - [ ] When content is maximized, provide a tap-and-hold magnifier for close inspection; define release/cancel behavior and interaction with existing tap-to-restore presentation mode.
@@ -61,7 +60,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## High priority
 
-- [ ] **Replace ambient `CurrentLayoutKey` state with an immutable edit-session context.** `LayoutEditorController.CurrentLayoutKey` is mutable state written from six call sites (zoom animations, full-map probes, cluster navigation, the editor), and every layout data-loss defect fixed in PR #13 traces back to it: the editor inheriting a stale key, saves landing in the wrong scope, and variant identity leaking across scopes. Those are currently held closed by guards that re-derive the key and verify it before every write — defence in depth, not a fix at source. An edit session should instead capture its scope, viewport and expected key once on entry, immutably, and every save/delete read from that. Subsumes open plan items 0.7 (funnel the remaining writers) and 0.10 (`TryLoad` mutates active-variant state from any key it is handed). Recommended independently by the Qodo review of PR #13. Plan: [layout-edit-session-context-plan.md](exec-plans/active/layout-edit-session-context-plan.md).
 - [ ] Consider .NET 8 LTS upgrade (from .NET 6)
 - [ ] Marker distortion at 50x+ zoom
 - [ ] Manual acceptance for settled zoomed-map rendering: compare the five Runtime Tuning modes on the target monitor, choose the default, and decide whether the measured first-generation custom-filter delay (about 1.7-3.3 seconds at 1440p here; cached afterward) needs further optimization — [plan](superpowers/plans/2026-07-01-zoomed-map-upscaling.md)
