@@ -128,7 +128,7 @@ namespace InteractiveWorldMap.Services
         /// the duplication would never go away.
         /// </para>
         /// <para>
-        /// Merging can collide: each sized group has its own <c>manual-default</c>. Hand-made work is
+        /// Merging can collide: each sized group has its own <c>manual-default</c>. Manual layouts are
         /// never dropped for a collision — the loser keeps its layout under a suffixed id, so the worst
         /// case is a variant with an awkward name rather than a layout that quietly disappeared.
         /// Generated seeds are the exception: they are reproducible from the coordinate source, and
@@ -213,7 +213,7 @@ namespace InteractiveWorldMap.Services
 
             if (variant.Origin == ManualLayoutOrigin.AutoSeed)
             {
-                // Only a seed may replace a seed. A hand-made or imported variant that happens to
+                // Only a seed may replace a seed. A manual or imported variant that happens to
                 // share an id -- "manual-default" is the obvious way for that to happen -- is the
                 // user's work, and the seed arriving beside it is regenerable. Discarding the seed
                 // costs a rerun of the generator; discarding the variant costs whatever was laid
@@ -225,7 +225,7 @@ namespace InteractiveWorldMap.Services
                         $"a {clash.Origin} variant already holds that id in {newKey}");
 
                     // Null, not the survivor's id. The id would resolve -- the collision is by id --
-                    // but it would resolve to a hand-made layout the user never chose, recorded as
+                    // but it would resolve to a manual layout the user never chose, recorded as
                     // though they had. Leaving the group unselected lets origin priority decide,
                     // which is honest about the fact that the chosen layout is gone.
                     return null;
@@ -234,7 +234,7 @@ namespace InteractiveWorldMap.Services
                 // One seed per cluster is the whole point of dropping the size from the key.
                 // Either way the survivor is the same generated layout for the same cluster under
                 // the same id, so a selection naming it still names what was chosen -- unlike the
-                // cross-origin case above, where the survivor is somebody's hand-made work.
+                // cross-origin case above, where the survivor is somebody's manual layout.
                 if (variant.UpdatedUtc > clash.UpdatedUtc)
                 {
                     target.Variants.Remove(clash);
@@ -251,7 +251,7 @@ namespace InteractiveWorldMap.Services
                 return clash.VariantId;
             }
 
-            // Hand-made: keep it, under a name that says where it came from.
+            // Manual: keep it, under a name that says where it came from.
             variant.VariantId = MakeUniqueVariantId(target, variant.VariantId, oldKey);
             variant.DisplayName = $"{variant.DisplayName} (from {DescribeSize(oldKey)})";
             variant.IsDefault = false;
@@ -300,7 +300,7 @@ namespace InteractiveWorldMap.Services
         /// origin makes the layout that loads depend on enumeration order.
         ///
         /// Per exact origin, matching <c>SetDefaultForOriginClass</c>: a seed default and a
-        /// hand-made default coexist by design, two hand-made defaults do not.
+        /// manual default coexist by design, two manual defaults do not.
         /// </remarks>
         private void ClearDefaultIfTargetAlreadyHasOne(
             ManualLayoutGroup target, ManualLayout variant, string newKey, string oldKey)

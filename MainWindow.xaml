@@ -359,10 +359,10 @@
                     Cursor="Hand"
                     Click="OnDeleteVariantButtonClick"/>
 
-            <!-- Bulk delete: destroys every hand-made layout for this view. Confirmed in the
+            <!-- Bulk delete: destroys every manual layout for this view. Confirmed in the
                  handler, which names them and states the count. -->
             <Button x:Name="DeleteLayoutButton"
-                    Content="Delete ALL Saved Layouts"
+                    Content="Delete ALL Manual Layouts"
                     Padding="15,8"
                     Margin="5"
                     FontSize="13"

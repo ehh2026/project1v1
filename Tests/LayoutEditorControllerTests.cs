@@ -175,7 +175,7 @@ public class LayoutEditorControllerTests
     [Fact]
     public void HasManualLayout_WithOnlyAutoSeed_IsFalse()
     {
-        // A seed is a starting point, not a decision, so it must not outrank a hand-made
+        // A seed is a starting point, not a decision, so it must not outrank a manual
         // full-map layout when zooming into a single location.
         var (ctrl, manager, _, _) = Make();
         manager.SaveVariant(
@@ -193,7 +193,7 @@ public class LayoutEditorControllerTests
         // the full-map layout. The question is about the group, not the current selection.
         var (ctrl, manager, _, _) = Make();
         manager.SaveVariant(
-            "key-mixed", "hand-made", "Hand Made", ManualLayoutOrigin.Manual,
+            "key-mixed", "manual", "Hand Made", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: false, setAsSelected: false);
         manager.SaveVariant(
             "key-mixed", "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,
@@ -216,7 +216,7 @@ public class LayoutEditorControllerTests
         const string otherSize = "hash1_z55.00_c900.00_900.00_m3_p10.0_l50.0_n13.0";
 
         manager.SaveVariant(
-            otherSize, "hand-made", "Hand Made", ManualLayoutOrigin.Manual,
+            otherSize, "manual", "Hand Made", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: true, setAsSelected: true);
         manager.SaveVariant(
             exactKey, "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,

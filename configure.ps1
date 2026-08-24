@@ -107,7 +107,7 @@ Write-ConfigEntry `
 
 Write-ConfigEntry `
     (Join-Path $contentDir 'manual-layouts.json') `
-    'Saved manual layouts - hand-placed pin positions' `
+    'Saved manual layouts - the pin positions saved from Edit Layout' `
     'Careful: the app writes the output copy, not this one. A build can overwrite in-app work (see below).'
 
 Write-ConfigEntry `
@@ -181,6 +181,31 @@ Write-Host ''
 Write-Host '  To reset: delete visual-config.json and relaunch. The app copies a fresh one from the' -ForegroundColor DarkGray
 Write-Host '  visual-config.default.json sitting beside it. Only your local tuning is lost - saved' -ForegroundColor DarkGray
 Write-Host '  layouts, locations and content are in different files and are untouched.' -ForegroundColor DarkGray
+Write-Host ''
+
+Write-Heading 'Before you edit the radial-extension settings'
+Write-Host '  These four are part of the identity of every saved layout for a zoomed-in cluster.' -ForegroundColor DarkGray
+Write-Host '  They do not all cost the same to change.' -ForegroundColor DarkGray
+Write-Host ''
+Write-Host '  ProximityThresholdPixels and MinLocationsForExtension decide which locations count' -ForegroundColor Red
+Write-Host '  as one cluster. Move either far enough to pull a location into a cluster or push one' -ForegroundColor Red
+Write-Host '  out, and that cluster becomes a different set of locations, which the app cannot match' -ForegroundColor Red
+Write-Host '  to what you saved. Your layouts for those clusters stop appearing - they are still in' -ForegroundColor Red
+Write-Host '  the file, under a name nothing asks for any more.' -ForegroundColor Red
+Write-Host ''
+Write-Host '  A smaller change that does not regroup anybody costs you nothing. But which one you' -ForegroundColor Red
+Write-Host '  just made depends on how far apart your locations are, and you cannot tell from this' -ForegroundColor Red
+Write-Host '  file - so assume the expensive one. Putting the old value back brings your layouts' -ForegroundColor Red
+Write-Host '  straight back either way. Nothing is ever deleted.' -ForegroundColor Red
+Write-Host ''
+Write-Host '  ExtensionLineLength and MinimumLineLength only change how the lines are drawn. Your' -ForegroundColor DarkYellow
+Write-Host '  saved layouts still load. Two smaller things happen:' -ForegroundColor DarkYellow
+Write-Host '    - Anything you save afterwards is stored separately from what you saved before,' -ForegroundColor DarkYellow
+Write-Host '      so a cluster ends up with one set of layouts per settings combination.' -ForegroundColor DarkYellow
+Write-Host '    - Manual-layout pins keep their positions, but anything auto-placed around' -ForegroundColor DarkYellow
+Write-Host '      them is recalculated, so a view can end up half-arranged.' -ForegroundColor DarkYellow
+Write-Host ''
+Write-Host '  Whole-map layouts are unaffected by any of the four.' -ForegroundColor DarkGray
 Write-Host ''
 
 Write-Heading 'Developer tools'

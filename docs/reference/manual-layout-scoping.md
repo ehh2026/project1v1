@@ -28,8 +28,8 @@ per size someone happened to run at.
 
 Keys written before that change still resolve, and groups still keyed that way are merged into their
 size-independent form the next time the file is read or written. Where two of them hold a variant
-with the same id, hand-made work is never dropped: the second keeps its layout under a suffixed id
-and a name saying which size it came from, and a generated seed sharing an id with a hand-made
+with the same id, manual layouts are never dropped: the second keeps its layout under a suffixed id
+and a name saying which size it came from, and a generated seed sharing an id with a manual
 variant is discarded rather than replacing it. A selection follows its variant through the merge, including a rename, rather than being left naming whatever else holds that id; where the selected variant is discarded in favour of one of a different origin, the group is left unselected rather than credited with a choice nobody made. Each merged group keeps one default per origin, since two sized groups each arrive with their own. Two seeds collapse to the newer one — they are
 reproducible from the coordinate source, and keeping four would leave the picker as cluttered as the
 groups were.
@@ -51,7 +51,7 @@ prints both paths and says which is which.
 
 ---
 
-## Trap 1 — editing the config orphans cluster layouts
+## Trap 1 — editing the config can orphan cluster layouts
 
 The `m`, `p`, `l` and `n` components of a cluster key are `RadialExtensionConfig` values:
 
@@ -62,13 +62,35 @@ The `m`, `p`, `l` and `n` components of a cluster key are `RadialExtensionConfig
 | `l` | `ExtensionLineLength` |
 | `n` | `MinimumLineLength` |
 
-Change any of them in `visual-config.json` and **every cluster key changes**, so every saved cluster
-layout stops resolving. Nothing is deleted; the layouts are simply unfindable under the new keys.
-Restoring the old values brings them back.
+Change any of them in `visual-config.json` and **every cluster key changes**. What that costs
+depends on which one, and the difference is the whole of this trap:
 
-Full-map layouts are unaffected.
+**`ProximityThresholdPixels` and `MinLocationsForExtension` decide which locations form a cluster.**
+Change either *far enough to move a location into or out of a cluster* and that cluster is a
+*different set of locations*, which hashes differently — and the location hash is one of the two
+things `AreKeysCompatible` compares. Saved layouts for those clusters stop resolving: still in the
+file, under a key nothing asks for. Raising `MinLocationsForExtension` past a cluster's size removes
+the cluster altogether, so there is no key to look one up by.
 
-This is the most likely way to lose your own work without going near the editor.
+A change that leaves membership alone — nudging the threshold within a gap no location sits in —
+costs nothing at all: the key string moves, but the hash and the zoom do not, so the layout resolves
+exactly as before. **This is the trap, and it is worth being careful with**, precisely because which
+of the two happened is not something you can read off the config file. Whether `20 → 25` is free or
+expensive depends on how far apart the locations are, which lives in `locations.json`. Treat any
+edit to these two as the expensive case unless you have checked.
+
+**`ExtensionLineLength` and `MinimumLineLength` only change how a line is drawn.** The key moves,
+but the locations and the zoom do not, so the old group stays compatible and the layout still
+loads. Two smaller effects remain: saving keys exactly, so anything saved afterwards lands in a new
+group beside the old one; and manual-layout pins keep their positions while anything auto-placed
+around them is recalculated, so a view can end up half-arranged.
+
+Putting the old value back restores the previous behaviour in every case. Nothing is deleted at any
+point, and full-map layouts are unaffected by all four.
+
+Verified in `RadialConfigChangeAndSavedLayoutsTests`, which drives the grouping settings through
+`DetectDenseGroups` rather than a fixed location list — holding the locations fixed is what made an
+earlier version of this page claim the whole trap was imaginary.
 
 ## Trap 2 — compatibility is looser than the key
 
@@ -107,7 +129,7 @@ Every stored entry in the shipped file is named `Generated Seed`, with `VariantI
 `scripts/generate_manual_layout_seeds.ps1`, which writes the same file your own saves go to.
 
 Re-running the generator is safe: it calls `CloneWithoutAutoSeeds`, which strips only `AutoSeed`
-entries and preserves every hand-made variant.
+entries and preserves every manual variant.
 
 Seeds used to be named identically, so every cluster's dropdown looked the same — the layouts
 underneath were always distinct, only the labels were not. Two changes: the picker now shows a label
@@ -118,8 +140,8 @@ newly generated seeds are named after their cluster (`Seed: New York, Newark, +2
 
 The view being edited is named once, above the picker, rather than repeated on every row.
 
-`Delete ALL Saved Layouts` removes only hand-made variants. Seeds survive it, which is why its
-confirmation counts hand-made layouts rather than all of them.
+`Delete ALL Manual Layouts` removes only manual variants. Seeds survive it, which is why its
+confirmation counts manual layouts rather than all of them.
 
 ---
 

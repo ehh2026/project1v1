@@ -305,4 +305,92 @@ public class LayoutKeyGeneratorTests
         Assert.NotEqual(newYork, hongKong);
         Assert.False(LayoutKeyGenerator.AreKeysCompatible(newYork, hongKong));
     }
+    // ─── Phase 6.6: the properties the scoping doc claims ────────────────────
+
+    /// <summary>Two locations, enough to form a cluster.</summary>
+    private static List<Location> ClusterLocations() => new()
+    {
+        new() { Name = "Alpha", PixelX = 100, PixelY = 200 },
+        new() { Name = "Beta",  PixelX = 110, PixelY = 210 }
+    };
+
+    [Theory]
+    [InlineData("MinLocationsForExtension")]
+    [InlineData("ProximityThresholdPixels")]
+    [InlineData("ExtensionLineLength")]
+    [InlineData("MinimumLineLength")]
+    public void ChangingAnyRadialExtensionSetting_ChangesEveryClusterKey(string setting)
+    {
+        // All four are in the key. That much is uniform; what it costs is not, and this test says
+        // nothing about that -- holding the location list fixed is exactly what hides the
+        // difference. See RadialConfigChangeAndSavedLayoutsTests, which drives the two grouping
+        // settings through DetectDenseGroups and finds the saved layout genuinely orphaned.
+        var locations = ClusterLocations();
+        var viewport = MakeZoomedViewport();
+
+        var before = MakeConfig();
+        var after = MakeConfig();
+        switch (setting)
+        {
+            case "MinLocationsForExtension": after.MinLocationsForExtension += 1; break;
+            case "ProximityThresholdPixels": after.ProximityThresholdPixels += 1; break;
+            case "ExtensionLineLength": after.ExtensionLineLength += 1; break;
+            case "MinimumLineLength": after.MinimumLineLength += 1; break;
+        }
+
+        Assert.NotEqual(
+            LayoutKeyGenerator.GenerateKey(locations, viewport, before),
+            LayoutKeyGenerator.GenerateKey(locations, viewport, after));
+    }
+
+    [Fact]
+    public void ChangingARadialExtensionSetting_LeavesTheFullMapLayoutAlone()
+    {
+        // The counterpart, and why the warning says "cluster layouts" rather than "layouts".
+        var before = MakeConfig();
+        var after = MakeConfig();
+        after.ExtensionLineLength += 1;
+
+        Assert.Equal(
+            LayoutKeyGenerator.DeriveEditSessionKey(null, MakeZoomedViewport(), before),
+            LayoutKeyGenerator.DeriveEditSessionKey(null, MakeZoomedViewport(), after));
+    }
+
+    [Fact]
+    public void TwoDifferentClusters_AreNotJustDifferentKeysButIncompatibleOnes()
+    {
+        // Distinct strings are not enough: lookup falls back through AreKeysCompatible, so if two
+        // clusters were compatible one would show the other's layout under its own name.
+        var newYork = new List<Location>
+        {
+            new() { Name = "New York", PixelX = 100, PixelY = 200 },
+            new() { Name = "Newark",   PixelX = 110, PixelY = 210 }
+        };
+        var hongKong = new List<Location>
+        {
+            new() { Name = "Hong Kong", PixelX = 100, PixelY = 200 },
+            new() { Name = "Kowloon",   PixelX = 110, PixelY = 210 }
+        };
+
+        var a = LayoutKeyGenerator.GenerateKey(newYork, MakeZoomedViewport(), MakeConfig());
+        var b = LayoutKeyGenerator.GenerateKey(hongKong, MakeZoomedViewport(), MakeConfig());
+
+        Assert.NotEqual(a, b);
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(a, b));
+    }
+
+    [Fact]
+    public void AFullMapKeyAndAClusterKey_NeverCollideOrResolveToEachOther()
+    {
+        // The guarantee the scoping doc leads with. A cluster layout applied to the whole map, or
+        // the reverse, would put every pin somewhere arbitrary.
+        var cluster = LayoutKeyGenerator.DeriveEditSessionKey(
+            ClusterLocations(), MakeZoomedViewport(), MakeConfig());
+        var fullMap = LayoutKeyGenerator.DeriveEditSessionKey(
+            null, MakeZoomedViewport(), MakeConfig());
+
+        Assert.NotEqual(cluster, fullMap);
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(cluster, fullMap));
+        Assert.False(LayoutKeyGenerator.AreKeysCompatible(fullMap, cluster));
+    }
 }

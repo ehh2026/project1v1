@@ -10,7 +10,7 @@ namespace InteractiveWorldMap.Tests;
 
 /// <summary>
 /// The editor offers three ways to stop a saved layout being used, and they differ in how much
-/// they destroy: unload (nothing), delete this one (one variant), delete all (every hand-made
+/// they destroy: unload (nothing), delete this one (one variant), delete all (every manual
 /// variant for the view). The button that destroyed the most used to be the one labelled most
 /// mildly — "Delete and Recalculate" — and it asked nothing before running.
 ///
@@ -73,7 +73,7 @@ public class LayoutDeleteActionsTests
         Assert.True(confirmIndex >= 0);
         var prompt = body.Substring(0, confirmIndex);
 
-        Assert.Contains("hand-made layout(s) saved for this view", prompt);
+        Assert.Contains("manual layout(s) saved for this view", prompt);
         Assert.DoesNotContain("saved layout(s) for this view?", prompt);
     }
 
@@ -127,7 +127,7 @@ public class LayoutDeleteActionsTests
         // destructive action in the panel.
         Assert.DoesNotContain("Content=\"Delete and Recalculate\"", xaml);
 
-        Assert.Contains("Content=\"Delete ALL Saved Layouts\"", xaml);
+        Assert.Contains("Content=\"Delete ALL Manual Layouts\"", xaml);
         Assert.Contains("Content=\"Delete This Layout\"", xaml);
         Assert.Contains("Content=\"Unload and Recalculate\"", xaml);
     }

@@ -95,7 +95,7 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
-    public void CollidingHandMadeVariants_AreKeptRatherThanDropped()
+    public void CollidingManualVariants_AreKeptRatherThanDropped()
     {
         // Each sized group has its own "manual-default". Losing one to a merge would destroy work
         // the user never asked to delete, so the loser survives under a suffixed id — an awkward
@@ -117,9 +117,9 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
-    public void ASeedNeverEvictsAHandMadeVariantSharingItsId()
+    public void ASeedNeverEvictsAManualVariantSharingItsId()
     {
-        // The seed generator writes "seed-default", but nothing stops a hand-made variant holding
+        // The seed generator writes "seed-default", but nothing stops a manual variant holding
         // that id -- an imported file, or an older save. Replacing on recency alone would let a
         // regenerable seed delete the user's layout during a migration they never asked for, which
         // is the worst place for it: no prompt, no undo, and it looks like the file was corrupt.
@@ -202,7 +202,7 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
-    public void ASeedDefaultAndAHandMadeDefault_BothSurvive()
+    public void ASeedDefaultAndAManualDefault_BothSurvive()
     {
         // The counterpart: one default per origin is the existing rule, not one per group, so
         // clearing across origins would break the fallback the loader depends on.
@@ -222,10 +222,10 @@ public class SizeKeyMigrationTests
     }
 
     [Fact]
-    public void ASelectedSeedLosingToAHandMadeVariant_LeavesTheGroupUnselected()
+    public void ASelectedSeedLosingToAManualVariant_LeavesTheGroupUnselected()
     {
         // The seed the user selected is gone. The variant that survives holds the same id, so
-        // recording it as the selection would resolve -- and would claim they chose a hand-made
+        // recording it as the selection would resolve -- and would claim they chose a manual
         // layout they have never seen. Unselected hands it to origin priority, which is honest
         // about the choice no longer existing.
         var (_, manager, _, _) = Make();

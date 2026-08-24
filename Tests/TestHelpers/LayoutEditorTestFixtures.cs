@@ -21,7 +21,9 @@ internal static class LayoutEditorTestFixtures
     internal static (LayoutEditorController Controller, ManualLayoutManager Manager, MockLogger Logger, string TempDir)
         Make()
     {
-        var tempDir = Path.Combine(Path.GetTempPath(), "iwm-lec-" + Guid.NewGuid().ToString("N"));
+        SweepStaleTempDirectories();
+
+        var tempDir = Path.Combine(Path.GetTempPath(), TempDirectoryPrefix + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDir);
         var layoutPath = Path.Combine(tempDir, "layouts.json");
         var logger = new MockLogger();
@@ -29,6 +31,56 @@ internal static class LayoutEditorTestFixtures
         var config = new VisualConfig();
         var controller = new LayoutEditorController(manager, config, logger);
         return (controller, manager, logger, tempDir);
+    }
+
+    private const string TempDirectoryPrefix = "iwm-lec-";
+
+    private static bool _sweptThisRun;
+
+    /// <summary>
+    /// Deletes layout-test temp directories left by earlier runs.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Every call to <see cref="Make"/> creates one and nothing deletes it, so they accumulate for
+    /// as long as anyone keeps running the suite. Sweeping on the way in rather than disposing on
+    /// the way out is deliberate: the fixture is used from eight test classes through a plain tuple
+    /// return, and threading an <c>IDisposable</c> through all of them to fix a housekeeping
+    /// problem would be a lot of churn for the size of the complaint.
+    /// </para>
+    /// <para>
+    /// An age cut-off rather than a blanket delete, so a run in another process does not have its
+    /// working directories removed underneath it. Best effort throughout: a directory that cannot
+    /// be deleted is one another run is probably holding, and failing a test over it would be worse
+    /// than leaving it.
+    /// </para>
+    /// </remarks>
+    private static void SweepStaleTempDirectories()
+    {
+        if (_sweptThisRun) return;
+        _sweptThisRun = true;
+
+        try
+        {
+            var cutoff = DateTime.UtcNow.AddHours(-1);
+
+            foreach (var dir in Directory.GetDirectories(Path.GetTempPath(), TempDirectoryPrefix + "*"))
+            {
+                try
+                {
+                    if (Directory.GetCreationTimeUtc(dir) < cutoff)
+                        Directory.Delete(dir, recursive: true);
+                }
+                catch
+                {
+                    // In use, or gone already. Either way not this run's problem.
+                }
+            }
+        }
+        catch
+        {
+            // No temp directory to enumerate is not a test failure.
+        }
     }
 
     internal static Location Loc(string id) => new Location { Id = id, Name = id };

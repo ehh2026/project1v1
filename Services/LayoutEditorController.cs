@@ -263,7 +263,7 @@ public sealed class LayoutEditorController
     }
 
     /// <summary>
-    /// Returns exactly the variants <see cref="TryDelete"/> would destroy: the hand-made ones.
+    /// Returns exactly the variants <see cref="TryDelete"/> would destroy: the manual ones.
     /// AutoSeed and Imported variants survive it, so a confirmation counting anything wider would
     /// promise to delete work that is still there afterwards.
     /// </summary>

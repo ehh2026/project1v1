@@ -37,7 +37,7 @@ lands**; it carries a "Last updated" date that must move with it.
 | 2026-08-19 | **Phase 1b landed** (`81e6ced`): collapsed both save routes into one guarded `TryCollectCurrentExtensions`; removed the duplicate inline collection and the now-redundant second scope check. Added `IsCollapsedLayout` backstop. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 893 passed / 2 known skips. |
 | 2026-08-19 | **Phase 1c landed** (`83f716d`): cluster layouts no longer replay as stubs. Root cause was the replay path, not saving. | `.\scripts\verify.ps1` **PASSED**. 894 passed / 2 known skips. Regression test measures the 0.46px collapse without the fix. |
 | 2026-08-19 | **Manual smoke S5 PASSED** against `83f716d` — the originally reported failure no longer reproduces. | User confirmation in the running app |
-| 2026-08-19 | **Phase 0.6 landed** (`58abd6f`): layout precedence by origin rather than scope, so a hand-made zoomed layout is displayed instead of being saved and ignored. | `.\scripts\verify.ps1` **PASSED**. 899 passed / 2 known skips. |
+| 2026-08-19 | **Phase 0.6 landed** (`58abd6f`): layout precedence by origin rather than scope, so a manual zoomed layout is displayed instead of being saved and ignored. | `.\scripts\verify.ps1` **PASSED**. 899 passed / 2 known skips. |
 | 2026-08-19 | **Qodo review addressed** (`3db2514`): three real defects — `HasManualLayout` masked by a selected seed; the `OnSizeChanged` guard leaving stale endpoints that a later save would mis-project; the collapse backstop refusing a deliberate all-anchor drag. Plus layering/size cleanups and the `LayoutEditorControllerTests` split. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 901 passed / 2 known skips. Masking fix verified failing against the old implementation. |
 
 **Durable fix for the whole 0.x class — tracked in [docs/TO_DO.md](../../TO_DO.md) under High
@@ -153,7 +153,7 @@ never re-derives it on entry.
       **Rule, decided with the user:** a layout the user deliberately made wins, most specific
       first — Manual zoomed layout → Manual full-map layout → auto seeds. Scope alone was the wrong
       test: every cluster has a seed, and the original branch existed precisely so a seed could not
-      override hand-made full-map work. Origin preserves that protection while honoring intent.
+      override manual full-map work. Origin preserves that protection while honoring intent.
 
       **"Full-map layout containing the location" means it holds a saved marker record for that
       location — not that the location falls inside the map area.** `FullMapLayoutContainsLocation`
@@ -176,14 +176,12 @@ never re-derives it on entry.
       **Consequence to surface in the UI (feeds 6.1):** a pin can now legitimately have two saved
       layouts — one unzoomed, one zoomed. The editor panel must say which scope is in effect, or
       "why did my change not show up" becomes ambiguous in a new way.
-- [ ] 0.7 Narrow the writers. Six call sites mutate `CurrentLayoutKey`. Partially addressed (0.5
-      removed one, 0.3/0.4 make the editor independent of it); the remaining writers should funnel
-      through one guarded method.
-- [ ] 0.10 **(new, found during the audit)** `TryLoad(key)` mutates `ActiveVariantId`/`Origin`/
-      `DisplayName` without checking `key == CurrentLayoutKey`. Three probe-loads call it with
-      locally computed keys (`Navigation:169`, `Navigation:237`,
-      `TryLoadFullMapManualLayoutForAnimation`), desyncing variant identity from the current key.
-      Either make probe loads side-effect-free or require the key to match.
+- [x] 0.7 **Overtaken by Phase C, which deleted the field rather than funnelling its writers.**
+      `CurrentLayoutKey` and `SetLayoutKey` no longer exist; the only occurrences left in the repo
+      are tests asserting their absence. There is nothing to narrow.
+- [x] 0.10 **Done by Phase C**, taking the first option: `TryLoad` is now
+      `_layoutManager.LoadLayout(key)` and mutates nothing. Variant identity is adopted once, on
+      edit entry, by `AdoptVariantIdentity`/`LoadForEditSession`, so a probe load cannot desync it.
 - [x] 0.8 **Manual smoke S5 passed 2026-08-19 against `83f716d`** — save, load another variant,
       reload: the arrangement redraws correctly, no stubs. This is the first confirmation against the
       originally reported failure. Note the true cause turned out to be Phase 1c (replay), not the
@@ -248,7 +246,7 @@ so an endpoint/start asymmetry is **not** the cause.
 - [x] 1.5 `GetMarkerEndpoint` split into `TryGetMarkerEndpoint(marker, out Point)`, returning false
       only for the last-resort marker-anchor guess. The four authoritative sources return true.
       Extracted to `MainWindow.LayoutEditorGeometry.partial.cs` (800-line limit).
-- [ ] 1.6 **Close the race at its source — but narrowly.** `UpdateMarkerPositions()`
+- [x] 1.6 **Close the race at its source — but narrowly.** `UpdateMarkerPositions()`
       (`MainWindow.MarkerPlacement.partial.cs:38`) calls `_extensionLineRenderer.Clear()` guarded
       only by `if (!IsAnimating)`.
       **Correction (2026-08-18 audit):** do *not* blanket-guard `UpdateMarkerPositions` with
@@ -406,7 +404,7 @@ the behavior originally wanted from the red button.
       unconfirmed, and sitting behind the mildest-sounding name in the panel.
 - [x] 2.2 Both delete paths confirm. Single names the variant; bulk lists every variant and states
       the count. Both default to `MessageBoxResult.No`, so a reflexive Enter cancels.
-- [x] 2.3 Relabelled: red → **"Delete ALL Saved Layouts"** (stronger than the planned wording,
+- [x] 2.3 Relabelled: red → **"Delete ALL Manual Layouts"** (stronger than the planned wording,
       since it is the bulk action), variant → **"Delete This Layout"**, unload →
       **"Unload and Recalculate"** at 14pt Bold, the panel's most prominent action.
 - [x] 2.4 Bulk delete is the red button, separately confirmed, and its prompt states the count and
@@ -526,11 +524,31 @@ So: a New York cluster layout, a Hong Kong cluster layout, and the zoomed-out fu
 three independent saved layouts. `AreKeysCompatible` hard-guarantees a full-map key never matches a
 cluster key.
 
-**Trap 1 — config edits silently orphan cluster layouts.** The `m`/`p`/`l`/`n` key components are
-`RadialExtensionConfig` values (`MinLocationsForExtension`, `ProximityThresholdPixels`,
-`ExtensionLineLength`, `MinimumLineLength`). Changing any of them in `visual-config.json` changes
-every cluster key, so saved cluster layouts stop resolving. They are not deleted — just unfindable.
-Presents to the user as "my layouts vanished." Full-map layouts are unaffected.
+**Trap 1 — config edits can orphan cluster layouts, depending on which one.** The `m`/`p`/`l`/`n`
+key components are `RadialExtensionConfig` values (`MinLocationsForExtension`,
+`ProximityThresholdPixels`, `ExtensionLineLength`, `MinimumLineLength`). Changing any of them in
+`visual-config.json` changes every cluster key. What that costs splits two ways:
+
+- **`ProximityThresholdPixels` / `MinLocationsForExtension` decide cluster membership.** Change
+  either far enough to move a location in or out and the cluster becomes a different set, which
+  hashes differently — and the hash is one of the two things `AreKeysCompatible` compares. Saved
+  layouts for those clusters stop resolving. Raising the minimum past a cluster's size removes the
+  cluster entirely. A change that leaves membership alone costs nothing: the key moves, the hash
+  does not. **This is the trap** — conditional, but the condition depends on the gaps between
+  locations and is not visible from the config file, so it is documented as the expensive case.
+- **`ExtensionLineLength` / `MinimumLineLength` only affect line geometry.** The key moves but the
+  hash and zoom do not, so the layout still resolves. Remaining effects: later saves land in a new
+  group, and auto-placed pins around the manual-layout ones are recalculated.
+
+Full-map layouts are unaffected by all four.
+
+**History, worth keeping.** On 2026-08-23 this section was rewritten to say the trap did not exist
+at all, on the strength of a test that changed `ExtensionLineLength` with a fixed location list and
+found the layout still loaded. That generalised one setting to four; the user pushed back, and a
+measurement through `DetectDenseGroups` showed the grouping settings do orphan layouts exactly as
+originally described. Both halves are now pinned in
+`RadialConfigChangeAndSavedLayoutsTests`, driven through the calculator rather than a fixed list —
+holding the locations fixed is what hid it.
 
 **Trap 2 — compatibility is looser than the key.** `AreKeysCompatible` compares only the location
 hash and zoom (±0.1 tolerance). Viewport center and size are in the key but not in the check, so a
@@ -571,7 +589,7 @@ the scope being edited, so two different clusters are visually identical. The dr
 the current key's variants, so changing view silently swaps the entire list with no explanation.
 
 The panel carries five actions — Save, Save As Variant, `Delete This Layout` (`:246`),
-`Delete ALL Saved Layouts` (`:298`), `Unload and Recalculate` (`:336`). Phase 2 relabelled these and
+`Delete ALL Manual Layouts` (`:298`), `Unload and Recalculate` (`:336`). Phase 2 relabelled these and
 put a confirmation on both delete paths, so the remaining 6.3 work is arrangement and grouping
 rather than disambiguation.
 
@@ -600,10 +618,25 @@ rather than disambiguation.
       two key shapes, all three traps, which file the app actually reads, and where
       `Generated Seed` comes from. Linked from `docs/index.md` and from `CLAUDE.md`'s key
       conventions.
-- [ ] 6.5 Have the Phase 4 `configure.ps1` warn that editing the `RadialExtension` config values
+- [x] 6.5 **Done, splitting the warning in two.** The planned text was right for
+      `ProximityThresholdPixels` and `MinLocationsForExtension`, which do orphan saved cluster
+      layouts, and wrong for `ExtensionLineLength` and `MinimumLineLength`, which do not.
+      `configure.ps1` now says which is which: the grouping pair in red as work you will lose sight
+      of, the geometry pair as the milder "later saves land in a new group, auto-placed pins are
+      recalculated". A single undifferentiated warning would have been half false either way.
+      Refined after review: the grouping pair only orphans a layout when the edit actually changes
+      cluster membership, so all four sites say so — while still warning as if it will, since
+      whether a given edit crosses that line depends on `locations.json`, not on the config.
+      Original wording:
       orphans saved cluster layouts (Trap 1) — that is the most likely way a user destroys their
       own work without touching the editor.
-- [ ] 6.6 Test: full-map and cluster keys never collide; two distinct clusters produce distinct
+- [x] 6.6 **Done.** Full-map and cluster keys are asserted neither equal nor compatible in
+      either direction; two distinct clusters likewise, since distinct strings alone would not stop
+      one cluster resolving to another's layout. The config-change property is pinned as what it is
+      — orphaning for the two grouping settings, surviving for the two geometry ones — with
+      `RadialConfigChangeAndSavedLayoutsTests` measuring both end to end through
+      `ManualLayoutManager`, and the grouping half driven through `DetectDenseGroups`.
+      Original wording:
       keys; changing a `RadialExtensionConfig` value changes the cluster key (pin the trap so it is
       a known, documented property rather than a surprise).
 - [x] 6.7 **Make variant labels distinguishable.** Done by rebuilding the label on read
@@ -640,7 +673,7 @@ keeps every variant listed.
       still resolve — `AreKeysCompatible` only ever read the hash and the zoom — and
       `MergeSizedClusterGroups` collapses groups still keyed that way when the file is next read or
       written, so the duplication actually goes away rather than being tolerated. Colliding
-      hand-made variants are kept under a suffixed id rather than dropped: an awkward name is
+      manual variants are kept under a suffixed id rather than dropped: an awkward name is
       recoverable, a missing layout is not. Seeds are the exception, being reproducible.
       Migration runs on save as well as load, because several callers re-cache the collection after
       writing and would otherwise hold un-merged groups until a restart.
@@ -687,8 +720,24 @@ fully reproduce. Phase 3 needs verification from a real cmd.exe window specifica
 
 - ~~Phase 2.4: keep a bulk "delete all variants" action?~~ **Resolved 2026-08-18: keep it, behind
   its own confirmation stating the number of variants affected.**
-- Phase 1.6: is a re-render during an active edit session ever legitimate? A render pass calls
-  `ExtensionLineRenderer.Clear()`, which empties `_markerToLine` — the only store of each pin's true
-  endpoint — before repopulating it. A save landing inside that window loses every endpoint at once.
-  If no such pass is ever legitimate mid-edit, suppressing renders while `IsEditMode` closes the
-  window entirely; otherwise the save boundary must guard instead.
+- ~~Phase 1.6: is a re-render during an active edit session ever legitimate?~~ **Resolved by
+  the 2026-08-18 audit: yes, two of them are.** `OnDeleteVariantButtonClick` and
+  `OnEditLayoutButtonClick` both re-place markers mid-edit on purpose, so a blanket `IsEditMode`
+  guard on `UpdateMarkerPositions` would break them. `OnSizeChanged` was the one illegitimate
+  caller and now returns early during edit. The save boundary guards the rest: the session captured
+  the viewport it was derived against, so a save after a resize is refused rather than written from
+  mixed coordinate spaces.
+
+- ~~Does editing a `RadialExtensionConfig` value orphan saved cluster layouts ("Trap 1")?~~
+  **Resolved 2026-08-23: two of the four can.** `ProximityThresholdPixels` and
+  `MinLocationsForExtension` decide cluster membership, so changing either *enough to move a
+  location in or out* gives the cluster a different location set and a different hash, and the saved
+  layout stops resolving; a change that leaves membership as it was leaves the layout loadable.
+  `ExtensionLineLength` and `MinimumLineLength` only affect line geometry and leave it reachable.
+  Measured in `RadialConfigChangeAndSavedLayoutsTests`, both directions of the grouping pair.
+
+  Recorded because the first answer was wrong in a specific way: a test that changed
+  `ExtensionLineLength` against a fixed location list showed the layout surviving, and that was
+  generalised to all four — including the two whose entire effect is on the location list the test
+  was holding fixed. The lesson is not "measure rather than reason", which was already the rule
+  followed here, but that a measurement inherits the assumptions of its fixture.
