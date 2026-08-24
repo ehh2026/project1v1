@@ -524,21 +524,28 @@ So: a New York cluster layout, a Hong Kong cluster layout, and the zoomed-out fu
 three independent saved layouts. `AreKeysCompatible` hard-guarantees a full-map key never matches a
 cluster key.
 
-**Trap 1 — config edits re-key cluster layouts (but do not orphan them).** The `m`/`p`/`l`/`n`
+**Trap 1 — config edits can orphan cluster layouts, depending on which one.** The `m`/`p`/`l`/`n`
 key components are `RadialExtensionConfig` values (`MinLocationsForExtension`,
 `ProximityThresholdPixels`, `ExtensionLineLength`, `MinimumLineLength`). Changing any of them in
-`visual-config.json` changes every cluster key.
+`visual-config.json` changes every cluster key. What that costs splits two ways:
 
-**Corrected 2026-08-23.** This section used to say saved cluster layouts then stop resolving and
-present as "my layouts vanished". They do not: `AreKeysCompatible` compares only the location hash
-and the zoom, so the old group is still compatible with the new key and still loads. Verified in
-`ConfigChangeDoesNotHideSavedLayoutsTests` rather than argued from the key format, which is how the
-wrong version survived this long. The "vanished" reports were Trap 3 — the dropdown emptying while
-the map kept showing the layout — fixed in Phase 6.8.
+- **`ProximityThresholdPixels` / `MinLocationsForExtension` decide cluster membership.** The cluster
+  becomes a different set of locations, which hashes differently — and the hash is one of the two
+  things `AreKeysCompatible` compares. Saved layouts for those clusters stop resolving. Raising the
+  minimum past a cluster's size removes the cluster entirely. **This is the trap.**
+- **`ExtensionLineLength` / `MinimumLineLength` only affect line geometry.** The key moves but the
+  hash and zoom do not, so the layout still resolves. Remaining effects: later saves land in a new
+  group, and auto-placed pins around the hand-placed ones are recalculated.
 
-What remains is real but milder: saving keys exactly, so anything saved after the change lands in a
-new group beside the old one, and pins auto-placed around the hand-placed ones are recalculated with
-the new numbers. Full-map layouts are unaffected.
+Full-map layouts are unaffected by all four.
+
+**History, worth keeping.** On 2026-08-23 this section was rewritten to say the trap did not exist
+at all, on the strength of a test that changed `ExtensionLineLength` with a fixed location list and
+found the layout still loaded. That generalised one setting to four; the user pushed back, and a
+measurement through `DetectDenseGroups` showed the grouping settings do orphan layouts exactly as
+originally described. Both halves are now pinned in
+`RadialConfigChangeAndSavedLayoutsTests`, driven through the calculator rather than a fixed list —
+holding the locations fixed is what hid it.
 
 **Trap 2 — compatibility is looser than the key.** `AreKeysCompatible` compares only the location
 hash and zoom (±0.1 tolerance). Viewport center and size are in the key but not in the check, so a
@@ -608,19 +615,21 @@ rather than disambiguation.
       two key shapes, all three traps, which file the app actually reads, and where
       `Generated Seed` comes from. Linked from `docs/index.md` and from `CLAUDE.md`'s key
       conventions.
-- [x] 6.5 **Done, saying something different from what was planned.** The planned warning was
-      that these edits orphan saved cluster layouts. They do not — see the corrected Trap 1 above —
-      so `configure.ps1` says what actually happens instead: layouts still load, but later saves
-      land in a separate group, and auto-placed pins are recalculated around the hand-placed ones.
-      Writing the planned text would have taught users to fear the wrong thing.
+- [x] 6.5 **Done, splitting the warning in two.** The planned text was right for
+      `ProximityThresholdPixels` and `MinLocationsForExtension`, which do orphan saved cluster
+      layouts, and wrong for `ExtensionLineLength` and `MinimumLineLength`, which do not.
+      `configure.ps1` now says which is which: the grouping pair in red as work you will lose sight
+      of, the geometry pair as the milder "later saves land in a new group, auto-placed pins are
+      recalculated". A single undifferentiated warning would have been half false either way.
       Original wording:
       orphans saved cluster layouts (Trap 1) — that is the most likely way a user destroys their
       own work without touching the editor.
 - [x] 6.6 **Done.** Full-map and cluster keys are asserted neither equal nor compatible in
       either direction; two distinct clusters likewise, since distinct strings alone would not stop
       one cluster resolving to another's layout. The config-change property is pinned as what it is
-      — the key moves, the layout still resolves — with `ConfigChangeDoesNotHideSavedLayoutsTests`
-      measuring it end to end through `ManualLayoutManager`.
+      — orphaning for the two grouping settings, surviving for the two geometry ones — with
+      `RadialConfigChangeAndSavedLayoutsTests` measuring both end to end through
+      `ManualLayoutManager`, and the grouping half driven through `DetectDenseGroups`.
       Original wording:
       keys; changing a `RadialExtensionConfig` value changes the cluster key (pin the trap so it is
       a known, documented property rather than a surprise).
@@ -714,10 +723,14 @@ fully reproduce. Phase 3 needs verification from a real cmd.exe window specifica
   mixed coordinate spaces.
 
 - ~~Does editing a `RadialExtensionConfig` value orphan saved cluster layouts ("Trap 1")?~~
-  **Resolved 2026-08-23: no, and it never did.** Those values are in the cluster key, but
-  `AreKeysCompatible` has only ever compared the location hash and the zoom, so the old group stays
-  compatible with the new key and still resolves. Measured through `ManualLayoutManager` in
-  `ConfigChangeDoesNotHideSavedLayoutsTests`. What people saw was Trap 3 — `ListVariants` matched
-  exactly, so the dropdown emptied while the map went on showing the layout — which Phase 6.8
-  fixed. The claim had been repeated in the plan, the scoping doc and this section without anyone
-  running it.
+  **Resolved 2026-08-23: two of the four do.** `ProximityThresholdPixels` and
+  `MinLocationsForExtension` decide cluster membership, so changing either gives the cluster a
+  different location set and a different hash, and the saved layout stops resolving.
+  `ExtensionLineLength` and `MinimumLineLength` only affect line geometry and leave it reachable.
+  Measured in `RadialConfigChangeAndSavedLayoutsTests`.
+
+  Recorded because the first answer was wrong in a specific way: a test that changed
+  `ExtensionLineLength` against a fixed location list showed the layout surviving, and that was
+  generalised to all four — including the two whose entire effect is on the location list the test
+  was holding fixed. The lesson is not "measure rather than reason", which was already the rule
+  followed here, but that a measurement inherits the assumptions of its fixture.

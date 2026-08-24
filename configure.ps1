@@ -184,20 +184,23 @@ Write-Host '  layouts, locations and content are in different files and are unto
 Write-Host ''
 
 Write-Heading 'Before you edit the radial-extension settings'
-Write-Host '  MinLocationsForExtension, ProximityThresholdPixels, ExtensionLineLength and' -ForegroundColor DarkGray
-Write-Host '  MinimumLineLength are part of the identity of every saved cluster layout. Change one' -ForegroundColor DarkGray
-Write-Host '  and each zoomed-in cluster gets a new identity.' -ForegroundColor DarkGray
+Write-Host '  These four are part of the identity of every saved layout for a zoomed-in cluster.' -ForegroundColor DarkGray
+Write-Host '  They do not all cost the same to change.' -ForegroundColor DarkGray
 Write-Host ''
-Write-Host '  Your saved layouts are not lost, and they still load - the app matches them on the' -ForegroundColor DarkGray
-Write-Host '  cluster and zoom level, not on these settings. Two things do change:' -ForegroundColor DarkGray
+Write-Host '  ProximityThresholdPixels and MinLocationsForExtension decide which locations count' -ForegroundColor Red
+Write-Host '  as one cluster. Change either and the cluster becomes a different set of locations,' -ForegroundColor Red
+Write-Host '  which the app cannot match to what you saved. Your layouts for those clusters stop' -ForegroundColor Red
+Write-Host '  appearing - they are still in the file, under a name nothing asks for any more.' -ForegroundColor Red
+Write-Host '  Putting the old value back brings them straight back. Nothing is ever deleted.' -ForegroundColor Red
 Write-Host ''
+Write-Host '  ExtensionLineLength and MinimumLineLength only change how the lines are drawn. Your' -ForegroundColor DarkYellow
+Write-Host '  saved layouts still load. Two smaller things happen:' -ForegroundColor DarkYellow
 Write-Host '    - Anything you save afterwards is stored separately from what you saved before,' -ForegroundColor DarkYellow
-Write-Host '      so the same cluster ends up with one set of layouts per settings combination.' -ForegroundColor DarkYellow
-Write-Host '    - Pins you placed by hand keep their positions, but everything auto-placed around' -ForegroundColor DarkYellow
-Write-Host '      them is recalculated with the new numbers, so a view can end up half-arranged.' -ForegroundColor DarkYellow
+Write-Host '      so a cluster ends up with one set of layouts per settings combination.' -ForegroundColor DarkYellow
+Write-Host '    - Pins you placed by hand keep their positions, but anything auto-placed around' -ForegroundColor DarkYellow
+Write-Host '      them is recalculated, so a view can end up half-arranged.' -ForegroundColor DarkYellow
 Write-Host ''
-Write-Host '  Putting the old values back restores the previous behaviour; nothing is deleted at' -ForegroundColor DarkGray
-Write-Host '  any point. Whole-map layouts are unaffected either way.' -ForegroundColor DarkGray
+Write-Host '  Whole-map layouts are unaffected by any of the four.' -ForegroundColor DarkGray
 Write-Host ''
 
 Write-Heading 'Developer tools'

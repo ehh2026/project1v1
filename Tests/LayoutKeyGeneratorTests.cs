@@ -319,18 +319,12 @@ public class LayoutKeyGeneratorTests
     [InlineData("ProximityThresholdPixels")]
     [InlineData("ExtensionLineLength")]
     [InlineData("MinimumLineLength")]
-    public void ChangingARadialExtensionSetting_RekeysClusterLayoutsWithoutOrphaningThem(string setting)
+    public void ChangingAnyRadialExtensionSetting_ChangesEveryClusterKey(string setting)
     {
-        // Each of the four is part of every cluster key, so changing one in visual-config.json
-        // gives every cluster a different key. The plan and the scoping doc both said that orphaned
-        // the saved layouts. It does not, and never did: AreKeysCompatible only ever compared the
-        // location hash and the zoom, so the old group is still compatible with the new key and
-        // still resolves. Measured through ManualLayoutManager, not inferred -- see
-        // ConfigChangeDoesNotHideSavedLayoutsTests.
-        //
-        // What is left is real but milder, and is what configure.ps1 now says: the key moves, so
-        // every save afterwards lands in a new group, and the pins are placed by settings the
-        // layout was not drawn against.
+        // All four are in the key. That much is uniform; what it costs is not, and this test says
+        // nothing about that -- holding the location list fixed is exactly what hides the
+        // difference. See RadialConfigChangeAndSavedLayoutsTests, which drives the two grouping
+        // settings through DetectDenseGroups and finds the saved layout genuinely orphaned.
         var locations = ClusterLocations();
         var viewport = MakeZoomedViewport();
 
@@ -344,15 +338,9 @@ public class LayoutKeyGeneratorTests
             case "MinimumLineLength": after.MinimumLineLength += 1; break;
         }
 
-        var keyBefore = LayoutKeyGenerator.GenerateKey(locations, viewport, before);
-        var keyAfter = LayoutKeyGenerator.GenerateKey(locations, viewport, after);
-
-        Assert.NotEqual(keyBefore, keyAfter);
-        Assert.True(
-            LayoutKeyGenerator.AreKeysCompatible(keyBefore, keyAfter),
-            $"Changing {setting} made the keys incompatible. Saved cluster layouts would now be " +
-            "unreachable, which is the failure the docs used to describe and the warning in " +
-            "configure.ps1 is written on the assumption does not happen.");
+        Assert.NotEqual(
+            LayoutKeyGenerator.GenerateKey(locations, viewport, before),
+            LayoutKeyGenerator.GenerateKey(locations, viewport, after));
     }
 
     [Fact]
