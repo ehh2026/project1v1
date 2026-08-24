@@ -165,7 +165,7 @@ namespace InteractiveWorldMap
             if (!cluster.IsSingleLocation)
                 return false;
 
-            // A hand-made layout for this zoomed view is the more specific deliberate choice.
+            // A manual layout for this zoomed view is the more specific deliberate choice.
             if (HasManualLayoutForZoomedView(cluster))
                 return false;
 

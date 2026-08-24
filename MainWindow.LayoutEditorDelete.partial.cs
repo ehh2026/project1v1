@@ -68,7 +68,7 @@ namespace InteractiveWorldMap
             }
         }
         /// <summary>
-        /// Handles the bulk delete button click - destroys every hand-made layout saved for this
+        /// Handles the bulk delete button click - destroys every manual layout saved for this
         /// view, then recalculates. The single-variant counterpart is
         /// <see cref="OnDeleteVariantButtonClick"/>; the non-destructive one is
         /// <see cref="OnUnloadLayoutButtonClick"/>.
@@ -82,7 +82,7 @@ namespace InteractiveWorldMap
                 return;
             }
 
-            // This button was labelled "Delete and Recalculate" and destroyed every hand-made
+            // This button was labelled "Delete and Recalculate" and destroyed every manual
             // layout for the view with no confirmation at all — the whole point of the phase.
             // The controller decides what counts as deletable, so the set named here and the set
             // TryDelete removes cannot drift apart.
@@ -90,9 +90,9 @@ namespace InteractiveWorldMap
 
             if (doomed.Count == 0)
             {
-                _logger.LogInfo("Bulk delete requested but no hand-made layouts exist for this view");
+                _logger.LogInfo("Bulk delete requested but no manual layouts exist for this view");
                 MessageBox.Show(
-                    "There are no hand-made layouts saved for this view.\n\n" +
+                    "There are no manual layouts saved for this view.\n\n" +
                     "To go back to automatic placement without deleting anything, " +
                     "use \"Unload and Recalculate\".",
                     "Nothing to Delete",
@@ -105,23 +105,23 @@ namespace InteractiveWorldMap
                 "\n",
                 doomed.Select(v => "    " + FormatVariantNameForPrompt(v.DisplayName ?? v.VariantId)));
 
-            // Say "hand-made", not "all". Generated seeds are saved layouts too and TryDelete
+            // Say "manual", not "all". Generated seeds are saved layouts too and TryDelete
             // leaves them alone, so a prompt promising to destroy everything would describe
             // something the button does not do -- the same mismatch this phase exists to remove,
             // just pointed the other way.
             var kept = _layoutEditor.GetVariants().Count - doomed.Count;
             var keptNote = kept > 0
-                ? $"The {kept} generated layout(s) for this view are not hand-made and are kept.\n\n"
+                ? $"The {kept} generated layout(s) for this view are not manual layouts and are kept.\n\n"
                 : "";
 
             var confirmed = MessageBox.Show(
-                $"Delete all {doomed.Count} hand-made layout(s) saved for this view?\n\n" +
+                $"Delete all {doomed.Count} manual layout(s) saved for this view?\n\n" +
                 names + "\n\n" +
                 "Every one of them is destroyed, not just the one on screen. This cannot be undone.\n\n" +
                 keptNote +
                 "To go back to automatic placement while keeping these, cancel and use " +
                 "\"Unload and Recalculate\" instead.",
-                $"Delete {doomed.Count} Hand-Made Layouts",
+                $"Delete {doomed.Count} Manual Layouts",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning,
                 MessageBoxResult.No);

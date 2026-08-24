@@ -107,7 +107,7 @@ Write-ConfigEntry `
 
 Write-ConfigEntry `
     (Join-Path $contentDir 'manual-layouts.json') `
-    'Saved manual layouts - hand-placed pin positions' `
+    'Saved manual layouts - the pin positions saved from Edit Layout' `
     'Careful: the app writes the output copy, not this one. A build can overwrite in-app work (see below).'
 
 Write-ConfigEntry `
@@ -197,7 +197,7 @@ Write-Host '  ExtensionLineLength and MinimumLineLength only change how the line
 Write-Host '  saved layouts still load. Two smaller things happen:' -ForegroundColor DarkYellow
 Write-Host '    - Anything you save afterwards is stored separately from what you saved before,' -ForegroundColor DarkYellow
 Write-Host '      so a cluster ends up with one set of layouts per settings combination.' -ForegroundColor DarkYellow
-Write-Host '    - Pins you placed by hand keep their positions, but anything auto-placed around' -ForegroundColor DarkYellow
+Write-Host '    - Manual-layout pins keep their positions, but anything auto-placed around' -ForegroundColor DarkYellow
 Write-Host '      them is recalculated, so a view can end up half-arranged.' -ForegroundColor DarkYellow
 Write-Host ''
 Write-Host '  Whole-map layouts are unaffected by any of the four.' -ForegroundColor DarkGray

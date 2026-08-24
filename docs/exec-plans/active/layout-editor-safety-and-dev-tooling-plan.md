@@ -37,7 +37,7 @@ lands**; it carries a "Last updated" date that must move with it.
 | 2026-08-19 | **Phase 1b landed** (`81e6ced`): collapsed both save routes into one guarded `TryCollectCurrentExtensions`; removed the duplicate inline collection and the now-redundant second scope check. Added `IsCollapsedLayout` backstop. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 893 passed / 2 known skips. |
 | 2026-08-19 | **Phase 1c landed** (`83f716d`): cluster layouts no longer replay as stubs. Root cause was the replay path, not saving. | `.\scripts\verify.ps1` **PASSED**. 894 passed / 2 known skips. Regression test measures the 0.46px collapse without the fix. |
 | 2026-08-19 | **Manual smoke S5 PASSED** against `83f716d` — the originally reported failure no longer reproduces. | User confirmation in the running app |
-| 2026-08-19 | **Phase 0.6 landed** (`58abd6f`): layout precedence by origin rather than scope, so a hand-made zoomed layout is displayed instead of being saved and ignored. | `.\scripts\verify.ps1` **PASSED**. 899 passed / 2 known skips. |
+| 2026-08-19 | **Phase 0.6 landed** (`58abd6f`): layout precedence by origin rather than scope, so a manual zoomed layout is displayed instead of being saved and ignored. | `.\scripts\verify.ps1` **PASSED**. 899 passed / 2 known skips. |
 | 2026-08-19 | **Qodo review addressed** (`3db2514`): three real defects — `HasManualLayout` masked by a selected seed; the `OnSizeChanged` guard leaving stale endpoints that a later save would mis-project; the collapse backstop refusing a deliberate all-anchor drag. Plus layering/size cleanups and the `LayoutEditorControllerTests` split. | `.\scripts\verify.ps1` **PASSED**, all 11 steps. 901 passed / 2 known skips. Masking fix verified failing against the old implementation. |
 
 **Durable fix for the whole 0.x class — tracked in [docs/TO_DO.md](../../TO_DO.md) under High
@@ -153,7 +153,7 @@ never re-derives it on entry.
       **Rule, decided with the user:** a layout the user deliberately made wins, most specific
       first — Manual zoomed layout → Manual full-map layout → auto seeds. Scope alone was the wrong
       test: every cluster has a seed, and the original branch existed precisely so a seed could not
-      override hand-made full-map work. Origin preserves that protection while honoring intent.
+      override manual full-map work. Origin preserves that protection while honoring intent.
 
       **"Full-map layout containing the location" means it holds a saved marker record for that
       location — not that the location falls inside the map area.** `FullMapLayoutContainsLocation`
@@ -535,7 +535,7 @@ key components are `RadialExtensionConfig` values (`MinLocationsForExtension`,
   minimum past a cluster's size removes the cluster entirely. **This is the trap.**
 - **`ExtensionLineLength` / `MinimumLineLength` only affect line geometry.** The key moves but the
   hash and zoom do not, so the layout still resolves. Remaining effects: later saves land in a new
-  group, and auto-placed pins around the hand-placed ones are recalculated.
+  group, and auto-placed pins around the manual-layout ones are recalculated.
 
 Full-map layouts are unaffected by all four.
 
@@ -667,7 +667,7 @@ keeps every variant listed.
       still resolve — `AreKeysCompatible` only ever read the hash and the zoom — and
       `MergeSizedClusterGroups` collapses groups still keyed that way when the file is next read or
       written, so the duplication actually goes away rather than being tolerated. Colliding
-      hand-made variants are kept under a suffixed id rather than dropped: an awkward name is
+      manual variants are kept under a suffixed id rather than dropped: an awkward name is
       recoverable, a missing layout is not. Seeds are the exception, being reproducible.
       Migration runs on save as well as load, because several callers re-cache the collection after
       writing and would otherwise hold un-merged groups until a restart.
