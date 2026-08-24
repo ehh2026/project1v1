@@ -19,9 +19,15 @@ namespace InteractiveWorldMap.Tests;
 /// The key moves, but the location hash and the zoom do not, and those are the only things
 /// <c>AreKeysCompatible</c> compares — so the layout still resolves.</item>
 /// <item><c>ProximityThresholdPixels</c> and <c>MinLocationsForExtension</c> decide which locations
-/// form a cluster at all. Change one and the cluster is a different set of locations, which hashes
-/// differently, which is exactly what compatibility does compare. The layout is orphaned.</item>
+/// form a cluster at all. Change one <i>far enough to move a location in or out</i> and the cluster
+/// is a different set, which hashes differently, which is exactly what compatibility does compare —
+/// the layout is orphaned. Change one without crossing that line and the membership, the hash and
+/// therefore the layout are all untouched.</item>
 /// </list>
+///
+/// So the grouping pair is conditional, not automatic: the cost is not in editing the number, it is
+/// in the number landing on the other side of a gap between locations. That is invisible from the
+/// config file, which is why the warning treats the whole pair as dangerous.
 ///
 /// Both halves are measured end to end through <see cref="ManualLayoutManager"/>, and the second is
 /// driven through <see cref="RadialExtensionCalculator.DetectDenseGroups"/> rather than a
@@ -149,6 +155,39 @@ public class RadialConfigChangeAndSavedLayoutsTests
 
         // And it comes back when the setting goes back.
         Assert.Equal("Mine", manager.LoadLayout(tightKey)?.DisplayName);
+    }
+
+    [Fact]
+    public void ChangingTheProximityThreshold_WithoutMovingAnyone_LeavesTheLayoutLoadable()
+    {
+        // The counterpart to the test above, and the reason the grouping pair is described as
+        // conditional rather than automatic. 20 and 25 both sit in the gap between Beta (110) and
+        // Gamma (145), so the cluster is the same two locations either side of the change. The key
+        // string moves -- p is in it -- but the hash does not, and the hash is what compatibility
+        // reads. Without this, the docs would be telling people a threshold edit always costs them
+        // their layouts, which would push them away from a setting that is usually free to tune.
+        var before = new RadialExtensionConfig { ProximityThresholdPixels = 20, MinLocationsForExtension = 2 };
+        var after = new RadialExtensionConfig { ProximityThresholdPixels = 25, MinLocationsForExtension = 2 };
+
+        var beforeMembers = new RadialExtensionCalculator(before).DetectDenseGroups(SpreadOutLocations())[0].Locations;
+        var afterMembers = new RadialExtensionCalculator(after).DetectDenseGroups(SpreadOutLocations())[0].Locations;
+
+        // Guard the premise: if a future default moves these apart the test must fail loudly rather
+        // than quietly stop testing what it claims to.
+        Assert.Equal(beforeMembers.Count, afterMembers.Count);
+
+        var oldKey = KeyForFirstCluster(before);
+        var newKey = KeyForFirstCluster(after);
+
+        Assert.NotEqual(oldKey, newKey);
+        Assert.True(LayoutKeyGenerator.AreKeysCompatible(oldKey, newKey));
+
+        var (_, manager, _, _) = Make();
+        manager.SaveVariant(oldKey, "manual-default", "Mine", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        Assert.Equal("Mine", manager.LoadLayout(newKey)?.DisplayName);
+        Assert.Single(manager.ListVariants(newKey));
     }
 
     [Fact]

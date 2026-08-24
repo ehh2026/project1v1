@@ -66,11 +66,18 @@ Change any of them in `visual-config.json` and **every cluster key changes**. Wh
 depends on which one, and the difference is the whole of this trap:
 
 **`ProximityThresholdPixels` and `MinLocationsForExtension` decide which locations form a cluster.**
-Change either and the cluster is a *different set of locations*, which hashes differently — and the
-location hash is one of the two things `AreKeysCompatible` compares. Saved layouts for those
-clusters stop resolving: still in the file, under a key nothing asks for. Raising
-`MinLocationsForExtension` past a cluster's size removes the cluster altogether, so there is no key
-to look one up by. **This is the trap, and it is worth being careful with.**
+Change either *far enough to move a location into or out of a cluster* and that cluster is a
+*different set of locations*, which hashes differently — and the location hash is one of the two
+things `AreKeysCompatible` compares. Saved layouts for those clusters stop resolving: still in the
+file, under a key nothing asks for. Raising `MinLocationsForExtension` past a cluster's size removes
+the cluster altogether, so there is no key to look one up by.
+
+A change that leaves membership alone — nudging the threshold within a gap no location sits in —
+costs nothing at all: the key string moves, but the hash and the zoom do not, so the layout resolves
+exactly as before. **This is the trap, and it is worth being careful with**, precisely because which
+of the two happened is not something you can read off the config file. Whether `20 → 25` is free or
+expensive depends on how far apart the locations are, which lives in `locations.json`. Treat any
+edit to these two as the expensive case unless you have checked.
 
 **`ExtensionLineLength` and `MinimumLineLength` only change how a line is drawn.** The key moves,
 but the locations and the zoom do not, so the old group stays compatible and the layout still
@@ -133,7 +140,7 @@ newly generated seeds are named after their cluster (`Seed: New York, Newark, +2
 
 The view being edited is named once, above the picker, rather than repeated on every row.
 
-`Delete ALL Saved Layouts` removes only manual variants. Seeds survive it, which is why its
+`Delete ALL Manual Layouts` removes only manual variants. Seeds survive it, which is why its
 confirmation counts manual layouts rather than all of them.
 
 ---

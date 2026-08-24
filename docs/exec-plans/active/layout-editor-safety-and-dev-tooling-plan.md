@@ -404,7 +404,7 @@ the behavior originally wanted from the red button.
       unconfirmed, and sitting behind the mildest-sounding name in the panel.
 - [x] 2.2 Both delete paths confirm. Single names the variant; bulk lists every variant and states
       the count. Both default to `MessageBoxResult.No`, so a reflexive Enter cancels.
-- [x] 2.3 Relabelled: red → **"Delete ALL Saved Layouts"** (stronger than the planned wording,
+- [x] 2.3 Relabelled: red → **"Delete ALL Manual Layouts"** (stronger than the planned wording,
       since it is the bulk action), variant → **"Delete This Layout"**, unload →
       **"Unload and Recalculate"** at 14pt Bold, the panel's most prominent action.
 - [x] 2.4 Bulk delete is the red button, separately confirmed, and its prompt states the count and
@@ -529,10 +529,13 @@ key components are `RadialExtensionConfig` values (`MinLocationsForExtension`,
 `ProximityThresholdPixels`, `ExtensionLineLength`, `MinimumLineLength`). Changing any of them in
 `visual-config.json` changes every cluster key. What that costs splits two ways:
 
-- **`ProximityThresholdPixels` / `MinLocationsForExtension` decide cluster membership.** The cluster
-  becomes a different set of locations, which hashes differently — and the hash is one of the two
-  things `AreKeysCompatible` compares. Saved layouts for those clusters stop resolving. Raising the
-  minimum past a cluster's size removes the cluster entirely. **This is the trap.**
+- **`ProximityThresholdPixels` / `MinLocationsForExtension` decide cluster membership.** Change
+  either far enough to move a location in or out and the cluster becomes a different set, which
+  hashes differently — and the hash is one of the two things `AreKeysCompatible` compares. Saved
+  layouts for those clusters stop resolving. Raising the minimum past a cluster's size removes the
+  cluster entirely. A change that leaves membership alone costs nothing: the key moves, the hash
+  does not. **This is the trap** — conditional, but the condition depends on the gaps between
+  locations and is not visible from the config file, so it is documented as the expensive case.
 - **`ExtensionLineLength` / `MinimumLineLength` only affect line geometry.** The key moves but the
   hash and zoom do not, so the layout still resolves. Remaining effects: later saves land in a new
   group, and auto-placed pins around the manual-layout ones are recalculated.
@@ -586,7 +589,7 @@ the scope being edited, so two different clusters are visually identical. The dr
 the current key's variants, so changing view silently swaps the entire list with no explanation.
 
 The panel carries five actions — Save, Save As Variant, `Delete This Layout` (`:246`),
-`Delete ALL Saved Layouts` (`:298`), `Unload and Recalculate` (`:336`). Phase 2 relabelled these and
+`Delete ALL Manual Layouts` (`:298`), `Unload and Recalculate` (`:336`). Phase 2 relabelled these and
 put a confirmation on both delete paths, so the remaining 6.3 work is arrangement and grouping
 rather than disambiguation.
 
@@ -621,6 +624,9 @@ rather than disambiguation.
       `configure.ps1` now says which is which: the grouping pair in red as work you will lose sight
       of, the geometry pair as the milder "later saves land in a new group, auto-placed pins are
       recalculated". A single undifferentiated warning would have been half false either way.
+      Refined after review: the grouping pair only orphans a layout when the edit actually changes
+      cluster membership, so all four sites say so — while still warning as if it will, since
+      whether a given edit crosses that line depends on `locations.json`, not on the config.
       Original wording:
       orphans saved cluster layouts (Trap 1) — that is the most likely way a user destroys their
       own work without touching the editor.
@@ -723,11 +729,12 @@ fully reproduce. Phase 3 needs verification from a real cmd.exe window specifica
   mixed coordinate spaces.
 
 - ~~Does editing a `RadialExtensionConfig` value orphan saved cluster layouts ("Trap 1")?~~
-  **Resolved 2026-08-23: two of the four do.** `ProximityThresholdPixels` and
-  `MinLocationsForExtension` decide cluster membership, so changing either gives the cluster a
-  different location set and a different hash, and the saved layout stops resolving.
+  **Resolved 2026-08-23: two of the four can.** `ProximityThresholdPixels` and
+  `MinLocationsForExtension` decide cluster membership, so changing either *enough to move a
+  location in or out* gives the cluster a different location set and a different hash, and the saved
+  layout stops resolving; a change that leaves membership as it was leaves the layout loadable.
   `ExtensionLineLength` and `MinimumLineLength` only affect line geometry and leave it reachable.
-  Measured in `RadialConfigChangeAndSavedLayoutsTests`.
+  Measured in `RadialConfigChangeAndSavedLayoutsTests`, both directions of the grouping pair.
 
   Recorded because the first answer was wrong in a specific way: a test that changed
   `ExtensionLineLength` against a fixed location list showed the layout surviving, and that was

@@ -127,7 +127,7 @@ public class LayoutDeleteActionsTests
         // destructive action in the panel.
         Assert.DoesNotContain("Content=\"Delete and Recalculate\"", xaml);
 
-        Assert.Contains("Content=\"Delete ALL Saved Layouts\"", xaml);
+        Assert.Contains("Content=\"Delete ALL Manual Layouts\"", xaml);
         Assert.Contains("Content=\"Delete This Layout\"", xaml);
         Assert.Contains("Content=\"Unload and Recalculate\"", xaml);
     }

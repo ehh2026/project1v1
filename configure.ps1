@@ -188,10 +188,15 @@ Write-Host '  These four are part of the identity of every saved layout for a zo
 Write-Host '  They do not all cost the same to change.' -ForegroundColor DarkGray
 Write-Host ''
 Write-Host '  ProximityThresholdPixels and MinLocationsForExtension decide which locations count' -ForegroundColor Red
-Write-Host '  as one cluster. Change either and the cluster becomes a different set of locations,' -ForegroundColor Red
-Write-Host '  which the app cannot match to what you saved. Your layouts for those clusters stop' -ForegroundColor Red
-Write-Host '  appearing - they are still in the file, under a name nothing asks for any more.' -ForegroundColor Red
-Write-Host '  Putting the old value back brings them straight back. Nothing is ever deleted.' -ForegroundColor Red
+Write-Host '  as one cluster. Move either far enough to pull a location into a cluster or push one' -ForegroundColor Red
+Write-Host '  out, and that cluster becomes a different set of locations, which the app cannot match' -ForegroundColor Red
+Write-Host '  to what you saved. Your layouts for those clusters stop appearing - they are still in' -ForegroundColor Red
+Write-Host '  the file, under a name nothing asks for any more.' -ForegroundColor Red
+Write-Host ''
+Write-Host '  A smaller change that does not regroup anybody costs you nothing. But which one you' -ForegroundColor Red
+Write-Host '  just made depends on how far apart your locations are, and you cannot tell from this' -ForegroundColor Red
+Write-Host '  file - so assume the expensive one. Putting the old value back brings your layouts' -ForegroundColor Red
+Write-Host '  straight back either way. Nothing is ever deleted.' -ForegroundColor Red
 Write-Host ''
 Write-Host '  ExtensionLineLength and MinimumLineLength only change how the lines are drawn. Your' -ForegroundColor DarkYellow
 Write-Host '  saved layouts still load. Two smaller things happen:' -ForegroundColor DarkYellow

@@ -118,7 +118,7 @@ happens without a prompt naming exactly what is about to go.
 |--------|--------------|
 | **Unload and Recalculate** | Reverts this view to automatic placement. Destroys nothing — your saved layouts stay on disk. It holds for the rest of the run, including if you re-open the editor; saving puts a layout back, and so does restarting. This is the one most people want, so it is now the prominent one. |
 | **Delete This Layout** | Deletes only the version you are looking at, after asking and naming it. The others are kept. |
-| **Delete ALL Saved Layouts** | Deletes every manual layout for this view, after a confirmation that lists them and states the count. Generated seeds are not touched. |
+| **Delete ALL Manual Layouts** | Deletes every manual layout for this view, after a confirmation that lists them and states the count. Generated seeds are not touched. |
 
 Both prompts default to "No", so pressing Enter out of habit cancels rather than deletes. If there
 is nothing to delete, the red button says so and points you at "Unload and Recalculate" instead of
@@ -263,7 +263,7 @@ intermittent. Please run them after each round of fixes and record the result he
 | S9 | Zoomed-vs-unzoomed precedence | Arrange a lone pin on the whole map and save; click it to zoom in; Edit Layout, change angle, save; zoom out and back in | The zoomed version you saved is shown, without needing to click Edit Layout |
 | ~~S10~~ | ~~Deliberate all-anchor arrangement~~ | Dropped 2026-08-20 — not a real use case. See "Simplification available" below |
 | S11 | Delete one layout | Save two named layouts for a view, open the picker on one, press **Delete This Layout**, confirm | The prompt names that layout. Only it goes; the other is still in the dropdown |
-| S12 | Delete all, and cancelling | Press **Delete ALL Saved Layouts**, read the count, press **No**. Then repeat and press **Yes** | Cancelling changes nothing. Confirming removes every manual layout for the view; pins revert to automatic placement |
+| S12 | Delete all, and cancelling | Press **Delete ALL Manual Layouts**, read the count, press **No**. Then repeat and press **Yes** | Cancelling changes nothing. Confirming removes every manual layout for the view; pins revert to automatic placement |
 | S13 | Unload is non-destructive | Press **Unload and Recalculate**, then leave and re-enter the view | Pins revert to automatic placement immediately, and the saved layout is still there afterwards |
 
 If a save is refused you will see a red `✗ SAVE ABORTED — …` message. That is the guard working:
