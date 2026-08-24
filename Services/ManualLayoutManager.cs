@@ -75,11 +75,14 @@ namespace InteractiveWorldMap.Services
                     return legacyLayout;
                 }
 
-                var compatibleGroup = FindCompatibleGroup(key, collection);
+                var compatibleGroup = FindCompatibleGroupEntry(key, collection);
                 if (compatibleGroup != null)
                 {
-                    var selectedId = GetSelectedVariantIdFromCollection(collection, compatibleGroup.GroupKey);
-                    var compatibleLayout = SelectPreferredVariant(compatibleGroup, selectedId);
+                    // Keyed by the dictionary entry, not the group's own field: SelectedVariants is
+                    // filed under the dictionary key, so reading the field would miss the selection
+                    // wherever the two disagree.
+                    var selectedId = GetSelectedVariantIdFromCollection(collection, compatibleGroup.Value.Key);
+                    var compatibleLayout = SelectPreferredVariant(compatibleGroup.Value.Value, selectedId);
                     if (compatibleLayout != null)
                     {
                         _logger.LogInfo($"[ManualLayoutManager] Loaded compatible layout for key {key}: {compatibleLayout.GroupKey} variant={compatibleLayout.VariantId} origin={compatibleLayout.Origin} ({compatibleLayout.Markers.Count} markers)");
@@ -210,7 +213,7 @@ namespace InteractiveWorldMap.Services
                 var collection = LoadLayoutCollection();
                 return collection.LayoutGroups.ContainsKey(key) ||
                        collection.Layouts.ContainsKey(key) ||
-                       FindCompatibleGroup(key, collection) != null ||
+                       FindCompatibleGroupEntry(key, collection) != null ||
                        FindCompatibleLayout(key, collection) != null;
             }
             catch
@@ -651,10 +654,16 @@ namespace InteractiveWorldMap.Services
 
             foreach (var entry in collection.LayoutGroups.ToList())
             {
-                entry.Value.GroupKey = string.IsNullOrWhiteSpace(entry.Value.GroupKey) ? entry.Key : entry.Value.GroupKey;
+                // Overwrite rather than fill-if-blank. The dictionary key is what every lookup is
+                // done by, so where the two disagree the field is the wrong one by definition. The
+                // app never writes them apart, but manual-layouts.json is documented as
+                // hand-editable and rekeying a group by hand means changing the same string twice.
+                // A stale field used to survive load and be believed by the resolver, which handed
+                // it back as a group key that callers then failed to find in the dictionary.
+                entry.Value.GroupKey = entry.Key;
                 entry.Value.Variants ??= new List<ManualLayout>();
                 foreach (var variant in entry.Value.Variants)
-                    NormalizeVariant(entry.Value.GroupKey, variant);
+                    NormalizeVariant(entry.Key, variant, forceGroupKey: true);
             }
 
             if (collection.LayoutGroups.Count == 0 && collection.Layouts.Count > 0)
@@ -662,7 +671,7 @@ namespace InteractiveWorldMap.Services
                 foreach (var entry in collection.Layouts)
                 {
                     var variant = entry.Value;
-                    NormalizeVariant(entry.Key, variant);
+                    NormalizeVariant(entry.Key, variant, forceGroupKey: true);
                     variant.Origin = variant.Origin == 0 ? ManualLayoutOrigin.Manual : variant.Origin;
                     collection.LayoutGroups[entry.Key] = new ManualLayoutGroup
                     {
@@ -678,10 +687,15 @@ namespace InteractiveWorldMap.Services
             return collection;
         }
 
-        private static void NormalizeVariant(string groupKey, ManualLayout variant)
+        /// <param name="forceGroupKey">
+        /// True when <paramref name="groupKey"/> came from the dictionary key the variant is filed
+        /// under, which outranks whatever the variant claims. False only where the caller is
+        /// supplying a default for a variant not yet filed anywhere.
+        /// </param>
+        private static void NormalizeVariant(string groupKey, ManualLayout variant, bool forceGroupKey = false)
         {
-            variant.Key = string.IsNullOrWhiteSpace(variant.Key) ? groupKey : variant.Key;
-            variant.GroupKey = string.IsNullOrWhiteSpace(variant.GroupKey) ? groupKey : variant.GroupKey;
+            variant.Key = forceGroupKey || string.IsNullOrWhiteSpace(variant.Key) ? groupKey : variant.Key;
+            variant.GroupKey = forceGroupKey || string.IsNullOrWhiteSpace(variant.GroupKey) ? groupKey : variant.GroupKey;
             variant.VariantId = string.IsNullOrWhiteSpace(variant.VariantId)
                 ? (variant.Origin == ManualLayoutOrigin.AutoSeed ? "seed-default" : "manual-default")
                 : variant.VariantId;
