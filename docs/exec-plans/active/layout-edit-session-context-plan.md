@@ -163,10 +163,22 @@ construction.
       "did the user move all of them" test are deleted rather than refined. Worth noting the
       bypass was itself added in response to a review finding, for a case that turned out not to
       exist — a test now pins its absence so it is not reintroduced by the same reasoning.
-- [ ] D.2 Re-examine `HasManualVariant`'s loader-alignment compromise (PR #13 Qodo findings 2 vs 4,
-      which contradicted each other). A session that records its own scope may make the question
-      unambiguous.
-- [ ] D.3 Update `docs/reference/layout-editor-known-issues.md` if any user-visible message changes.
+- [x] D.2 **Done 2026-08-23. The compromise was right; what dated it was fixed elsewhere.** The two
+      Qodo findings only looked contradictory: one wanted the probe to see past the selected variant
+      (a selected AutoSeed must not hide a Manual one beside it), the other wanted it not to see past
+      the group the loader will choose (claiming "manual exists" from a group that will not be
+      displayed suppresses the full-map fallback and shows neither). Both hold at once — check the
+      whole group, but only *that* group — and that is what the code already did.
+      What the compromise recorded as its residual gap was size fragmentation, explicitly deferred to
+      6.8/6.9. Both shipped, so the gap is closed at its source rather than here. The remaining work
+      was a duplicate: the probe carried its own inline copy of the exact-then-compatible rule, which
+      is now `ResolveGroupKey`. Routed through it, since two definitions of "which group does the
+      loader mean" can drift and the failure mode is silent — the wrong layout on screen, no error.
+      `HasManualLayout_AgreesWithTheLoaderOnTheCompatibleGroup` pins the direction the existing tests
+      did not cover.
+- [x] D.3 **Done 2026-08-23. Nothing to update:** D.2 changed no user-visible message. The messages
+      that did change this cycle (the bulk-delete label and prompts) were updated in their own
+      commits, and `layout-editor-known-issues.md` already reflects them.
 
 ---
 

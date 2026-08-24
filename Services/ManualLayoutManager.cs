@@ -75,11 +75,14 @@ namespace InteractiveWorldMap.Services
                     return legacyLayout;
                 }
 
-                var compatibleGroup = FindCompatibleGroup(key, collection);
+                var compatibleGroup = FindCompatibleGroupEntry(key, collection);
                 if (compatibleGroup != null)
                 {
-                    var selectedId = GetSelectedVariantIdFromCollection(collection, compatibleGroup.GroupKey);
-                    var compatibleLayout = SelectPreferredVariant(compatibleGroup, selectedId);
+                    // Keyed by the dictionary entry, not the group's own field: SelectedVariants is
+                    // filed under the dictionary key, so reading the field would miss the selection
+                    // wherever the two disagree.
+                    var selectedId = GetSelectedVariantIdFromCollection(collection, compatibleGroup.Value.Key);
+                    var compatibleLayout = SelectPreferredVariant(compatibleGroup.Value.Value, selectedId);
                     if (compatibleLayout != null)
                     {
                         _logger.LogInfo($"[ManualLayoutManager] Loaded compatible layout for key {key}: {compatibleLayout.GroupKey} variant={compatibleLayout.VariantId} origin={compatibleLayout.Origin} ({compatibleLayout.Markers.Count} markers)");
@@ -168,8 +171,8 @@ namespace InteractiveWorldMap.Services
             {
                 var collection = LoadLayoutCollection();
 
-                // Resolve the same group LoadLayout would use — exact first, then compatible — and
-                // ask whether *that* group holds a Manual variant.
+                // Resolve the same group the loader would use, then ask whether *that* group holds
+                // a Manual variant.
                 //
                 // Both halves matter, and they answer opposite review findings. Checking the whole
                 // group rather than just the selected variant means a selected AutoSeed cannot hide
@@ -179,15 +182,18 @@ namespace InteractiveWorldMap.Services
                 // "manual exists" from some other compatible group would suppress the full-map
                 // fallback while showing neither.
                 //
-                // The residual gap is size fragmentation — a Manual layout under a different window
-                // size is unreachable here because it is unreachable to the loader too. That is
-                // issue 6.8/6.9, and the fix belongs in key/lookup consistency, not in making this
-                // probe see further than the loader.
-                var group = collection.LayoutGroups.TryGetValue(key, out var exact)
-                    ? exact
-                    : FindCompatibleGroup(key, collection);
+                // The compromise recorded a residual gap here — a Manual layout saved at a
+                // different window size was invisible to this probe because it was invisible to the
+                // loader too — and named 6.8/6.9 as where it belonged. Both shipped: the size is out
+                // of cluster keys and every group-scoped path resolves through ResolveGroupKey. So
+                // the gap is closed at its source, and the way this stays correct is by asking the
+                // same resolver as everything else rather than keeping a second copy of the rule
+                // that could drift from the loader it is defined against.
+                var groupKey = ResolveGroupKey(key, collection);
+                if (groupKey == null) return false;
 
-                return group != null && GroupHasManual(group);
+                return collection.LayoutGroups.TryGetValue(groupKey, out var group)
+                       && GroupHasManual(group);
             }
             catch (Exception ex)
             {
@@ -207,7 +213,7 @@ namespace InteractiveWorldMap.Services
                 var collection = LoadLayoutCollection();
                 return collection.LayoutGroups.ContainsKey(key) ||
                        collection.Layouts.ContainsKey(key) ||
-                       FindCompatibleGroup(key, collection) != null ||
+                       FindCompatibleGroupEntry(key, collection) != null ||
                        FindCompatibleLayout(key, collection) != null;
             }
             catch
@@ -648,10 +654,16 @@ namespace InteractiveWorldMap.Services
 
             foreach (var entry in collection.LayoutGroups.ToList())
             {
-                entry.Value.GroupKey = string.IsNullOrWhiteSpace(entry.Value.GroupKey) ? entry.Key : entry.Value.GroupKey;
+                // Overwrite rather than fill-if-blank. The dictionary key is what every lookup is
+                // done by, so where the two disagree the field is the wrong one by definition. The
+                // app never writes them apart, but manual-layouts.json is documented as
+                // hand-editable and rekeying a group by hand means changing the same string twice.
+                // A stale field used to survive load and be believed by the resolver, which handed
+                // it back as a group key that callers then failed to find in the dictionary.
+                entry.Value.GroupKey = entry.Key;
                 entry.Value.Variants ??= new List<ManualLayout>();
                 foreach (var variant in entry.Value.Variants)
-                    NormalizeVariant(entry.Value.GroupKey, variant);
+                    NormalizeVariant(entry.Key, variant, forceGroupKey: true);
             }
 
             if (collection.LayoutGroups.Count == 0 && collection.Layouts.Count > 0)
@@ -659,7 +671,7 @@ namespace InteractiveWorldMap.Services
                 foreach (var entry in collection.Layouts)
                 {
                     var variant = entry.Value;
-                    NormalizeVariant(entry.Key, variant);
+                    NormalizeVariant(entry.Key, variant, forceGroupKey: true);
                     variant.Origin = variant.Origin == 0 ? ManualLayoutOrigin.Manual : variant.Origin;
                     collection.LayoutGroups[entry.Key] = new ManualLayoutGroup
                     {
@@ -675,10 +687,15 @@ namespace InteractiveWorldMap.Services
             return collection;
         }
 
-        private static void NormalizeVariant(string groupKey, ManualLayout variant)
+        /// <param name="forceGroupKey">
+        /// True when <paramref name="groupKey"/> came from the dictionary key the variant is filed
+        /// under, which outranks whatever the variant claims. False only where the caller is
+        /// supplying a default for a variant not yet filed anywhere.
+        /// </param>
+        private static void NormalizeVariant(string groupKey, ManualLayout variant, bool forceGroupKey = false)
         {
-            variant.Key = string.IsNullOrWhiteSpace(variant.Key) ? groupKey : variant.Key;
-            variant.GroupKey = string.IsNullOrWhiteSpace(variant.GroupKey) ? groupKey : variant.GroupKey;
+            variant.Key = forceGroupKey || string.IsNullOrWhiteSpace(variant.Key) ? groupKey : variant.Key;
+            variant.GroupKey = forceGroupKey || string.IsNullOrWhiteSpace(variant.GroupKey) ? groupKey : variant.GroupKey;
             variant.VariantId = string.IsNullOrWhiteSpace(variant.VariantId)
                 ? (variant.Origin == ManualLayoutOrigin.AutoSeed ? "seed-default" : "manual-default")
                 : variant.VariantId;

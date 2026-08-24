@@ -193,7 +193,7 @@ public class LayoutEditorControllerTests
         // the full-map layout. The question is about the group, not the current selection.
         var (ctrl, manager, _, _) = Make();
         manager.SaveVariant(
-            "key-mixed", "manual", "Hand Made", ManualLayoutOrigin.Manual,
+            "key-mixed", "manual", "Manual Layout", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: false, setAsSelected: false);
         manager.SaveVariant(
             "key-mixed", "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,
@@ -216,13 +216,37 @@ public class LayoutEditorControllerTests
         const string otherSize = "hash1_z55.00_c900.00_900.00_m3_p10.0_l50.0_n13.0";
 
         manager.SaveVariant(
-            otherSize, "manual", "Hand Made", ManualLayoutOrigin.Manual,
+            otherSize, "manual", "Manual Layout", ManualLayoutOrigin.Manual,
             OneExtension(), null, setAsDefault: true, setAsSelected: true);
         manager.SaveVariant(
             exactKey, "seed-default", "Generated Seed", ManualLayoutOrigin.AutoSeed,
             OneExtension(), null, setAsDefault: true, setAsSelected: true);
 
         Assert.False(ctrl.HasManualLayout(exactKey));
+    }
+
+    [Fact]
+    public void HasManualLayout_AgreesWithTheLoaderOnTheCompatibleGroup()
+    {
+        // The other side of the test above, and the invariant the probe is defined by: it must
+        // answer for whichever group the loader will actually display. With no exact group, the
+        // loader falls back to the compatible one, so the probe has to see the Manual variant there
+        // -- reporting "nothing manual" would fall back to the full-map layout while the cluster
+        // view is about to show a manual one.
+        //
+        // Pinned because the probe used to resolve the group with its own inline copy of the
+        // exact-then-compatible rule. Two copies of "which group does the loader mean" can drift,
+        // and the failure would be silent: the wrong layout on screen, no error anywhere.
+        var (ctrl, manager, _, _) = Make();
+        const string savedUnder = "hash7_z55.00_c10.00_10.00_m3_p10.0_l50.0_n13.0";
+        const string askedAbout = "hash7_z55.00_c900.00_900.00_m3_p10.0_l50.0_n13.0";
+
+        manager.SaveVariant(
+            savedUnder, "manual", "Mine", ManualLayoutOrigin.Manual,
+            OneExtension(), null, setAsDefault: true, setAsSelected: true);
+
+        Assert.Equal("Mine", manager.LoadLayout(askedAbout)?.DisplayName);
+        Assert.True(ctrl.HasManualLayout(askedAbout));
     }
 
     [Fact]

@@ -85,16 +85,21 @@ namespace InteractiveWorldMap.Services
         {
             if (collection.LayoutGroups.ContainsKey(key)) return key;
 
-            var compatible = FindCompatibleGroup(key, collection);
-            return compatible?.GroupKey;
+            // The entry's key, never the group's own GroupKey field. Callers look the result back
+            // up in LayoutGroups, so returning anything but a dictionary key can only fail -- and it
+            // fails silently, as a group that resolves for the loader and is missing for everyone
+            // else. Normalisation now keeps the two equal; this does not depend on it.
+            return FindCompatibleGroupEntry(key, collection)?.Key;
         }
 
-        private static ManualLayoutGroup? FindCompatibleGroup(string key, ManualLayoutCollection collection)
+        private static KeyValuePair<string, ManualLayoutGroup>? FindCompatibleGroupEntry(
+            string key, ManualLayoutCollection collection)
         {
             return collection.LayoutGroups
                 .Where(entry => LayoutKeyGenerator.AreKeysCompatible(entry.Key, key))
                 .Select(entry => new
                 {
+                    entry.Key,
                     Group = entry.Value,
                     ZoomDifference = Math.Abs(ExtractZoomLevel(entry.Key) - ExtractZoomLevel(key)),
                     PreferredVariant = SelectPreferredVariant(
@@ -104,7 +109,8 @@ namespace InteractiveWorldMap.Services
                 .OrderBy(c => c.ZoomDifference)
                 .ThenByDescending(c => c.PreferredVariant?.UpdatedUtc ?? DateTime.MinValue)
                 .ThenByDescending(c => c.PreferredVariant?.Timestamp ?? DateTime.MinValue)
-                .Select(c => c.Group)
+                .Select(c => (KeyValuePair<string, ManualLayoutGroup>?)
+                    new KeyValuePair<string, ManualLayoutGroup>(c.Key, c.Group))
                 .FirstOrDefault();
         }
 
