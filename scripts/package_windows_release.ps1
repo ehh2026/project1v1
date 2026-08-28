@@ -87,3 +87,5 @@ Invoke-PackageValidator @('--package-root', $stagingRoot)
 Compress-Archive -LiteralPath $stagingRoot -DestinationPath $archivePath -CompressionLevel Optimal
 Invoke-PackageValidator @('--zip', $archivePath)
 Write-Host "Created portable release package: $archivePath" -ForegroundColor Green
+
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\release\IF_SOMETHING_LOOKS_WRONG.md') -Destination (Join-Path $stagingRoot 'IF-SOMETHING-LOOKS-WRONG.md') -Force
