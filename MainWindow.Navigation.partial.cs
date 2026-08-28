@@ -611,25 +611,37 @@ namespace InteractiveWorldMap
                         $"{animationLabel} failed at frame {frameCount}; landing on the target view: " +
                         $"{ex.Message}\n{ex.StackTrace}");
 
+                    // Landing and completion are attempted separately on purpose. If the frame threw
+                    // inside UpdateViewport, repeating it here fails identically — and sharing one
+                    // try would let that failure skip completion, which is the half that swaps the
+                    // marker set and shows the Back button. Losing both to one bad call is how a
+                    // failed zoom-in strands someone on a zoomed map still showing cluster pins.
                     try
                     {
                         MapDisplay.UpdateViewport(targetViewport);
                         UpdateMarkerPositions();
                         onFrameUpdated?.Invoke();
-
-                        // Skipped when the completion callback itself threw: it has already run, and
-                        // it is the half that shows the Back button and swaps the marker set.
-                        if (!completionStarted)
-                        {
-                            completionStarted = true;
-                            onAnimationComplete();
-                        }
                     }
-                    catch (Exception recoveryEx)
+                    catch (Exception landingEx)
                     {
                         _logger.LogError(
-                            $"{animationLabel} recovery also failed; the view may be inconsistent: " +
-                            $"{recoveryEx.Message}");
+                            $"{animationLabel} could not land on the target view: {landingEx.Message}");
+                    }
+
+                    // Skipped when the completion callback itself threw: it has already run.
+                    if (completionStarted)
+                        return;
+
+                    completionStarted = true;
+                    try
+                    {
+                        onAnimationComplete();
+                    }
+                    catch (Exception completionEx)
+                    {
+                        _logger.LogError(
+                            $"{animationLabel} completion failed; the view may be inconsistent: " +
+                            $"{completionEx.Message}");
                     }
                 }
             };

@@ -187,6 +187,36 @@ namespace InteractiveWorldMap.Services
             }
         }
 
+        /// <summary>
+        /// Writes <paramref name="message"/> to disk on the calling thread, for the one case where
+        /// the normal path cannot work: the process is terminating. <see cref="LogError"/> only
+        /// queues, and the writer that drains that queue is a background thread the runtime abandons
+        /// during shutdown — so a record of the exception that is killing the app is exactly the
+        /// record most likely never to be written.
+        ///
+        /// It goes to a separate file because the writer thread holds the main log open against
+        /// other writers; appending there would fail while it is alive. Best-effort throughout: this
+        /// is called from a crash handler, where throwing would replace the failure being recorded.
+        /// </summary>
+        public static void WriteTerminatingRecord(string message)
+        {
+            try
+            {
+                var basePath = _logFilePath ?? DefaultLogPathProvider.Instance.LogFilePath;
+                var directory = Path.GetDirectoryName(basePath);
+                var fileName = Path.GetFileNameWithoutExtension(basePath) + ".crash.log";
+                var crashPath = string.IsNullOrEmpty(directory)
+                    ? fileName
+                    : Path.Combine(directory, fileName);
+
+                File.AppendAllText(crashPath, message + Environment.NewLine);
+            }
+            catch
+            {
+                // Ignored: see remarks.
+            }
+        }
+
         private static StreamWriter? TryOpenLog(string logFilePath)
         {
             try

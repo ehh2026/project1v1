@@ -266,6 +266,35 @@ public class FileLoggerRotationTests
         }
     }
 
+    [Fact]
+    public void WriteTerminatingRecord_WritesOnTheCallingThreadWhileTheWriterHoldsTheLog()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+
+        try
+        {
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                logger.LogInfo("normal line");
+
+                // No waiting and no background writer involved: the process this stands in for is
+                // being torn down, so the record has to exist the moment the call returns.
+                FileLogger.WriteTerminatingRecord("[ERROR] fatal thing happened");
+
+                var crashPath = Path.Combine(dir, "app.crash.log");
+                Assert.True(File.Exists(crashPath), "expected app.crash.log beside the main log");
+                Assert.Contains("fatal thing happened", File.ReadAllText(crashPath));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static async Task<bool> WaitForContent(string path, string expected)
     {
         var deadline = DateTime.UtcNow.AddSeconds(5);

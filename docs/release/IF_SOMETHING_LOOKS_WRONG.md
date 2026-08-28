@@ -42,7 +42,8 @@ what happened.
    ```
 
 3. Attach `app.log` to your message. If there are files named `app.log.1`, `app.log.2` and so on,
-   include the most recent one as well.
+   include the most recent one as well. If you see `app.crash.log`, always include it — it only
+   exists if the application closed unexpectedly, and it says why.
 
 Along with the file, it helps enormously to say:
 
