@@ -29,6 +29,13 @@ to the same place are faster because the result is kept.
 **A black screen after the gallery has been closed overnight.** That is usually Windows blanking the
 display, not the application. Move the mouse or touch the screen first.
 
+## If the map keeps reappearing when you close it
+
+That is deliberate, and it means the machine has been set up to look after itself: a small window
+called **Run-Unattended** is watching, and starts the map again whenever it closes. To stop that,
+close the **Run-Unattended** window rather than the map. To stop it starting up on its own, delete
+the shortcut to it from the Startup folder (`Windows` key + `R`, then type `shell:startup`).
+
 ## If you need to report it
 
 There is a file that records what the application was doing. Send it and it will usually be clear

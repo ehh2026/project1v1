@@ -30,19 +30,29 @@ window size the cache fills once and stops growing. Editing locations or changin
 resolution leaves orphaned entries behind; nothing deletes them. Every cache write failure is caught
 and logged, so a full disk degrades to slower zooms rather than a crash.
 
-## What is missing for a genuinely unattended install
+## What an unattended install needs
 
-Roughly in the order that matters.
+Roughly in the order that matters. The first three need no administrator rights and no particular
+edition of Windows, which is most of the benefit; the rest are worth knowing about and mostly worth
+skipping.
 
-**Automatic restart.** Nothing brings the app back if the process ends. The usual approach is a
-Scheduled Task set to run at logon and to restart on failure, or Windows' built-in Assigned Access
-kiosk mode. Neither is a code change.
+**Automatic restart — covered.** `Tools\Run-Unattended.bat` starts the map and restarts it when it
+exits, so a crash or an accidental quit recovers by itself. A shortcut to it in the Startup folder
+(`shell:startup`) brings the map up after a reboot. It needs no administrator rights and installs
+nothing; removing it is deleting the shortcut. It cannot detect a hang — a frozen app has not
+exited — so freezes still need a person, and detecting them would mean health polling rather than
+a launcher. Setup steps are in the packaged guide.
 
 **Automatic logon and a locked-down desktop.** A gallery machine that reboots overnight comes back to
-a login screen. Assigned Access, or auto-logon plus a shell replacement, covers this.
+a login screen, and the Startup shortcut only fires once somebody logs in. Auto-logon means storing
+the account password where Windows can read it back, which is a poor trade for a machine in a public
+room — setting Active Hours so it does not reboot unattended is the cheaper answer. Windows' own
+kiosk mode (Assigned Access, or Shell Launcher for desktop applications) needs Enterprise or
+Education, so it is likely unavailable and the launcher above covers most of what it would give.
 
 **Power and display settings.** Sleep, screen blanking and the screen saver all have to be disabled,
-or the map is a black rectangle by the second morning.
+or the map is a black rectangle by the second morning. Settings-app clicks, listed in the packaged
+guide alongside the launcher steps.
 
 **Developer tools turned off.** `visual-config.default.json` ships with `EnableDeveloperTools: true`,
 which leaves F12 tuning, Edit Layout and debug overlays reachable by anyone who touches the machine.
