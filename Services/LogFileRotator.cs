@@ -34,40 +34,55 @@ namespace InteractiveWorldMap.Services
             // Oldest first, then shift upward, so no move ever overwrites a file it still needs.
             TryDelete($"{logFilePath}.{generations}");
 
+            // A failed move means the slot above is still occupied, so every later move in this pass
+            // would overwrite a generation that has nowhere to go. Stopping keeps what is on disk;
+            // continuing would delete a still-wanted file to make room for one that never arrives.
             for (var generation = generations - 1; generation >= 1; generation--)
-                TryMove($"{logFilePath}.{generation}", $"{logFilePath}.{generation + 1}");
+            {
+                if (!TryMove($"{logFilePath}.{generation}", $"{logFilePath}.{generation + 1}"))
+                    return;
+            }
 
             TryMove(logFilePath, $"{logFilePath}.1");
         }
 
-        private static void TryDelete(string path)
+        private static bool TryDelete(string path)
         {
             try
             {
                 if (File.Exists(path))
                     File.Delete(path);
+
+                return true;
             }
             catch
             {
                 // Ignored: see class remarks.
+                return false;
             }
         }
 
-        private static void TryMove(string source, string destination)
+        private static bool TryMove(string source, string destination)
         {
             try
             {
+                // Nothing to move is not a failure — that generation simply does not exist yet, and
+                // the ones below it can still shift up.
                 if (!File.Exists(source))
-                    return;
+                    return true;
 
-                // File.Move throws when the destination exists on .NET Framework-era semantics and
-                // this keeps behaviour identical either way.
-                TryDelete(destination);
+                // File.Move throws when the destination exists on .NET Framework-era semantics, so
+                // clear it first; if that clearing fails there is no point attempting the move.
+                if (!TryDelete(destination) || File.Exists(destination))
+                    return false;
+
                 File.Move(source, destination);
+                return true;
             }
             catch
             {
                 // Ignored: see class remarks.
+                return false;
             }
         }
     }

@@ -119,42 +119,47 @@ namespace InteractiveWorldMap.Services
 
         private static void WriterLoop(string logFilePath, BlockingCollection<string> queue)
         {
+            StreamWriter? writer = null;
+
             try
             {
-                var writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
-                try
+                writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+
+                foreach (var message in queue.GetConsumingEnumerable())
                 {
-                    foreach (var message in queue.GetConsumingEnumerable())
-                    {
-                        // Console/Debug output happens here on the background thread, not on the
-                        // (often UI) thread that logged — so logging never blocks the caller.
-                        Console.WriteLine(message);
-                        System.Diagnostics.Debug.WriteLine(message);
+                    // Console/Debug output happens here on the background thread, not on the
+                    // (often UI) thread that logged — so logging never blocks the caller.
+                    Console.WriteLine(message);
+                    System.Diagnostics.Debug.WriteLine(message);
 
-                        writer.WriteLine(message);
-                        // Flush only when queue is momentarily empty (batches writes)
-                        if (queue.Count != 0)
-                            continue;
+                    // A rotation that could not reopen the file leaves this null. Keep draining the
+                    // queue and retry the open on each message instead of ending the thread: the
+                    // queue would otherwise stay open with no consumer, silently filling until
+                    // every later log line is dropped for the rest of the session.
+                    writer ??= TryOpenLog(logFilePath);
+                    if (writer == null)
+                        continue;
 
-                        writer.Flush();
-
-                        // Rotation lives here because this thread is the only writer of the file:
-                        // checking after a flush means the length is accurate, and closing then
-                        // reopening cannot race any other producer.
-                        if (!LogFileRotator.ShouldRotate(writer.BaseStream.Length, MaxLogBytes))
-                            continue;
-
-                        writer.Dispose();
-                        LogFileRotator.Rotate(logFilePath, LogGenerations);
-                        writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
-                    }
+                    writer.WriteLine(message);
+                    // Flush only when queue is momentarily empty (batches writes)
+                    if (queue.Count != 0)
+                        continue;
 
                     writer.Flush();
-                }
-                finally
-                {
+
+                    // Rotation lives here because this thread is the only writer of the file:
+                    // checking after a flush means the length is accurate, and closing then
+                    // reopening cannot race any other producer.
+                    if (!LogFileRotator.ShouldRotate(writer.BaseStream.Length, MaxLogBytes))
+                        continue;
+
                     writer.Dispose();
+                    writer = null;
+                    LogFileRotator.Rotate(logFilePath, LogGenerations);
+                    writer = TryOpenLog(logFilePath);
                 }
+
+                writer?.Flush();
             }
             catch (Exception ex)
             {
@@ -162,6 +167,8 @@ namespace InteractiveWorldMap.Services
             }
             finally
             {
+                writer?.Dispose();
+
                 // The writer thread — not Dispose — owns clearing shared state, and only once
                 // it has actually stopped touching the file. That way a Dispose() whose bounded
                 // Join times out can never leave stale state that lets a second writer open the
@@ -177,6 +184,20 @@ namespace InteractiveWorldMap.Services
                     }
                     Monitor.PulseAll(_initLock);
                 }
+            }
+        }
+
+        private static StreamWriter? TryOpenLog(string logFilePath)
+        {
+            try
+            {
+                return new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+            }
+            catch
+            {
+                // Another process may hold the file for a moment (a viewer, a backup sweep). The
+                // caller retries on the next message rather than treating this as fatal.
+                return null;
             }
         }
 

@@ -158,6 +158,12 @@ namespace InteractiveWorldMap
                         0,
                         generation,
                         suppressNextContentActivation);
+
+                    // ShowImageAtIndexAsync bails silently when superseded, so without this the
+                    // "opened" line below would claim an open that did not finish — and this log is
+                    // the only record of what these interleaved runs actually did.
+                    if (generation != _contentOpenGeneration)
+                        return;
                 }
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");
