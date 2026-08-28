@@ -15,6 +15,15 @@ EXPECTED_FILES = {
     "tools/configure-interactiveworldmap.ps1",
     "tools/configure-interactiveworldmap.bat",
     "readme.md",
+    # Services/StartupValidator.cs treats a missing world map image as a hard startup
+    # error, so an archive without it is broken on arrival rather than merely sparse.
+    "images&content/assets/world map extra large.jpg",
+}
+# The same validator's other hard error: the active content set needs a coordinate
+# source. Demo-Content is the shipped fallback, so it must carry one of these.
+DEMO_COORDINATE_SOURCES = {
+    "images&content/demo-content/locations.json",
+    "images&content/demo-content/coordinates for map.xlsx",
 }
 EXPECTED_DIRECTORIES = {"images&content/assets", "images&content/demo-content"}
 FORBIDDEN_DIRECTORIES = {
@@ -56,6 +65,9 @@ def _validate_members(members: set[str], root_name: str) -> list[str]:
     for expected in EXPECTED_FILES:
         if expected not in normalized:
             errors.append(f"missing required file: {expected}")
+
+    if not normalized & DEMO_COORDINATE_SOURCES:
+        errors.append("Demo-Content must contain locations.json or 'Coordinates for map.xlsx'")
 
     for expected in EXPECTED_DIRECTORIES:
         if not any(member == expected or member.startswith(expected + "/") for member in normalized):
