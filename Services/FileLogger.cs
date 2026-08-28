@@ -121,6 +121,11 @@ namespace InteractiveWorldMap.Services
         {
             StreamWriter? writer = null;
 
+            // Approximate characters written since the last length check. Never larger than the
+            // rotation limit itself, so a small limit (as tests use) still gets checked promptly.
+            var rotationCheckInterval = Math.Min(1024L * 1024, Math.Max(1, MaxLogBytes));
+            var pendingBytes = 0L;
+
             try
             {
                 writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
@@ -141,10 +146,16 @@ namespace InteractiveWorldMap.Services
                         continue;
 
                     writer.WriteLine(message);
-                    // Flush only when queue is momentarily empty (batches writes)
-                    if (queue.Count != 0)
+
+                    // Flush when the queue is momentarily empty (batches writes), and otherwise
+                    // once enough text has gone past to be worth measuring. Checking only at the
+                    // empty-queue boundary would mean a writer that never catches up never checks
+                    // its size at all, so a sustained burst could run past the limit unchecked.
+                    pendingBytes += message.Length + Environment.NewLine.Length;
+                    if (queue.Count != 0 && pendingBytes < rotationCheckInterval)
                         continue;
 
+                    pendingBytes = 0;
                     writer.Flush();
 
                     // Rotation lives here because this thread is the only writer of the file:
