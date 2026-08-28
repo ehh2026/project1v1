@@ -111,7 +111,9 @@ function Show-Status($Config) {
 $config = Read-RuntimeConfig
 Show-Status $config
 
-# An explicit -DeveloperTools value is a scripted change: apply it and do not prompt.
+# An explicit -DeveloperTools value applies the change without offering the menu. The closing
+# pause stays so an Explorer run can be read before the window closes; -NoPrompt and -NoPause
+# both skip it, which is what a script should pass.
 if ($DeveloperTools -ne 'report') {
     switch ($DeveloperTools) {
         'on'     { Set-DeveloperTools $config $true }

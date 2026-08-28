@@ -13,12 +13,12 @@ Run the `.bat` rather than the `.ps1`: double-clicking a `.ps1` in Explorer eith
 or is blocked by the execution policy, which is why it appears to flash and vanish. The `.bat` launches
 PowerShell with the right switches.
 
-The same changes can be made without the menu, which is the form to use from a script:
+The same changes can be made without the menu. Add `-NoPrompt` when calling from a script, so it neither asks nor waits:
 
 ```bat
-Tools\Configure-InteractiveWorldMap.bat -DeveloperTools on
-Tools\Configure-InteractiveWorldMap.bat -DeveloperTools off
-Tools\Configure-InteractiveWorldMap.bat -DeveloperTools toggle
+Tools\Configure-InteractiveWorldMap.bat -DeveloperTools on -NoPrompt
+Tools\Configure-InteractiveWorldMap.bat -DeveloperTools off -NoPrompt
+Tools\Configure-InteractiveWorldMap.bat -DeveloperTools toggle -NoPrompt
 ```
 
 The helper seeds a missing runtime config. If it reports malformed JSON, re-run it with `-ResetMalformedConfig`; the broken file is renamed alongside the replacement so it can be recovered. Restart the app after configuration changes.
