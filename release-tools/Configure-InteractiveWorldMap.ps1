@@ -27,7 +27,8 @@ function Read-Line([string]$Prompt) {
 }
 
 function Wait-ForClose {
-    if ($NoPause) { return }
+    # -NoPrompt means do not ask the user anything; the closing pause is a question too.
+    if ($NoPause -or $NoPrompt) { return }
     $null = Read-Line 'Press Enter to close'
 }
 trap {
