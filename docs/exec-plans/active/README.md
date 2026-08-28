@@ -25,6 +25,7 @@ started: YYYY-MM-DD
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
 | [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
 | [test-coverage-5pct-increase-plan.md](test-coverage-5pct-increase-plan.md) | Increase service-layer unit coverage toward the next coverage target |
+| [windows-portable-release-plan.md](windows-portable-release-plan.md) | Self-contained `win-x64` portable zip, package-local configuration tool, and GitHub Release workflow |
 | [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)

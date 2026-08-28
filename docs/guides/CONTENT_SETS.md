@@ -26,6 +26,10 @@ A set is valid only when an explicit coordinate source file is present. An empty
 
 Static assets (world map, pin-part art, cluster stamp) always resolve from `Assets/` first, with a legacy-root fallback for older flat trees used in tests.
 
+## Portable release content
+
+The portable Windows download contains `Assets/` and `Demo-Content/`, but deliberately omits `Production-Content/` and `Extras/`. To use deployment data, add or replace `Images&Content/Production-Content` beside the extracted executable. It must contain `locations.json` or `Coordinates for map.xlsx`; on restart a valid Production set takes priority automatically. Keep `Assets/` intact. Rename Production to `Production-Content.disabled` and restart to fall back to Demo.
+
 ## Force Demo locally
 
 There is no in-app “force Demo” toggle yet. To ignore Production on a machine that has both sets:

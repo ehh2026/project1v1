@@ -21,6 +21,18 @@ pip install -r scripts\requirements.txt
 
 Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-harness-and-optional-tooling).
 
+## Portable Windows release
+
+Create a public-ready portable zip after the normal verification gate:
+
+```powershell
+dotnet publish InteractiveWorldMap.csproj -c Release -p:PublishProfile=Properties\PublishProfiles\WindowsPortable.pubxml -o artifacts\publish\win-x64
+.\scripts\package_windows_release.ps1 -PublishDirectory artifacts\publish\win-x64 -OutputDirectory artifacts\release -Version 0.0.0-local
+py -3 scripts\verify_release_package.py --zip artifacts\release\InteractiveWorldMap-win-x64-0.0.0-local.zip
+```
+
+All output remains in git-ignored `artifacts\`. The package script copies `release-tools\` into the archive's `Tools\` directory. See [the portable release guide](../docs/release/PORTABLE_WINDOWS_RELEASE.md).
+
 ## Script catalog
 
 | Script | Used by | Deps | Description |
@@ -35,6 +47,8 @@ Full setup: [docs/guides/SETUP_GUIDE.md](../docs/guides/SETUP_GUIDE.md#python-ha
 | `summarize_coverage.py` | Advisory CI | stdlib | Summarize Cobertura coverage emitted by `dotnet test --collect:"XPlat Code Coverage"` |
 | `install_git_hooks.ps1` | Manual | Git | Configure local `core.hooksPath` to use `.githooks/pre-push` |
 | `toggle-dev-tools.ps1` | Manual (via root `toggle-dev-tools.bat`) | — | Turn `EnableDeveloperTools` on/off in every runtime `visual-config.json` next to a built/published exe (`-State on\|off\|toggle`; `-PublishDir <path>` for an external publish; `-NoPause` to skip the closing prompt in scripts) |
+| `package_windows_release.ps1` | Maintainers, release workflow | Python 3 stdlib validator | Stages the self-contained `win-x64` publish output, excludes Production/Extras/debug files, and creates a validated portable zip. |
+| `verify_release_package.py` | Package script, manual release checks | Python 3 stdlib | Verifies the portable folder or zip contract without launching WPF. |
 | `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter. Incomplete active plans older than 30 days warn only (same policy as `verify_taste.py`). |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
