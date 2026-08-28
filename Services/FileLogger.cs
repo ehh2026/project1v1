@@ -128,7 +128,12 @@ namespace InteractiveWorldMap.Services
 
             try
             {
-                writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+                // Deliberately the same forgiving open as the rotation path below. Failing here used
+                // to end the thread before it consumed anything, which costs the whole session's
+                // logging — and the likeliest cause is a second copy of the app started by accident,
+                // since StreamWriter holds the file against other writers. Whichever copy loses the
+                // race now keeps retrying and starts logging when the other one exits.
+                writer = TryOpenLog(logFilePath);
 
                 foreach (var message in queue.GetConsumingEnumerable())
                 {

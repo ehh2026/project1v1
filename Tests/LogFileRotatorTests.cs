@@ -266,6 +266,41 @@ public class FileLoggerRotationTests
         }
     }
 
+    [Fact]
+    public async Task WriterLoop_StartsLoggingOnceTheLogFileIsReleased()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+
+        try
+        {
+            // Somebody else holds the log at the moment the writer starts — most plausibly a second
+            // copy of the application. The writer must wait it out rather than give up for good.
+            File.WriteAllText(logPath, "held by another process" + Environment.NewLine);
+            var blocker = new FileStream(logPath, FileMode.Open, FileAccess.Write, FileShare.None);
+
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                logger.LogInfo("written while the file was locked");
+                await Task.Delay(100);
+
+                blocker.Dispose();
+
+                logger.LogInfo("written after the lock was released");
+
+                Assert.True(
+                    await WaitForContent(logPath, "written after the lock was released"),
+                    "expected the writer to recover once the log file became available");
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
     private static async Task<bool> WaitForContent(string path, string expected)
     {
         var deadline = DateTime.UtcNow.AddSeconds(5);
