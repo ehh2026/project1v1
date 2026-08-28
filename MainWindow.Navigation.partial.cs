@@ -38,10 +38,6 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  Cluster: {cluster.Count} locations");
                 _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
 
-                var currentState = ZoomState.CreateFullMapView();
-                _navigationService.PushState(currentState);
-                _logger.LogInfo("  Current state saved to navigation stack");
-
                 var startViewport = MapDisplay.CurrentViewport;
                 if (startViewport == null)
                 {
@@ -49,6 +45,12 @@ namespace InteractiveWorldMap
                     _autoOpenLocation = null;
                     return;
                 }
+
+                // Pushed only once the zoom is known to be startable; a push before the check above
+                // leaves a stack entry behind on the full map, showing Back with nowhere to go.
+                var currentState = ZoomState.CreateFullMapView();
+                _navigationService.PushState(currentState);
+                _logger.LogInfo("  Current state saved to navigation stack");
 
                 // Phase 1: capture settled-state pin-to-map offsets so markers track
                 // the map during the animation instead of freezing in place.
@@ -145,6 +147,11 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 _autoOpenLocation = null;
+                // _mode is set to Animating before the transition starts, and only the animation's own
+                // completion clears it. A throw in between (keyframe pre-render, viewport math) would
+                // otherwise leave it Animating forever, and every guard above blocks navigation for
+                // the rest of the session with no crash and no way back.
+                _mode = InteractionMode.Normal;
                 _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
             }
         }
@@ -360,6 +367,14 @@ namespace InteractiveWorldMap
         /// </summary>
         private void AnimateZoomOut()
         {
+            // Back and Escape are both reachable mid-animation; starting a second transition from
+            // here interleaves completions and pops the navigation stack twice. This runs before any
+            // other statement because an ignored press has to be genuinely inert: clearing
+            // _autoOpenLocation first would let a mid-zoom Back cancel the content that a
+            // single-location zoom is about to auto-open, while the zoom itself still completes.
+            if (_mode == InteractionMode.Animating)
+                return;
+
             _autoOpenLocation = null;
 
             if (_layoutEditor.IsEditMode)
@@ -373,6 +388,12 @@ namespace InteractiveWorldMap
                 _logger.LogWarning("Cannot go back - navigation stack is empty");
                 return;
             }
+
+            // Held outside the try so the catch can undo the pop below. The stack is what makes
+            // CanGoBack true, and Escape only zooms out while it is — so a throw between the pop and
+            // a running animation would strand the user zoomed in with Back gone and Escape wired to
+            // the branch that closes the application.
+            ZoomState? poppedState = null;
 
             try
             {
@@ -400,6 +421,7 @@ namespace InteractiveWorldMap
                 // By design, zoom-out always returns to the full-map view: the navigation stack is a
                 // depth gate (CanGoBack), not a viewport history, so previousState's payload is unused.
                 var previousState = _navigationService.PopState();
+                poppedState = previousState;
                 if (previousState == null)
                 {
                     _logger.LogWarning("Previous state is null");
@@ -443,6 +465,15 @@ namespace InteractiveWorldMap
             }
             catch (Exception ex)
             {
+                // Same wedge as AnimateZoomToCluster: without this a failed zoom-out blocks all
+                // later navigation, including the guard added above.
+                _mode = InteractionMode.Normal;
+
+                // The view is still zoomed, so the depth this pop removed has to go back or there is
+                // no route out of it.
+                if (poppedState != null)
+                    _navigationService.PushState(poppedState);
+
                 _logger.LogError($"Error zooming out: {ex.Message}\n{ex.StackTrace}");
             }
         }

@@ -32,6 +32,14 @@ namespace InteractiveWorldMap
         // post-decode banner can switch from in-progress to past-tense wording. Null when none tripped.
         private double? _lastLargeImageMb;
 
+        // Incremented by every ShowContentForLocation call. Opening awaits a close animation and an
+        // image decode, so a second marker click can land mid-flight; the newer click wins and the
+        // older run bails at its next resume point instead of assigning _activeSubwindow over the
+        // top of it. Without this the overwritten window stays on screen with no way to close it,
+        // holding its decoded bitmaps alive (Escape, outside-click and zoom-out all act on the field
+        // only). UI-thread only, so a plain int needs no interlocking.
+        private int _contentOpenGeneration;
+
         /// <summary>
         /// Shows the bottom-left content status banner with <paramref name="message"/>. When
         /// <paramref name="autoHideAfter"/> is provided the banner clears itself after that delay;
@@ -92,6 +100,8 @@ namespace InteractiveWorldMap
             Location location,
             bool suppressNextContentActivation = false)
         {
+            var generation = ++_contentOpenGeneration;
+
             try
             {
                 _logger.LogInfo($"Opening content for location: {location.Name}");
@@ -106,6 +116,8 @@ namespace InteractiveWorldMap
                 if (_activeSubwindow != null)
                 {
                     await CloseActiveSubwindowAsync();
+                    if (generation != _contentOpenGeneration)
+                        return;
                 }
 
                 if (_activeThumbnailBrowser != null)
@@ -122,6 +134,8 @@ namespace InteractiveWorldMap
 
                 // Load all images with translations for this location
                 var allImagesWithTranslations = await _contentLoader.LoadAllLocationImagesWithTranslationsAsync(location);
+                if (generation != _contentOpenGeneration)
+                    return;
 
                 if (allImagesWithTranslations.Length == 0)
                 {
@@ -142,7 +156,14 @@ namespace InteractiveWorldMap
                         location,
                         allImagesWithTranslations,
                         0,
+                        generation,
                         suppressNextContentActivation);
+
+                    // ShowImageAtIndexAsync bails silently when superseded, so without this the
+                    // "opened" line below would claim an open that did not finish — and this log is
+                    // the only record of what these interleaved runs actually did.
+                    if (generation != _contentOpenGeneration)
+                        return;
                 }
 
                 _logger.LogInfo($"Content subwindow opened for: {location.Name}");
@@ -153,22 +174,29 @@ namespace InteractiveWorldMap
             }
             finally
             {
-                // If the image file tripped the heavy-file notice, leave a brief past-tense confirmation
-                // (decode is done by now); otherwise clear the "Loading content…" banner.
-                if (_lastLargeImageMb is { } mb)
-                    ShowContentStatus($"Large image ({mb:F0} MB) — optimized for display", TimeSpan.FromSeconds(4));
-                else
-                    HideContentStatus();
+                // A superseded run leaves the banner alone: the newer open is still loading and owns it.
+                if (generation == _contentOpenGeneration)
+                {
+                    // If the image file tripped the heavy-file notice, leave a brief past-tense confirmation
+                    // (decode is done by now); otherwise clear the "Loading content…" banner.
+                    if (_lastLargeImageMb is { } mb)
+                        ShowContentStatus($"Large image ({mb:F0} MB) — optimized for display", TimeSpan.FromSeconds(4));
+                    else
+                        HideContentStatus();
+                }
             }
         }
 
         /// <summary>
-        /// Shows a specific image from a location's image collection.
+        /// Shows a specific image from a location's image collection. <paramref name="generation"/> is
+        /// the caller's <see cref="_contentOpenGeneration"/> stamp; the didactic-text await below is
+        /// another point where a newer open can take over, and this run must not add windows after it.
         /// </summary>
         private async Task ShowImageAtIndexAsync(
             Location location,
             (BitmapImage Image, string? TranslationText, string? CaptionText)[] allImagesWithTranslations,
             int index,
+            int generation,
             bool suppressNextContentActivation = false)
         {
             var (image, translationText, captionText) = allImagesWithTranslations[index];
@@ -183,6 +211,9 @@ namespace InteractiveWorldMap
 
             // Load and show didactic text if available
             var didacticText = await _contentLoader.LoadDidacticTextAsync(location);
+            if (generation != _contentOpenGeneration)
+                return;
+
             if (!string.IsNullOrEmpty(didacticText))
             {
                 _activeDidacticWindow = new DidacticTextWindow

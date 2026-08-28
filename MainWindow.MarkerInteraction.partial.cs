@@ -54,6 +54,13 @@ public partial class MainWindow
             return;
         }
 
+        // Cluster markers stay visible until the zoom completes (ShowOnlyIndividualMarkers runs at
+        // animation end), so without this a second click inside the ~390 ms window starts an
+        // overlapping animation: two render handlers, interleaved completions, a double nav push.
+        // Individual markers already return here for the same reason.
+        if (_mode == InteractionMode.Animating)
+            return;
+
         if (marker.Cluster == null)
             return;
 
