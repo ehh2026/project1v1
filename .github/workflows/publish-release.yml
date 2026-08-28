@@ -37,6 +37,11 @@ jobs:
         with:
           dotnet-version: "6.0.x"
 
+      # verify.ps1 runs the Lizard complexity gate in-process, so the dependency has to
+      # exist before it runs. ci.yml installs it the same way for its own Lizard steps.
+      - name: Install Lizard
+        run: python -m pip install lizard
+
       - name: Verify
         shell: pwsh
         run: .\scripts\verify.ps1
