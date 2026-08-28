@@ -2,6 +2,9 @@
 <#
 .SYNOPSIS
     Inspect or change the configuration of an extracted portable release.
+.DESCRIPTION
+    Run with no arguments (or double-click the .bat) for a menu. Pass -DeveloperTools
+    to make a change without prompting, which is the form to use from a script.
 #>
 [CmdletBinding()]
 param(
@@ -16,9 +19,20 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+function Read-Line([string]$Prompt) {
+    # UserInteractive stays true in a -NonInteractive host, where Read-Host throws instead
+    # of returning. Treat that as 'nobody is there' rather than failing the helper.
+    if (-not [Environment]::UserInteractive) { return $null }
+    try { return Read-Host $Prompt } catch { return $null }
+}
+
+function Wait-ForClose {
+    if ($NoPause) { return }
+    $null = Read-Line 'Press Enter to close'
+}
 trap {
     Write-Host "Configuration helper failed: $($_.Exception.Message)" -ForegroundColor Red
-    if (-not $NoPause -and [Environment]::UserInteractive) { Read-Host 'Press Enter to close' | Out-Null }
+    Wait-ForClose
     exit 1
 }
 
@@ -32,6 +46,7 @@ $demo = Join-Path $contentRoot 'Demo-Content'
 
 if (-not (Test-Path -LiteralPath $exePath -PathType Leaf)) { throw "Expected sibling executable not found: $exePath" }
 if (-not (Test-Path -LiteralPath $defaultConfig -PathType Leaf)) { throw "Expected default config not found: $defaultConfig" }
+
 
 function Test-ValidContent([string]$Path) {
     return (Test-Path -LiteralPath (Join-Path $Path 'locations.json') -PathType Leaf) -or
@@ -57,29 +72,80 @@ function Read-RuntimeConfig {
     }
 }
 
-$config = Read-RuntimeConfig
-$currentTools = if ($config.PSObject.Properties.Name -contains 'EnableDeveloperTools') { [bool]$config.EnableDeveloperTools } else { $false }
-Write-Host "Portable app root: $appRoot"
-Write-Host "Runtime config: $runtimeConfig"
-Write-Host "Developer tools: $(if ($currentTools) { 'ON' } else { 'OFF' })"
-Write-Host "Active content on next launch: $(if (Test-ValidContent $production) { 'Production' } elseif (Test-ValidContent $demo) { 'Demo' } else { 'none valid' })"
+function Get-DeveloperTools($Config) {
+    if ($Config.PSObject.Properties.Name -contains 'EnableDeveloperTools') {
+        return [bool]$Config.EnableDeveloperTools
+    }
+    return $false
+}
 
-if ($DeveloperTools -ne 'report') {
-    $nextTools = switch ($DeveloperTools) {
-        'on' { $true }
-        'off' { $false }
-        'toggle' { -not $currentTools }
-    }
-    if ($config.PSObject.Properties.Name -contains 'EnableDeveloperTools') {
-        $config.EnableDeveloperTools = $nextTools
+function Set-DeveloperTools($Config, [bool]$Value) {
+    if ($Config.PSObject.Properties.Name -contains 'EnableDeveloperTools') {
+        $Config.EnableDeveloperTools = $Value
     } else {
-        $config | Add-Member -NotePropertyName EnableDeveloperTools -NotePropertyValue $nextTools
+        $Config | Add-Member -NotePropertyName EnableDeveloperTools -NotePropertyValue $Value
     }
-    $config | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $runtimeConfig -Encoding UTF8
-    Write-Host "Developer tools changed to: $(if ($nextTools) { 'ON' } else { 'OFF' })" -ForegroundColor Green
+    $Config | ConvertTo-Json -Depth 32 | Set-Content -LiteralPath $runtimeConfig -Encoding UTF8
+    if ($Value) { $state = 'ON' } else { $state = 'OFF' }
+    Write-Host "Developer tools changed to: $state" -ForegroundColor Green
     Write-Host 'Restart the application to use the changed setting.' -ForegroundColor DarkGray
 }
 
-if (-not $NoPrompt -and -not $NoPause -and [Environment]::UserInteractive) {
-    Read-Host 'Press Enter to close' | Out-Null
+function Show-Status($Config) {
+    if (Get-DeveloperTools $Config) { $tools = 'ON' } else { $tools = 'OFF' }
+    if (Test-ValidContent $production) {
+        $active = 'Production'
+    } elseif (Test-ValidContent $demo) {
+        $active = 'Demo'
+    } else {
+        $active = 'none valid'
+    }
+    Write-Host ''
+    Write-Host "Portable app root: $appRoot"
+    Write-Host "Runtime config:    $runtimeConfig"
+    Write-Host "Developer tools:   $tools"
+    Write-Host "Active content on next launch: $active"
+}
+
+$config = Read-RuntimeConfig
+Show-Status $config
+
+# An explicit -DeveloperTools value is a scripted change: apply it and do not prompt.
+if ($DeveloperTools -ne 'report') {
+    switch ($DeveloperTools) {
+        'on'     { Set-DeveloperTools $config $true }
+        'off'    { Set-DeveloperTools $config $false }
+        'toggle' { Set-DeveloperTools $config (-not (Get-DeveloperTools $config)) }
+    }
+    Wait-ForClose
+    exit 0
+}
+
+# No arguments: a double-clicked helper that can only report is not much of a helper,
+# so offer the same changes the flags make.
+if ($NoPrompt -or -not [Environment]::UserInteractive) {
+    Wait-ForClose
+    exit 0
+}
+
+while ($true) {
+    Write-Host ''
+    Write-Host '  [1] Turn developer tools ON'
+    Write-Host '  [2] Turn developer tools OFF'
+    Write-Host '  [3] Toggle developer tools'
+    Write-Host '  [R] Re-read and show current settings'
+    Write-Host '  [Q] Quit'
+    $answer = Read-Line 'Choose an option'
+    if ($null -eq $answer) { exit 0 }
+    $choice = $answer.Trim().ToLowerInvariant()
+
+    switch ($choice) {
+        '1' { Set-DeveloperTools $config $true }
+        '2' { Set-DeveloperTools $config $false }
+        '3' { Set-DeveloperTools $config (-not (Get-DeveloperTools $config)) }
+        'r' { $config = Read-RuntimeConfig; Show-Status $config }
+        'q' { exit 0 }
+        ''  { }
+        default { Write-Host "Not an option: $choice" -ForegroundColor Yellow }
+    }
 }

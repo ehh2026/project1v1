@@ -6,7 +6,14 @@ No .NET SDK or .NET Desktop Runtime installation is required. The first public p
 
 ## Configuration and developer tools
 
-`Tools\Configure-InteractiveWorldMap.bat` shows the resolved package paths and the current developer-tools setting. It also supports explicit changes:
+Double-click `Tools\Configure-InteractiveWorldMap.bat`. It shows the resolved package paths and the
+current developer-tools setting, then offers a menu to turn developer tools on, off, or toggle them.
+
+Run the `.bat` rather than the `.ps1`: double-clicking a `.ps1` in Explorer either opens it in an editor
+or is blocked by the execution policy, which is why it appears to flash and vanish. The `.bat` launches
+PowerShell with the right switches.
+
+The same changes can be made without the menu, which is the form to use from a script:
 
 ```bat
 Tools\Configure-InteractiveWorldMap.bat -DeveloperTools on
