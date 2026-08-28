@@ -4,6 +4,10 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Rapid clicks no longer strand a content window or overlap a zoom:** a second marker click while the first was still loading could leave the first window open with nothing able to close it — Escape, clicking away and zooming out all acted on the newest window only — holding its decoded images for the rest of the session. The newest click now wins and the superseded one stops cleanly. Cluster markers, Back and Escape are also ignored while a zoom animation is running, matching individual markers; an ignored Back no longer cancels the content a single-location zoom is about to open. If a zoom fails part-way, navigation now recovers instead of blocking every later click and Back press until restart.
+
+- **`app.log` no longer grows without limit:** the log rotates at 10 MB and keeps three older generations (`app.log.1` … `app.log.3`), capping it near 40 MB instead of growing for as long as the app is left running.
+
 - **Portable release helper is interactive:** running `Tools\Configure-InteractiveWorldMap.bat` with no arguments (including by double-click) now shows a menu to turn developer tools on, off, or toggle them, instead of only reporting the current setting. The `-DeveloperTools` flag form is unchanged, and `-NoPrompt` suppresses both the menu and the closing pause.
 
 - **Portable Windows release pipeline:** Added a reproducible self-contained `win-x64` publish profile, guarded package/zip validator, package-local configuration helper with developer-tools on/off/toggle support, public content staging that excludes Production and Extras, durable recipient guide, and tag/manual GitHub Actions workflow. Tag runs attach the already-validated artifact to a GitHub Release; manual dispatch uploads an artifact only. Signing, installer/update support, `win-arm64`, and the .NET 8 migration remain deferred.

@@ -14,6 +14,11 @@ namespace InteractiveWorldMap.Services
     {
         private static readonly TimeSpan WriterShutdownTimeout = TimeSpan.FromSeconds(5);
 
+        // Caps log consumption at roughly 40 MB total. Tests override these through the internal
+        // writer settings below rather than by writing tens of megabytes.
+        internal static long MaxLogBytes = LogFileRotator.DefaultMaxBytes;
+        internal static int LogGenerations = LogFileRotator.DefaultGenerations;
+
         private static BlockingCollection<string> _queue = new BlockingCollection<string>(boundedCapacity: 2000);
         private static Thread? _writerThread;
         private static string? _logFilePath;
@@ -116,20 +121,40 @@ namespace InteractiveWorldMap.Services
         {
             try
             {
-                using var writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
-                foreach (var message in queue.GetConsumingEnumerable())
+                var writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+                try
                 {
-                    // Console/Debug output happens here on the background thread, not on the
-                    // (often UI) thread that logged — so logging never blocks the caller.
-                    Console.WriteLine(message);
-                    System.Diagnostics.Debug.WriteLine(message);
+                    foreach (var message in queue.GetConsumingEnumerable())
+                    {
+                        // Console/Debug output happens here on the background thread, not on the
+                        // (often UI) thread that logged — so logging never blocks the caller.
+                        Console.WriteLine(message);
+                        System.Diagnostics.Debug.WriteLine(message);
 
-                    writer.WriteLine(message);
-                    // Flush only when queue is momentarily empty (batches writes)
-                    if (queue.Count == 0)
+                        writer.WriteLine(message);
+                        // Flush only when queue is momentarily empty (batches writes)
+                        if (queue.Count != 0)
+                            continue;
+
                         writer.Flush();
+
+                        // Rotation lives here because this thread is the only writer of the file:
+                        // checking after a flush means the length is accurate, and closing then
+                        // reopening cannot race any other producer.
+                        if (!LogFileRotator.ShouldRotate(writer.BaseStream.Length, MaxLogBytes))
+                            continue;
+
+                        writer.Dispose();
+                        LogFileRotator.Rotate(logFilePath, LogGenerations);
+                        writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+                    }
+
+                    writer.Flush();
                 }
-                writer.Flush();
+                finally
+                {
+                    writer.Dispose();
+                }
             }
             catch (Exception ex)
             {
