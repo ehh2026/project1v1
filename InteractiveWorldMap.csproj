@@ -24,8 +24,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Content is read from BaseDirectory at runtime, so it must stay beside the exe.
+         Without ExcludeFromSingleFile the single-file bundler absorbs some of these files
+         into the exe and they silently vanish from the published folder. -->
     <None Update="Images&amp;Content\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
     </None>
 
     <None Update="visual-config.default.json">
