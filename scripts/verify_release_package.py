@@ -94,10 +94,13 @@ def validate_zip(archive: Path) -> list[str]:
 
     errors: list[str] = []
     with zipfile.ZipFile(archive) as release_zip:
-        names = release_zip.namelist()
+        # Zip members may use either separator; judge them in one normalized form so a
+        # Windows-style "sub\..\..\outside" cannot hide its traversal from PurePosixPath.
+        names = [name.replace("\\", "/") for name in release_zip.namelist()]
         for name in names:
             path = PurePosixPath(name)
-            if path.is_absolute() or ".." in path.parts:
+            drive_qualified = bool(path.parts) and ":" in path.parts[0]
+            if path.is_absolute() or drive_qualified or ".." in path.parts:
                 errors.append(f"unsafe archive member: {name}")
 
         roots = {PurePosixPath(name).parts[0] for name in names if PurePosixPath(name).parts}

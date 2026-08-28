@@ -20,7 +20,7 @@ The helper seeds a missing runtime config. If it reports malformed JSON, re-run 
 
 The download includes app-owned `Images&Content\Assets` and a `Demo-Content` fallback. It deliberately does not include Production data.
 
-To use your own data, create or replace `Images&Content\Production-Content`. It must contain either `locations.json` or `Coordinates for map.xlsx` plus the location folders and content described in [Content sets](../guides/CONTENT_SETS.md) and [Content features](../guides/CONTENT_FEATURES.md). Restart the app after changing content. A valid Production set automatically wins over Demo.
+To use your own data, create or replace `Images&Content\Production-Content`. It must contain either `locations.json` or `Coordinates for map.xlsx` plus the location folders and content described in [Content sets](https://github.com/ehh2026/project1v1/blob/main/docs/guides/CONTENT_SETS.md) and [Content features](https://github.com/ehh2026/project1v1/blob/main/docs/guides/CONTENT_FEATURES.md). Restart the app after changing content. A valid Production set automatically wins over Demo.
 
 Keep `Assets` unchanged. To return to the bundled demo, rename `Production-Content` to `Production-Content.disabled` and restart.
 
