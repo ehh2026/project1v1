@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **Portable release helper is interactive:** running `Tools\Configure-InteractiveWorldMap.bat` with no arguments (including by double-click) now shows a menu to turn developer tools on, off, or toggle them, instead of only reporting the current setting. The `-DeveloperTools` flag form is unchanged, and `-NoPrompt` suppresses both the menu and the closing pause.
+
 - **Portable Windows release pipeline:** Added a reproducible self-contained `win-x64` publish profile, guarded package/zip validator, package-local configuration helper with developer-tools on/off/toggle support, public content staging that excludes Production and Extras, durable recipient guide, and tag/manual GitHub Actions workflow. Tag runs attach the already-validated artifact to a GitHub Release; manual dispatch uploads an artifact only. Signing, installer/update support, `win-arm64`, and the .NET 8 migration remain deferred.
 
 - **Documentation bookkeeping:** Archived the completed layout-editor safety, edit-session-context, and thumbnail-scroll plans; the physical touchscreen smoke confirmed thumbnail swipe-versus-tap behavior.

@@ -6,12 +6,19 @@ No .NET SDK or .NET Desktop Runtime installation is required. The first public p
 
 ## Configuration and developer tools
 
-`Tools\Configure-InteractiveWorldMap.bat` shows the resolved package paths and the current developer-tools setting. It also supports explicit changes:
+Double-click `Tools\Configure-InteractiveWorldMap.bat`. It shows the resolved package paths and the
+current developer-tools setting, then offers a menu to turn developer tools on, off, or toggle them.
+
+Run the `.bat` rather than the `.ps1`: double-clicking a `.ps1` in Explorer either opens it in an editor
+or is blocked by the execution policy, which is why it appears to flash and vanish. The `.bat` launches
+PowerShell with the right switches.
+
+The same changes can be made without the menu. Add `-NoPrompt` when calling from a script, so it neither asks nor waits:
 
 ```bat
-Tools\Configure-InteractiveWorldMap.bat -DeveloperTools on
-Tools\Configure-InteractiveWorldMap.bat -DeveloperTools off
-Tools\Configure-InteractiveWorldMap.bat -DeveloperTools toggle
+Tools\Configure-InteractiveWorldMap.bat -DeveloperTools on -NoPrompt
+Tools\Configure-InteractiveWorldMap.bat -DeveloperTools off -NoPrompt
+Tools\Configure-InteractiveWorldMap.bat -DeveloperTools toggle -NoPrompt
 ```
 
 The helper seeds a missing runtime config. If it reports malformed JSON, re-run it with `-ResetMalformedConfig`; the broken file is renamed alongside the replacement so it can be recovered. Restart the app after configuration changes.
