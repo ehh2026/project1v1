@@ -4,6 +4,8 @@ All notable changes to this project are documented here. Format follows [Keep a 
 
 ## [Unreleased]
 
+- **A crash now leaves evidence, and usually is not a crash:** unhandled errors were ending the application with nothing written down — the window simply closed and `app.log` stopped mid-action, which is unhelpful when the report comes from a machine you cannot inspect. Every unhandled error is now logged, and one that reaches the UI no longer closes the app: the map stays on screen. If a zoom animation fails part-way it now lands on the view it was heading for instead of freezing. What a gallery machine would still need to run unwatched is written down in [docs/reference/unattended-kiosk.md](docs/reference/unattended-kiosk.md).
+
 - **Rapid clicks no longer strand a content window or overlap a zoom:** a second marker click while the first was still loading could leave the first window open with nothing able to close it — Escape, clicking away and zooming out all acted on the newest window only — holding its decoded images for the rest of the session. The newest click now wins and the superseded one stops cleanly. Cluster markers, Back and Escape are also ignored while a zoom animation is running, matching individual markers; an ignored Back no longer cancels the content a single-location zoom is about to open. If a zoom fails part-way, navigation now recovers instead of blocking every later click and Back press until restart.
 
 - **`app.log` no longer grows without limit:** the log rotates at 10 MB and keeps three older generations (`app.log.1` … `app.log.3`), capping it near 40 MB instead of growing for as long as the app is left running.

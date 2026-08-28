@@ -543,8 +543,12 @@ namespace InteractiveWorldMap
             var frameCount = 0;
             var lastFrameMs = 0.0;
 
+            // Set immediately before onAnimationComplete runs, so the recovery path below can tell
+            // "the frame threw" from "the completion callback threw" and never runs completion twice.
+            var completionStarted = false;
+
             EventHandler? renderHandler = null;
-            renderHandler = (s, e) =>
+            EventHandler frameHandler = (s, e) =>
             {
                 frameCount++;
                 var elapsed = animClock.Elapsed.TotalMilliseconds;
@@ -582,7 +586,51 @@ namespace InteractiveWorldMap
                     UpdateMarkerPositions();
                     onFrameUpdated?.Invoke();
 
+                    completionStarted = true;
                     onAnimationComplete();
+                }
+            };
+
+            // A throw inside a CompositionTarget.Rendering callback is not caught by the caller —
+            // this handler runs long after AnimateZoomToCluster/AnimateZoomOut have returned, so
+            // their try/catch cannot see it and the process would end mid-zoom. This runs on every
+            // frame of every zoom, which makes it the largest unguarded surface in the app. Recovery
+            // is to stop animating and land on the destination view rather than leave the map frozen
+            // part-way, so a visitor sees a zoom that finished abruptly instead of a closed window.
+            renderHandler = (s, e) =>
+            {
+                try
+                {
+                    frameHandler(s, e);
+                }
+                catch (Exception ex)
+                {
+                    CompositionTarget.Rendering -= renderHandler;
+                    _mode = InteractionMode.Normal;
+                    _logger.LogError(
+                        $"{animationLabel} failed at frame {frameCount}; landing on the target view: " +
+                        $"{ex.Message}\n{ex.StackTrace}");
+
+                    try
+                    {
+                        MapDisplay.UpdateViewport(targetViewport);
+                        UpdateMarkerPositions();
+                        onFrameUpdated?.Invoke();
+
+                        // Skipped when the completion callback itself threw: it has already run, and
+                        // it is the half that shows the Back button and swaps the marker set.
+                        if (!completionStarted)
+                        {
+                            completionStarted = true;
+                            onAnimationComplete();
+                        }
+                    }
+                    catch (Exception recoveryEx)
+                    {
+                        _logger.LogError(
+                            $"{animationLabel} recovery also failed; the view may be inconsistent: " +
+                            $"{recoveryEx.Message}");
+                    }
                 }
             };
 

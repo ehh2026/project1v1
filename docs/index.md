@@ -20,6 +20,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 | [reference/](reference/) | Quality, reliability, security |
 | [reference/GLOSSARY.md](reference/GLOSSARY.md) | Shared project terms for pins, layouts, and seeds |
 | [reference/layout-editor-known-issues.md](reference/layout-editor-known-issues.md) | Layout editor bugs in plain language: what broke, what changes |
+| [reference/unattended-kiosk.md](reference/unattended-kiosk.md) | What the app survives on its own, and what a gallery machine still needs to run unwatched |
 | [reference/manual-layout-scoping.md](reference/manual-layout-scoping.md) | Why a saved layout belongs to one view, and the three traps that make them look lost |
 | [../ARCHITECTURE.md](../ARCHITECTURE.md) | Layer model, invariants, domain map |
 | [../scripts/README.md](../scripts/README.md) | Script catalog, Python venv |
