@@ -292,6 +292,10 @@ public class FileLoggerRotationTests
                 Assert.True(
                     await WaitForContent(logPath, "written after the lock was released"),
                     "expected the writer to recover once the log file became available");
+
+                // The lines logged during the lock are the ones explaining what this copy of the
+                // app was doing while it could not say so, so they are held rather than discarded.
+                Assert.Contains("written while the file was locked", ReadShared(logPath));
             }
         }
         finally
@@ -306,18 +310,21 @@ public class FileLoggerRotationTests
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (DateTime.UtcNow < deadline)
         {
-            if (File.Exists(path))
-            {
-                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var reader = new StreamReader(stream);
-                if (reader.ReadToEnd().Contains(expected))
-                    return true;
-            }
+            if (File.Exists(path) && ReadShared(path).Contains(expected))
+                return true;
 
             await Task.Delay(25);
         }
 
         return false;
+    }
+
+    // The logger holds the file open for writing, so a plain File.ReadAllText is refused.
+    private static string ReadShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     private static async Task<bool> WaitForFile(string path)
