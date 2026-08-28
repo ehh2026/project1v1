@@ -18,6 +18,10 @@ EXPECTED_FILES = {
     # Services/StartupValidator.cs treats a missing world map image as a hard startup
     # error, so an archive without it is broken on arrival rather than merely sparse.
     "images&content/assets/world map extra large.jpg",
+    # The cluster stamp degrades silently: MainWindow uses TryLoadContentBitmap and falls
+    # back to a plain numbered badge, so a package missing it looks fine until someone
+    # notices the stamps are gone. The single-file bundler dropped exactly this file once.
+    "images&content/assets/stamp_demo.png",
 }
 # The same validator's other hard error: the active content set needs a coordinate
 # source. Demo-Content is the shipped fallback, so it must carry one of these.
