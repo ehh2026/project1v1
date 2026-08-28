@@ -1,0 +1,82 @@
+name: Publish portable Windows release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version without a leading v (for example, 1.2.3)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set release version
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          $version = if ($env:EVENT_NAME -eq 'push') { $env:REF_NAME.Substring(1) } else { $env:INPUT_VERSION }
+          if ($version -notmatch '^[0-9][0-9A-Za-z.-]*$') {
+            throw 'Version must start with a digit and use only letters, digits, dots, and hyphens.'
+          }
+          "RELEASE_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Setup .NET 6 SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: "6.0.x"
+
+      - name: Verify
+        shell: pwsh
+        run: .\scripts\verify.ps1
+
+      - name: Publish self-contained app
+        shell: pwsh
+        run: dotnet publish InteractiveWorldMap.csproj -c Release -p:PublishProfile=Properties\PublishProfiles\WindowsPortable.pubxml -o artifacts\publish\win-x64
+
+      - name: Stage and validate release archive
+        shell: pwsh
+        run: .\scripts\package_windows_release.ps1 -PublishDirectory artifacts\publish\win-x64 -OutputDirectory artifacts\release -Version $env:RELEASE_VERSION
+
+      - name: Upload portable release archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: portable-release
+          path: artifacts/release/InteractiveWorldMap-win-x64-${{ env.RELEASE_VERSION }}.zip
+          if-no-files-found: error
+
+  release:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    needs: package
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated release archive
+        uses: actions/download-artifact@v4
+        with:
+          name: portable-release
+          path: release-artifact
+
+      - name: Create GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          $archive = Get-ChildItem -LiteralPath release-artifact -Filter '*.zip' -File | Select-Object -First 1
+          if ($null -eq $archive) { throw 'Expected exactly one validated release archive.' }
+          if ((Get-ChildItem -LiteralPath release-artifact -Filter '*.zip' -File).Count -ne 1) { throw 'Expected exactly one validated release archive.' }
+          gh release create $env:RELEASE_TAG $archive.FullName --title "Interactive World Map $env:RELEASE_TAG" --generate-notes

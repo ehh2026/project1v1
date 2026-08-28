@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** August 24, 2026
+**Last updated:** August 27, 2026
 
 ## Zoom & animation
 
@@ -37,7 +37,7 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 ## Developer tooling
 
-- [ ] Explore building a distributable Windows executable (local `dotnet publish` + optional GitHub Actions publish job): decide self-contained vs framework-dependent, single file vs zip, signing, and installer needs — see [BUILDING_EXECUTABLE.md](guides/BUILDING_EXECUTABLE.md)
+- [ ] Build the first portable Windows release: self-contained `win-x64` zip, package-local config helper, user-provided `Production-Content`, and tag/manual GitHub Actions publishing — [windows-portable-release-plan.md](exec-plans/active/windows-portable-release-plan.md). Deferred: code signing, installer/updater, `win-arm64`, and .NET 8 migration.
 - [ ] Increase test coverage from the latest full-run snapshot of **49.4% line / 44.7% branch** toward 50% line / 45% branch (then 60%/50%): MainWindow source guards, radial adjuster/calculator, and ContentLoader didactic/caption/error-path expansions are merged (tests-only); Qodo review hardening is verified. Still ~0.6pp line / ~0.3pp branch short of the next ratchet. Blocking gates remain 45%/40%.
 - [ ] Expose content-window appearance controls in Runtime Tuning/config: border thickness and color, corner roundness, font family, font size, and font color.
 

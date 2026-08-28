@@ -1,5 +1,17 @@
 # Building a Windows Executable
 
+## Supported portable release
+
+The checked-in `WindowsPortable` publish profile creates a self-contained, single-file `win-x64` executable. The package script constructs the public folder: it includes `Assets` and `Demo-Content`, excludes `Production-Content`, `Extras`, symbols, and runtime config, and copies a package-local configuration helper.
+
+```powershell
+dotnet publish InteractiveWorldMap.csproj -c Release -p:PublishProfile=Properties\PublishProfiles\WindowsPortable.pubxml -o artifacts\publish\win-x64
+.\scripts\package_windows_release.ps1 -PublishDirectory artifacts\publish\win-x64 -OutputDirectory artifacts\release -Version 0.0.0-local
+py -3 scripts\verify_release_package.py --zip artifacts\release\InteractiveWorldMap-win-x64-0.0.0-local.zip
+```
+
+The result contains one root folder named `InteractiveWorldMap-win-x64-<version>`. It can run without an installed .NET SDK or Desktop Runtime. See [the recipient guide](../release/PORTABLE_WINDOWS_RELEASE.md) for extraction, config, and Production-content instructions. The release workflow creates an artifact for manual dispatch and a GitHub Release only for a `v*` tag.
+
 Information and general instructions for producing a distributable Windows executable from this repo — locally and via GitHub Actions. This is a reference, not an execution plan; see [docs/exec-plans/active/](../exec-plans/active/) when a concrete build-out is scheduled.
 
 ## What exists today
