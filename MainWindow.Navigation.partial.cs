@@ -38,10 +38,6 @@ namespace InteractiveWorldMap
                 _logger.LogInfo($"  Cluster: {cluster.Count} locations");
                 _logger.LogInfo($"  Cluster center: ({cluster.CenterPoint.X:F2}, {cluster.CenterPoint.Y:F2})");
 
-                var currentState = ZoomState.CreateFullMapView();
-                _navigationService.PushState(currentState);
-                _logger.LogInfo("  Current state saved to navigation stack");
-
                 var startViewport = MapDisplay.CurrentViewport;
                 if (startViewport == null)
                 {
@@ -49,6 +45,12 @@ namespace InteractiveWorldMap
                     _autoOpenLocation = null;
                     return;
                 }
+
+                // Pushed only once the zoom is known to be startable; a push before the check above
+                // leaves a stack entry behind on the full map, showing Back with nowhere to go.
+                var currentState = ZoomState.CreateFullMapView();
+                _navigationService.PushState(currentState);
+                _logger.LogInfo("  Current state saved to navigation stack");
 
                 // Phase 1: capture settled-state pin-to-map offsets so markers track
                 // the map during the animation instead of freezing in place.
@@ -145,6 +147,11 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 _autoOpenLocation = null;
+                // _mode is set to Animating before the transition starts, and only the animation's own
+                // completion clears it. A throw in between (keyframe pre-render, viewport math) would
+                // otherwise leave it Animating forever, and every guard above blocks navigation for
+                // the rest of the session with no crash and no way back.
+                _mode = InteractionMode.Normal;
                 _logger.LogError($"Error zooming to cluster: {ex.Message}\n{ex.StackTrace}");
             }
         }
@@ -368,6 +375,11 @@ namespace InteractiveWorldMap
                 return;
             }
 
+            // Back and Escape are both reachable mid-animation; starting a second transition from
+            // here interleaves completions and pops the navigation stack twice.
+            if (_mode == InteractionMode.Animating)
+                return;
+
             if (!_navigationService.CanGoBack)
             {
                 _logger.LogWarning("Cannot go back - navigation stack is empty");
@@ -443,6 +455,9 @@ namespace InteractiveWorldMap
             }
             catch (Exception ex)
             {
+                // Same wedge as AnimateZoomToCluster: without this a failed zoom-out blocks all
+                // later navigation, including the guard added above.
+                _mode = InteractionMode.Normal;
                 _logger.LogError($"Error zooming out: {ex.Message}\n{ex.StackTrace}");
             }
         }
