@@ -267,6 +267,45 @@ public class FileLoggerRotationTests
     }
 
     [Fact]
+    public async Task WriterLoop_StartsLoggingOnceTheLogFileIsReleased()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+
+        try
+        {
+            // Somebody else holds the log at the moment the writer starts — most plausibly a second
+            // copy of the application. The writer must wait it out rather than give up for good.
+            File.WriteAllText(logPath, "held by another process" + Environment.NewLine);
+            var blocker = new FileStream(logPath, FileMode.Open, FileAccess.Write, FileShare.None);
+
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                logger.LogInfo("written while the file was locked");
+                await Task.Delay(100);
+
+                blocker.Dispose();
+
+                logger.LogInfo("written after the lock was released");
+
+                Assert.True(
+                    await WaitForContent(logPath, "written after the lock was released"),
+                    "expected the writer to recover once the log file became available");
+
+                // The lines logged during the lock are the ones explaining what this copy of the
+                // app was doing while it could not say so, so they are held rather than discarded.
+                Assert.Contains("written while the file was locked", ReadShared(logPath));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
     public async Task WriteTerminatingRecord_WritesImmediatelyToAFileTheLiveWriterDoesNotHold()
     {
         var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
@@ -294,10 +333,7 @@ public class FileLoggerRotationTests
 
                 var crashPath = Path.Combine(dir, "app.crash.log");
                 Assert.True(File.Exists(crashPath), "expected app.crash.log beside the main log");
-                using var crashStream = new FileStream(
-                    crashPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var crashReader = new StreamReader(crashStream);
-                Assert.Contains("fatal thing happened", crashReader.ReadToEnd());
+                Assert.Contains("fatal thing happened", ReadShared(crashPath));
             }
         }
         finally
@@ -312,18 +348,21 @@ public class FileLoggerRotationTests
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (DateTime.UtcNow < deadline)
         {
-            if (File.Exists(path))
-            {
-                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                using var reader = new StreamReader(stream);
-                if (reader.ReadToEnd().Contains(expected))
-                    return true;
-            }
+            if (File.Exists(path) && ReadShared(path).Contains(expected))
+                return true;
 
             await Task.Delay(25);
         }
 
         return false;
+    }
+
+    // The logger holds the file open for writing, so a plain File.ReadAllText is refused.
+    private static string ReadShared(string path)
+    {
+        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+        using var reader = new StreamReader(stream);
+        return reader.ReadToEnd();
     }
 
     private static async Task<bool> WaitForFile(string path)
