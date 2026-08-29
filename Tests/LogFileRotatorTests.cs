@@ -359,13 +359,19 @@ public class FileLoggerRotationTests
             // losing one to a sharing violation would defeat the point of the file.
             using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
             {
+                // Records per thread, not one each: losing a record is a race, so a
+                // single round can pass against a broken implementation. A measured ~5%
+                // loss rate with sharing turned on makes 200 records a guard rather
+                // than a coin toss.
                 const int writers = 8;
+                const int perWriter = 25;
                 using var release = new ManualResetEventSlim(false);
 
                 var threads = Enumerable.Range(0, writers).Select(i => new Thread(() =>
                 {
                     release.Wait();
-                    FileLogger.WriteTerminatingRecord($"[ERROR] fatal thing {i} happened");
+                    for (var n = 0; n < perWriter; n++)
+                        FileLogger.WriteTerminatingRecord($"[ERROR] fatal thing {i}-{n} happened");
                 })).ToList();
 
                 foreach (var thread in threads)
@@ -378,7 +384,8 @@ public class FileLoggerRotationTests
 
                 var written = ReadShared(Path.Combine(dir, "app.crash.log"));
                 for (var i = 0; i < writers; i++)
-                    Assert.Contains($"fatal thing {i} happened", written);
+                    for (var n = 0; n < perWriter; n++)
+                        Assert.Contains($"fatal thing {i}-{n} happened", written);
             }
         }
         finally
