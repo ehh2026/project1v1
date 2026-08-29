@@ -394,6 +394,42 @@ public class FileLoggerRotationTests
                 Directory.Delete(dir, recursive: true);
         }
     }
+    [Fact]
+    public void WriteTerminatingRecord_RotatesSoARestartLoopCannotFillTheDisk()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+        var crashPath = Path.Combine(dir, "app.crash.log");
+        var originalMax = FileLogger.MaxCrashBytes;
+
+        try
+        {
+            // A startup failure that happens every time, with the unattended launcher
+            // restarting the app every few seconds, writes the same record forever.
+            FileLogger.MaxCrashBytes = 2 * 1024;
+
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                for (var i = 0; i < 200; i++)
+                    FileLogger.WriteTerminatingRecord($"[ERROR] startup failed again, attempt {i}, padded out to take up room");
+            }
+
+            Assert.True(new FileInfo(crashPath).Length < FileLogger.MaxCrashBytes * 2,
+                "the live crash log grew past its limit");
+            Assert.False(File.Exists(crashPath + ".2"), "kept more generations than asked for");
+
+            // The most recent failure is the one being investigated, so it must survive.
+            Assert.Contains("attempt 199", ReadShared(crashPath));
+        }
+        finally
+        {
+            FileLogger.MaxCrashBytes = originalMax;
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
 
     private static async Task<bool> WaitForContent(string path, string expected)
     {

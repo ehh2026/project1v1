@@ -29,6 +29,20 @@ to the same place are faster because the result is kept.
 **A black screen after the gallery has been closed overnight.** That is usually Windows blanking the
 display, not the application. Move the mouse or touch the screen first.
 
+## If the map keeps reappearing when you close it
+
+That is deliberate, and it means the machine has been set up to look after itself: a small window
+called **Run-Unattended** is watching, and starts the map again whenever it closes. To stop that,
+close the **Run-Unattended** window rather than the map. To stop it starting up on its own, delete
+the shortcut to it from the Startup folder (`Windows` key + `R`, then type `shell:startup`).
+
+## If the map does not appear at all
+
+Wait ten seconds in case the machine is still starting up. If it is still absent, close the small
+**Run-Unattended** window first, then open `InteractiveWorldMap.exe` directly from the extracted
+package. It will show the actual error on screen; send a photo of that message and the log files
+described below to whoever set the map up.
+
 ## If you need to report it
 
 There is a file that records what the application was doing. Send it and it will usually be clear

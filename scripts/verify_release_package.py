@@ -14,6 +14,9 @@ EXPECTED_FILES = {
     "visual-config.default.json",
     "tools/configure-interactiveworldmap.ps1",
     "tools/configure-interactiveworldmap.bat",
+    # The unattended launcher: staff are told to put a shortcut to this in Startup, so a
+    # package missing it silently leaves the gallery machine with no restart-on-close.
+    "tools/run-unattended.bat",
     "readme.md",
     # The card gallery staff are pointed at when something looks wrong; it is their only
     # instruction for finding the log, so a package without it is missing the thing that
