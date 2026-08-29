@@ -543,8 +543,12 @@ namespace InteractiveWorldMap
             var frameCount = 0;
             var lastFrameMs = 0.0;
 
+            // Set immediately before onAnimationComplete runs, so the recovery path below can tell
+            // "the frame threw" from "the completion callback threw" and never runs completion twice.
+            var completionStarted = false;
+
             EventHandler? renderHandler = null;
-            renderHandler = (s, e) =>
+            EventHandler frameHandler = (s, e) =>
             {
                 frameCount++;
                 var elapsed = animClock.Elapsed.TotalMilliseconds;
@@ -582,7 +586,63 @@ namespace InteractiveWorldMap
                     UpdateMarkerPositions();
                     onFrameUpdated?.Invoke();
 
+                    completionStarted = true;
                     onAnimationComplete();
+                }
+            };
+
+            // A throw inside a CompositionTarget.Rendering callback is not caught by the caller —
+            // this handler runs long after AnimateZoomToCluster/AnimateZoomOut have returned, so
+            // their try/catch cannot see it and the process would end mid-zoom. This runs on every
+            // frame of every zoom, which makes it the largest unguarded surface in the app. Recovery
+            // is to stop animating and land on the destination view rather than leave the map frozen
+            // part-way, so a visitor sees a zoom that finished abruptly instead of a closed window.
+            renderHandler = (s, e) =>
+            {
+                try
+                {
+                    frameHandler(s, e);
+                }
+                catch (Exception ex)
+                {
+                    CompositionTarget.Rendering -= renderHandler;
+                    _mode = InteractionMode.Normal;
+                    _logger.LogError(
+                        $"{animationLabel} failed at frame {frameCount}; landing on the target view: " +
+                        $"{ex.Message}\n{ex.StackTrace}");
+
+                    // Landing and completion are attempted separately on purpose. If the frame threw
+                    // inside UpdateViewport, repeating it here fails identically — and sharing one
+                    // try would let that failure skip completion, which is the half that swaps the
+                    // marker set and shows the Back button. Losing both to one bad call is how a
+                    // failed zoom-in strands someone on a zoomed map still showing cluster pins.
+                    try
+                    {
+                        MapDisplay.UpdateViewport(targetViewport);
+                        UpdateMarkerPositions();
+                        onFrameUpdated?.Invoke();
+                    }
+                    catch (Exception landingEx)
+                    {
+                        _logger.LogError(
+                            $"{animationLabel} could not land on the target view: {landingEx.Message}");
+                    }
+
+                    // Skipped when the completion callback itself threw: it has already run.
+                    if (completionStarted)
+                        return;
+
+                    completionStarted = true;
+                    try
+                    {
+                        onAnimationComplete();
+                    }
+                    catch (Exception completionEx)
+                    {
+                        _logger.LogError(
+                            $"{animationLabel} completion failed; the view may be inconsistent: " +
+                            $"{completionEx.Message}");
+                    }
                 }
             };
 

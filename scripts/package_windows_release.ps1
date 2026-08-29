@@ -82,6 +82,7 @@ Get-ChildItem -LiteralPath $stagingRoot -Recurse -File |
 
 Copy-Item -LiteralPath (Join-Path $repoRoot 'release-tools') -Destination (Join-Path $stagingRoot 'Tools') -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\release\PORTABLE_WINDOWS_RELEASE.md') -Destination (Join-Path $stagingRoot 'README.md') -Force
+Copy-Item -LiteralPath (Join-Path $repoRoot 'docs\release\IF_SOMETHING_LOOKS_WRONG.md') -Destination (Join-Path $stagingRoot 'IF-SOMETHING-LOOKS-WRONG.md') -Force
 
 Invoke-PackageValidator @('--package-root', $stagingRoot)
 Compress-Archive -LiteralPath $stagingRoot -DestinationPath $archivePath -CompressionLevel Optimal

@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using InteractiveWorldMap.Services;
 using Xunit;
@@ -296,6 +298,94 @@ public class FileLoggerRotationTests
                 // The lines logged during the lock are the ones explaining what this copy of the
                 // app was doing while it could not say so, so they are held rather than discarded.
                 Assert.Contains("written while the file was locked", ReadShared(logPath));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public async Task WriteTerminatingRecord_WritesImmediatelyToAFileTheLiveWriterDoesNotHold()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+
+        try
+        {
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                logger.LogInfo("normal line");
+
+                // Wait until the line is on disk, which is how we know the writer thread now holds
+                // the main log open.
+                Assert.True(await WaitForContent(logPath, "normal line"), "writer never opened the log");
+
+                // The reason the record goes to a separate file rather than app.log: while the
+                // writer is alive nothing else can append to the main log at all. If this ever stops
+                // throwing, the separate crash file has become unnecessary.
+                Assert.ThrowsAny<IOException>(() => File.AppendAllText(logPath, "direct append"));
+
+                // No waiting and no background writer involved: the process this stands in for is
+                // being torn down, so the record has to exist the moment the call returns.
+                FileLogger.WriteTerminatingRecord("[ERROR] fatal thing happened");
+
+                var crashPath = Path.Combine(dir, "app.crash.log");
+                Assert.True(File.Exists(crashPath), "expected app.crash.log beside the main log");
+                Assert.Contains("fatal thing happened", ReadShared(crashPath));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void WriteTerminatingRecord_KeepsEveryRecordWhenThreadsCrashTogether()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+
+        try
+        {
+            // The runtime may run the unhandled-exception handler on several threads at
+            // once. Each of those records is the only account of a thread that is dying, so
+            // losing one to a sharing violation would defeat the point of the file.
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                // Records per thread, not one each: losing a record is a race, so a
+                // single round can pass against a broken implementation. A measured ~5%
+                // loss rate with sharing turned on makes 200 records a guard rather
+                // than a coin toss.
+                const int writers = 8;
+                const int perWriter = 25;
+                using var release = new ManualResetEventSlim(false);
+
+                var threads = Enumerable.Range(0, writers).Select(i => new Thread(() =>
+                {
+                    release.Wait();
+                    for (var n = 0; n < perWriter; n++)
+                        FileLogger.WriteTerminatingRecord($"[ERROR] fatal thing {i}-{n} happened");
+                })).ToList();
+
+                foreach (var thread in threads)
+                    thread.Start();
+
+                release.Set();
+
+                foreach (var thread in threads)
+                    Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "a crash writer hung");
+
+                var written = ReadShared(Path.Combine(dir, "app.crash.log"));
+                for (var i = 0; i < writers; i++)
+                    for (var n = 0; n < perWriter; n++)
+                        Assert.Contains($"fatal thing {i}-{n} happened", written);
             }
         }
         finally

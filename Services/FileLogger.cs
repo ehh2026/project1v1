@@ -228,6 +228,66 @@ namespace InteractiveWorldMap.Services
             }
         }
 
+        /// <summary>
+        /// Writes <paramref name="message"/> to disk on the calling thread, for the one case where
+        /// the normal path cannot work: the process is terminating. <see cref="LogError"/> only
+        /// queues, and the writer that drains that queue is a background thread the runtime abandons
+        /// during shutdown — so a record of the exception that is killing the app is exactly the
+        /// record most likely never to be written.
+        ///
+        /// It goes to a separate file because the writer thread holds the main log open against
+        /// other writers; appending there would fail while it is alive. Best-effort throughout: this
+        /// is called from a crash handler, where throwing would replace the failure being recorded.
+        /// </summary>
+        public static void WriteTerminatingRecord(string message)
+        {
+            try
+            {
+                var basePath = _logFilePath ?? DefaultLogPathProvider.Instance.LogFilePath;
+                var directory = Path.GetDirectoryName(basePath);
+                var fileName = Path.GetFileNameWithoutExtension(basePath) + ".crash.log";
+                var crashPath = string.IsNullOrEmpty(directory)
+                    ? fileName
+                    : Path.Combine(directory, fileName);
+
+                // The runtime may run the unhandled-exception handler on several threads
+                // at once, and a second copy of the app crashing at the same moment writes
+                // here too. Each of those records is the only account of a thread that is
+                // dying, so none may be lost. Writers are kept exclusive on purpose:
+                // FileMode.Append seeks to the end as it stands at open time, so two
+                // writers sharing the file would both write at the same offset and one
+                // record would vanish. Losers of the race wait and take their turn.
+                for (var attempt = 0; ; attempt++)
+                {
+                    try
+                    {
+                        using var stream = new FileStream(
+                            crashPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+                        using var writer = new StreamWriter(stream);
+                        writer.WriteLine(message);
+                        break;
+                    }
+                    catch (IOException) when (attempt < MaxCrashWriteAttempts)
+                    {
+                        Thread.Sleep(15);
+                    }
+                }
+            }
+            catch
+            {
+                // Ignored: see remarks.
+            }
+        }
+
+        /// <summary>
+        /// How many times a crash record retries a file another writer holds. Deliberately
+        /// small: in-process contention clears in microseconds, so the only thing a long
+        /// wait buys is a slow outside holder — and waiting in a handler the host may kill
+        /// at any moment is itself a way to lose the record. Past this the record is given
+        /// up, which is the one case this file cannot cover.
+        /// </summary>
+        private const int MaxCrashWriteAttempts = 10;
+
         /// <summary>Maximum lines held while the log file cannot be opened.</summary>
         private const int MaxPendingLines = 2000;
 

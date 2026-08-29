@@ -32,3 +32,7 @@ To use your own data, create or replace `Images&Content\Production-Content`. It 
 Keep `Assets` unchanged. To return to the bundled demo, rename `Production-Content` to `Production-Content.disabled` and restart.
 
 User-specific manual layouts and caches are stored under `%AppData%\InteractiveWorldMap`, namespaced by the active content set.
+
+## If something looks wrong
+
+IF-SOMETHING-LOOKS-WRONG.md, next to this file, is a one-page card for whoever looks after the machine day to day: how to restart it, which oddities are not faults, and how to find the log file to send on. It assumes no technical knowledge.

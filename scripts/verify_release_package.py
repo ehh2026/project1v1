@@ -15,6 +15,10 @@ EXPECTED_FILES = {
     "tools/configure-interactiveworldmap.ps1",
     "tools/configure-interactiveworldmap.bat",
     "readme.md",
+    # The card gallery staff are pointed at when something looks wrong; it is their only
+    # instruction for finding the log, so a package without it is missing the thing that
+    # makes a fault report useful.
+    "if-something-looks-wrong.md",
     # Services/StartupValidator.cs treats a missing world map image as a hard startup
     # error, so an archive without it is broken on arrival rather than merely sparse.
     "images&content/assets/world map extra large.jpg",
