@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using InteractiveWorldMap.Services;
 using Xunit;
@@ -334,6 +336,49 @@ public class FileLoggerRotationTests
                 var crashPath = Path.Combine(dir, "app.crash.log");
                 Assert.True(File.Exists(crashPath), "expected app.crash.log beside the main log");
                 Assert.Contains("fatal thing happened", ReadShared(crashPath));
+            }
+        }
+        finally
+        {
+            if (Directory.Exists(dir))
+                Directory.Delete(dir, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void WriteTerminatingRecord_KeepsEveryRecordWhenThreadsCrashTogether()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "FileLogger_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        var logPath = Path.Combine(dir, "app.log");
+
+        try
+        {
+            // The runtime may run the unhandled-exception handler on several threads at
+            // once. Each of those records is the only account of a thread that is dying, so
+            // losing one to a sharing violation would defeat the point of the file.
+            using (var logger = new FileLogger(new RotationLogPathProvider(logPath)))
+            {
+                const int writers = 8;
+                using var release = new ManualResetEventSlim(false);
+
+                var threads = Enumerable.Range(0, writers).Select(i => new Thread(() =>
+                {
+                    release.Wait();
+                    FileLogger.WriteTerminatingRecord($"[ERROR] fatal thing {i} happened");
+                })).ToList();
+
+                foreach (var thread in threads)
+                    thread.Start();
+
+                release.Set();
+
+                foreach (var thread in threads)
+                    Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "a crash writer hung");
+
+                var written = ReadShared(Path.Combine(dir, "app.crash.log"));
+                for (var i = 0; i < writers; i++)
+                    Assert.Contains($"fatal thing {i} happened", written);
             }
         }
         finally

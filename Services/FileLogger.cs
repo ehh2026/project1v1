@@ -250,13 +250,39 @@ namespace InteractiveWorldMap.Services
                     ? fileName
                     : Path.Combine(directory, fileName);
 
-                File.AppendAllText(crashPath, message + Environment.NewLine);
+                // The runtime may run the unhandled-exception handler on several threads
+                // at once, and a second copy of the app crashing at the same moment writes
+                // here too. Each of those records is the only account of a thread that is
+                // dying, so none may be lost. Writers are kept exclusive on purpose:
+                // FileMode.Append seeks to the end as it stands at open time, so two
+                // writers sharing the file would both write at the same offset and one
+                // record would vanish. Losers of the race wait and take their turn.
+                for (var attempt = 0; ; attempt++)
+                {
+                    try
+                    {
+                        using var stream = new FileStream(
+                            crashPath, FileMode.Append, FileAccess.Write, FileShare.Read);
+                        using var writer = new StreamWriter(stream);
+                        writer.WriteLine(message);
+                        break;
+                    }
+                    catch (IOException) when (attempt < MaxCrashWriteAttempts)
+                    {
+                        // Bounded: a record delayed past this is worth less than a crash
+                        // handler that will not return while the process is being torn down.
+                        Thread.Sleep(15);
+                    }
+                }
             }
             catch
             {
                 // Ignored: see remarks.
             }
         }
+
+        /// <summary>How many times a crash record retries a file another writer holds.</summary>
+        private const int MaxCrashWriteAttempts = 40;
 
         /// <summary>Maximum lines held while the log file cannot be opened.</summary>
         private const int MaxPendingLines = 2000;
