@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
@@ -121,9 +122,25 @@ namespace InteractiveWorldMap.Services
         {
             StreamWriter? writer = null;
 
+            // Approximate characters written since the last length check. Never larger than the
+            // rotation limit itself, so a small limit (as tests use) still gets checked promptly.
+            var rotationCheckInterval = Math.Min(1024L * 1024, Math.Max(1, MaxLogBytes));
+            var pendingBytes = 0L;
+
+            // Messages consumed while the file could not be opened. Bounded, because the hold could
+            // in principle last for the whole session: past the cap the oldest go and the count of
+            // what went is written into the log instead, so the gap is visible rather than silent.
+            var pending = new Queue<string>();
+            var droppedWhileUnavailable = 0;
+
             try
             {
-                writer = new StreamWriter(logFilePath, append: true) { AutoFlush = false };
+                // Deliberately the same forgiving open as the rotation path below. Failing here used
+                // to end the thread before it consumed anything, which costs the whole session's
+                // logging — and the likeliest cause is a second copy of the app started by accident,
+                // since StreamWriter holds the file against other writers. Whichever copy loses the
+                // race now keeps retrying and starts logging when the other one exits.
+                writer = TryOpenLog(logFilePath);
 
                 foreach (var message in queue.GetConsumingEnumerable())
                 {
@@ -138,13 +155,29 @@ namespace InteractiveWorldMap.Services
                     // every later log line is dropped for the rest of the session.
                     writer ??= TryOpenLog(logFilePath);
                     if (writer == null)
+                    {
+                        // The file is unavailable, not gone: hold what would otherwise be written
+                        // and let the next message try the open again. A lock is usually another
+                        // process that will let go, and these are exactly the lines explaining what
+                        // this copy of the app was doing while it could not say so.
+                        HoldWhileUnavailable(pending, message, ref droppedWhileUnavailable);
                         continue;
+                    }
+
+                    if (pending.Count > 0 || droppedWhileUnavailable > 0)
+                        WritePending(writer, pending, ref droppedWhileUnavailable);
 
                     writer.WriteLine(message);
-                    // Flush only when queue is momentarily empty (batches writes)
-                    if (queue.Count != 0)
+
+                    // Flush when the queue is momentarily empty (batches writes), and otherwise
+                    // once enough text has gone past to be worth measuring. Checking only at the
+                    // empty-queue boundary would mean a writer that never catches up never checks
+                    // its size at all, so a sustained burst could run past the limit unchecked.
+                    pendingBytes += message.Length + Environment.NewLine.Length;
+                    if (queue.Count != 0 && pendingBytes < rotationCheckInterval)
                         continue;
 
+                    pendingBytes = 0;
                     writer.Flush();
 
                     // Rotation lives here because this thread is the only writer of the file:
@@ -157,6 +190,14 @@ namespace InteractiveWorldMap.Services
                     writer = null;
                     LogFileRotator.Rotate(logFilePath, LogGenerations);
                     writer = TryOpenLog(logFilePath);
+                }
+
+                // Shutdown: one last attempt, since whatever held the file may have let go by now.
+                if (pending.Count > 0 || droppedWhileUnavailable > 0)
+                {
+                    writer ??= TryOpenLog(logFilePath);
+                    if (writer != null)
+                        WritePending(writer, pending, ref droppedWhileUnavailable);
                 }
 
                 writer?.Flush();
@@ -185,6 +226,64 @@ namespace InteractiveWorldMap.Services
                     Monitor.PulseAll(_initLock);
                 }
             }
+        }
+
+        /// <summary>
+        /// Writes <paramref name="message"/> to disk on the calling thread, for the one case where
+        /// the normal path cannot work: the process is terminating. <see cref="LogError"/> only
+        /// queues, and the writer that drains that queue is a background thread the runtime abandons
+        /// during shutdown — so a record of the exception that is killing the app is exactly the
+        /// record most likely never to be written.
+        ///
+        /// It goes to a separate file because the writer thread holds the main log open against
+        /// other writers; appending there would fail while it is alive. Best-effort throughout: this
+        /// is called from a crash handler, where throwing would replace the failure being recorded.
+        /// </summary>
+        public static void WriteTerminatingRecord(string message)
+        {
+            try
+            {
+                var basePath = _logFilePath ?? DefaultLogPathProvider.Instance.LogFilePath;
+                var directory = Path.GetDirectoryName(basePath);
+                var fileName = Path.GetFileNameWithoutExtension(basePath) + ".crash.log";
+                var crashPath = string.IsNullOrEmpty(directory)
+                    ? fileName
+                    : Path.Combine(directory, fileName);
+
+                File.AppendAllText(crashPath, message + Environment.NewLine);
+            }
+            catch
+            {
+                // Ignored: see remarks.
+            }
+        }
+
+        /// <summary>Maximum lines held while the log file cannot be opened.</summary>
+        private const int MaxPendingLines = 2000;
+
+        private static void HoldWhileUnavailable(Queue<string> pending, string message, ref int dropped)
+        {
+            pending.Enqueue(message);
+
+            while (pending.Count > MaxPendingLines)
+            {
+                pending.Dequeue();
+                dropped++;
+            }
+        }
+
+        private static void WritePending(StreamWriter writer, Queue<string> pending, ref int dropped)
+        {
+            if (dropped > 0)
+            {
+                writer.WriteLine(
+                    $"[WARN]  {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
+                    $"{dropped} earlier line(s) dropped while the log file was unavailable.");
+                dropped = 0;
+            }
+
+            while (pending.Count > 0)
+                writer.WriteLine(pending.Dequeue());
         }
 
         private static StreamWriter? TryOpenLog(string logFilePath)

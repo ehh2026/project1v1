@@ -75,9 +75,17 @@ namespace InteractiveWorldMap
             };
 
             // Cannot be prevented — the process is going down either way — so this exists purely to
-            // leave a record of why.
+            // leave a record of why. It writes to disk on this thread rather than only queueing:
+            // the normal path hands the line to a background writer the runtime abandons during
+            // shutdown, which would lose the record on precisely the crashes this handler is for.
             AppDomain.CurrentDomain.UnhandledException += (_, args) =>
-                LogCrash("Unhandled exception (application terminating)", args.ExceptionObject as Exception);
+            {
+                var ex = args.ExceptionObject as Exception;
+                LogCrash("Unhandled exception (application terminating)", ex);
+                FileLogger.WriteTerminatingRecord(
+                    $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
+                    $"Unhandled exception (application terminating): {ex?.Message}\n{ex?.StackTrace}");
+            };
 
             TaskScheduler.UnobservedTaskException += (_, args) =>
             {
