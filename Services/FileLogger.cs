@@ -269,8 +269,6 @@ namespace InteractiveWorldMap.Services
                     }
                     catch (IOException) when (attempt < MaxCrashWriteAttempts)
                     {
-                        // Bounded: a record delayed past this is worth less than a crash
-                        // handler that will not return while the process is being torn down.
                         Thread.Sleep(15);
                     }
                 }
@@ -281,8 +279,14 @@ namespace InteractiveWorldMap.Services
             }
         }
 
-        /// <summary>How many times a crash record retries a file another writer holds.</summary>
-        private const int MaxCrashWriteAttempts = 40;
+        /// <summary>
+        /// How many times a crash record retries a file another writer holds. Deliberately
+        /// small: in-process contention clears in microseconds, so the only thing a long
+        /// wait buys is a slow outside holder — and waiting in a handler the host may kill
+        /// at any moment is itself a way to lose the record. Past this the record is given
+        /// up, which is the one case this file cannot cover.
+        /// </summary>
+        private const int MaxCrashWriteAttempts = 10;
 
         /// <summary>Maximum lines held while the log file cannot be opened.</summary>
         private const int MaxPendingLines = 2000;
