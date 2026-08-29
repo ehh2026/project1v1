@@ -37,7 +37,7 @@ what happened.
 1. Hold the **Windows key** and press **R**.
 2. Type this and press Enter:
 
-   ```
+   ```text
    %APPDATA%\InteractiveWorldMap\logs
    ```
 
