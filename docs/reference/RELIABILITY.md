@@ -18,6 +18,14 @@ On Windows PowerShell:
 .\scripts\query_logs.ps1 -Filter "zoom" -Last 100 -Json
 ```
 
+### Crash records
+
+A crash that ends the process is written synchronously to `app.crash.log` in the same
+folder, because the ordinary writer is a background thread the runtime abandons at
+shutdown — so `app.log` may stop mid-line with nothing explaining why. The file exists
+only if the application has closed unexpectedly. A faulted background task is logged to
+`app.log` as usual and does not end the process or produce a crash record.
+
 ### Log Levels
 
 | Level | Prefix | When used |
