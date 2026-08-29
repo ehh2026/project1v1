@@ -47,9 +47,12 @@ a launcher. Setup steps are in the packaged guide.
 **Automatic logon and a locked-down desktop.** A gallery machine that reboots overnight comes back to
 a login screen, and the Startup shortcut only fires once somebody logs in. Auto-logon means storing
 the account password where Windows can read it back, which is a poor trade for a machine in a public
-room — setting Active Hours so it does not reboot unattended is the cheaper answer. Windows' own
-kiosk mode (Assigned Access, or Shell Launcher for desktop applications) needs Enterprise or
-Education, so it is likely unavailable and the launcher above covers most of what it would give.
+room. Active Hours narrows when Windows may restart for an update but does not prevent it: the
+window is at most 18 hours, and restarts are scheduled outside it. Pausing updates for the run
+of the show (Settings, Windows Update — up to five weeks on Pro) is blunter and more
+dependable. Windows' own kiosk modes are a larger setup than the launcher, not an unavailable
+one: Assigned Access runs on Pro and can auto-start a desktop application in its
+restricted-user configuration, while Shell Launcher does need Enterprise or Education.
 
 **Power and display settings.** Sleep, screen blanking and the screen saver all have to be disabled,
 or the map is a black rectangle by the second morning. Settings-app clicks, listed in the packaged
