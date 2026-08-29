@@ -8,12 +8,13 @@ It is written down so the gap is a decision rather than a surprise.
 
 ## What the application does today
 
-**Failures are logged instead of silent.** Every unhandled exception is written to
-`%APPDATA%\InteractiveWorldMap\logs\app.log` before anything else happens — see
-[RELIABILITY.md](RELIABILITY.md). An exception that escapes a UI event handler no longer closes the
-window; it is logged and the app keeps running, which may leave the display in an odd state but keeps
-the map on screen. An exception on a background thread still ends the process, but now leaves a
-record of why.
+**Failures are logged instead of silent.** Logs live in
+`%APPDATA%\InteractiveWorldMap\logs` — see [RELIABILITY.md](RELIABILITY.md). An exception that
+escapes a UI event handler no longer closes the window; it is logged to `app.log` and the app
+keeps running, which may leave the display in an odd state but keeps the map on screen. An
+exception on a background thread still ends the process, but it is first written straight to
+disk as `app.crash.log`, so the reason survives a shutdown that abandons the ordinary log
+writer.
 
 **A failed zoom lands rather than freezes.** If a frame of a zoom animation throws, the animation
 stops and the map jumps to where it was heading, so navigation stays usable.
