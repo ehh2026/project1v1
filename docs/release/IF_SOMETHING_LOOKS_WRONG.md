@@ -36,6 +36,13 @@ called **Run-Unattended** is watching, and starts the map again whenever it clos
 close the **Run-Unattended** window rather than the map. To stop it starting up on its own, delete
 the shortcut to it from the Startup folder (`Windows` key + `R`, then type `shell:startup`).
 
+## If the map does not appear at all
+
+Wait ten seconds in case the machine is still starting up. If it is still absent, close the small
+**Run-Unattended** window first, then open `InteractiveWorldMap.exe` directly from the extracted
+package. It will show the actual error on screen; send a photo of that message and the log files
+described below to whoever set the map up.
+
 ## If you need to report it
 
 There is a file that records what the application was doing. Send it and it will usually be clear

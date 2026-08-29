@@ -63,6 +63,7 @@ InteractiveWorldMap-win-x64-<version>/
   Tools/                            # copied from repo release-tools/
     Configure-InteractiveWorldMap.bat
     Configure-InteractiveWorldMap.ps1
+    Run-Unattended.bat              # optional restart-on-exit helper
   README.md
 ```
 
@@ -109,6 +110,7 @@ No new file should approach the 800-line cap. Automated checks protect the packa
 | `scripts/verify_release_package.py` | Create folder/zip contract checker. |
 | `release-tools/Configure-InteractiveWorldMap.ps1` | Create app-directory config inspection/reset/developer-tool toggle helper. |
 | `release-tools/Configure-InteractiveWorldMap.bat` | Create Explorer/cmd wrapper for package helper. |
+| `release-tools/Run-Unattended.bat` | Start the sibling map EXE and restart it after exit; a Startup-folder shortcut makes this optional behavior automatic after login. |
 | `docs/release/PORTABLE_WINDOWS_RELEASE.md` | Create the durable download, extraction, config, content replacement, and troubleshooting guide; staging copies it as package-root `README.md`. |
 | `.github/workflows/publish-release.yml` | Create Windows tag/manual release workflow. |
 | `docs/guides/BUILDING_EXECUTABLE.md` | Link implemented profile, package script, and release workflow. |

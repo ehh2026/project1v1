@@ -22,8 +22,9 @@ stops and the map jumps to where it was heading, so navigation stays usable.
 **A failed action does not block later ones.** Zoom, Back and Escape reset their state after an
 error, so one bad interaction cannot wedge navigation for the rest of the session.
 
-**The log has a ceiling.** It rotates at 10 MB and keeps three older copies, so a machine left on for
-months cannot fill its disk with log text.
+**Logs have ceilings.** `app.log` rotates at 10 MB and keeps three older copies. The separate
+`app.crash.log` rotates at 1 MB and keeps one older copy, so a repeated failed automatic start does
+not fill the disk with the same startup record.
 
 **Caches are bounded in practice.** The animation-frame and zoomed-region caches are keyed by the
 zoom targets, and the app has no free pan or zoom — so with a fixed set of locations and a fixed
@@ -33,16 +34,24 @@ and logged, so a full disk degrades to slower zooms rather than a crash.
 
 ## What an unattended install needs
 
-Roughly in the order that matters. The first three need no administrator rights and no particular
-edition of Windows, which is most of the benefit; the rest are worth knowing about and mostly worth
-skipping.
+Roughly in the order that matters. The first — the launcher and its Startup shortcut — needs no
+administrator rights, no particular edition of Windows and installs nothing, which is most of the
+benefit. The rest are worth knowing about and mostly worth skipping; automatic logon in particular
+does need administrator rights, since it writes under `HKEY_LOCAL_MACHINE`.
 
 **Automatic restart — covered.** `Tools\Run-Unattended.bat` starts the map and restarts it when it
-exits, so a crash or an accidental quit recovers by itself. A shortcut to it in the Startup folder
-(`shell:startup`) brings the map up after a reboot. It needs no administrator rights and installs
-nothing; removing it is deleting the shortcut. It cannot detect a hang — a frozen app has not
-exited — so freezes still need a person, and detecting them would mean health polling rather than
-a launcher. Setup steps are in the packaged guide.
+exits, so a crash or an accidental quit recovers by itself. It waits five seconds between attempts
+and keeps trying until someone closes its window. A shortcut to it in the Startup folder
+(`shell:startup`) brings the map up after a reboot. The batch file stays in the package's `Tools`
+folder; put a shortcut there, not a copy of the batch file, into Startup. It needs no administrator
+rights and installs nothing; removing the shortcut undoes automatic launch. It cannot detect a hang
+— a frozen app has not exited — so freezes still need a person, and detecting them would mean
+health polling rather than a launcher. Setup steps are in the packaged guide.
+
+The launcher starts the map with `--unattended`, which suppresses the dialog a fatal startup
+error would otherwise show. A dialog waits for a click, and the launcher waits for the process
+to exit, so the two together would leave the machine sitting on an error box instead of trying
+again. The failure is written to `app.crash.log` either way.
 
 **Automatic logon and a locked-down desktop.** A gallery machine that reboots overnight comes back to
 a login screen, and the Startup shortcut only fires once somebody logs in. Auto-logon means storing
@@ -73,9 +82,10 @@ item on this list that is a real risk with a visitor at the keyboard rather than
 **Single-instance enforcement.** Nothing stops two copies running at once and fighting over the same
 log file and caches.
 
-**Startup failures need a visitor-safe path.** A failure during startup shows a message box, which
-waits forever for a click that nobody is there to give. Unattended, it should log and exit so the
-restart mechanism can try again.
+**Startup failures, when the map is started by hand.** Started from the launcher the failure is
+logged and the process exits, so the loop tries again. Started by double-clicking the map itself
+there is still a message box waiting for a click — which is what you want in front of a person,
+and is only a problem if somebody sets the map to start directly rather than through the launcher.
 
 **Recovery from a wedged display.** The dispatcher handler keeps the app alive after an error, but it
 does not put the view back to a known-good state — no "return to the full map after N minutes idle".

@@ -39,7 +39,7 @@ IF-SOMETHING-LOOKS-WRONG.md, next to this file, is a one-page card for whoever l
 
 ## Leaving it running unattended
 
-`Tools\Run-Unattended.bat` starts the map and restarts it if it closes, so the machine recovers from a crash or from someone quitting the app. It waits for the app to exit before restarting, so only one copy ever runs. It cannot detect a freeze — an app that is hung has not exited — so that case still needs a person.
+`Tools\Run-Unattended.bat` starts the map and restarts it if it closes, so the machine recovers from a crash or from someone quitting the app. It waits for the app to exit before restarting, then waits five seconds before the next attempt; it keeps trying until its own window is closed. It cannot detect a freeze — an app that is hung has not exited — so that case still needs a person.
 
 To have it start by itself:
 
@@ -53,6 +53,16 @@ Also set, in Windows **Settings**:
 - **System → Power** — screen and sleep both set to **Never**.
 - **Personalization → Lock screen → Screen saver** — set to **(None)**.
 
+To use the helper only for the current session, double-click `Tools\Run-Unattended.bat` in the
+extracted package. Do not copy the batch file somewhere else: it finds the map EXE from its own
+`Tools` folder. It starts automatically after login only when its **shortcut** is in Startup.
+
 A blank screen the morning after is far more often the display sleeping than the map failing.
 
-**To undo all of it:** delete the shortcut from the Startup folder. Nothing is installed and nothing else on the machine is changed. To stop the loop while it is running, close its window.
+**To stop it starting by itself:** delete the shortcut from the Startup folder. Nothing was
+installed, so there is nothing to uninstall. To stop the loop while it is running, close its
+window. If the map does not appear after a few attempts, close the **Run-Unattended** window and
+open `InteractiveWorldMap.exe` directly; its error message is the useful thing to report.
+
+The power and screen-saver settings above are the exception — they are Windows settings, not
+part of the map, and they stay as you set them until you change them back in **Settings**.

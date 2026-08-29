@@ -250,6 +250,16 @@ namespace InteractiveWorldMap.Services
                     ? fileName
                     : Path.Combine(directory, fileName);
 
+                // The unattended launcher restarts the app every few seconds, so a failure
+                // that happens on every startup appends here forever. Rotate rather than let
+                // a machine left running all weekend fill its disk with one repeated record.
+                // This keeps the most recent records only — the first occurrence is lost once
+                // two generations have filled, which is a real cost, but a repeating failure
+                // repeats its stack trace and the alternative is an unbounded file.
+                var existing = new FileInfo(crashPath);
+                if (existing.Exists && LogFileRotator.ShouldRotate(existing.Length, MaxCrashBytes))
+                    LogFileRotator.Rotate(crashPath, 1);
+
                 // The runtime may run the unhandled-exception handler on several threads
                 // at once, and a second copy of the app crashing at the same moment writes
                 // here too. Each of those records is the only account of a thread that is
@@ -287,6 +297,10 @@ namespace InteractiveWorldMap.Services
         /// up, which is the one case this file cannot cover.
         /// </summary>
         private const int MaxCrashWriteAttempts = 10;
+
+        /// <summary>Size at which app.crash.log rotates. Smaller than the main log: it holds
+        /// one line per terminating failure, so anything near this is the same crash repeating.</summary>
+        internal static long MaxCrashBytes = 1024L * 1024;
 
         /// <summary>Maximum lines held while the log file cannot be opened.</summary>
         private const int MaxPendingLines = 2000;
