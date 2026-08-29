@@ -52,12 +52,13 @@ namespace InteractiveWorldMap
             {
                 logger.LogError($"FATAL ERROR during application startup: {ex.Message}\n{ex.StackTrace}");
 
-                // Same reasoning as the terminating handler below: LogError hands the line to a
-                // background writer, and this path is on its way to Shutdown, so the record can
-                // be abandoned before it reaches disk. A startup failure is the likeliest thing
-                // to go wrong on a machine nobody can attach a debugger to, and the least
-                // recoverable — the app never appears at all — so it is the last record that
-                // should be lost.
+                // Not for the reason the handler below needs it: the MessageBox blocks long
+                // enough that the queued line normally does reach app.log. This is for the case
+                // where it cannot — the writer failing to open the log at all, most plausibly a
+                // second copy of the app holding it, which is itself a decent way to fail at
+                // startup. Then app.log has nothing and this is the only record. A startup
+                // failure is the likeliest thing to go wrong on a machine nobody can attach a
+                // debugger to, and the least recoverable, since the map never appears at all.
                 FileLogger.WriteTerminatingRecord(
                     $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
                     $"FATAL ERROR during application startup: {ex.Message}" + Environment.NewLine + ex.StackTrace);
