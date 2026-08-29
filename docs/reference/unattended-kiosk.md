@@ -48,11 +48,18 @@ a launcher. Setup steps are in the packaged guide.
 a login screen, and the Startup shortcut only fires once somebody logs in. Auto-logon means storing
 the account password where Windows can read it back, which is a poor trade for a machine in a public
 room. Active Hours narrows when Windows may restart for an update but does not prevent it: the
-window is at most 18 hours, and restarts are scheduled outside it. Pausing updates for the run
-of the show (Settings, Windows Update — up to five weeks on Pro) is blunter and more
-dependable. Windows' own kiosk modes are a larger setup than the launcher, not an unavailable
-one: Assigned Access runs on Pro and can auto-start a desktop application in its
-restricted-user configuration, while Shell Launcher does need Enterprise or Education.
+window is at most 18 hours, and restarts are scheduled outside it. Pausing updates (Settings,
+Windows Update) is blunter, but it lapses after about five weeks and has to be set again
+before it does, or updates resume and a reboot can follow.
+
+Windows' own kiosk modes are a larger setup than the launcher, and on Pro a weaker one than
+they sound. Shell Launcher — the one meant for a single desktop application — needs
+Enterprise or Education. Assigned Access does run on Pro, but auto-starting a desktop
+application there means its multi-app restricted-user configuration: an XML file applied
+with PowerShell, not anything in the Settings app, which offers only Store apps and Edge.
+On Pro it also cannot block `Ctrl`+`Alt`+`Del` or `Alt`+`F4`, since the keyboard filter that
+would do it is Enterprise and Education only — so a visitor at the keyboard can still leave the
+map. Worth the effort only if the machine turns out to be Enterprise or Education.
 
 **Power and display settings.** Sleep, screen blanking and the screen saver all have to be disabled,
 or the map is a black rectangle by the second morning. Settings-app clicks, listed in the packaged
