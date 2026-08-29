@@ -26,7 +26,7 @@ Remaining before this plan can be archived:
 - **2.4** — extracted-package manual smoke is only partly recorded: first-launch config seeding was
   confirmed, but the Production fixture, `.disabled` Demo fallback, and no-runtime-installed checks
   are still outstanding.
-- **3.4** — manual `workflow_dispatch` has not been exercised; the branch is not yet pushed.
+- **3.4** — a manual `workflow_dispatch` was exercised on 2026-08-29 and exposed a nested-zip handoff: GitHub wrapped the uploaded package ZIP in its own artifact ZIP. The workflow now uploads the validated package folder for manual runs; rerun it to confirm one extraction exposes the app and `Tools` helpers, then complete the remaining Phase 2 smoke.
 - **4.4** — archive this plan and shorten the `TO_DO.md` bullet once the above are done.
 
 The release job's `gh release create` step passes `GH_REPO` because that job intentionally has no
@@ -162,9 +162,9 @@ No new file should approach the 800-line cap. Automated checks protect the packa
 
 - [x] **3.1 Create `publish-release.yml`.** Trigger on `push.tags: ["v*"]` and `workflow_dispatch`. Set workflow-level `permissions: contents: read`. The `package` job runs on `windows-latest`; checks out the requested ref; installs .NET 6 per `global.json`; runs `./scripts/verify.ps1` before publishing; then invokes the checked-in profile and staging script. Keep `ci.yml` read-only and unchanged because tag builds cannot rely on its branch-only trigger.
 
-- [x] **3.2 Build exactly one release archive.** The workflow invokes the profile and staging script. For a tag build, derive `VERSION` from `github.ref_name` by stripping exactly one leading `v` and reject values that are not filename-safe version strings. Manual runs require a clearly labelled, equally validated version input. Pass that exact value to `-Version`, and name the zip from it. Upload the validated zip using `actions/upload-artifact@v4` for both triggers. Do not rebuild/re-zip for the release step.
+- [x] **3.2 Build exactly one release archive.** The workflow invokes the profile and staging script. For a tag build, derive `VERSION` from `github.ref_name` by stripping exactly one leading `v` and reject values that are not filename-safe version strings. Manual runs require a clearly labelled, equally validated version input. Pass that exact value to `-Version`, and name the zip from it. Upload the validated package folder as the manual `portable-release` artifact so its download extracts once into the usable app layout; tag runs additionally upload that same validated zip as `portable-release-archive`. `PortableReleaseWorkflowTests` guards the package tool copy/validator contract and the manual-versus-tag artifact wiring. Do not rebuild/re-zip for the release step.
 
-- [x] **3.3 Create GitHub Releases only for tags.** Use a separate `release` job that `needs: package`, runs only for `refs/tags/v*`, declares `permissions: contents: write`, and downloads the already-uploaded archive with `actions/download-artifact@v4`. Use the GitHub CLI (`gh release create`) with `GITHUB_TOKEN` to attach that exact zip; do not rebuild or re-zip. Manual dispatch produces an artifact but no GitHub Release. If signing later uses OIDC, add `id-token: write` only to that signing job.
+- [x] **3.3 Create GitHub Releases only for tags.** Use a separate `release` job that `needs: package`, runs only for `refs/tags/v*`, declares `permissions: contents: write`, and downloads the already-uploaded `portable-release-archive` with `actions/download-artifact@v4`. Use the GitHub CLI (`gh release create`) with `GITHUB_TOKEN` to attach that exact zip; do not rebuild or re-zip. Manual dispatch produces the directly extractable folder artifact but no GitHub Release. If signing later uses OIDC, add `id-token: write` only to that signing job.
 
 - [ ] **3.4 Exercise manual dispatch.** Download the workflow artifact, validate/extract it, and complete Phase 2 manual smoke. Verify tag filename logic with a tag-shaped test reference; the maintainer creates the real version tag.
 

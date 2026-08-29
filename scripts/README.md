@@ -31,7 +31,7 @@ dotnet publish InteractiveWorldMap.csproj -c Release -p:PublishProfile=Propertie
 py -3 scripts\verify_release_package.py --zip artifacts\release\InteractiveWorldMap-win-x64-0.0.0-local.zip
 ```
 
-All output remains in git-ignored `artifacts\`. The package script copies `release-tools\` into the archive's `Tools\` directory. See [the portable release guide](../docs/release/PORTABLE_WINDOWS_RELEASE.md).
+All output remains in git-ignored `artifacts\`. The package script copies `release-tools\` into the archive's `Tools\` directory. A manual run of the GitHub publish workflow uploads that validated folder as the `portable-release` artifact, so its downloaded archive needs only one extraction; tagged GitHub Releases attach the standalone package ZIP. See [the portable release guide](../docs/release/PORTABLE_WINDOWS_RELEASE.md).
 
 ## Script catalog
 
