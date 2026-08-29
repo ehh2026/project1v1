@@ -51,6 +51,17 @@ namespace InteractiveWorldMap
             catch (Exception ex)
             {
                 logger.LogError($"FATAL ERROR during application startup: {ex.Message}\n{ex.StackTrace}");
+
+                // Same reasoning as the terminating handler below: LogError hands the line to a
+                // background writer, and this path is on its way to Shutdown, so the record can
+                // be abandoned before it reaches disk. A startup failure is the likeliest thing
+                // to go wrong on a machine nobody can attach a debugger to, and the least
+                // recoverable — the app never appears at all — so it is the last record that
+                // should be lost.
+                FileLogger.WriteTerminatingRecord(
+                    $"[ERROR] {DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - " +
+                    $"FATAL ERROR during application startup: {ex.Message}" + Environment.NewLine + ex.StackTrace);
+
                 MessageBox.Show($"Fatal error during startup:\n{ex.Message}", "Startup Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 Shutdown(1);
             }
