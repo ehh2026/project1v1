@@ -21,7 +21,7 @@ A website version of the map that gives a web visitor the **same experience as a
 |---|---|
 | Technology | Plain static site: HTML/CSS/JS + **Leaflet** with `L.imageOverlay` + `CRS.Simple` |
 | Backend | None. Static hosting (GitHub Pages, Netlify, or gallery's own host) |
-| Map rendering | **Original map images, unchanged pixel dimensions** (owner decision 2026-09-05): ship `World Map Extra Large.jpg` as-is in Leaflet `imageOverlay`; the 181-MP full-res zoom source does **not** ship (the web has no deep-zoom). Re-encode/tiling only revisited if phone testing feels too slow |
+| Map rendering | Base: ship `World Map Extra Large.jpg` (8198×5542) unchanged in Leaflet `imageOverlay`. **Dense-region sharpness** via pre-baked high-res crops cut from the 16397-px master for just the cluster bounding boxes (e.g. NYC), overlaid only when zoomed into that region (Option "regional detail patches"). Fallback: base image alone if crop tooling proves fussy. The 54 MB master itself never ships |
 | Markers | Simple drawn pins (CSS/SVG). **Composite-pin rendering is not ported.** |
 | Cluster markers | Existing **stamp image + count badge** asset |
 | Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
@@ -58,7 +58,9 @@ Meanwhile, gather facts locally:
   - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — Leaflet `imageOverlay` bounds must come from the app's geographic bounds, not assumed `-90..90`
 - [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **30.5 MB never-referenced in-repo** (59 files), CSV at `TestResults/unused-assets.csv`. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~9 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
-- [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow): copy `World Map Extra Large.jpg` into `web/images/` **unchanged**; per-location popup images → sensible web copies (same pixel content as source; optional WebP if a quality check shows no visible difference — default: keep original JPEG/PNG bytes to stay faithful). Produce `web/data/locations.json` from the content set chosen for the site
+- [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow): copy `World Map Extra Large.jpg` into `web/images/` **unchanged**; per-location popup images → sensible web copies (keep original JPEG/PNG bytes to stay faithful). Produce `web/data/locations.json` from the content set chosen for the site
+- [ ] Same script: compute dense-cluster bounding boxes from `locations.json` (port the proximity grouping rule or reuse its outputs — see `Utilities/LocationClusterer.cs`), cut matching crops from `World Map 1976.jpg`, write `web/images/crops/<region>.jpg` + a `web/data/crops.json` manifest (lon/lat bounds per crop). Must run on the machine holding the real production content, since `Production-Content/` is not committed
+- [ ] MVP uses base image + crops overlays; if overlays prove fiddly, ship base-only (documented fallback in Stage 2)
 - [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
@@ -99,7 +101,7 @@ New top-level `web/` folder (static; not referenced by the WPF build).
 - A11y audit (NVDA/VoiceOver session, WCAG 2.1 AA fixes)
 - Analytics events + consent banner
 - PWA / offline caching
-- OpenSeadragon tiles if the unchanged 11.8 MB map image measurably hurts real phone users in the Stage 2 sanity check
+- Full-map OpenSeadragon tiling of the entire 16397-px master — unnecessary once regional crops cover the dense areas; revisit only if web users routinely zoom into non-cluster regions and complain
 - GeoJSON export from the pre-bake for future map platforms
 
 ## Risks & Notes
