@@ -43,16 +43,22 @@ Ask the gallery four questions (full list in the assessment's "Open Questions"):
 
 Meanwhile, gather facts locally:
 
-- [ ] Record exact pixel dimensions of every candidate base map image in `Images&Content/Assets/` (decides Leaflet single-image vs tiles)
-- [ ] Confirm which `locations.json`/content set is the real production content
+- [x] Record exact pixel dimensions of every candidate base map image in `Images&Content/Assets/` (done 2026-09-05 — inventory in Stage 1 below; desktop uses 8198×5542 base + 16397×11085 full-res)
+- [x] Confirm which `locations.json`/content set is the real production content (done: `Production-Content/` is empty in-repo — the gallery's real content is supplied locally and never committed; `Demo-Content/` is the repo-bundled demo set)
 
 **Exit criteria:** gallery answers written down; map-image choice made with measured dimensions.
 
 ## Stage 1 — Asset audit & image prep (~1–2 days)
 
-- [ ] Write `scripts/audit_unused_assets.py`: cross-reference every file under `Images&Content/` against `locations.json`, the Excel source, and pin/stamp assets; emit a `never-referenced` report for human confirmation (expected: ~50+ MB). Read-only script; no deletes.
-- [ ] Pick the shipping map image; generate web sizes (e.g. ~2048px and ~4096px wide) as JPEG/WebP via a small script (`scripts/prepare_web_assets.py`, Pillow).
-- [ ] Run the pre-bake of popup imagery: per-location images → WebP + a medium size (~800–1200px) for popups, keep full-size only for the "view large" case.
+- [x] Record map-image inventory (done 2026-09-05):
+  - Desktop base map: `Assets/World Map Extra Large.jpg` — 8198×5542, 11.8 MB (`ContentFileNames.WorldMapFileName`)
+  - Desktop full-res zoom source: `Assets/World Map 1976.jpg` — 16397×11085, 54.5 MB, 181 MP (`ContentFileNames.FullResolutionWorldMapFileName`; triggers Pillow's decompression-bomb guard at default settings)
+  - Unreferenced map variants: `World Map Extra Large copy.jpg` (14.6 MB), `World Map Large.jpg` (2.9 MB), `Large_World_Map_bright.jpg` (3.0 MB)
+  - Production content is **not in the repo** (`Production-Content/` is a `.gitkeep` placeholder); demo set lives in `Demo-Content/`
+  - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — Leaflet `imageOverlay` bounds must come from the app's geographic bounds, not assumed `-90..90`
+- [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **30.5 MB never-referenced in-repo** (59 files), CSV at `TestResults/unused-assets.csv`. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~9 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
+- [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
+- [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow): pick shipping map; emit web sizes (e.g. ~2048px and ~4096px wide) as JPEG or WebP; per-location popup images → WebP + a medium size (~800–1200px), keep originals only if a "view large" affordance needs them
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
 
