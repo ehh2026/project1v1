@@ -20,6 +20,7 @@ started: YYYY-MM-DD
 
 | Plan | Scope |
 |------|--------|
+| [web-map-plan.md](web-map-plan.md) | Static website version of the map for the gallery (Leaflet + pre-baked content; desktop+mobile; no editing tools) |
 | [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
 | [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
 | [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |

@@ -52,6 +52,8 @@ This means the "hard GIS problem" (tile pyramids, slippy-map math) does **not** 
 
 Costing below is therefore for T1 → T2 paths only.
 
+**Owner context (Sept 5, 2026):** this is a personal project by a non-professional developer for a gallery where his wife works; **no ongoing content updates are expected**. Consequences: favor the lowest-maintenance path (fully static hosting, no server, no CMS coupling); staged work where early stages are usable on their own; accessibility/analytics/PWA extras are deferred to optional later phases rather than gatekeeping launch. The executable plan is [docs/exec-plans/active/web-map-plan.md](../exec-plans/active/web-map-plan.md) — the top item on TO_DO.md.
+
 ## Adaptation Approaches
 
 ### Option A: Static web map, new minimal front end (RECOMMENDED for T1/T2)

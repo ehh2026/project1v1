@@ -2,7 +2,11 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
 
-**Last updated:** August 27, 2026
+**Last updated:** September 5, 2026
+
+## Website (TOP PRIORITY — do this next)
+
+- [ ] Build the gallery website version of the map: static site (Leaflet + pre-baked content), desktop + mobile, read-only visitor experience, no editing tools — staged plan in [web-map-plan.md](exec-plans/active/web-map-plan.md). Start with Stage 0 (gallery questions + asset reconnaissance). Rationale and options analysis: [WEB_ADAPTATION_ASSESSMENT.md](assessments/WEB_ADAPTATION_ASSESSMENT.md).
 
 ## Zoom & animation
 
@@ -77,7 +81,6 @@ Assessment: [LARGE_FILE_REFACTORING_ASSESSMENT.md](assessments/LARGE_FILE_REFACT
 
 - [ ] Cross-platform / resolution manual testing
 - [ ] Search, pan, categories, export — future enhancements
-- [ ] Look into adapting the app to be able to run in a browser over the internet
 
 ## Deferred
 
