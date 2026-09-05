@@ -9,5 +9,6 @@ Investigations, audits, and code-quality analyses. Conclusions belong at the top
 | [UNZOOMED_MARKER_OFFSET_ASSESSMENT.md](UNZOOMED_MARKER_OFFSET_ASSESSMENT.md) | Full-map marker offset (fixed 2026-06-06) |
 | [ZOOM_LEVELS_AUDIT_ASSESSMENT.md](ZOOM_LEVELS_AUDIT_ASSESSMENT.md) | Intended vs operational zoom levels |
 | [ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md](ZOOMED_REGION_CACHE_REGRESSION_ASSESSMENT.md) | Dense-region zoom regression |
+| [WEB_ADAPTATION_ASSESSMENT.md](WEB_ADAPTATION_ASSESSMENT.md) | Feasibility analysis for adapting WPF desktop app to web browser deployment |
 
 Historical feature plans: [../archive/planning/](../archive/planning/)
