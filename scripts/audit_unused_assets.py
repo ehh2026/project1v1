@@ -15,6 +15,14 @@ Implicitly referenced (never flagged):
   - Everything under Assets/Pins_v2/ (pin composition is rule-driven from code).
   - Non-image sidecar files (.json, .xlsx, .gitkeep, .zip, .md, .txt).
 
+Matching rules (per CodeRabbit review PR #34):
+  1. A file is referenced when its normalized relative path (case-insensitive,
+     forward slashes) appears in a reference source — or when a referenced path
+     ends with that file's name (partial path in config like "Assets/x.png").
+  2. A bare basename match counts only when that basename is unique across the
+     whole content tree — otherwise `Extras/foo.png` would be wrongly suppressed
+     by a reference to `Assets/foo.png` (false negative) or vice versa.
+
 Usage (Windows):
     py -3 scripts/audit_unused_assets.py
     py -3 scripts/audit_unused_assets.py --csv TestResults/unused-assets.csv
@@ -104,6 +112,16 @@ def is_pin_part(path: str) -> bool:
     return rel.startswith("assets/pins_v2/")
 
 
+def extract_reference_tokens(reference_text: str) -> set[str]:
+    """Pull every file-like token (with extension) from the reference text."""
+    tokens: set[str] = set()
+    for match in re.finditer(r"[\w\-.()\[\] ]+?\.(?:png|jpe?g|gif|webp|bmp|tiff?)", reference_text):
+        token = match.group(0).strip().strip('"\'').lstrip("./\\").replace("\\", "/").lower()
+        if token:
+            tokens.add(token)
+    return tokens
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--csv", metavar="PATH", help="Also write the unreferenced-candidate list to CSV.")
@@ -115,6 +133,38 @@ def main() -> int:
 
     print("Scanning reference sources (json, xlsx, code)...")
     reference_text = collect_reference_text()
+    tokens = extract_reference_tokens(reference_text)
+
+    # First pass: inventory all audit-eligible files so we know basename uniqueness.
+    eligible: list[tuple[str, str, int]] = []  # (rel_path_norm, full_path, size)
+    for root, _, files in os.walk(CONTENT_DIR):
+        for name in files:
+            path = os.path.join(root, name)
+            ext = os.path.splitext(name)[1].lower()
+            if ext in SIDECAR_EXTENSIONS or name == ".gitkeep":
+                continue
+            if is_pin_part(path) or is_location_folder_file(path):
+                continue
+            rel = os.path.relpath(path, CONTENT_DIR).replace("\\", "/").lower()
+            eligible.append((rel, path, os.path.getsize(path)))
+
+    basename_counts: dict[str, int] = {}
+    for rel, _, _ in eligible:
+        base = os.path.basename(rel)
+        basename_counts[base] = basename_counts.get(base, 0) + 1
+
+    def is_referenced(rel: str) -> bool:
+        base = os.path.basename(rel)
+        for token in tokens:
+            if "/" in token:
+                # Path-like reference: exact match or suffix-of-rel match.
+                if rel == token or rel.endswith("/" + token):
+                    return True
+            else:
+                # Bare basename only counts when unique in the tree.
+                if base == token and basename_counts[base] == 1:
+                    return True
+        return False
 
     unreferenced: list[tuple[str, int, str]] = []
     totals = {"candidates_bytes": 0, "candidates": 0, "referenced": 0, "implicit": 0, "sidecar": 0}
@@ -129,15 +179,14 @@ def main() -> int:
             if is_pin_part(path) or is_location_folder_file(path):
                 totals["implicit"] += 1
                 continue
-            stem_referenced = name.lower() in reference_text
-            if stem_referenced:
+            rel_norm = os.path.relpath(path, CONTENT_DIR).replace("\\", "/").lower()
+            if is_referenced(rel_norm):
                 totals["referenced"] += 1
                 continue
             size = os.path.getsize(path)
             totals["candidates"] += 1
             totals["candidates_bytes"] += size
-            rel = os.path.relpath(path, CONTENT_DIR)
-            unreferenced.append((rel, size, os.path.dirname(rel)))
+            unreferenced.append((rel_norm, size, os.path.dirname(rel_norm)))
 
     unreferenced.sort(key=lambda row: -row[1])
 

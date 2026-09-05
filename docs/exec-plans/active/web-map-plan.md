@@ -27,16 +27,16 @@ A website version of the map that gives a web visitor the **same experience as a
 | Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
 | Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
 | Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in `web/data/README` (produced Stage 1) and validated against the desktop loader's output before Stage 2 runs |
-
-**A11y release criterion (single source of truth):** Stage 3 ships the *basics* (keyboard navigation, focus rings, ARIA labels, `alt` from captions, contrast check) as **launch scope**. A formal WCAG 2.1 AA audit with assistive technology is **optional post-launch**, not a gate. The assessment and CHANGELOG say the same thing — keep them in sync if this decision changes.
-
-**Effort convention:** all stage durations below are **solo-developer engineering days**; they exclude gallery feedback cycles, content rights review, and any waiting on third parties (aligned with the assessment's 2–3 wk prototype / 4–8 wk production framing, which *does* include those).
 | Content updates | Not expected. Pipeline exists but cadence is "rerun the script if content ever changes" |
 | Desktop app | Untouched. Shares content, no shared code |
 
+**A11y release criterion (single source of truth):** Stage 3 ships the *basics* (keyboard navigation, focus rings, ARIA labels, `alt` from captions, contrast check) as **launch scope**. A formal WCAG 2.1 AA audit with assistive technology is **optional post-launch**, not a gate — it is plain "later phases if ever" work, not built into any stage. The assessment and CHANGELOG say the same thing — keep them in sync if this decision changes.
+
+**Effort convention:** all stage durations below are **solo-developer engineering days**; they exclude gallery feedback cycles, content rights review, and any waiting on third parties (aligned with the assessment's 2–3 wk prototype / 4–8 wk production framing, which *does* include those).
+
 ## Deferred (only revisit with new requirements)
 
-WCAG audit beyond the basics built into Stage 4 · analytics/consent · PWA/offline install · GeoJSON export · OpenSeadragon tile pyramids · SEO prerendering · Blazor/ASP.NET options · streaming
+WCAG 2.1 AA formal audit (optional post-launch; not part of any stage) · analytics/consent · PWA/offline install · GeoJSON export · OpenSeadragon tile pyramids · SEO prerendering · Blazor/ASP.NET options · streaming
 
 ## Stage 0 — Decisions & asset reconnaissance (~½ day)
 
@@ -62,15 +62,17 @@ Meanwhile, gather facts locally:
   - Unreferenced map variants: `World Map Extra Large copy.jpg` (14.6 MB), `World Map Large.jpg` (2.9 MB), `Large_World_Map_bright.jpg` (3.0 MB)
   - Production content is **not in the repo** (`Production-Content/` is a `.gitkeep` placeholder); demo set lives in `Demo-Content/`
   - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — Leaflet `imageOverlay` bounds must come from the app's geographic bounds, not assumed `-90..90`
-- [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **30.5 MB never-referenced in-repo** (59 files), CSV at `TestResults/unused-assets.csv`. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~9 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
+- [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **31.8 MB never-referenced in-repo** (70 files), CSV at `TestResults/unused-assets.csv`. Updated to path-aware matching after CodeRabbit review: a referenced path must match the relative path (or a unique basename), so same-named files in `Extras/` can no longer hide behind `Assets/` matches. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~10 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
   - **Audit contract (so results are trustworthy):** reference sources = all `*.json` and `*.xlsx` under `Images&Content/` + all repo code/config (`*.cs`, `*.xaml`, `*.json`). Composite-pin composition rules are covered because `Assets/Pins_v2/` is implicitly referenced (code-driven patterns) and shared pin asset names appear in config/code. Location folders are implicitly referenced (directory enumeration at runtime). Anything outside the audit's authority must be excluded by hand before deletion.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
 - [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow, `Image.MAX_IMAGE_PIXELS = None` required — the 181 MP master trips Pillow's safety limit):
   1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (≤ 16.7 MP), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
   2. **Popup images + text sidecars:** copy per-location images **and** `didactic.txt` / `*-caption.txt` sidecars (the captions feed alt text; the audit script treats .txt as sidecar-skips but they are web content) to `web/images/content/...`, original bytes
   3. Emit `web/data/locations.json` for the chosen content set (Excel-first precedence, validated against desktop loader output)
+  4. **Alt-text contract (CodeRabbit, 2026-09-05):** in `web/data/locations.json`, every image entry gets `altText` populated at pre-bake time: caption text if a caption exists in `CaptionsByImageFileName`/caption sidecars, else a safe fallback `"<Location name> image <N>"`. No empty `alt` attributes may ship — blocked-popup-with-missing-alt is a launch failure (it breaks the Stage 3 accessibility basics).
   4. **Do not build the cluster-crop step yet** — gate it behind the Stage 2 phone test
   - Must run on the machine holding the real production content (`Production-Content/` is not committed). Note `web/` build output itself is also not committed — it's generated on demand; if the gallery later wants the built site version-controlled, that needs its own repo/pipeline decision.
+- [ ] **Stage 2 starts on a new PR** — this PR stays docs+script only.
 - [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
@@ -88,9 +90,10 @@ New top-level `web/` folder (static; not referenced by the WPF build).
 **Minimal working skeleton** (saves tutorial-hunting; adapted from the coordinate contract):
 
 ```html
+<style>html, body { height: 100%; margin: 0; } #map { height: 100%; }</style>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<div id="map" style="height:100vh"></div>
+<div id="map"></div>
 <script>
   const bounds = [[-90, -180], [90, 180]];          // full-world, matches CoordinateMapper mapping
   const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 4 });
