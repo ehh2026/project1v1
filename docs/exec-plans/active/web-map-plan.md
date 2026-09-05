@@ -21,7 +21,7 @@ A website version of the map that gives a web visitor the **same experience as a
 |---|---|
 | Technology | Plain static site: HTML/CSS/JS + **Leaflet** with `L.imageOverlay` + `CRS.Simple` |
 | Backend | None. Static hosting (GitHub Pages, Netlify, or gallery's own host) |
-| Map rendering | **Intermediate base + cluster crops** (owner decision 2026-09-05): re-encode the base map at ~4096 px wide, progressive JPEG (~3–5 MB) — required anyway because iOS Safari refuses to decode single images above ~16.7 MP, and the 45 MP desktop base would render blank on iPhones. Dense regions get high-res crops cut from the 16397-px master, shown when zoomed into that region. Deep zoom into non-cluster areas is acceptably soft; full tiling (OpenSeadragon/Leaflet tile layer from the master) is the documented upgrade path if that ever matters |
+| Map rendering | **Intermediate base first** (~4096 px progressive JPEG — required: iOS Safari refuses >~16.7 MP single images, and the 45 MP desktop base would render blank on iPhones). Free overzoom beyond native resolution is accepted at launch. **Regional high-res crops** from the 16397-px master are a conditional Stage 3 add: only if phone testing shows dense clusters (NYC etc.) look too soft when zoomed. Sparse regions staying soft at deep zoom is an accepted trade-off |
 | Markers | Simple drawn pins (CSS/SVG). **Composite-pin rendering is not ported.** |
 | Cluster markers | Existing **stamp image + count badge** asset |
 | Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
@@ -66,11 +66,11 @@ Meanwhile, gather facts locally:
   - **Audit contract (so results are trustworthy):** reference sources = all `*.json` and `*.xlsx` under `Images&Content/` + all repo code/config (`*.cs`, `*.xaml`, `*.json`). Composite-pin composition rules are covered because `Assets/Pins_v2/` is implicitly referenced (code-driven patterns) and shared pin asset names appear in config/code. Location folders are implicitly referenced (directory enumeration at runtime). Anything outside the audit's authority must be excluded by hand before deletion.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
 - [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow, `Image.MAX_IMAGE_PIXELS = None` required — the 181 MP master trips Pillow's safety limit):
-  1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (target ≤ 16.7 MP — iOS Safari refuses to render bigger single images), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
-  2. **Cluster crops:** compute dense-cluster bounding boxes from `locations.json` (port the proximity grouping rule from `Utilities/LocationClusterer.cs`), cut matching crops from the master at full resolution → `web/images/crops/<region>.jpg` + `web/data/crops.json` manifest (map-bounds per crop so the site can place the overlays)
-  3. **Popup images:** copy per-location images to `web/images/content/` (original bytes; faithful by default)
-  4. Emit `web/data/locations.json` for the chosen content set
-  - Must run on the machine holding the real production content (`Production-Content/` is not committed).
+  1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (≤ 16.7 MP), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
+  2. **Popup images + text sidecars:** copy per-location images **and** `didactic.txt` / `*-caption.txt` sidecars (the captions feed alt text; the audit script treats .txt as sidecar-skips but they are web content) to `web/images/content/...`, original bytes
+  3. Emit `web/data/locations.json` for the chosen content set (Excel-first precedence, validated against desktop loader output)
+  4. **Do not build the cluster-crop step yet** — gate it behind the Stage 2 phone test
+  - Must run on the machine holding the real production content (`Production-Content/` is not committed). Note `web/` build output itself is also not committed — it's generated on demand; if the gallery later wants the built site version-controlled, that needs its own repo/pipeline decision.
 - [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
@@ -85,19 +85,36 @@ New top-level `web/` folder (static; not referenced by the WPF build).
 - Overlay bounds: `L.imageOverlay(url, [[-90, -180], [90, 180]])` matches the app's full-world mapping. Note the image aspect (1.48:1) differs from the full-world equirectangular 2:1 — the overlay will stretch slightly in latitude, which exactly mirrors the desktop's own linear mapping; accept the same behavior for parity
 - **Fixture before any marker work:** assert the four image corners and two known locations (e.g. New York, London) land at the same lat/lon in both `CoordinateMapper` and the Leaflet map — a tiny `web/test-projection.html` page that prints expected vs actual, checked by eye in one browser run
 
+**Minimal working skeleton** (saves tutorial-hunting; adapted from the coordinate contract):
+
+```html
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div id="map" style="height:100vh"></div>
+<script>
+  const bounds = [[-90, -180], [90, 180]];          // full-world, matches CoordinateMapper mapping
+  const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 4 });
+  L.imageOverlay('images/map-base.jpg', bounds).addTo(map);
+  map.fitBounds(bounds);
+  // markers: L.marker([lat, lon]).addTo(map).bindPopup(...)  — lat/lon raw from locations.json
+</script>
+```
+
 Tasks:
 
 - [ ] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` per the coordinate contract above. Base = `web/images/map-base.jpg` (~4096 px progressive)
-- [ ] Cluster-crop overlays: load `web/data/crops.json`, add each crop as a second `L.imageOverlay`, toggled on `zoomend` when zoom ≥ threshold and the view intersects the crop's bounds (fallback: base-only if this proves fiddly)
+- [ ] **Projection fixture (do this before marker work):** `web/test-projection.html` prints expected vs actual for the four image corners + two known cities (New York, London), checked once by eye in a browser
 - [ ] Load `web/data/locations.json`; place one simple drawn pin marker per location
 - [ ] Click → popup styled like a simplified kiosk content window: images (lazy-loaded) + captions + bio text
 - [ ] Responsive: works on desktop browser and phone; initial view fitted to the map; pinch zoom on mobile
 - [ ] Local test: `py -3 -m http.server` in `web/`, verify in Chrome/Edge/Firefox + phone over LAN
+- [ ] **Phone sharpness check:** zoom into the densest cluster (NYC) on a phone. If pins/city labels are unacceptably soft, promote the regional-crop work into Stage 3; if fine, crops stay deferred
 
 **Exit criteria:** every location clickable, every popup shows its real content, on desktop and a phone.
 
 ## Stage 3 — Experience parity pass (~3–5 days)
 
+- [ ] **Conditional — regional crops, only if Stage 2's phone sharpness check failed:** extend `prepare_web_assets.py` to compute dense-cluster bounding boxes from `locations.json` and cut full-res crops from the 16397-px master → `web/images/crops/` + `web/data/crops.json`; in the site, add each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ threshold and view intersects bounds; keep overlay count small, single-digit regions)
 - [ ] Clustering: group nearby pins (leaflet.markercluster or the existing `LocationClusterer` logic ported); cluster marker = **stamp image + count badge**
 - [ ] Deep links: `#location=<id>` opens that location's popup (shareable links)
 - [ ] Accessibility basics: keyboard tab-through pins (focus ring, Enter opens), `aria-label` = location name, `alt` text on images from `CaptionsByImageFileName`, check pin/badge contrast against the map
