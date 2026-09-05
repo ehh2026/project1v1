@@ -21,9 +21,10 @@ A website version of the map that gives a web visitor the **same experience as a
 |---|---|
 | Technology | Plain static site: HTML/CSS/JS + **Leaflet** with `L.imageOverlay` + `CRS.Simple` |
 | Backend | None. Static hosting (GitHub Pages, Netlify, or gallery's own host) |
-| Map rendering | Base: ship `World Map Extra Large.jpg` (8198×5542) unchanged in Leaflet `imageOverlay`. **Dense-region sharpness** via pre-baked high-res crops cut from the 16397-px master for just the cluster bounding boxes (e.g. NYC), overlaid only when zoomed into that region (Option "regional detail patches"). Fallback: base image alone if crop tooling proves fussy. The 54 MB master itself never ships |
+| Map rendering | **Intermediate base + cluster crops** (owner decision 2026-09-05): re-encode the base map at ~4096 px wide, progressive JPEG (~3–5 MB) — required anyway because iOS Safari refuses to decode single images above ~16.7 MP, and the 45 MP desktop base would render blank on iPhones. Dense regions get high-res crops cut from the 16397-px master, shown when zoomed into that region. Deep zoom into non-cluster areas is acceptably soft; full tiling (OpenSeadragon/Leaflet tile layer from the master) is the documented upgrade path if that ever matters |
 | Markers | Simple drawn pins (CSS/SVG). **Composite-pin rendering is not ported.** |
 | Cluster markers | Existing **stamp image + count badge** asset |
+| Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
 | Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
 | Content updates | Not expected. Pipeline exists but cadence is "rerun the script if content ever changes" |
 | Desktop app | Untouched. Shares content, no shared code |
@@ -58,9 +59,12 @@ Meanwhile, gather facts locally:
   - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — Leaflet `imageOverlay` bounds must come from the app's geographic bounds, not assumed `-90..90`
 - [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **30.5 MB never-referenced in-repo** (59 files), CSV at `TestResults/unused-assets.csv`. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~9 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
-- [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow): copy `World Map Extra Large.jpg` into `web/images/` **unchanged**; per-location popup images → sensible web copies (keep original JPEG/PNG bytes to stay faithful). Produce `web/data/locations.json` from the content set chosen for the site
-- [ ] Same script: compute dense-cluster bounding boxes from `locations.json` (port the proximity grouping rule or reuse its outputs — see `Utilities/LocationClusterer.cs`), cut matching crops from `World Map 1976.jpg`, write `web/images/crops/<region>.jpg` + a `web/data/crops.json` manifest (lon/lat bounds per crop). Must run on the machine holding the real production content, since `Production-Content/` is not committed
-- [ ] MVP uses base image + crops overlays; if overlays prove fiddly, ship base-only (documented fallback in Stage 2)
+- [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow, `Image.MAX_IMAGE_PIXELS = None` required — the 181 MP master trips Pillow's safety limit):
+  1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (target ≤ 16.7 MP — iOS Safari refuses to render bigger single images), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
+  2. **Cluster crops:** compute dense-cluster bounding boxes from `locations.json` (port the proximity grouping rule from `Utilities/LocationClusterer.cs`), cut matching crops from the master at full resolution → `web/images/crops/<region>.jpg` + `web/data/crops.json` manifest (map-bounds per crop so the site can place the overlays)
+  3. **Popup images:** copy per-location images to `web/images/content/` (original bytes; faithful by default)
+  4. Emit `web/data/locations.json` for the chosen content set
+  - Must run on the machine holding the real production content (`Production-Content/` is not committed).
 - [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
@@ -69,7 +73,8 @@ Meanwhile, gather facts locally:
 
 New top-level `web/` folder (static; not referenced by the WPF build).
 
-- [ ] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` with bounds derived from the map's lon/lat extent (keep math consistent with `Utilities/CoordinateMapper.cs` — linear lon→x, lat→y)
+- [ ] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` with bounds derived from the map's lon/lat extent (keep math consistent with `Utilities/CoordinateMapper.cs` — linear lon→x, lat→y). Base = `web/images/map-base.jpg` (~4096 px progressive)
+- [ ] Cluster-crop overlays: load `web/data/crops.json`, add each crop as a second `L.imageOverlay`, toggled on `zoomend` when zoom ≥ threshold and the view intersects the crop's bounds (fallback: base-only if this proves fiddly)
 - [ ] Load `web/data/locations.json`; place one simple drawn pin marker per location
 - [ ] Click → popup styled like a simplified kiosk content window: images (lazy-loaded) + captions + bio text
 - [ ] Responsive: works on desktop browser and phone; initial view fitted to the map; pinch zoom on mobile
