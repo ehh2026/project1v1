@@ -74,7 +74,7 @@ Plain HTML/CSS/JS (or TypeScript) + **Leaflet** (image overlay, custom CRS) or *
 **Estimated effort (post-review):**
 - **Day 0 (before coding):** content rights/privacy review started; gallery questions answered (CMS, hosting, analytics, brand fonts/colors, a11y requirements); web repo + hosting + CI scaffolding.
 - T1 prototype (real map + real data, minimal styling, internal proof-of-concept only): **2–3 weeks** — includes the content pre-bake pipeline and a mobile baseline; 1–2 weeks is achievable only if the pre-bake is trivial and no mobile/a11y sanity is included.
-- T1 production (responsive, WCAG-checked with real assistive tech, gallery brand integration, deep links, CMS embed, docs + content-update handoff): **4–8 weeks**, with the spread driven mostly by gallery feedback loops and a11y remediation.
+- T1 production (responsive, a11y basics in scope — keyboard nav, focus rings, ARIA labels, caption-seeded alt text, contrast check; gallery brand integration, deep links, CMS embed, docs + content-update handoff): **4–8 weeks**, with the spread driven mostly by gallery feedback loops. A formal WCAG 2.1 AA audit with assistive technology is **optional post-launch, not a launch gate** (owner decision, Sept 5, 2026 — the execution plan and changelog say the same).
 - T2 increments (cluster badges, carousels, richer linking): **+2–6 weeks** — composite-pin replication is explicitly **excluded** (drawn pins + stamp/badge clusters; see scope decision).
 
 ### Option B: Blazor (WebAssembly or Server) (for T2/T3, or if C# reuse is strategic)

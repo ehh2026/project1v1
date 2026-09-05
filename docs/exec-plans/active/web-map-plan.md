@@ -26,6 +26,11 @@ A website version of the map that gives a web visitor the **same experience as a
 | Cluster markers | Existing **stamp image + count badge** asset |
 | Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
 | Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
+| Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in `web/data/README` (produced Stage 1) and validated against the desktop loader's output before Stage 2 runs |
+
+**A11y release criterion (single source of truth):** Stage 3 ships the *basics* (keyboard navigation, focus rings, ARIA labels, `alt` from captions, contrast check) as **launch scope**. A formal WCAG 2.1 AA audit with assistive technology is **optional post-launch**, not a gate. The assessment and CHANGELOG say the same thing — keep them in sync if this decision changes.
+
+**Effort convention:** all stage durations below are **solo-developer engineering days**; they exclude gallery feedback cycles, content rights review, and any waiting on third parties (aligned with the assessment's 2–3 wk prototype / 4–8 wk production framing, which *does* include those).
 | Content updates | Not expected. Pipeline exists but cadence is "rerun the script if content ever changes" |
 | Desktop app | Untouched. Shares content, no shared code |
 
@@ -58,6 +63,7 @@ Meanwhile, gather facts locally:
   - Production content is **not in the repo** (`Production-Content/` is a `.gitkeep` placeholder); demo set lives in `Demo-Content/`
   - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — Leaflet `imageOverlay` bounds must come from the app's geographic bounds, not assumed `-90..90`
 - [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **30.5 MB never-referenced in-repo** (59 files), CSV at `TestResults/unused-assets.csv`. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~9 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
+  - **Audit contract (so results are trustworthy):** reference sources = all `*.json` and `*.xlsx` under `Images&Content/` + all repo code/config (`*.cs`, `*.xaml`, `*.json`). Composite-pin composition rules are covered because `Assets/Pins_v2/` is implicitly referenced (code-driven patterns) and shared pin asset names appear in config/code. Location folders are implicitly referenced (directory enumeration at runtime). Anything outside the audit's authority must be excluded by hand before deletion.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
 - [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow, `Image.MAX_IMAGE_PIXELS = None` required — the 181 MP master trips Pillow's safety limit):
   1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (target ≤ 16.7 MP — iOS Safari refuses to render bigger single images), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
@@ -73,7 +79,15 @@ Meanwhile, gather facts locally:
 
 New top-level `web/` folder (static; not referenced by the WPF build).
 
-- [ ] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` with bounds derived from the map's lon/lat extent (keep math consistent with `Utilities/CoordinateMapper.cs` — linear lon→x, lat→y). Base = `web/images/map-base.jpg` (~4096 px progressive)
+**Coordinate contract (decided — CodeRabbit finding, 2026-09-05):**
+
+- `web/data/locations.json` and `crops.json` carry **raw lat/lon only — never pre-baked pixels**. `CoordinateMapper.LatLongToScreen` is top-down (lat +90 → y=0), while Leaflet `CRS.Simple` y increases upward; mixing pixel spaces here is the easiest way to flip the map. Staying in lat/lon entirely avoids the conversion: markers take `[lat, lon]` directly, and the overlay bounds are geographic
+- Overlay bounds: `L.imageOverlay(url, [[-90, -180], [90, 180]])` matches the app's full-world mapping. Note the image aspect (1.48:1) differs from the full-world equirectangular 2:1 — the overlay will stretch slightly in latitude, which exactly mirrors the desktop's own linear mapping; accept the same behavior for parity
+- **Fixture before any marker work:** assert the four image corners and two known locations (e.g. New York, London) land at the same lat/lon in both `CoordinateMapper` and the Leaflet map — a tiny `web/test-projection.html` page that prints expected vs actual, checked by eye in one browser run
+
+Tasks:
+
+- [ ] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` per the coordinate contract above. Base = `web/images/map-base.jpg` (~4096 px progressive)
 - [ ] Cluster-crop overlays: load `web/data/crops.json`, add each crop as a second `L.imageOverlay`, toggled on `zoomend` when zoom ≥ threshold and the view intersects the crop's bounds (fallback: base-only if this proves fiddly)
 - [ ] Load `web/data/locations.json`; place one simple drawn pin marker per location
 - [ ] Click → popup styled like a simplified kiosk content window: images (lazy-loaded) + captions + bio text
