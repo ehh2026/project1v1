@@ -51,6 +51,7 @@ All output remains in git-ignored `artifacts\`. The package script copies `relea
 | `verify_release_package.py` | Package script, manual release checks | Python 3 stdlib | Verifies the portable folder or zip contract without launching WPF. |
 | `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter. Incomplete active plans older than 30 days warn only (same policy as `verify_taste.py`). |
+| `audit_unused_assets.py` | Manual | stdlib | Read-only audit of `Images&Content/`: lists files never referenced by any json/xlsx/code source (location folders and `Assets/Pins_v2/` count as implicitly referenced); optional `--csv` report |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 | `create_head_asset_variants.py` | Manual | venv | Generate black-outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |
