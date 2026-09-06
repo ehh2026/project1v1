@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Interactive World Map</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #0d1b2a; font-family: Georgia, 'Times New Roman', serif; }
+  #map { height: 100%; width: 100%; background: #0d1b2a; }
+
+  /* Drawn pin: teardrop via border-radius trick (no image asset needed) */
+  .map-pin {
+    width: 26px; height: 26px;
+    background: #b23a48;
+    border: 2px solid #fff;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 4px rgba(0,0,0,.5);
+    cursor: pointer;
+  }
+  .map-pin::after {
+    content: ""; position: absolute; inset: 6px;
+    background: #fff; border-radius: 50%;
+  }
+
+  /* Popup styling */
+  .leaflet-popup-content-wrapper {
+    max-width: min(360px, 82vw);
+    border-radius: 10px;
+  }
+  .leaflet-popup-content { margin: 14px 16px; line-height: 1.45; }
+  .popup-title { margin: 0 0 4px; font-size: 1.15rem; }
+  .popup-address { color: #777; font-style: italic; margin: 0 0 8px; font-size: .85rem; }
+  .popup-bio { font-size: .9rem; margin: 8px 0; white-space: pre-line; }
+  .popup-figure { margin: 8px 0 0; }
+  .popup-figure img { width: 100%; height: auto; display: block; border-radius: 4px; }
+  .popup-caption { font-size: .8rem; color: #555; margin-top: 4px; }
+  .leaflet-popup-content p { margin: 6px 0; }
+</style>
+</head>
+<body>
+<div id="map" role="application" aria-label="Interactive world map"></div>
+<script>
+(async function () {
+  const data = await (await fetch('data/locations.json')).json();
+  const { width: W, height: H, image } = data.map;
+
+  // Coordinate contract: nx/ny are [0,1] fractions, origin top-left of the image.
+  // CRS.Simple y increases upward, so lat = (1 - ny) * H and lng = nx * W.
+  const bounds = [[0, 0], [H, W]];
+  const map = L.map('map', {
+    crs: L.CRS.Simple,
+    minZoom: -2,
+    maxZoom: 4,
+    zoomControl: true,
+    attributionControl: false,
+  });
+  L.imageOverlay(image, bounds).addTo(map);
+  map.fitBounds(bounds);
+
+  const pinIcon = L.divIcon({
+    className: '',
+    html: '<div class="map-pin" role="img"></div>',
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -26],
+  });
+
+  for (const loc of data.locations) {
+    const marker = L.marker([(1 - loc.ny) * H, loc.nx * W], {
+      icon: pinIcon,
+      title: loc.name,
+      alt: loc.name,
+      keyboard: true,
+    });
+
+    const parts = [`<h2 class="popup-title">${loc.name}</h2>`];
+    if (loc.address) parts.push(`<p class="popup-address">${loc.address}</p>`);
+    if (loc.bio) parts.push(`<div class="popup-bio">${loc.bio}</div>`);
+    for (const img of loc.images ?? []) {
+      if (img.missing) continue;
+      parts.push(
+        `<figure class="popup-figure">` +
+        `<img src="${img.file}" alt="${img.alt}" loading="lazy">` +
+        (img.alt ? `<figcaption class="popup-caption">${img.alt}</figcaption>` : '') +
+        `</figure>`
+      );
+    }
+    marker.bindPopup(parts.join(''), { maxWidth: 360 });
+    marker.addTo(map);
+  }
+})();
+</script>
+</body>
+</html>

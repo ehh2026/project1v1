@@ -6,7 +6,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ## Website (TOP PRIORITY — do this next)
 
-- [ ] Build the gallery website version of the map: static site (Leaflet + pre-baked content), desktop + mobile, read-only visitor experience, no editing tools — staged plan in [web-map-plan.md](exec-plans/active/web-map-plan.md). **Current status (2026-09-05):** PR #34 holds assessment + plan + `scripts/audit_unused_assets.py` (audit run: 70 files / 31.8 MB unused, CSV in `TestResults/`). Stage 0 local recon ✅, Stage 1 audit ✅; still to do: human-confirm audit candidates, then **Stage 2 (web/ MVP) starts on the next PR**. Rationale and options analysis: [WEB_ADAPTATION_ASSESSMENT.md](assessments/WEB_ADAPTATION_ASSESSMENT.md).
+- [ ] Gallery website version of the map — staged plan in [web-map-plan.md](exec-plans/active/web-map-plan.md). **Status (2026-09-06):** Stage 1 done on branch `web-map-mvp`: `scripts/prepare_web_assets.py` bakes demo content into a static `web/` bundle (base 2.0 MB, 38 locations, total 3.4 MB payload; coordinate contract corrected to pixel-space after discovering the data has no lat/lon). **Next:** human browser pass of `web/index.html` + `web/test-projection.html` locally + on a phone (NYC sharpness check), then Stage 3 (clustering, deep links, a11y basics). Rationale: [WEB_ADAPTATION_ASSESSMENT.md](assessments/WEB_ADAPTATION_ASSESSMENT.md).
 
 ## Zoom & animation
 
