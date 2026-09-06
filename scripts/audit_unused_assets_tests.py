@@ -6,7 +6,11 @@ Covers the CodeRabbit PR #34 finding: path separators must survive token
 extraction, and duplicate basenames must not suppress real candidates.
 """
 
+import os
+import sys
 import unittest
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import audit_unused_assets as audit
 
