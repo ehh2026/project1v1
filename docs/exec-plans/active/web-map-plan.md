@@ -67,9 +67,9 @@ Meanwhile, gather facts locally:
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
 - [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow, `Image.MAX_IMAGE_PIXELS = None` required — the 181 MP master trips Pillow's safety limit):
   1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (≤ 16.7 MP), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
-  2. **Popup images + text sidecars:** copy per-location images **and** `didactic.txt` / `*-caption.txt` sidecars (the captions feed alt text; the audit script treats .txt as sidecar-skips but they are web content) to `web/images/content/...`, original bytes
+  2. **Popup images (bounded derivatives):** for each per-location image emit a web derivative (max 1600 px on the long edge, progressive JPEG q80 or WebP q80) into `web/images/content/<Location>/`, **and** print the per-image byte size + total payload. Originals are retained only if a measured requirement justifies them (e.g. a "view large" affordance); report that too. Separately, copy `didactic.txt` / `*-caption.txt` sidecars unchanged (caption text → altText; see step 4).
   3. Emit `web/data/locations.json` for the chosen content set (Excel-first precedence, validated against desktop loader output)
-  4. **Alt-text contract (CodeRabbit, 2026-09-05):** in `web/data/locations.json`, every image entry gets `altText` populated at pre-bake time: caption text if a caption exists in `CaptionsByImageFileName`/caption sidecars, else a safe fallback `"<Location name> image <N>"`. No empty `alt` attributes may ship — blocked-popup-with-missing-alt is a launch failure (it breaks the Stage 3 accessibility basics).
+  4. **Alt-text contract (CodeRabbit, 2026-09-05):** in `web/data/locations.json`, every image entry gets `altText` populated **at pre-bake time**: caption text if a caption exists in `CaptionsByImageFileName`/caption sidecars, else a safe fallback `"<Location name> image <N>"`. No empty `alt` attributes may ship — blocked-popup-with-missing-alt is a launch failure (it breaks the Stage 3 accessibility basics). The web renderer consumes `altText` directly and has **no runtime dependency** on `CaptionsByImageFileName` or sidecar files — those are pre-bake inputs only.
   4. **Do not build the cluster-crop step yet** — gate it behind the Stage 2 phone test
   - Must run on the machine holding the real production content (`Production-Content/` is not committed). Note `web/` build output itself is also not committed — it's generated on demand; if the gallery later wants the built site version-controlled, that needs its own repo/pipeline decision.
 - [ ] **Stage 2 starts on a new PR** — this PR stays docs+script only.
@@ -91,8 +91,9 @@ New top-level `web/` folder (static; not referenced by the WPF build).
 
 ```html
 <style>html, body { height: 100%; margin: 0; } #map { height: 100%; }</style>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Leaflet self-hosted in web/vendor/ (no CDN dependency on the gallery host) -->
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
 <div id="map"></div>
 <script>
   const bounds = [[-90, -180], [90, 180]];          // full-world, matches CoordinateMapper mapping
@@ -102,6 +103,8 @@ New top-level `web/` folder (static; not referenced by the WPF build).
   // markers: L.marker([lat, lon]).addTo(map).bindPopup(...)  — lat/lon raw from locations.json
 </script>
 ```
+
+(Self-hosting `leaflet.css`/`leaflet.js` in `web/vendor/` is the established approach — no CDN trust blast radius, works if the gallery site ever goes offline-ish. If CDN becomes preferable later, use the official SRI hashes + `crossorigin`.)
 
 Tasks:
 
@@ -120,7 +123,7 @@ Tasks:
 - [ ] **Conditional — regional crops, only if Stage 2's phone sharpness check failed:** extend `prepare_web_assets.py` to compute dense-cluster bounding boxes from `locations.json` and cut full-res crops from the 16397-px master → `web/images/crops/` + `web/data/crops.json`; in the site, add each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ threshold and view intersects bounds; keep overlay count small, single-digit regions)
 - [ ] Clustering: group nearby pins (leaflet.markercluster or the existing `LocationClusterer` logic ported); cluster marker = **stamp image + count badge**
 - [ ] Deep links: `#location=<id>` opens that location's popup (shareable links)
-- [ ] Accessibility basics: keyboard tab-through pins (focus ring, Enter opens), `aria-label` = location name, `alt` text on images from `CaptionsByImageFileName`, check pin/badge contrast against the map
+- [ ] Accessibility basics: keyboard tab-through pins (focus ring, Enter opens), `aria-label` = location name, `alt` from the pre-baked `altText` field (captions are pre-bake inputs only — no renderer-time lookup), check pin/badge contrast against the map
 - [ ] Gallery polish: brand fonts/colors per Stage 0 answers; loading state; error state if a popup image is missing
 - [ ] Portrait-phone pass: initial zoom/center sane, popup fits small screens, no gesture conflicts
 

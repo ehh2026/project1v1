@@ -113,13 +113,27 @@ def is_pin_part(path: str) -> bool:
 
 
 def extract_reference_tokens(reference_text: str) -> set[str]:
-    """Pull every file-like token (with extension) from the reference text."""
+    """Pull every file-like token (with extension) from the reference text.
+    Keeps / and \\ so path-like references (Assets/foo.png) stay matchable."""
     tokens: set[str] = set()
-    for match in re.finditer(r"[\w\-.()\[\] ]+?\.(?:png|jpe?g|gif|webp|bmp|tiff?)", reference_text):
+    for match in re.finditer(r"[\w\-./\\()\[\] ]+?\.(?:png|jpe?g|gif|webp|bmp|tiff?)", reference_text):
         token = match.group(0).strip().strip('"\'').lstrip("./\\").replace("\\", "/").lower()
         if token:
             tokens.add(token)
     return tokens
+
+
+def is_referenced(rel: str, tokens: set[str], basename_counts: dict[str, int]) -> bool:
+    """rel: normalized repo-relative path (lowercase, forward slashes)."""
+    base = os.path.basename(rel)
+    for token in tokens:
+        if "/" in token:
+            if rel == token or rel.endswith("/" + token):
+                return True
+        else:
+            if base == token and basename_counts[base] == 1:
+                return True
+    return False
 
 
 def main() -> int:
@@ -153,18 +167,8 @@ def main() -> int:
         base = os.path.basename(rel)
         basename_counts[base] = basename_counts.get(base, 0) + 1
 
-    def is_referenced(rel: str) -> bool:
-        base = os.path.basename(rel)
-        for token in tokens:
-            if "/" in token:
-                # Path-like reference: exact match or suffix-of-rel match.
-                if rel == token or rel.endswith("/" + token):
-                    return True
-            else:
-                # Bare basename only counts when unique in the tree.
-                if base == token and basename_counts[base] == 1:
-                    return True
-        return False
+    def _referenced(rel: str) -> bool:
+        return is_referenced(rel, tokens, basename_counts)
 
     unreferenced: list[tuple[str, int, str]] = []
     totals = {"candidates_bytes": 0, "candidates": 0, "referenced": 0, "implicit": 0, "sidecar": 0}
@@ -180,7 +184,7 @@ def main() -> int:
                 totals["implicit"] += 1
                 continue
             rel_norm = os.path.relpath(path, CONTENT_DIR).replace("\\", "/").lower()
-            if is_referenced(rel_norm):
+            if _referenced(rel_norm):
                 totals["referenced"] += 1
                 continue
             size = os.path.getsize(path)
