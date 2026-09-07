@@ -33,11 +33,12 @@ import os
 import re
 import sys
 import zipfile
-import xml.etree.ElementTree as ET
-
+import defusedxml.ElementTree as ET
 from PIL import Image
 
-Image.MAX_IMAGE_PIXELS = None  # the 181 MP master trips Pillow's default guard
+# Finite cap just above the known 181 MP master: the master decodes, anything
+# larger is rejected instead of risking a decompression bomb.
+Image.MAX_IMAGE_PIXELS = 200_000_000
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS_DIR = os.path.join(REPO_ROOT, "Images&Content", "Assets")
@@ -121,20 +122,15 @@ def parse_excel(excel_path: str) -> list[dict]:
         name = row.get("A", "").strip()
         if not name:
             continue
-        x = row.get("E", "").strip()  # half-size frame preferred (ContentLoader parity)
-        y = row.get("F", "").strip()
-        frame = (BASE_W, BASE_H)
-        if not x or not y:
-            x, y = row.get("B", "").strip(), row.get("C", "").strip()
-            frame = (MASTER_W, MASTER_H)
-        try:
-            px, py = float(x), float(y)
-        except ValueError:
+        coords = _validated_coords(
+            row.get("E", ""), row.get("F", ""), BASE_W, BASE_H,
+            row.get("B", ""), row.get("C", ""), MASTER_W, MASTER_H, name)
+        if coords is None:
             continue
         locations.append({
             "name": name,
-            "nx": px / frame[0],
-            "ny": py / frame[1],
+            "nx": coords[0],
+            "ny": coords[1],
             "address": row.get("D", "").strip(),
             "bio": bio_by_name.get(name, ""),
             "captions": captions.get(name, {}),
@@ -143,18 +139,48 @@ def parse_excel(excel_path: str) -> list[dict]:
     return locations
 
 
+def _validated_coords(px_a: str, py_a: str, w_a: float, h_a: float,
+                      px_b: str, py_b: str, w_b: float, h_b: float,
+                      name: str) -> tuple[float, float] | None:
+    """Return normalized (nx, ny) from the preferred frame, falling back to the
+    secondary. Rejects non-numeric, missing, or out-of-frame coordinates instead
+    of silently emitting (0, 0)."""
+    for xs, ys, fw, fh in ((px_a, py_a, w_a, h_a), (px_b, py_b, w_b, h_b)):
+        try:
+            x, y = float(xs), float(ys)
+        except (TypeError, ValueError):
+            continue
+        if 0.0 <= x <= fw and 0.0 <= y <= fh:
+            return x / fw, y / fh
+        print(f"  WARNING: {name}: coordinate ({x}, {y}) outside frame {fw:.0f}x{fh:.0f}; skipping")
+        return None
+    print(f"  WARNING: {name}: no usable coordinates; skipping")
+    return None
+
+
 def parse_locations_json(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
-    return [{
-        "name": item.get("Name", ""),
-        "nx": float(item.get("PixelX", 0)) / MASTER_W,
-        "ny": float(item.get("PixelY", 0)) / MASTER_H,
-        "address": item.get("ContentFilePath", ""),
-        "bio": "",
-        "captions": {},
-        "_raw_row": {},
-    } for item in data if item.get("Name")]
+    out = []
+    for item in data:
+        name = item.get("Name", "").strip()
+        if not name:
+            continue
+        coords = _validated_coords("", "", 0, 0,
+                                   str(item.get("PixelX", "")), str(item.get("PixelY", "")),
+                                   MASTER_W, MASTER_H, name)
+        if coords is None:
+            continue
+        out.append({
+            "name": name,
+            "nx": coords[0],
+            "ny": coords[1],
+            "address": item.get("ContentFilePath", ""),
+            "bio": "",
+            "captions": {},
+            "_raw_row": {},
+        })
+    return out
 
 
 def find_excel_image_names(excel_path: str) -> dict[str, list[str]]:
@@ -248,7 +274,9 @@ def main() -> int:
     total_popup_bytes = 0
     for i, loc in enumerate(locations, start=1):
         safe = re.sub(r"[^\w\-. ]", "_", loc["name"]).strip() or f"loc_{i:03d}"
+        safe = f"{safe}__loc_{i:03d}"  # collision-proof even for duplicate names
         folder = os.path.join(content_dir, loc["name"])
+        folder_real = os.path.realpath(folder)
         image_names = loc["images"]
         if not image_names and os.path.isdir(folder):
             image_names = sorted(os.listdir(folder))
@@ -261,12 +289,17 @@ def main() -> int:
             ext = os.path.splitext(name)[1].lower()
             if ext not in (".jpg", ".jpeg", ".png"):
                 continue
-            if not os.path.isfile(src):
+            # Containment: the referenced file must live inside the location folder.
+            src_real = os.path.realpath(src)
+            if not (src_real == folder_real or src_real.startswith(folder_real + os.sep)):
+                print(f"  WARNING: {loc['name']}/{name}: path escapes location folder; skipping")
+                continue
+            if not os.path.isfile(src_real):
                 print(f"  WARNING: listed image missing on disk: {loc['name']}/{name}")
                 alt = loc["captions"].get(name) or f"{loc['name']} image {j}"
                 images_out.append({"file": name, "alt": alt, "missing": True})
                 continue
-            dst_rel, size = derivative(src, os.path.join(web_images, "content", safe))
+            dst_rel, size = derivative(src_real, os.path.join(web_images, "content", safe))
             total_popup_bytes += size
             alt = loc["captions"].get(name) or f"{loc['name']} image {j}"
             print(f"  {loc['name']}/{name} -> {size / 1024:.0f} KB")
@@ -274,6 +307,18 @@ def main() -> int:
                 "file": os.path.relpath(dst_rel, args.out).replace("\\", "/"),
                 "alt": alt,
             })
+
+        # Copy text sidecars (didactic + caption files) unchanged; renderer
+        # consumes the pre-baked values, but keeping them documents provenance.
+        if os.path.isdir(folder):
+            sidecar_dir = os.path.join(web_images, "content", safe)
+            for f in os.listdir(folder):
+                if f.endswith(".txt") and ("didactic" in f.lower() or "caption" in f.lower()):
+                    os.makedirs(sidecar_dir, exist_ok=True)
+                    src_txt = os.path.realpath(os.path.join(folder, f))
+                    if src_txt.startswith(folder_real + os.sep):
+                        with open(src_txt, "rb") as sf, open(os.path.join(sidecar_dir, f), "wb") as df:
+                            df.write(sf.read())
 
         out_locations.append({
             "id": f"loc_{i:03d}",

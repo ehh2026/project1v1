@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Interactive World Map</title>
 <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
 <script src="vendor/leaflet/leaflet.js"></script>
@@ -77,19 +77,48 @@
       keyboard: true,
     });
 
-    const parts = [`<h2 class="popup-title">${loc.name}</h2>`];
-    if (loc.address) parts.push(`<p class="popup-address">${loc.address}</p>`);
-    if (loc.bio) parts.push(`<div class="popup-bio">${loc.bio}</div>`);
+    // Build popups as DOM nodes (textContent, not HTML strings) — workbook
+    // values are untrusted text and may contain characters like '<' or quotes.
+    const popup = document.createElement('div');
+
+    const title = document.createElement('h2');
+    title.className = 'popup-title';
+    title.textContent = loc.name;
+    popup.appendChild(title);
+
+    if (loc.address) {
+      const p = document.createElement('p');
+      p.className = 'popup-address';
+      p.textContent = loc.address;
+      popup.appendChild(p);
+    }
+    if (loc.bio) {
+      const bio = document.createElement('div');
+      bio.className = 'popup-bio';
+      bio.textContent = loc.bio;
+      popup.appendChild(bio);
+    }
     for (const img of loc.images ?? []) {
       if (img.missing) continue;
-      parts.push(
-        `<figure class="popup-figure">` +
-        `<img src="${img.file}" alt="${img.alt}" loading="lazy">` +
-        (img.alt ? `<figcaption class="popup-caption">${img.alt}</figcaption>` : '') +
-        `</figure>`
-      );
+      // Only allow image paths inside our own bundle.
+      if (!/^images\/content\/[\w\-. ]+\/[\w\-. ]+$/.test(img.file)) continue;
+      const fig = document.createElement('figure');
+      fig.className = 'popup-figure';
+      const el = document.createElement('img');
+      el.src = img.file;
+      el.alt = img.alt || loc.name;
+      el.loading = 'lazy';
+      fig.appendChild(el);
+      if (img.alt) {
+        const cap = document.createElement('figcaption');
+        cap.className = 'popup-caption';
+        cap.textContent = img.alt;
+        fig.appendChild(cap);
+      }
+      popup.appendChild(fig);
     }
-    marker.bindPopup(parts.join(''), { maxWidth: 360 });
+
+    marker.bindPopup(popup, { maxWidth: 360 });
     marker.addTo(map);
   }
 })();

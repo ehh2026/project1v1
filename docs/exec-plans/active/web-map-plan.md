@@ -73,7 +73,6 @@ Meanwhile, gather facts locally:
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
 - [x] Write `scripts/prepare_web_assets.py` (done 2026-09-06 on branch `web-map-mvp`, run against Demo-Content: 38 locations, base map 2.0 MB, total payload 3.38 MB). **Note:** source data turned out to be **pixel coordinates** (see corrected coordinate contract in Stage 2) — the script normalizes to `[0,1]` fractions. Remaining production work: rerun on the machine with real content (`--content-set ...\Production-Content`).
 - [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
-- [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
 
