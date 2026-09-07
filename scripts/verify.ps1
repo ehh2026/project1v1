@@ -106,7 +106,7 @@ Invoke-HarnessPython "scripts/summarize_coverage.py" "--results-directory TestRe
 if ($LASTEXITCODE -ne 0) { Write-Error "Coverage gates failed."; exit 1 }
 
 Write-Host "[11/11] Lizard complexity gate"
-Invoke-HarnessPythonModule "lizard" "-C 20 -x *Tests* -x *Tools* -x *bin* -x *obj* -x *scripts* -x *TestResults* ."
+Invoke-HarnessPythonModule "lizard" "-C 20 -x *Tests* -x *Tools* -x *bin* -x *obj* -x *scripts* -x *TestResults* -x *vendor* ."
 if ($LASTEXITCODE -ne 0) { Write-Error "Lizard complexity gate failed."; exit 1 }
 
 Write-Host "=== Verification PASSED ==="

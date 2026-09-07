@@ -6,7 +6,13 @@ started: 2026-09-05
 
 # Web Map Plan — Gallery Website Version
 
-**Status:** Active — next up
+**Status:** Active — Stage 1 + Stage 2 MVP built (branch `web-map-mvp`, PR #35)
+
+> ⚠️ **Blocking human check before PR #35 leaves draft:** the two smoke tests at the bottom of Stage 2 have NOT been done yet —
+> 1. **Browser pass** (`py -3 -m http.server` in `web/`, open `index.html` and `test-projection.html`, confirm pins sit correctly and popups show content)
+> 2. **Phone pass** (same URL via PC's LAN IP, zoom into NYC, judge sharpness — decides whether Stage 3's regional crops happen)
+>
+> Do not merge #35 until both are done.
 **Created:** September 5, 2026
 **Assessment:** [docs/assessments/WEB_ADAPTATION_ASSESSMENT.md](../../assessments/WEB_ADAPTATION_ASSESSMENT.md) (read this first for the "why")
 **Owner note:** This plan assumes a solo, non-professional developer, one gallery, no ongoing content updates expected. It is deliberately staged so that each stage produces something usable even if later stages never happen.
