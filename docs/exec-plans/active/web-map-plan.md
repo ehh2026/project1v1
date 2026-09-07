@@ -118,7 +118,7 @@ Tasks:
 - [ ] **Human browser pass:** open `web/index.html` and `web/test-projection.html` locally; confirm pins sit where the desktop app puts them (NYC cluster on the map), popups show images/captions, and then repeat on a phone over LAN
 - [ ] **Phone sharpness check:** zoom into the densest cluster (NYC) on a phone. If pins/city labels are unacceptably soft, promote the regional-crop work into Stage 3; if fine, crops stay deferred
 - [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` unions nearby locations (radius 500 master px, **min 1 pin** — owner decision, people zoom on single pins) and cuts full-res crops from the master (`images/crops/crop_NN.jpg` + bounds), and `index.html` fades those overlays in at zoom ≥ 1. Demo: 7 crops / 4.2 MB.
-- [ ] **Follow-up (optional, parked):** an intermediate-resolution whole-map layer for panning empty regions at mid-zoom. Not needed while every pin has a crop; if wanting to roam the whole map sharply, the path is a Leaflet tile pyramid (~8192 + ~16384 levels) since a mid-res single image exceeds the iPhone ~16.7 MP render limit.
+- [ ] **Intermediate whole-map layer (planned, Stage 3):** add a Leaflet tile pyramid at ~8192 px (one intermediate level) so panning any region at mid-zoom stays sharp beyond the 4096 base — must be tiles, not a single image, because an 8192×5539 image (~45 MP) exceeds the iPhone ~16.7 MP render limit. Structure the pyramid generator so a **second, higher-resolution level (~16384 px, the master's native size)** can be enabled later behind a flag if roaming sharpness is still insufficient. This replaces the crops for empty-region zooming; crops remain the cheap path for pin areas.
 - [ ] **Follow-up polish (noted, not blocking):** keyboard Tab reaches the pins but does not center the focused marker in view; teardrop CSS pins stay.
 
 **Exit criteria:** every location clickable, every popup shows its real content, on desktop and a phone.
@@ -148,7 +148,7 @@ Tasks:
 - A11y audit (NVDA/VoiceOver session, WCAG 2.1 AA fixes)
 - Analytics events + consent banner
 - PWA / offline caching
-- Full-map OpenSeadragon tiling of the entire 16397-px master — unnecessary once regional crops cover the dense areas; revisit only if web users routinely zoom into non-cluster regions and complain
+- Full-map OpenSeadragon deep-zoom tiling — superseded by the planned Leaflet intermediate/high-resolution pyramid in Stage 3 unless OpenSeadragon's deep-zoom UI is specifically wanted
 - GeoJSON export from the pre-bake for future map platforms
 
 ## Risks & Notes
