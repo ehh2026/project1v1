@@ -89,7 +89,7 @@ Run the local complexity gate directly:
 
 ```powershell
 py -3 -m pip install lizard
-py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
+py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" -x "*vendor*" .
 ```
 
 ## Related docs

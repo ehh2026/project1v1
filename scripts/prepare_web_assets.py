@@ -142,25 +142,38 @@ def parse_excel(excel_path: str) -> list[dict]:
 def _validated_coords(px_a: str, py_a: str, w_a: float, h_a: float,
                       px_b: str, py_b: str, w_b: float, h_b: float,
                       name: str) -> tuple[float, float] | None:
-    """Return normalized (nx, ny) from the preferred frame, falling back to the
-    secondary. Rejects non-numeric, missing, or out-of-frame coordinates instead
-    of silently emitting (0, 0)."""
-    for xs, ys, fw, fh in ((px_a, py_a, w_a, h_a), (px_b, py_b, w_b, h_b)):
+    """Return normalized (nx, ny) from the primary frame, falling back to the
+    secondary for both missing and out-of-frame values. Skips only when both fail."""
+    for label, xs, ys, fw, fh in (("primary", px_a, py_a, w_a, h_a),
+                                  ("secondary", px_b, py_b, w_b, h_b)):
         try:
             x, y = float(xs), float(ys)
         except (TypeError, ValueError):
             continue
         if 0.0 <= x <= fw and 0.0 <= y <= fh:
             return x / fw, y / fh
-        print(f"  WARNING: {name}: coordinate ({x}, {y}) outside frame {fw:.0f}x{fh:.0f}; skipping")
-        return None
+        print(f"  WARNING: {name}: {label}-frame coordinate ({x}, {y}) outside {fw:.0f}x{fh:.0f}; trying fallback")
     print(f"  WARNING: {name}: no usable coordinates; skipping")
     return None
+
+
+def sanitize_filename(name: str) -> str:
+    """Web-safe derivative basename matching the renderer's allow-list
+    ([\\w\\-. ] in web/index.html)."""
+    return re.sub(r"[^\w\-. ]", "_", name)
 
 
 def parse_locations_json(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
+    # Accept either a bare list or a wrapper containing the list.
+    if isinstance(data, dict):
+        for key in ("locations", "Locations"):
+            if isinstance(data.get(key), list):
+                data = data[key]
+                break
+    if not isinstance(data, list):
+        raise SystemExit(f"locations.json at {path} must be a list of location objects (or {{'locations': [...]}})")
     out = []
     for item in data:
         name = item.get("Name", "").strip()
@@ -238,7 +251,9 @@ def prepare_base_map(out_dir: str, base_width: int) -> tuple[int, int, int]:
 
 def derivative(src: str, dst_dir: str) -> tuple[str, int]:
     os.makedirs(dst_dir, exist_ok=True)
-    out = os.path.join(dst_dir, os.path.basename(src))
+    # Sanitize the basename: renderer's src whitelist is [\w\-. ] only — raw
+    # artwork names with '(', ')' etc. would be silently dropped otherwise.
+    out = os.path.join(dst_dir, sanitize_filename(os.path.basename(src)))
     with Image.open(src) as img:
         img = img.convert("RGB")
         if max(img.size) > POPUP_MAX_EDGE:
@@ -262,6 +277,11 @@ def main() -> int:
 
     web_images = os.path.join(args.out, "images")
     web_data = os.path.join(args.out, "data")
+    # Clear generated outputs so reruns can't leave stale dirs behind.
+    for stale in (web_images, web_data):
+        if os.path.isdir(stale):
+            import shutil
+            shutil.rmtree(stale)
     os.makedirs(web_images, exist_ok=True)
     os.makedirs(web_data, exist_ok=True)
 
@@ -297,7 +317,7 @@ def main() -> int:
             if not os.path.isfile(src_real):
                 print(f"  WARNING: listed image missing on disk: {loc['name']}/{name}")
                 alt = loc["captions"].get(name) or f"{loc['name']} image {j}"
-                images_out.append({"file": name, "alt": alt, "missing": True})
+                images_out.append({"file": name, "altText": alt, "missing": True})
                 continue
             dst_rel, size = derivative(src_real, os.path.join(web_images, "content", safe))
             total_popup_bytes += size
@@ -305,7 +325,7 @@ def main() -> int:
             print(f"  {loc['name']}/{name} -> {size / 1024:.0f} KB")
             images_out.append({
                 "file": os.path.relpath(dst_rel, args.out).replace("\\", "/"),
-                "alt": alt,
+                "altText": alt,
             })
 
         # Copy text sidecars (didactic + caption files) unchanged; renderer

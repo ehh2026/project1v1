@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# verify.sh â€” Unified agent verification (macOS/Linux; build + test + harness checks)
+# verify.sh — Unified agent verification (macOS/Linux; build + test + harness checks)
 # Usage: ./scripts/verify.sh
 # Exit: 0 pass, non-zero on first failure with remediation hints
 
@@ -8,7 +8,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-echo "=== Interactive World Map â€” Harness Verification ==="
+echo "=== Interactive World Map — Harness Verification ==="
 
 # Resolve dotnet from PATH or common install locations (e.g. Homebrew dotnet@6)
 if ! command -v dotnet >/dev/null 2>&1; then
@@ -27,7 +27,7 @@ fi
 
 RUN_DOTNET=true
 if ! command -v dotnet >/dev/null 2>&1; then
-  echo "WARN: dotnet SDK not found â€” skipping build/test (harness-only mode)." >&2
+  echo "WARN: dotnet SDK not found — skipping build/test (harness-only mode)." >&2
   echo "REMEDIATION: Install .NET 6 SDK or run .\\scripts\\verify.ps1 on Windows." >&2
   RUN_DOTNET=false
 fi
@@ -47,7 +47,7 @@ fi
 if [[ "$RUN_DOTNET" == true ]]; then
   echo "[3/9] dotnet build"
   if ! dotnet build InteractiveWorldMap.sln --configuration Release --no-restore 2>&1; then
-    echo "WARN: dotnet build failed â€” WPF requires Windows Desktop SDK (windows-latest CI)." >&2
+    echo "WARN: dotnet build failed — WPF requires Windows Desktop SDK (windows-latest CI)." >&2
     echo "REMEDIATION: Run .\\scripts\\verify.ps1 on Windows for full build/test." >&2
     RUN_DOTNET=false
   fi

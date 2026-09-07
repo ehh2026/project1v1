@@ -32,7 +32,7 @@ A website version of the map that gives a web visitor the **same experience as a
 | Cluster markers | Existing **stamp image + count badge** asset |
 | Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
 | Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
-| Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in `web/data/README` (produced Stage 1) and validated against the desktop loader's output before Stage 2 runs |
+| Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in [web/README.md](../../../web/README.md) (done, committed) and validated against the desktop loader's output before Stage 2 runs |
 | Content updates | Not expected. Pipeline exists but cadence is "rerun the script if content ever changes" |
 | Desktop app | Untouched. Shares content, no shared code |
 

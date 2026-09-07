@@ -106,13 +106,13 @@
       fig.className = 'popup-figure';
       const el = document.createElement('img');
       el.src = img.file;
-      el.alt = img.alt || loc.name;
+      el.alt = img.altText || loc.name;
       el.loading = 'lazy';
       fig.appendChild(el);
-      if (img.alt) {
+      if (img.altText) {
         const cap = document.createElement('figcaption');
         cap.className = 'popup-caption';
-        cap.textContent = img.alt;
+        cap.textContent = img.altText;
         fig.appendChild(cap);
       }
       popup.appendChild(fig);
