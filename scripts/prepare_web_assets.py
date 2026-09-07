@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Pre-bake web assets for the gallery map website (web-map-plan.md, Stage 1).
 
-Reads a content set (Excel first â€” mirroring ContentLoader â€” locations.json as
+Reads a content set (Excel first -- mirroring ContentLoader -- locations.json as
 fallback) and writes a static, self-contained web/ payload:
 
   web/images/map-base.jpg        intermediate base map (~4096 px, progressive)
-  web/images/content/<Name>/â€¦    bounded popup derivatives (max 1600 px, q80)
+  web/images/content/<Name>/...   bounded popup derivatives (max 1600 px, q80)
   web/data/locations.json        locations with normalized coords + altText
 
 Coordinate contract (supersedes the plan's earlier lat/lon framing): the
 source data is PIXEL coordinates on the map image, not geographic lat/lon.
   - Excel columns E/F ("Coordinate X/Y halfsize") are the primary frame,
-    interpreted against the 8198Ã—5542 base image (ContentLoader prefers E/F).
+    interpreted against the 8198 x 5542 base image (ContentLoader prefers E/F).
   - Excel columns B/C (and locations.json PixelX/PixelY) are the fallback frame,
-    interpreted against the 16397Ã—11085 full-res master.
+    interpreted against the 16397 x 11085 full-res master.
 This script normalizes both into [0,1] fractions (nx, ny, origin top-left) so
 the web renderer never has to think about which frame a value came from.
 The site's Leaflet map uses CRS.Simple with bounds [[0,0],[height,width]] in
@@ -205,7 +205,7 @@ def parse_locations_json(path: str) -> list[dict]:
 
 
 def find_excel_image_names(excel_path: str) -> dict[str, list[str]]:
-    """Return {location_name: [image file namesâ€¦]} from the location sheet,
+    """Return {location_name: [image file names...]} from the location sheet,
     using the 'Image N filename' headers (ContentLoader parity)."""
     with zipfile.ZipFile(excel_path) as zf:
         shared = read_shared_strings(zf)
@@ -226,7 +226,7 @@ def find_excel_image_names(excel_path: str) -> dict[str, list[str]]:
 
 
 def load_locations(content_dir: str) -> tuple[list[dict], str]:
-    """Excel first, locations.json fallback â€” ContentLoader precedence."""
+    """Excel first, locations.json fallback -- ContentLoader precedence."""
     excel = os.path.join(content_dir, "Coordinates for map.xlsx")
     if os.path.isfile(excel):
         locs = parse_excel(excel)
@@ -242,11 +242,80 @@ def load_locations(content_dir: str) -> tuple[list[dict], str]:
     return locs, "json"
 
 
+def compute_dense_clusters(locations: list[dict], radius_px: float = 500,
+                           min_members: int = 3) -> list[list[dict]]:
+    """Union-find over normalized coords: two locations cluster if within
+    radius_px master pixels (~0.0305 of width) of an existing member.
+    Returns groups with >= min_members so sparse regions never get crops."""
+    radius_norm = radius_px / MASTER_W
+    groups: list[list[dict]] = []
+    for loc in locations:
+        placed = False
+        for group in groups:
+            if any(abs(g["nx"] - loc["nx"]) <= radius_norm and
+                   abs(g["ny"] - loc["ny"]) <= radius_norm * (MASTER_W / MASTER_H)
+                   for g in group):
+                group.append(loc)
+                placed = True
+                break
+        if not placed:
+            groups.append([loc])
+    # merge groups that became connected transitively
+    merged = True
+    while merged:
+        merged = False
+        for i in range(len(groups)):
+            for j in range(i + 1, len(groups)):
+                if any(abs(a["nx"] - b["nx"]) <= radius_norm and
+                       abs(a["ny"] - b["ny"]) <= radius_norm * (MASTER_W / MASTER_H)
+                       for a in groups[i] for b in groups[j]):
+                    groups[i].extend(groups[j])
+                    del groups[j]
+                    merged = True
+                    break
+            if merged:
+                break
+    return [g for g in groups if len(g) >= min_members]
+
+
+def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
+    """Cut one full-res crop per dense cluster from the 16397×11085 master.
+    Returns manifest entries with normalized bounds for the renderer."""
+    from PIL import Image
+    Image.MAX_IMAGE_PIXELS = 200_000_000
+    if not clusters:
+        return []
+    os.makedirs(out_dir, exist_ok=True)
+    crops = []
+    with Image.open(MASTER_MAP) as master:
+        for idx, group in enumerate(clusters, start=1):
+            # Pad the bounding box generously so pins are not on the crop edge.
+            pad = 800.0 / MASTER_W  # 800 master px
+            nx0 = max(0.0, min(l["nx"] for l in group) - pad)
+            nx1 = min(1.0, max(l["nx"] for l in group) + pad)
+            ny0 = max(0.0, min(l["ny"] for l in group) - pad)
+            ny1 = min(1.0, max(l["ny"] for l in group) + pad)
+            box = (round(nx0 * master.width), round(ny0 * master.height),
+                   round(nx1 * master.width), round(ny1 * master.height))
+            crop = master.crop(box).convert("RGB")
+            name = f"crop_{idx:02d}.jpg"
+            path = os.path.join(out_dir, name)
+            crop.save(path, "JPEG", quality=85, progressive=True, optimize=True)
+            crops.append({
+                "file": f"images/crops/{name}",
+                "nx0": nx0, "ny0": ny0, "nx1": nx1, "ny1": ny1,
+                "members": [l["name"] for l in group],
+            })
+            print(f"  crop {name}: {(box[2]-box[0])}x{(box[3]-box[1])} px, "
+                  f"{os.path.getsize(path) / 1_048_576:.2f} MB, {len(group)} pins")
+    return crops
+
+
 def prepare_base_map(out_dir: str, base_width: int) -> tuple[int, int, int]:
     import PIL.Image as _PILImage
     _PILImage.MAX_IMAGE_PIXELS = 200_000_000  # finite cap above the 181 MP master
     Image = _PILImage
-    print(f"Generating base map from {os.path.basename(MASTER_MAP)}â€¦")
+    print(f"Generating base map from {os.path.basename(MASTER_MAP)}...")
     with Image.open(MASTER_MAP) as img:
         w, h = img.size
         if w != MASTER_W or h != MASTER_H:
@@ -264,7 +333,7 @@ def derivative(src: str, dst_dir: str) -> tuple[str, int]:
     from PIL import Image
     Image.MAX_IMAGE_PIXELS = 200_000_000
     os.makedirs(dst_dir, exist_ok=True)
-    # Sanitize the basename: renderer's src whitelist is [\w\-. ] only â€” raw
+    # Sanitize the basename: renderer's src whitelist is [\w\-. ] only -- raw
     # artwork names with '(', ')' etc. would be silently dropped otherwise.
     out = os.path.join(dst_dir, web_safe_name(os.path.basename(src)))
     with Image.open(src) as img:
@@ -363,10 +432,15 @@ def main() -> int:
             "images": images_out,
         })
 
+    # Regional high-res crops for dense clusters (so zoomed pin areas stay sharp).
+    clusters = compute_dense_clusters(out_locations)
+    crops = cut_crops(clusters, os.path.join(web_images, "crops"))
+
     loc_path = os.path.join(web_data, "locations.json")
     with open(loc_path, "w", encoding="utf-8") as fh:
         json.dump({
             "map": {"width": base_w, "height": base_h, "image": "images/map-base.jpg"},
+            "crops": crops,
             "locations": out_locations,
             "provenance": {
                 "contentSet": os.path.relpath(content_dir, REPO_ROOT).replace("\\", "/"),
@@ -374,11 +448,13 @@ def main() -> int:
             },
         }, fh, indent=2, ensure_ascii=False)
 
-    total_mb = (total_popup_bytes + base_bytes) / 1_048_576
+    crop_bytes = sum(os.path.getsize(os.path.join(REPO_ROOT, "web", c["file"]))
+                     for c in crops if os.path.isfile(os.path.join(REPO_ROOT, "web", c["file"])))
+    total_mb = (total_popup_bytes + base_bytes + crop_bytes) / 1_048_576
     print()
-    print(f"Wrote {loc_path} ({len(out_locations)} locations)")
-    print(f"Popup derivatives: {total_popup_bytes / 1_048_576:.2f} MB total; "
-          f"payload with base map: {total_mb:.2f} MB")
+    print(f"Wrote {loc_path} ({len(out_locations)} locations, {len(crops)} crops)")
+    print(f"Popup derivatives: {total_popup_bytes / 1_048_576:.2f} MB; "
+          f"crops: {crop_bytes / 1_048_576:.2f} MB; total: {total_mb:.2f} MB")
     return 0
 
 

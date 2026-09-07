@@ -117,6 +117,8 @@ Tasks:
 - [x] Local test: HTTP smoke over `py -3 -m http.server` — all bundle files 200 (2026-09-06)
 - [ ] **Human browser pass:** open `web/index.html` and `web/test-projection.html` locally; confirm pins sit where the desktop app puts them (NYC cluster on the map), popups show images/captions, and then repeat on a phone over LAN
 - [ ] **Phone sharpness check:** zoom into the densest cluster (NYC) on a phone. If pins/city labels are unacceptably soft, promote the regional-crop work into Stage 3; if fine, crops stay deferred
+- [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` now unions nearby locations and cuts full-res crops from the master (`images/crops/crop_NN.jpg` + bounds in `data/locations.json` `crops`), and `index.html` fades those overlays in at zoom ≥ 1 when the view intersects them. Demo run produced 3 crops (~2.4 MB total). Deserves a re-check at real production content (cluster radius 500 master px / min 3 pins may need tuning against actual data density)
+- [ ] **Follow-up polish (noted, not blocking):** keyboard Tab reaches the pins but does not move/center the map to bring the focused marker comfortably into view — centering on focus is a Stage 3 accessibility refinement. Teardrop CSS pins stay (no image asset, owner likes them)
 
 **Exit criteria:** every location clickable, every popup shows its real content, on desktop and a phone.
 
