@@ -243,10 +243,11 @@ def load_locations(content_dir: str) -> tuple[list[dict], str]:
 
 
 def compute_dense_clusters(locations: list[dict], radius_px: float = 500,
-                           min_members: int = 3) -> list[list[dict]]:
+                           min_members: int = 1) -> list[list[dict]]:
     """Union-find over normalized coords: two locations cluster if within
     radius_px master pixels (~0.0305 of width) of an existing member.
-    Returns groups with >= min_members so sparse regions never get crops."""
+    min_members=1 means even an isolated pin gets its own crop — visitors zoom
+    into single pins, so every location should resolve sharply."""
     radius_norm = radius_px / MASTER_W
     groups: list[list[dict]] = []
     for loc in locations:

@@ -117,14 +117,15 @@ Tasks:
 - [x] Local test: HTTP smoke over `py -3 -m http.server` — all bundle files 200 (2026-09-06)
 - [ ] **Human browser pass:** open `web/index.html` and `web/test-projection.html` locally; confirm pins sit where the desktop app puts them (NYC cluster on the map), popups show images/captions, and then repeat on a phone over LAN
 - [ ] **Phone sharpness check:** zoom into the densest cluster (NYC) on a phone. If pins/city labels are unacceptably soft, promote the regional-crop work into Stage 3; if fine, crops stay deferred
-- [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` now unions nearby locations and cuts full-res crops from the master (`images/crops/crop_NN.jpg` + bounds in `data/locations.json` `crops`), and `index.html` fades those overlays in at zoom ≥ 1 when the view intersects them. Demo run produced 3 crops (~2.4 MB total). Deserves a re-check at real production content (cluster radius 500 master px / min 3 pins may need tuning against actual data density)
-- [ ] **Follow-up polish (noted, not blocking):** keyboard Tab reaches the pins but does not move/center the map to bring the focused marker comfortably into view — centering on focus is a Stage 3 accessibility refinement. Teardrop CSS pins stay (no image asset, owner likes them)
+- [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` unions nearby locations (radius 500 master px, **min 1 pin** — owner decision, people zoom on single pins) and cuts full-res crops from the master (`images/crops/crop_NN.jpg` + bounds), and `index.html` fades those overlays in at zoom ≥ 1. Demo: 7 crops / 4.2 MB.
+- [ ] **Follow-up (optional, parked):** an intermediate-resolution whole-map layer for panning empty regions at mid-zoom. Not needed while every pin has a crop; if wanting to roam the whole map sharply, the path is a Leaflet tile pyramid (~8192 + ~16384 levels) since a mid-res single image exceeds the iPhone ~16.7 MP render limit.
+- [ ] **Follow-up polish (noted, not blocking):** keyboard Tab reaches the pins but does not center the focused marker in view; teardrop CSS pins stay.
 
 **Exit criteria:** every location clickable, every popup shows its real content, on desktop and a phone.
 
 ## Stage 3 — Experience parity pass (~3–5 days)
 
-- [ ] **Conditional — regional crops, only if Stage 2's phone sharpness check failed:** extend `prepare_web_assets.py` to compute dense-cluster bounding boxes from `locations.json` and cut full-res crops from the 16397-px master → `web/images/crops/` + `web/data/crops.json`; in the site, add each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ threshold and view intersects bounds; keep overlay count small, single-digit regions)
+- [x] **Regional crops (conditional, only if Stage 2's phone sharpness check failed):** extend `prepare_web_assets.py` to compute dense-cluster bounding boxes from `locations.json` and cut full-res crops from the 16397-px master → `web/images/crops/` + `web/data/crops.json`; in the site, add each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ threshold and view intersects bounds; keep overlay count small, single-digit regions)
 - [ ] Clustering: group nearby pins (leaflet.markercluster or the existing `LocationClusterer` logic ported); cluster marker = **stamp image + count badge**
 - [ ] Deep links: `#location=<id>` opens that location's popup (shareable links)
 - [ ] Accessibility basics: keyboard tab-through pins (focus ring, Enter opens), `aria-label` = location name, `alt` from the pre-baked `altText` field (captions are pre-bake inputs only — no renderer-time lookup), check pin/badge contrast against the map
