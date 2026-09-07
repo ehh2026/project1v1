@@ -181,5 +181,5 @@ Previous version of this doc listed .NET MAUI. It does not run in browsers and t
 
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) — layer rules; note the web front end would be a new top-most layer consuming content, not a new consumer of Services.
 - [docs/guides/CONTENT_SETS.md](../guides/CONTENT_SETS.md) — Demo vs Production content the web pre-bake would key off.
-- [Utilities/CoordinateMapper.cs](../../Utilities/CoordinateMapper.cs) — the equirectangular math to port.
+- [Models/MapMetadata.cs](../../Models/MapMetadata.cs) — canonical map dimensions and the pixel-coordinate frames the web linear mapping must match (locations are image pixels, not geographic coordinates — see the normalized-coordinate contract in the plan).
 - [docs/TO_DO.md](../TO_DO.md) — backlog item for web version.

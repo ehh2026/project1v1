@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Pre-bake web assets for the gallery map website (web-map-plan.md, Stage 1).
 
-Reads a content set (Excel first — mirroring ContentLoader — locations.json as
+Reads a content set (Excel first â€” mirroring ContentLoader â€” locations.json as
 fallback) and writes a static, self-contained web/ payload:
 
   web/images/map-base.jpg        intermediate base map (~4096 px, progressive)
-  web/images/content/<Name>/…    bounded popup derivatives (max 1600 px, q80)
+  web/images/content/<Name>/â€¦    bounded popup derivatives (max 1600 px, q80)
   web/data/locations.json        locations with normalized coords + altText
 
 Coordinate contract (supersedes the plan's earlier lat/lon framing): the
 source data is PIXEL coordinates on the map image, not geographic lat/lon.
   - Excel columns E/F ("Coordinate X/Y halfsize") are the primary frame,
-    interpreted against the 8198×5542 base image (ContentLoader prefers E/F).
+    interpreted against the 8198Ã—5542 base image (ContentLoader prefers E/F).
   - Excel columns B/C (and locations.json PixelX/PixelY) are the fallback frame,
-    interpreted against the 16397×11085 full-res master.
+    interpreted against the 16397Ã—11085 full-res master.
 This script normalizes both into [0,1] fractions (nx, ny, origin top-left) so
 the web renderer never has to think about which frame a value came from.
 The site's Leaflet map uses CRS.Simple with bounds [[0,0],[height,width]] in
@@ -33,12 +33,10 @@ import os
 import re
 import sys
 import zipfile
-import defusedxml.ElementTree as ET
-from PIL import Image
-
-# Finite cap just above the known 181 MP master: the master decodes, anything
-# larger is rejected instead of risking a decompression bomb.
-Image.MAX_IMAGE_PIXELS = 200_000_000
+# Heavy deps are imported lazily inside the functions that use them, so the
+# module (and its tests) import cleanly without Pillow/defusedxml installed.
+# When they are used, Image.MAX_IMAGE_PIXELS is set to a finite cap just above
+# the known 181 MP master so Pillow still rejects bomb tensors.
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ASSETS_DIR = os.path.join(REPO_ROOT, "Images&Content", "Assets")
@@ -55,6 +53,7 @@ NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 
 def read_shared_strings(zf: zipfile.ZipFile) -> list[str]:
+    import defusedxml.ElementTree as ET
     try:
         data = zf.read("xl/sharedStrings.xml")
     except KeyError:
@@ -64,6 +63,7 @@ def read_shared_strings(zf: zipfile.ZipFile) -> list[str]:
 
 
 def sheet_paths(zf: zipfile.ZipFile) -> list[str]:
+    import defusedxml.ElementTree as ET
     workbook = ET.fromstring(zf.read("xl/workbook.xml"))
     rels = ET.fromstring(zf.read("xl/_rels/workbook.xml.rels"))
     rel_map = {r.get("Id"): r.get("Target", "") for r in rels}
@@ -77,6 +77,7 @@ def sheet_paths(zf: zipfile.ZipFile) -> list[str]:
 
 
 def read_sheet(zf: zipfile.ZipFile, path: str, shared: list[str]) -> list[dict[str, str]]:
+    import defusedxml.ElementTree as ET
     rows = []
     root = ET.fromstring(zf.read(path))
     for row in root.iter(f"{NS}row"):
@@ -157,10 +158,17 @@ def _validated_coords(px_a: str, py_a: str, w_a: float, h_a: float,
     return None
 
 
-def sanitize_filename(name: str) -> str:
-    """Web-safe derivative basename matching the renderer's allow-list
-    ([\\w\\-. ] in web/index.html)."""
-    return re.sub(r"[^\w\-. ]", "_", name)
+def web_safe_name(original_basename: str) -> str:
+    """Renderer-whitelist-safe derivative name. Names that survive sanitization
+    unchanged pass through; names that lose characters get a short digest of the
+    original appended, so two different sources can never collide on output."""
+    import hashlib
+    stem, ext = os.path.splitext(original_basename)
+    safe_stem = re.sub(r"[^\w\-. ]", "_", stem)
+    if safe_stem == stem:
+        return original_basename
+    digest = hashlib.sha1(original_basename.encode("utf-8")).hexdigest()[:8]
+    return f"{safe_stem}.{digest}{ext.lower()}"
 
 
 def parse_locations_json(path: str) -> list[dict]:
@@ -197,7 +205,7 @@ def parse_locations_json(path: str) -> list[dict]:
 
 
 def find_excel_image_names(excel_path: str) -> dict[str, list[str]]:
-    """Return {location_name: [image file names…]} from the location sheet,
+    """Return {location_name: [image file namesâ€¦]} from the location sheet,
     using the 'Image N filename' headers (ContentLoader parity)."""
     with zipfile.ZipFile(excel_path) as zf:
         shared = read_shared_strings(zf)
@@ -218,7 +226,7 @@ def find_excel_image_names(excel_path: str) -> dict[str, list[str]]:
 
 
 def load_locations(content_dir: str) -> tuple[list[dict], str]:
-    """Excel first, locations.json fallback — ContentLoader precedence."""
+    """Excel first, locations.json fallback â€” ContentLoader precedence."""
     excel = os.path.join(content_dir, "Coordinates for map.xlsx")
     if os.path.isfile(excel):
         locs = parse_excel(excel)
@@ -235,7 +243,10 @@ def load_locations(content_dir: str) -> tuple[list[dict], str]:
 
 
 def prepare_base_map(out_dir: str, base_width: int) -> tuple[int, int, int]:
-    print(f"Generating base map from {os.path.basename(MASTER_MAP)}…")
+    import PIL.Image as _PILImage
+    _PILImage.MAX_IMAGE_PIXELS = 200_000_000  # finite cap above the 181 MP master
+    Image = _PILImage
+    print(f"Generating base map from {os.path.basename(MASTER_MAP)}â€¦")
     with Image.open(MASTER_MAP) as img:
         w, h = img.size
         if w != MASTER_W or h != MASTER_H:
@@ -250,10 +261,12 @@ def prepare_base_map(out_dir: str, base_width: int) -> tuple[int, int, int]:
 
 
 def derivative(src: str, dst_dir: str) -> tuple[str, int]:
+    from PIL import Image
+    Image.MAX_IMAGE_PIXELS = 200_000_000
     os.makedirs(dst_dir, exist_ok=True)
-    # Sanitize the basename: renderer's src whitelist is [\w\-. ] only — raw
+    # Sanitize the basename: renderer's src whitelist is [\w\-. ] only â€” raw
     # artwork names with '(', ')' etc. would be silently dropped otherwise.
-    out = os.path.join(dst_dir, sanitize_filename(os.path.basename(src)))
+    out = os.path.join(dst_dir, web_safe_name(os.path.basename(src)))
     with Image.open(src) as img:
         img = img.convert("RGB")
         if max(img.size) > POPUP_MAX_EDGE:

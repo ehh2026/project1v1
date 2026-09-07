@@ -41,6 +41,6 @@ generated `web/images/` and `web/data/` are **gitignored** — rerun the script 
 
 ## Run locally
 
-```
+```sh
 py -3 -m http.server   # in web/, then open http://localhost:8000/
 ```
