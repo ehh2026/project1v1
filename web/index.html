@@ -28,11 +28,15 @@
 
   /* Popup styling */
   .leaflet-popup-content-wrapper {
-    max-width: min(560px, 92vw);
+    max-width: min(680px, 94vw);
     border-radius: 10px;
   }
-  .leaflet-popup-content { margin: 16px 20px; line-height: 1.5; }
-  .popup-title { margin: 0 0 4px; font-size: 1.25rem; }
+  .leaflet-popup-content { margin: 16px 20px; line-height: 1.5; font-size: 1rem; }
+  .popup-title { margin: 0 0 4px; font-size: 1.3rem; }
+  @media (max-width: 640px) {
+    .leaflet-popup-content { font-size: 1.05rem; }
+    .popup-title { font-size: 1.4rem; }
+  }
   .popup-address { color: #777; font-style: italic; margin: 0 0 8px; font-size: .85rem; }
   .popup-bio { font-size: .9rem; margin: 8px 0; white-space: pre-line; }
   .popup-figure { margin: 8px 0 0; }
@@ -53,8 +57,8 @@
   const bounds = [[0, 0], [H, W]];
   const map = L.map('map', {
     crs: L.CRS.Simple,
-    minZoom: -2,
-    maxZoom: 4,
+minZoom: -2,
+  maxZoom: 6,
     zoomControl: true,
     attributionControl: false,
   });
@@ -118,7 +122,7 @@
       popup.appendChild(fig);
     }
 
-    marker.bindPopup(popup, { maxWidth: 560 });
+    marker.bindPopup(popup, { maxWidth: 680 });
     marker.addTo(map);
   }
 
