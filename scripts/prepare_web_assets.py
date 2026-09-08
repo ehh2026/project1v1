@@ -159,15 +159,17 @@ def _validated_coords(px_a: str, py_a: str, w_a: float, h_a: float,
 
 
 def web_safe_name(original_basename: str) -> str:
-    """Renderer-whitelist-safe derivative name. Names that survive sanitization
-    unchanged pass through; names that lose characters get a short digest of the
-    original appended, so two different sources can never collide on output."""
+    """Renderer-whitelist-safe derivative name. The renderer's allow-list uses JS
+    ``\\w``, which is ASCII-only, so the substitution is ASCII too (``café.jpg``
+    normalizes instead of passing through). Names that survive unchanged pass
+    through; names that lose characters get a digest of the original appended so
+    distinct sources can never collide on output."""
     import hashlib
     stem, ext = os.path.splitext(original_basename)
-    safe_stem = re.sub(r"[^\w\-. ]", "_", stem)
+    safe_stem = re.sub(r"[^\w\-. ]", "_", stem, flags=re.ASCII)
     if safe_stem == stem:
         return original_basename
-    digest = hashlib.sha1(original_basename.encode("utf-8")).hexdigest()[:8]
+    digest = hashlib.sha256(original_basename.encode("utf-8")).hexdigest()[:12]
     return f"{safe_stem}.{digest}{ext.lower()}"
 
 

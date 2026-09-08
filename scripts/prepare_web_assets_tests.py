@@ -33,6 +33,18 @@ class WebSafeNameTests(unittest.TestCase):
     def test_digest_is_stable(self):
         self.assertEqual(pwa.web_safe_name("a(b).png"), pwa.web_safe_name("a(b).png"))
 
+    def test_unicode_basename_is_normalized(self):
+        out = pwa.web_safe_name("café.jpg")
+        self.assertTrue(out.endswith(".jpg"))
+        self.assertTrue(out.startswith("caf_"))
+        self.assertNotIn("é", out)
+
+    def test_ascii_digest_length(self):
+        out = pwa.web_safe_name("scan (front).jpg")
+        stem, ext = out.rsplit(".", 1)
+        digest = stem.rsplit(".", 1)[-1]
+        self.assertEqual(len(digest), 12)
+
 
 class ValidatedCoordsTests(unittest.TestCase):
     def test_primary_frame_used_when_valid(self):
