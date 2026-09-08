@@ -292,12 +292,14 @@ def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
     crops = []
     with Image.open(MASTER_MAP) as master:
         for idx, group in enumerate(clusters, start=1):
-            # Pad the bounding box generously so pins are not on the crop edge.
-            pad = 800.0 / MASTER_W  # 800 master px
-            nx0 = max(0.0, min(l["nx"] for l in group) - pad)
-            nx1 = min(1.0, max(l["nx"] for l in group) + pad)
-            ny0 = max(0.0, min(l["ny"] for l in group) - pad)
-            ny1 = min(1.0, max(l["ny"] for l in group) + pad)
+            # Pad generously so pins are not on the crop edge. Use each axis's
+            # own master dimension so 800 px of padding applies in both x and y.
+            pad_x = 800.0 / MASTER_W
+            pad_y = 800.0 / MASTER_H
+            nx0 = max(0.0, min(l["nx"] for l in group) - pad_x)
+            nx1 = min(1.0, max(l["nx"] for l in group) + pad_x)
+            ny0 = max(0.0, min(l["ny"] for l in group) - pad_y)
+            ny1 = min(1.0, max(l["ny"] for l in group) + pad_y)
             box = (round(nx0 * master.width), round(ny0 * master.height),
                    round(nx1 * master.width), round(ny1 * master.height))
             crop = master.crop(box).convert("RGB")
@@ -360,8 +362,16 @@ def main() -> int:
         print(f"Content set not found: {content_dir}", file=sys.stderr)
         return 2
 
-    web_images = os.path.join(args.out, "images")
-    web_data = os.path.join(args.out, "data")
+    out_root = os.path.realpath(args.out)
+    # Guard the destructive cleanup: only ever delete generated `images`/`data`
+    # under an explicit `--out`, and refuse an `--out` pointing at the repo root
+    # itself (would wipe a would-be `./images`, `./data`, or worse).
+    if out_root == os.path.realpath(REPO_ROOT):
+        print("Refusing to use the repo root as --out (would delete ./images and ./data)", file=sys.stderr)
+        return 3
+
+    web_images = os.path.join(out_root, "images")
+    web_data = os.path.join(out_root, "data")
     # Clear generated outputs so reruns can't leave stale dirs behind.
     for stale in (web_images, web_data):
         if os.path.isdir(stale):
@@ -378,10 +388,17 @@ def main() -> int:
     out_locations = []
     total_popup_bytes = 0
     for i, loc in enumerate(locations, start=1):
-        safe = re.sub(r"[^\w\-. ]", "_", loc["name"]).strip() or f"loc_{i:03d}"
+        # ASCII-safe like web_safe_name and the renderer's JS \w: Unicode names
+        # (e.g. Müller) must normalize, else the renderer regex drops their images.
+        safe = re.sub(r"[^\w\-. ]", "_", loc["name"], flags=re.ASCII).strip() or f"loc_{i:03d}"
         safe = f"{safe}__loc_{i:03d}"  # collision-proof even for duplicate names
         folder = os.path.join(content_dir, loc["name"])
         folder_real = os.path.realpath(folder)
+        # Contain folder_real within content_dir (workbook names are untrusted).
+        content_real = os.path.realpath(content_dir)
+        if not (folder_real == content_real or folder_real.startswith(content_real + os.sep)):
+            print(f"  WARNING: {loc['name']}: path escapes content set; skipping location")
+            continue
         image_names = loc["images"]
         if not image_names and os.path.isdir(folder):
             image_names = sorted(os.listdir(folder))
@@ -451,8 +468,8 @@ def main() -> int:
             },
         }, fh, indent=2, ensure_ascii=False)
 
-    crop_bytes = sum(os.path.getsize(os.path.join(REPO_ROOT, "web", c["file"]))
-                     for c in crops if os.path.isfile(os.path.join(REPO_ROOT, "web", c["file"])))
+    crop_bytes = sum(os.path.getsize(os.path.join(out_root, c["file"]))
+                     for c in crops if os.path.isfile(os.path.join(out_root, c["file"])))
     total_mb = (total_popup_bytes + base_bytes + crop_bytes) / 1_048_576
     print()
     print(f"Wrote {loc_path} ({len(out_locations)} locations, {len(crops)} crops)")

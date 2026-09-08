@@ -6,7 +6,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ## Website (TOP PRIORITY — do this next)
 
-- [ ] Gallery website version of the map — staged plan in [web-map-plan.md](exec-plans/active/web-map-plan.md). **Status (2026-09-06):** Stage 1 done on branch `web-map-mvp`: `scripts/prepare_web_assets.py` bakes demo content into a static `web/` bundle (base 2.0 MB, 38 locations, total 3.4 MB payload; coordinate contract corrected to pixel-space after discovering the data has no lat/lon). **Next:** human browser pass of `web/index.html` + `web/test-projection.html` locally + on a phone (NYC sharpness check), then Stage 3 (clustering, deep links, a11y basics). Rationale: [WEB_ADAPTATION_ASSESSMENT.md](assessments/WEB_ADAPTATION_ASSESSMENT.md).
+- [ ] Gallery website version of the map — staged plan in [web-map-plan.md](exec-plans/active/web-map-plan.md). **Status (2026-09-06):** Stage 1 + Stage 2 done on branch `web-map-mvp` (PR #35): `scripts/prepare_web_assets.py` bakes demo content into a static `web/` bundle (base 2.0 MB, 38 locations, 7 crops ≈ 6 MB, ~9.4 MB total; coordinate contract corrected to normalized image pixels — there is no lat/lon in the data). **Smoke tests complete:** browser pass ✓ and iPhone pass ✓ (renders under the ~16.7 MP iOS ceiling; crops fix zoomed-pin sharpness). **Next:** Stage 3 — planned tile-pyramid layer for whole-map mid-zoom sharpness, marker clustering (stamp + badge), shareable `#location=` deep links, keyboard-focus centering, a11y basics, brand fonts/colors; then **Stage 4 deploy** once the gallery answers the Stage 0 questions (embed target, web-publishing rights, branding). Rationale: [WEB_ADAPTATION_ASSESSMENT.md](assessments/WEB_ADAPTATION_ASSESSMENT.md).
 
 ## Zoom & animation
 
