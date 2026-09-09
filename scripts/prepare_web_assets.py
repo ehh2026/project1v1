@@ -183,6 +183,39 @@ def _validated_coords(px_a: str, py_a: str, w_a: float, h_a: float,
     return None
 
 
+def stable_location_id(name: str) -> str:
+    """Deterministic URL-fragment-safe slug from the location's authoritative
+    name key (Excel column A / the desktop ContentLoader key). Row reordering
+    never changes it; only editing the name itself does."""
+    import unicodedata
+    s = unicodedata.normalize("NFKD", name).encode("ascii", "ignore").decode("ascii")
+    s = re.sub(r"[^a-z0-9]+", "-", s.strip().lower()).strip("-")
+    return s or "location"
+
+
+def assign_location_ids(locations: list[dict], stable=True) -> list[str]:
+    """Give every location a stable id (name slug; duplicate names get a
+    deterministic -2/-3... suffix ordered by content, not by row position).
+    Returns ids aligned with the input list order."""
+    result = [None] * len(locations)
+    if not stable:
+        return [f"loc_{i + 1:03d}" for i in range(len(locations))]
+    base_ids = [stable_location_id(l["name"]) for l in locations]
+    from collections import Counter
+    counts = Counter(base_ids)
+    # Deterministic tiebreak for duplicate names: content (name, nx, ny) — a
+    # source-row reorder does not move the pins, so the suffix never swaps.
+    order = sorted(range(len(locations)), key=lambda i: (base_ids[i],
+                                                         locations[i]["nx"],
+                                                         locations[i]["ny"]))
+    seq: dict[str, int] = {}
+    for i in order:
+        b = base_ids[i]
+        seq[b] = seq.get(b, 0) + 1
+        result[i] = b if counts[b] == 1 else f"{b}-{seq[b]}"
+    return result
+
+
 def web_safe_name(original_basename: str) -> str:
     """Renderer-whitelist-safe derivative name. The renderer's allow-list uses JS
     ``\\w``, which is ASCII-only, so the substitution is ASCII too (``café.jpg``
@@ -481,7 +514,7 @@ def generate_tiles(out_root: str, base_w: int, base_h: int,
                         tile.paste(region, (0, top_pad))
                     else:
                         tile = region.resize((TILE_SIZE, TILE_SIZE), Image.LANCZOS)
-                    path = os.path.join(tile_root, str(level), str(y), f"{x}.jpg")
+                    path = os.path.join(tile_root, str(level), str(x), f"{y}.jpg")
                     os.makedirs(os.path.dirname(path), exist_ok=True)
                     tile.save(path, "JPEG", quality=TILE_QUALITY, progressive=True, optimize=True)
                     level_bytes += os.path.getsize(path)
@@ -627,7 +660,7 @@ def main() -> int:
                             df.write(sf.read())
 
         out_locations.append({
-            "id": f"loc_{i:03d}",
+            "id": "",
             "name": loc["name"],
             "nx": loc["nx"],
             "ny": loc["ny"],
@@ -635,6 +668,10 @@ def main() -> int:
             "bio": loc["bio"],
             "images": images_out,
         })
+
+    # Stable deep-link ids from the authoritative name (slug), never row order.
+    for loc, cid in zip(out_locations, assign_location_ids(out_locations)):
+        loc["id"] = cid
 
     # Regional high-res crops for dense clusters (so zoomed pin areas stay sharp).
     clusters = compute_dense_clusters(out_locations)

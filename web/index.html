@@ -77,7 +77,8 @@ minZoom: -2,
           tileSize: tilesM.tileSize,
           zoomOffset: tilesM.baseZoom,
           minZoom: Math.min(...tilesM.levels) - tilesM.baseZoom,
-          maxZoom: Math.max(...tilesM.levels) - tilesM.baseZoom,
+          maxZoom: 6,
+          maxNativeZoom: Math.max(...tilesM.levels) - tilesM.baseZoom,
           noWrap: true,
           bounds,
         })
@@ -99,8 +100,10 @@ minZoom: -2,
     popupAnchor: [0, -26],
   });
 
+  const markerById = new Map();
   for (const loc of data.locations) {
     const marker = L.marker([(1 - loc.ny) * H, loc.nx * W], {
+      id: loc.id,
       icon: pinIcon,
       title: loc.name,
       alt: loc.name,
@@ -149,6 +152,7 @@ minZoom: -2,
     }
 
     marker.bindPopup(popup, { maxWidth: 680 });
+    markerById.set(loc.id, marker);
     marker.addTo(map);
   }
 
@@ -180,6 +184,32 @@ minZoom: -2,
   }
   map.on('zoomend moveend resize viewreset', updateCrops);
   updateCrops();
+
+  // Stable deep links (Stage 3A): #location=<stable-id> pans to and opens a
+  // location. Ids are name-derived in the manifest, so they survive harmless
+  // source-row reordering; unknown ids fail harmlessly.
+  const DEEP_LINK_ZOOM = tileLayer ? tileLayer.options.minZoom : ZOOM_THRESHOLD;
+  function handleDeepLink() {
+    const m = /(?:^|&)location=([^&]+)/.exec(location.hash.slice(1));
+    if (!m) return;
+    const marker = markerById.get(decodeURIComponent(m[1]));
+    if (!marker) {
+      console.info('Unknown location id: ' + m[1]);
+      return;
+    }
+    map.setView(marker.getLatLng(), Math.max(map.getZoom(), DEEP_LINK_ZOOM), { animate: false });
+    marker.openPopup();
+  }
+  window.addEventListener('hashchange', handleDeepLink);
+  handleDeepLink();
+
+  // Reflect the open popup's location in the URL without adding history.
+  map.on('popupopen', (e) => {
+    const source = e.popup && e.popup._source;
+    if (source && source.options && source.options.id) {
+      history.replaceState(null, '', '#location=' + encodeURIComponent(source.options.id));
+    }
+  });
 })();
 </script>
 </body>

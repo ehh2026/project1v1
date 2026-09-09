@@ -232,6 +232,39 @@ class CutCropsIntegrationTests(unittest.TestCase):
         self.assertEqual(len(saved), 1)
 
 
+class StableIdTests(unittest.TestCase):
+    def test_slug_rules(self):
+        self.assertEqual(pwa.stable_location_id("Kevin"), "kevin")
+        self.assertEqual(pwa.stable_location_id("Dr. Henry Rosin"), "dr-henry-rosin")
+        self.assertEqual(pwa.stable_location_id("Mr. and Mrs. C.C. Wang"), "mr-and-mrs-c-c-wang")
+        self.assertEqual(pwa.stable_location_id("  Spacing   Pad  "), "spacing-pad")
+        self.assertEqual(pwa.stable_location_id("Müller"), "muller")
+
+    def test_ids_are_identical_when_rows_reorder(self):
+        a = [{"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
+             {"name": "Test", "nx": 0.5, "ny": 0.6, "images": []},
+             {"name": "Test2", "nx": 0.7, "ny": 0.8, "images": []},
+             {"name": "Kevin", "nx": 0.31, "ny": 0.41, "images": []}]
+        b = [dict(x) for x in reversed(a)]
+        ids_a = pwa.assign_location_ids(a)
+        ids_b = pwa.assign_location_ids(b)
+        by_name_coords = lambda x: sorted((l["name"], l["nx"], l["ny"], cid)
+                                          for l, cid in zip(x[0], x[1]))
+        self.assertEqual(by_name_coords((a, ids_a)), by_name_coords((b, ids_b)))
+
+    def test_duplicate_names_get_stable_suffixes(self):
+        locs = [{"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
+                {"name": "Kevin", "nx": 0.5, "ny": 0.6, "images": []}]
+        ids = pwa.assign_location_ids(locs)
+        self.assertEqual(set(ids), {"kevin-1", "kevin-2"})
+
+    def test_duplicate_ordering_is_by_content_not_row(self):
+        locs = [{"name": "Kevin", "nx": 0.5, "ny": 0.6, "images": []},
+                {"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []}]
+        ids = pwa.assign_location_ids(locs)
+        self.assertEqual(ids, ["kevin-2", "kevin-1"])
+
+
 class TilePyramidTests(unittest.TestCase):
     def test_level_dimensions_double_per_level(self):
         w5, h5 = pwa._level_dimensions(5, 4096, 2769)
@@ -269,15 +302,17 @@ class TilePyramidTests(unittest.TestCase):
             from PIL import Image
         except ImportError:
             self.skipTest("numpy/Pillow not installed")
-        master_path = os.path.join(pwa.ASSETS_DIR, "World Map 1976.jpg")
-        sample = os.path.join("web", "images", "tiles", "5", "-11", "16.jpg")
+        master_path = os.path.join(pwa.MASTER_MAP)
+        # Browser-fetch path for the manifest URL template {z}/{x}/{y}. The box
+        # is the HARD-CODED expected output of the generator for tile (16,-11)
+        # at level 5 — recomputed independently, not via _tile_source_box, so a
+        # future formula break (e.g. the {x}/{y} transposition) fails here.
+        web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web")
+        sample = os.path.join(web_dir, "images", "tiles", "5", "16", "-11.jpg")
         if not (os.path.isfile(master_path) and os.path.isfile(sample)):
             self.skipTest("master map or generated tiles not present")
         Image.MAX_IMAGE_PIXELS = 200_000_000
-        level_w, level_h = pwa._level_dimensions(5, 4096, 2769)
-        sx = 16397 / float(level_w)
-        sy = 11085 / float(level_h)
-        box, top_pad = pwa._tile_source_box(16, -11, level_w, level_h, sx, sy)
+        box = (8198, 5448, 8711, 5961)  # master px for level-5 tile x=16, y=-11
         with Image.open(master_path) as master:
             master = master.convert("RGB")
             expect = master.crop(box).resize((256, 256), Image.LANCZOS)
