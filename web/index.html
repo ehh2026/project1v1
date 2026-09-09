@@ -126,22 +126,30 @@ minZoom: -2,
     marker.addTo(map);
   }
 
-  // Regional high-res crops: swap in a sharper overlay when zoomed into a cluster.
+  // Regional high-res crops: create an overlay only while the crop is near the
+  // current viewport at or above the zoom threshold, and remove it (freeing the
+  // decoded image and its network transfer) when it is no longer relevant. This
+  // keeps distant crops out of the mobile initial transfer entirely.
   const crops = data.crops ?? [];
-  const cropLayers = crops.map((c) => {
-    const bounds = [[ (1 - c.ny1) * H, c.nx0 * W ], [ (1 - c.ny0) * H, c.nx1 * W ]];
-    return { overlay: L.imageOverlay(c.file, bounds).addTo(map), c };
-  });
-  cropLayers.forEach(({ overlay, c }) => overlay.setOpacity(0));
+  const cropLayers = new Map();  // crop -> active L.ImageOverlay
 
   const ZOOM_THRESHOLD = 1;
+  function cropBounds(c) {
+    return [[ (1 - c.ny1) * H, c.nx0 * W ], [ (1 - c.ny0) * H, c.nx1 * W ]];
+  }
   function updateCrops() {
     const z = map.getZoom();
-    const vb = map.getBounds();
-    cropLayers.forEach(({ overlay, c }) => {
-      const cb = overlay.getBounds();
-      const visible = z >= ZOOM_THRESHOLD && vb.intersects(cb);
-      overlay.setOpacity(visible ? 1 : 0);
+    const near = map.getBounds().pad(0.5);
+    crops.forEach((c) => {
+      const active = cropLayers.get(c);
+      const needed = z >= ZOOM_THRESHOLD && near.intersects(cropBounds(c));
+      if (needed && !active) {
+        const overlay = L.imageOverlay(c.file, cropBounds(c)).addTo(map);
+        cropLayers.set(c, overlay);
+      } else if (!needed && active) {
+        active.remove();
+        cropLayers.delete(c);
+      }
     });
   }
   map.on('zoomend moveend', updateCrops);

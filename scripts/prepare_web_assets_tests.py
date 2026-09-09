@@ -83,5 +83,67 @@ class PathSafetyTests(unittest.TestCase):
             self.assertFalse(pwa.is_strict_descendant(sibling, content_real))
 
 
+class _Loc(dict):
+    """Tiny location holder so tests read like prepare_web_assets data."""
+    def __init__(self, nx, ny):
+        super().__init__(nx=nx, ny=ny)
+
+
+class CropBudgetTests(unittest.TestCase):
+    def test_crop_bounds_pad_each_axis_with_own_master_dimension(self):
+        nx0, ny0, nx1, ny1 = pwa._crop_bounds([_Loc(0.5, 0.5)])
+        self.assertAlmostEqual(nx1 - nx0, 2 * pwa.CROP_PAD_X / pwa.MASTER_W)
+        self.assertAlmostEqual(ny1 - ny0, 2 * pwa.CROP_PAD_Y / pwa.MASTER_H)
+        self.assertAlmostEqual(nx0, 0.5 - pwa.CROP_PAD_X / pwa.MASTER_W)
+        self.assertAlmostEqual(ny1, 0.5 + pwa.CROP_PAD_Y / pwa.MASTER_H)
+
+    def test_crop_bounds_clamp_to_map_unit_square(self):
+        nx0, ny0, nx1, ny1 = pwa._crop_bounds([_Loc(0.0, 1.0)])
+        self.assertEqual(nx0, 0.0)
+        self.assertEqual(ny1, 1.0)
+
+    def test_split_group_halves_along_longer_axis(self):
+        wide = [_Loc(0.1, 0.5), _Loc(0.2, 0.5), _Loc(0.3, 0.5), _Loc(0.4, 0.5)]
+        a, b = pwa._split_group(wide)
+        self.assertTrue(a and b)
+        self.assertEqual(len(a) + len(b), len(wide))
+
+    def test_split_group_single_pin_cannot_split(self):
+        self.assertEqual(pwa._split_group([_Loc(0.5, 0.5)]), [])
+
+    def test_split_reduces_bounding_box_area(self):
+        wide = [_Loc(i * 0.01, i * 0.01) for i in range(60, 0, -1)]
+        a, b = pwa._split_group(wide)
+        area = lambda g, pad=pwa.CROP_PAD_X: (max(x["nx"] for x in g) - min(x["nx"] for x in g) + 2 * pad / pwa.MASTER_W)
+        self.assertLess(max(area(a), area(b)), area(wide))
+
+    def test_save_crop_for_budget_small_bytes_passes_through(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow not installed")
+        import tempfile as _tmp
+        with _tmp.TemporaryDirectory() as d:
+            path = os.path.join(d, "x.jpg")
+            img = Image.new("RGB", (64, 64), "navy")
+            self.assertTrue(pwa._save_crop_for_budget(img, path, 10_000_000))
+
+    def test_save_crop_for_budget_tiny_budget_shrinks_to_fit(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow not installed")
+        import tempfile as _tmp
+        with _tmp.TemporaryDirectory() as d:
+            path = os.path.join(d, "x.jpg")
+            img = Image.new("RGB", (1200, 1200), "white")
+            img.save(path, "JPEG", quality=95)
+            self.assertGreater(os.path.getsize(path), 2000)
+            os.remove(path)
+            pwa._save_crop_for_budget(img, path, 2000)
+            self.assertTrue(os.path.isfile(path))
+            self.assertLessEqual(os.path.getsize(path), 2000)
+
+
 if __name__ == "__main__":
     unittest.main()

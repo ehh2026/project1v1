@@ -49,6 +49,15 @@ WEB_BASE_WIDTH = 4096                   # ~11.3 MP, under the iPhone ~16.7 MP li
 POPUP_MAX_EDGE = 1600
 POPUP_QUALITY = 80
 
+# Crop budget limits (Stage 3A "lazy, device-safe regional crops"): every crop
+# is a single decoded image, so each must stay under the iPhone ~16.7 MP ceiling
+# with headroom, and the whole set must stay within a sane download budget.
+CROP_MAX_PIXELS = 16_000_000            # decoded pixels per crop (single image)
+CROP_MAX_BYTES = 2_500_000              # bytes per crop (re-encode/scale to fit)
+CROP_TOTAL_BYTES_BUDGET = 25_000_000    # whole crop payload; warn when exceeded
+CROP_PAD_X = 800.0                      # padding around each group (master px)
+CROP_PAD_Y = 800.0
+
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
 
@@ -295,9 +304,56 @@ def compute_dense_clusters(locations: list[dict], radius_px: float = 500,
     return [g for g in groups if len(g) >= min_members]
 
 
+def _crop_bounds(group: list[dict]) -> tuple[float, float, float, float]:
+    """Normalized bounding box of a crop group, with padding so pins are not
+    on the crop edge. Each axis's own master dimension is used so CROP_PAD_X/Y
+    applies the same pixel buffer in both directions."""
+    pad_x = CROP_PAD_X / MASTER_W
+    pad_y = CROP_PAD_Y / MASTER_H
+    nx0 = max(0.0, min(l["nx"] for l in group) - pad_x)
+    nx1 = min(1.0, max(l["nx"] for l in group) + pad_x)
+    ny0 = max(0.0, min(l["ny"] for l in group) - pad_y)
+    ny1 = min(1.0, max(l["ny"] for l in group) + pad_y)
+    return nx0, ny0, nx1, ny1
+
+
+def _split_group(group: list[dict]) -> list[list[dict]]:
+    """Deterministically split an oversized crop group along its longer axis.
+    A single pin always fits the pixel budget (its padded hill is 1600x1600),
+    so repeated splitting always terminates."""
+    if len(group) < 2:
+        return []
+    nx0, ny0, nx1, ny1 = _crop_bounds(group)
+    key = lambda l: l["nx"] if (nx1 - nx0) >= (ny1 - ny0) else l["ny"]
+    ordered = sorted(group, key=key)
+    mid = len(ordered) // 2
+    return [ordered[:mid], ordered[mid:]]
+
+
+def _save_crop_for_budget(crop, path: str, max_bytes: int) -> bool:
+    """Save a crop, tightening encoding until it fits the byte budget."""
+    for quality in (85, 75, 65):
+        crop.save(path, "JPEG", quality=quality, progressive=True, optimize=True)
+        if os.path.getsize(path) <= max_bytes:
+            return True
+    from PIL import Image as _PILImage
+    im = crop
+    for _ in range(8):
+        if os.path.getsize(path) <= max_bytes:
+            return True
+        if im.width < 300:
+            break
+        im = im.resize((round(im.width * 0.75), round(im.height * 0.75)), _PILImage.LANCZOS)
+        im.save(path, "JPEG", quality=60, progressive=True, optimize=True)
+    return os.path.getsize(path) <= max_bytes
+
+
 def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
-    """Cut one full-res crop per dense cluster from the 16397×11085 master.
-    Returns manifest entries with normalized bounds for the renderer."""
+    """Cut one full-res crop per dense cluster from the 16397×11085 master,
+    keeping every crop within the per-image decoded-pixel and byte budgets by
+    splitting oversized transitive groups. Single pins always get their own
+    padded crop (min 1). Returns manifest entries with normalized bounds."""
+    from collections import deque
     from PIL import Image
     Image.MAX_IMAGE_PIXELS = 200_000_000
     if not clusters:
@@ -305,28 +361,32 @@ def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
     os.makedirs(out_dir, exist_ok=True)
     crops = []
     with Image.open(MASTER_MAP) as master:
-        for idx, group in enumerate(clusters, start=1):
-            # Pad generously so pins are not on the crop edge. Use each axis's
-            # own master dimension so 800 px of padding applies in both x and y.
-            pad_x = 800.0 / MASTER_W
-            pad_y = 800.0 / MASTER_H
-            nx0 = max(0.0, min(l["nx"] for l in group) - pad_x)
-            nx1 = min(1.0, max(l["nx"] for l in group) + pad_x)
-            ny0 = max(0.0, min(l["ny"] for l in group) - pad_y)
-            ny1 = min(1.0, max(l["ny"] for l in group) + pad_y)
+        work: deque[list[dict]] = deque(clusters)
+        idx = 0
+        while work:
+            group = work.popleft()
+            nx0, ny0, nx1, ny1 = _crop_bounds(group)
             box = (round(nx0 * master.width), round(ny0 * master.height),
                    round(nx1 * master.width), round(ny1 * master.height))
-            crop = master.crop(box).convert("RGB")
-            name = f"crop_{idx:02d}.jpg"
+            if (box[2] - box[0]) * (box[3] - box[1]) > CROP_MAX_PIXELS:
+                print(f"  crop group of {len(group)} pins exceeds {CROP_MAX_PIXELS / 1e6:.0f} MP; splitting")
+                work.extendleft(reversed(_split_group(group)))
+                continue
+            name = f"crop_{idx + 1:02d}.jpg"
             path = os.path.join(out_dir, name)
-            crop.save(path, "JPEG", quality=85, progressive=True, optimize=True)
+            fits = _save_crop_for_budget(master.crop(box).convert("RGB"), path, CROP_MAX_BYTES)
+            if not fits:
+                print(f"  WARNING: {name} still exceeds {CROP_MAX_BYTES / 1e6:.2f} MB after re-encode/scale; keeping scaled copy")
+            size = os.path.getsize(path)
             crops.append({
                 "file": f"images/crops/{name}",
                 "nx0": nx0, "ny0": ny0, "nx1": nx1, "ny1": ny1,
                 "members": [l["name"] for l in group],
+                "overBudgetBytes": not fits,
             })
             print(f"  crop {name}: {(box[2]-box[0])}x{(box[3]-box[1])} px, "
-                  f"{os.path.getsize(path) / 1_048_576:.2f} MB, {len(group)} pins")
+                  f"{size / 1_048_576:.2f} MB, {len(group)} pins")
+            idx += 1
     return crops
 
 
@@ -488,6 +548,9 @@ def main() -> int:
     crop_bytes = sum(os.path.getsize(os.path.join(out_root, c["file"]))
                      for c in crops if os.path.isfile(os.path.join(out_root, c["file"])))
     total_mb = (total_popup_bytes + base_bytes + crop_bytes) / 1_048_576
+    if crop_bytes > CROP_TOTAL_BYTES_BUDGET:
+        print(f"  WARNING: total crop payload {crop_bytes / 1_048_576:.2f} MB exceeds the "
+              f"{CROP_TOTAL_BYTES_BUDGET / 1_048_576:.2f} MB budget; consider the tile-pyramid stage")
     print()
     print(f"Wrote {loc_path} ({len(out_locations)} locations, {len(crops)} crops)")
     print(f"Popup derivatives: {total_popup_bytes / 1_048_576:.2f} MB; "
