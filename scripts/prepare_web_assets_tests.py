@@ -309,8 +309,12 @@ class TilePyramidTests(unittest.TestCase):
         # future formula break (e.g. the {x}/{y} transposition) fails here.
         web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web")
         sample = os.path.join(web_dir, "images", "tiles", "5", "16", "-11.jpg")
-        if not (os.path.isfile(master_path) and os.path.isfile(sample)):
-            self.skipTest("master map or generated tiles not present")
+        if not os.path.isfile(master_path):
+            self.skipTest("master map not present")
+        # Missing generated tile should FAIL, not skip: a layout/axis regression
+        # (e.g. a {y}/{x} transposition) must surface here.
+        self.assertTrue(os.path.isfile(sample),
+                        "sample tile tiles/5/16/-11.jpg not generated (layout/axis regression?)")
         Image.MAX_IMAGE_PIXELS = 200_000_000
         box = (8198, 5448, 8711, 5961)  # master px for level-5 tile x=16, y=-11
         with Image.open(master_path) as master:

@@ -43,10 +43,25 @@
   .popup-figure img { width: 100%; height: auto; display: block; border-radius: 4px; }
   .popup-caption { font-size: .8rem; color: #555; margin-top: 4px; }
   .leaflet-popup-content p { margin: 6px 0; }
+
+  /* Accessibility: instructions for assistive tech only */
+  .visually-hidden {
+    position: absolute; width: 1px; height: 1px;
+    margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+  /* Visible focus rings for pins and popup controls */
+  .leaflet-marker-icon:focus-visible { outline: 3px solid #ffd166; outline-offset: 3px; }
+  .leaflet-popup-close-button:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
 </style>
 </head>
 <body>
-<div id="map" role="application" aria-label="Interactive world map"></div>
+<h1 class="visually-hidden">Interactive World Map</h1>
+<p class="visually-hidden">
+  Browse with the mouse or touch. Keyboard users: press Tab to reach location
+  pins, press Enter to open a location's information, and press Escape to close it.
+</p>
+<div id="map" role="region" aria-label="Interactive world map"></div>
 <script>
 (async function () {
   const data = await (await fetch('data/locations.json')).json();
@@ -94,7 +109,7 @@ minZoom: -2,
 
   const pinIcon = L.divIcon({
     className: '',
-    html: '<div class="map-pin" role="img"></div>',
+    html: '<div class="map-pin" aria-hidden="true"></div>',
     iconSize: [26, 26],
     iconAnchor: [13, 26],
     popupAnchor: [0, -26],
@@ -154,6 +169,19 @@ minZoom: -2,
     marker.bindPopup(popup, { maxWidth: 680 });
     markerById.set(loc.id, marker);
     marker.addTo(map);
+    if (marker._icon) {
+      marker._icon.setAttribute('aria-label', loc.name);
+    }
+    // Keyboard basics (Stage 3A): toggle the popup with Space. Enter is already
+    // handled by Leaflet's bindPopup keypress handler (opens), and Leaflet's
+    // autoPanOnFocus (default true) pans a focused pin into view.
+    marker.on('keydown', (e) => {
+      const key = e.originalEvent.key;
+      if (key === ' ') {
+        e.originalEvent.preventDefault();
+        marker.togglePopup();
+      }
+    });
   }
 
   // Regional high-res crops: create an overlay only while the crop is near the
@@ -192,9 +220,16 @@ minZoom: -2,
   function handleDeepLink() {
     const m = /(?:^|&)location=([^&]+)/.exec(location.hash.slice(1));
     if (!m) return;
-    const marker = markerById.get(decodeURIComponent(m[1]));
+    let id;
+    try {
+      id = decodeURIComponent(m[1]);
+    } catch (err) {
+      console.info('Malformed location hash ignored');
+      return;
+    }
+    const marker = markerById.get(id);
     if (!marker) {
-      console.info('Unknown location id: ' + m[1]);
+      console.info('Unknown location id: ' + id);
       return;
     }
     map.setView(marker.getLatLng(), Math.max(map.getZoom(), DEEP_LINK_ZOOM), { animate: false });
@@ -203,12 +238,24 @@ minZoom: -2,
   window.addEventListener('hashchange', handleDeepLink);
   handleDeepLink();
 
-  // Reflect the open popup's location in the URL without adding history.
+  // Reflect the open popup's location in the URL without adding history, and
+  // move focus into the popup predictably so Escape/close can hand it back.
+  let popupOrigin = null;
   map.on('popupopen', (e) => {
     const source = e.popup && e.popup._source;
     if (source && source.options && source.options.id) {
+      popupOrigin = source;
       history.replaceState(null, '', '#location=' + encodeURIComponent(source.options.id));
     }
+    const container = e.popup.getElement();
+    if (container) {
+      container.setAttribute('tabindex', '-1');
+      container.focus({ preventScroll: true });
+    }
+  });
+  map.on('popupclose', () => {
+    if (popupOrigin && popupOrigin._icon) popupOrigin.focus({ preventScroll: true });
+    popupOrigin = null;
   });
 })();
 </script>

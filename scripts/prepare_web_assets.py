@@ -193,13 +193,15 @@ def stable_location_id(name: str) -> str:
     return s or "location"
 
 
-def assign_location_ids(locations: list[dict], stable=True) -> list[str]:
+def assign_location_ids(locations: list[dict]) -> list[str]:
     """Give every location a stable id (name slug; duplicate names get a
-    deterministic -2/-3... suffix ordered by content, not by row position).
-    Returns ids aligned with the input list order."""
+    deterministic -1/-2... suffix ordered by content, not by row position).
+    Returns ids aligned with the input list order.
+
+    Caveat: the slug depends on the authoritative name, so renaming a cell
+    changes it. Duplicate-name suffixes can also shift when another location
+    with the same slug is added or removed (bare id vs -1/-2 flip)."""
     result = [None] * len(locations)
-    if not stable:
-        return [f"loc_{i + 1:03d}" for i in range(len(locations))]
     base_ids = [stable_location_id(l["name"]) for l in locations]
     from collections import Counter
     counts = Counter(base_ids)
