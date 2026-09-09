@@ -194,27 +194,32 @@ def stable_location_id(name: str) -> str:
 
 
 def assign_location_ids(locations: list[dict]) -> list[str]:
-    """Give every location a stable id (name slug; duplicate names get a
-    deterministic -1/-2... suffix ordered by content, not by row position).
+    """Give every location a stable id. The first (content-ordered) occurrence
+    of a name slug keeps the bare slug; later duplicates and any collision with
+    an already-taken id (including a real slug such as ``kevin-1``) get an
+    incremented ``-N`` suffix until the candidate is unused. All ids are unique.
     Returns ids aligned with the input list order.
 
     Caveat: the slug depends on the authoritative name, so renaming a cell
-    changes it. Duplicate-name suffixes can also shift when another location
-    with the same slug is added or removed (bare id vs -1/-2 flip)."""
+    changes it. Suffixes can also shift when another location sharing a slug is
+    added or removed."""
     result = [None] * len(locations)
     base_ids = [stable_location_id(l["name"]) for l in locations]
-    from collections import Counter
-    counts = Counter(base_ids)
-    # Deterministic tiebreak for duplicate names: content (name, nx, ny) — a
-    # source-row reorder does not move the pins, so the suffix never swaps.
+    # Deterministic allocation order: content (base slug, nx, ny) — a source-row
+    # reorder does not move the pins, so ids never swap between rows.
     order = sorted(range(len(locations)), key=lambda i: (base_ids[i],
                                                          locations[i]["nx"],
                                                          locations[i]["ny"]))
-    seq: dict[str, int] = {}
+    taken: set[str] = set()
     for i in order:
-        b = base_ids[i]
-        seq[b] = seq.get(b, 0) + 1
-        result[i] = b if counts[b] == 1 else f"{b}-{seq[b]}"
+        base = base_ids[i]
+        candidate = base
+        suffix = 1
+        while candidate in taken:
+            candidate = f"{base}-{suffix}"
+            suffix += 1
+        taken.add(candidate)
+        result[i] = candidate
     return result
 
 

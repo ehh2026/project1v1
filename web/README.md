@@ -55,9 +55,11 @@ generated `web/images/` and `web/data/` are **gitignored** — rerun the script 
 - `locations[].nx`, `ny` are **[0,1] fractions, origin top-left of the map image**. Renderers map them as
   `lat = (1 - ny) * height`, `lng = nx * width` against the `map.width`/`map.height` in the manifest.
 - `locations[].id` is a **stable, deep-link-friendly slug derived from the location name** (ASCII-normalized,
-  lowercased, `[a-z0-9-]`, `#location=<id>` opens it). It survives source-row reordering; duplicate names get
-  deterministic `-1`/`-2`… suffixes ordered by content, never by row position. Renaming a cell changes the slug,
-  and duplicate-name suffixes can shift if another location sharing the slug is added or removed.
+  lowercased, `[a-z0-9-]`, `#location=<id>` opens it). It survives source-row reordering. The first
+  content-ordered occurrence of a slug keeps the bare id; later duplicates and any collision with an
+  already-taken id (including a real slug such as `kevin-1`) get an incremented `-1`/`-2`… suffix until
+  free, so ids are always unique. Renaming a cell changes the slug, and suffixes can shift if another
+  location sharing a slug is added or removed.
 - `images[].altText` is pre-baked (caption from the Excel captions sheet, else `"<Location> image <N>"`);
   renderers must use it directly — there is no renderer-time lookup of captions or sidecar files.
 - All on-disk paths (map, crops, content images) are ASCII-safe and match the renderer's

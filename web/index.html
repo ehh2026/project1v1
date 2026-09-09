@@ -345,10 +345,6 @@
     marker.openPopup();
   }
   window.addEventListener('hashchange', handleDeepLink);
-  // Size popups for the viewport before a deep link opens one, so a direct
-  // load on a portrait phone never flashes a 680 px popup.
-  refreshPopupOptions();
-  handleDeepLink();
 
   // Portrait-phone usability: keep the Leaflet maxWidth in line with the
   // viewport and reposition an open popup after rotations/resizes.
@@ -364,7 +360,6 @@
     map.invalidateSize();
     if (currentPopup && currentPopup.isOpen()) currentPopup.update();
   });
-  refreshPopupOptions();
 
   // Reflect the open popup's location in the URL without adding history, and
   // move focus into the popup predictably so Escape/close can hand it back.
@@ -400,6 +395,12 @@
     if (popupOrigin && popupOrigin._icon) popupOrigin._icon.focus({ preventScroll: true });
     popupOrigin = null;
   });
+
+  // Size popups for the viewport, then open a deep-linked popup only after the
+  // popup state handlers above are wired, so it gets focus management, URL
+  // mirroring, Escape/close focus return, and resize updates like any other.
+  refreshPopupOptions();
+  handleDeepLink();
 
   inited = true;
   })().catch((err) => fail(err));

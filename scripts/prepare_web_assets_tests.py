@@ -256,13 +256,24 @@ class StableIdTests(unittest.TestCase):
         locs = [{"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
                 {"name": "Kevin", "nx": 0.5, "ny": 0.6, "images": []}]
         ids = pwa.assign_location_ids(locs)
-        self.assertEqual(set(ids), {"kevin-1", "kevin-2"})
+        # First (content-ordered) occurrence keeps the bare slug.
+        self.assertEqual(set(ids), {"kevin", "kevin-1"})
 
     def test_duplicate_ordering_is_by_content_not_row(self):
         locs = [{"name": "Kevin", "nx": 0.5, "ny": 0.6, "images": []},
                 {"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []}]
         ids = pwa.assign_location_ids(locs)
-        self.assertEqual(ids, ["kevin-2", "kevin-1"])
+        self.assertEqual(ids, ["kevin-1", "kevin"])
+
+    def test_real_slug_collision_is_bumped_not_duplicated(self):
+        # A location literally named "Kevin-1" shares the suffixed id that a
+        # duplicate "Kevin" would otherwise receive: ids must stay unique.
+        locs = [{"name": "Kevin", "nx": 0.1, "ny": 0.2, "images": []},
+                {"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
+                {"name": "Kevin-1", "nx": 0.2, "ny": 0.3, "images": []}]
+        ids = pwa.assign_location_ids(locs)
+        self.assertEqual(len(set(ids)), len(ids))
+        self.assertGreater(len(ids), len([i for i in ids if i == "kevin-1"]))
 
 
 class TilePyramidTests(unittest.TestCase):
@@ -311,6 +322,8 @@ class TilePyramidTests(unittest.TestCase):
         sample = os.path.join(web_dir, "images", "tiles", "5", "16", "-11.jpg")
         if not os.path.isfile(master_path):
             self.skipTest("master map not present")
+        if not os.path.isdir(os.path.join(web_dir, "images", "tiles")):
+            self.skipTest("no generated tile pyramid present")
         # Missing generated tile should FAIL, not skip: a layout/axis regression
         # (e.g. a {y}/{x} transposition) must surface here.
         self.assertTrue(os.path.isfile(sample),

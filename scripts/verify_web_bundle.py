@@ -133,11 +133,16 @@ def check(web_dir: str) -> int:
         url = tiles.get("url") or ""
         if "images/tiles/{z}/{x}/{y}.jpg" not in url:
             errors.append(f"unexpected tile URL template: {url!r}")
-        for level in levels:
-            for x, y in _tile_samples(level, w, h):
-                f = os.path.join(web_dir, "images", "tiles", str(level), str(x), f"{y}.jpg")
-                if not os.path.isfile(f):
-                    errors.append(f"tile missing: images/tiles/{level}/{x}/{y}.jpg")
+        if not (w > 0 and h > 0):
+            # Map dimension violation already recorded above; sampling against
+            # unusable dimensions would only produce misleading tile paths.
+            errors.append("tile sample grid skipped: map dimensions invalid")
+        else:
+            for level in levels:
+                for x, y in _tile_samples(level, w, h):
+                    f = os.path.join(web_dir, "images", "tiles", str(level), str(x), f"{y}.jpg")
+                    if not os.path.isfile(f):
+                        errors.append(f"tile missing: images/tiles/{level}/{x}/{y}.jpg")
     elif data.get("crops"):
         errors.append("no tiles block (pyramid expected in Stage 3A builds)")
 
