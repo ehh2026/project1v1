@@ -79,3 +79,13 @@ generated `web/images/` and `web/data/` are **gitignored** — rerun the script 
 ```sh
 py -3 -m http.server   # in web/, then open http://localhost:8000/
 ```
+
+## Verify a generated bundle
+
+After regenerating, run the coherence gate (stdlib, exits nonzero on any
+contract violation: ids/coords, image/crop/tile files on disk, sample tile
+grid, crop payload budget):
+
+```sh
+py -3 scripts/verify_web_bundle.py web
+```

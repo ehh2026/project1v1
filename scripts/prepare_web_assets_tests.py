@@ -327,5 +327,18 @@ class TilePyramidTests(unittest.TestCase):
         self.assertLess(mse, 0.01, "tile content diverged from the master (misaligned pyramid)")
 
 
+class WebBundleCoherenceTests(unittest.TestCase):
+    """Artifact-level gate: the generated web/ bundle must satisfy the manifest
+    contract. Runs whenever a generated bundle is present (skips otherwise)."""
+
+    def test_generated_bundle_passes_coherence_gate(self):
+        import verify_web_bundle as vwb
+        web_dir = os.path.join(os.path.dirname(vwb.__file__), "..", "web")
+        if not os.path.isfile(os.path.join(web_dir, "data", "locations.json")):
+            self.skipTest("no generated web bundle present")
+        rc = vwb.check(os.path.abspath(web_dir))
+        self.assertEqual(rc, 0, "generated web bundle violated the coherence contract")
+
+
 if __name__ == "__main__":
     unittest.main()
