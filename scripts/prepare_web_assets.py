@@ -5,6 +5,8 @@ Reads a content set (Excel first -- mirroring ContentLoader -- locations.json as
 fallback) and writes a static, self-contained web/ payload:
 
   web/images/map-base.jpg        intermediate base map (~4096 px, progressive)
+  web/images/tiles/{z}/{x}/{y}.jpg   deterministic tile pyramid (level 5 = 8192 px;
+                                  native ~16384 px level only with --tiles-native)
   web/images/content/<Name>/...   bounded popup derivatives (max 1600 px, q80)
   web/data/locations.json        locations with normalized coords + altText
 
@@ -58,6 +60,19 @@ CROP_MAX_BYTES = 2_500_000              # bytes per crop (re-encode/scale to fit
 CROP_TOTAL_BYTES_BUDGET = 25_000_000    # whole crop payload; warn when exceeded
 CROP_PAD_X = 800.0                      # padding around each group (master px)
 CROP_PAD_Y = 800.0
+
+# Tile pyramid (Stage 3A "whole-map tile pyramid"). The site keeps the 4096 px
+# base as its initial overview; beyond that, a Leaflet tile pyramid keeps zoomed
+# regions sharp. With Leaflet's zoomOffset-4 mapping (see web/README), level 5
+# is an 8192 px whole-map level and level 6 a ~16384 px native-master level.
+# World space is CRS.Simple with 1 map unit = 1 base-map pixel and a top-left
+# origin implied by lat = -y, so tile rows run NEGATIVE above the image top.
+TILE_SIZE = 256
+TILE_BASE_ZOOM = 4
+TILE_LEVEL = 5                           # 8192 px whole-map level (always)
+TILE_NATIVE_LEVEL = 6                    # ~16384 px (opt-in via --tiles-native)
+TILE_QUALITY = 82
+TILE_PADDING_COLOR = (13, 27, 42)        # matches site body background
 
 NS = "{http://schemas.openxmlformats.org/spreadsheetml/2006/main}"
 
@@ -404,6 +419,82 @@ def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
     return crops
 
 
+def _level_dimensions(level: int, base_w: int, base_h: int) -> tuple[int, int]:
+    """Whole-map level pixel size: the web base map doubled per zoom level."""
+    w = base_w << (level - TILE_BASE_ZOOM)
+    h = round(base_h * w / base_w)
+    return w, h
+
+
+def _tile_source_box(x: int, y: int, level_w: int, level_h: int,
+                     scale_x: float, scale_y: float):
+    """Master-pixel crop box + placement insets for tile (x, y) at `level`.
+
+    The map world is CRS.Simple with 1 unit = 1 base-map pixel and a top-left
+    origin (lat decreases downward to lat=-H under the -lat transform), so a
+    tile at URL zoom `level` covers level-pixel x in [256x, 256(x+1)) and
+    y-down in [level_h + 256y, level_h + 256y + 256). Rows above the image top
+    (y-down < 0) are blank padding."""
+    x0 = x * TILE_SIZE
+    y0d = level_h + y * TILE_SIZE
+    y1d = y0d + TILE_SIZE
+    x0 = max(0, min(x0, level_w))
+    x1 = max(x0, min(x0 + TILE_SIZE, level_w))
+    y0c = max(0, y0d)
+    y1c = max(y0c, min(y1d, level_h))
+    box = (round(x0 * scale_x), round(y0c * scale_y),
+           round(x1 * scale_x), round(y1c * scale_y))
+    top_pad = 0 if y0d >= 0 else (-y0d)
+    return box, top_pad
+
+
+def generate_tiles(out_root: str, base_w: int, base_h: int,
+                   include_native: bool = False) -> dict:
+    """Cut deterministic `{z}/{x}/{y}.jpg` tiles at z = URL zoom levels, with a
+    top-left-projected Leaflet layout (tile rows above the map top are blank).
+    Returns a manifest block consumed by the renderer."""
+    from PIL import Image
+    Image.MAX_IMAGE_PIXELS = 200_000_000
+    levels = [TILE_LEVEL] + ([TILE_NATIVE_LEVEL] if include_native else [])
+    tile_root = os.path.join(out_root, "images", "tiles")
+    total_bytes = 0
+    tile_count = 0
+    with Image.open(MASTER_MAP) as master:
+        for level in levels:
+            level_w, level_h = _level_dimensions(level, base_w, base_h)
+            cols = (level_w + TILE_SIZE - 1) // TILE_SIZE
+            top_y = -((level_h + TILE_SIZE - 1) // TILE_SIZE)
+            scale_x = master.width / float(level_w)
+            scale_y = master.height / float(level_h)
+            level_bytes = 0
+            level_count = 0
+            for y in range(top_y, 0):
+                for x in range(cols):
+                    box, top_pad = _tile_source_box(x, y, level_w, level_h, scale_x, scale_y)
+                    if box[2] <= box[0] or box[3] <= box[1]:
+                        continue
+                    region = master.crop(box).convert("RGB")
+                    if top_pad > 0:
+                        tile = Image.new("RGB", (TILE_SIZE, TILE_SIZE), TILE_PADDING_COLOR)
+                        shown = TILE_SIZE - top_pad
+                        region = region.resize((TILE_SIZE, shown), Image.LANCZOS)
+                        tile.paste(region, (0, top_pad))
+                    else:
+                        tile = region.resize((TILE_SIZE, TILE_SIZE), Image.LANCZOS)
+                    path = os.path.join(tile_root, str(level), str(y), f"{x}.jpg")
+                    os.makedirs(os.path.dirname(path), exist_ok=True)
+                    tile.save(path, "JPEG", quality=TILE_QUALITY, progressive=True, optimize=True)
+                    level_bytes += os.path.getsize(path)
+                    level_count += 1
+            total_bytes += level_bytes
+            tile_count += level_count
+            print(f"  tiles z={level}: {level_w}x{level_h} px, {cols} cols, "
+                  f"{level_count} tiles, {level_bytes / 1_048_576:.2f} MB")
+    print(f"  tiles total: {tile_count} tiles, {total_bytes / 1_048_576:.2f} MB")
+    return {"tileSize": TILE_SIZE, "baseZoom": TILE_BASE_ZOOM,
+            "url": "images/tiles/{z}/{x}/{y}.jpg", "levels": levels}
+
+
 def prepare_base_map(out_dir: str, base_width: int) -> tuple[int, int, int]:
     import PIL.Image as _PILImage
     _PILImage.MAX_IMAGE_PIXELS = 200_000_000  # finite cap above the 181 MP master
@@ -443,6 +534,8 @@ def main() -> int:
     ap.add_argument("--content-set", default=DEFAULT_CONTENT,
                     help="Content set folder (contains Excel and location folders)")
     ap.add_argument("--out", default=os.path.join(REPO_ROOT, "web"), help="Output web/ directory")
+    ap.add_argument("--tiles-native", action="store_true",
+                    help="Also emit the ~16384 px native-master tile level (bigger build, sharpest roaming)")
     args = ap.parse_args()
 
     content_dir = args.content_set
@@ -547,10 +640,16 @@ def main() -> int:
     clusters = compute_dense_clusters(out_locations)
     crops = cut_crops(clusters, os.path.join(web_images, "crops"))
 
+    # Whole-map tile pyramid (Stage 3A): level 5 (8192 px) always, level 6
+    # (native master) behind --tiles-native. Initial/overview stays the base.
+    print("Generating tile pyramid...")
+    tiles = generate_tiles(out_root, base_w, base_h, include_native=args.tiles_native)
+
     loc_path = os.path.join(web_data, "locations.json")
     with open(loc_path, "w", encoding="utf-8") as fh:
         json.dump({
             "map": {"width": base_w, "height": base_h, "image": "images/map-base.jpg"},
+            "tiles": tiles,
             "crops": crops,
             "locations": out_locations,
             "provenance": {
@@ -559,16 +658,21 @@ def main() -> int:
             },
         }, fh, indent=2, ensure_ascii=False)
 
+    tile_bytes = 0
+    for t in tiles["levels"]:
+        for root, _dirs, files in os.walk(os.path.join(web_images, "tiles", str(t))):
+            tile_bytes += sum(os.path.getsize(os.path.join(root, f)) for f in files)
     crop_bytes = sum(os.path.getsize(os.path.join(out_root, c["file"]))
                      for c in crops if os.path.isfile(os.path.join(out_root, c["file"])))
-    total_mb = (total_popup_bytes + base_bytes + crop_bytes) / 1_048_576
+    total_mb = (total_popup_bytes + base_bytes + crop_bytes + tile_bytes) / 1_048_576
     if crop_bytes > CROP_TOTAL_BYTES_BUDGET:
         print(f"  WARNING: total crop payload {crop_bytes / 1_048_576:.2f} MB exceeds the "
               f"{CROP_TOTAL_BYTES_BUDGET / 1_048_576:.2f} MB budget; consider the tile-pyramid stage")
     print()
     print(f"Wrote {loc_path} ({len(out_locations)} locations, {len(crops)} crops)")
     print(f"Popup derivatives: {total_popup_bytes / 1_048_576:.2f} MB; "
-          f"crops: {crop_bytes / 1_048_576:.2f} MB; total: {total_mb:.2f} MB")
+          f"crops: {crop_bytes / 1_048_576:.2f} MB; "
+          f"tiles: {tile_bytes / 1_048_576:.2f} MB; total: {total_mb:.2f} MB")
     return 0
 
 

@@ -62,8 +62,34 @@ minZoom: -2,
     zoomControl: true,
     attributionControl: false,
   });
-  L.imageOverlay(image, bounds).addTo(map);
   map.fitBounds(bounds);
+
+  // Whole-map tile pyramid (Stage 3A): the 4096 px base stays the initial
+  // overview; tiles take over at/above the pyramid's minimum (map) zoom so
+  // zoomed regions stay sharp without decoding the whole map. URL zoom is the
+  // map zoom shifted by the manifest's baseZoom (zoomOffset), and `bounds`
+  // keeps tile requests inside the image.
+  const baseImage = L.imageOverlay(image, bounds).addTo(map);
+  const tilesM = data.tiles;
+  const tileLayer =
+    tilesM && Array.isArray(tilesM.levels) && tilesM.levels.length
+      ? L.tileLayer(tilesM.url, {
+          tileSize: tilesM.tileSize,
+          zoomOffset: tilesM.baseZoom,
+          minZoom: Math.min(...tilesM.levels) - tilesM.baseZoom,
+          maxZoom: Math.max(...tilesM.levels) - tilesM.baseZoom,
+          noWrap: true,
+          bounds,
+        })
+      : null;
+  if (tileLayer) tileLayer.addTo(map);
+
+  function syncBase() {
+    if (!tileLayer) return;
+    baseImage.setOpacity(map.getZoom() >= tileLayer.options.minZoom ? 0 : 1);
+  }
+  map.on('zoomend moveend resize viewreset', syncBase);
+  syncBase();
 
   const pinIcon = L.divIcon({
     className: '',

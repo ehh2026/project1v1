@@ -232,5 +232,61 @@ class CutCropsIntegrationTests(unittest.TestCase):
         self.assertEqual(len(saved), 1)
 
 
+class TilePyramidTests(unittest.TestCase):
+    def test_level_dimensions_double_per_level(self):
+        w5, h5 = pwa._level_dimensions(5, 4096, 2769)
+        self.assertEqual(w5, 8192)
+        self.assertEqual(h5, 5538)
+        w6, h6 = pwa._level_dimensions(6, 4096, 2769)
+        self.assertEqual(w6, 16384)
+        self.assertEqual(h6, 11076)
+
+    def test_tile_source_box_center_tile_geometry(self):
+        level_w, level_h = pwa._level_dimensions(5, 4096, 2769)
+        sx = 16397 / float(level_w)
+        sy = 11085 / float(level_h)
+        box, top_pad = pwa._tile_source_box(16, -11, level_w, level_h, sx, sy)
+        self.assertEqual(top_pad, 0)
+        x0, y0, x1, y1 = box
+        # Tile covers x in [4096, 4352) and y-down in [2722, 2978) level px.
+        self.assertAlmostEqual(x0, 4096 * sx, delta=1)
+        self.assertAlmostEqual(x1, 4352 * sx, delta=1)
+        self.assertAlmostEqual(y0, 2722 * sy, delta=1)
+        self.assertAlmostEqual(y1, 2978 * sy, delta=1)
+
+    def test_tile_source_box_top_row_pads(self):
+        level_w, level_h = pwa._level_dimensions(5, 4096, 2769)
+        sx = 16397 / float(level_w)
+        sy = 11085 / float(level_h)
+        box, top_pad = pwa._tile_source_box(0, -22, level_w, level_h, sx, sy)
+        # Row -22 starts at y-down 5538 - 5632 = -94 (94 px blank above the map).
+        self.assertEqual(top_pad, 94)
+        self.assertEqual(box[1], 0)
+
+    def test_tile_alignment_matches_master_sample(self):
+        try:
+            import numpy as np
+            from PIL import Image
+        except ImportError:
+            self.skipTest("numpy/Pillow not installed")
+        master_path = os.path.join(pwa.ASSETS_DIR, "World Map 1976.jpg")
+        sample = os.path.join("web", "images", "tiles", "5", "-11", "16.jpg")
+        if not (os.path.isfile(master_path) and os.path.isfile(sample)):
+            self.skipTest("master map or generated tiles not present")
+        Image.MAX_IMAGE_PIXELS = 200_000_000
+        level_w, level_h = pwa._level_dimensions(5, 4096, 2769)
+        sx = 16397 / float(level_w)
+        sy = 11085 / float(level_h)
+        box, top_pad = pwa._tile_source_box(16, -11, level_w, level_h, sx, sy)
+        with Image.open(master_path) as master:
+            master = master.convert("RGB")
+            expect = master.crop(box).resize((256, 256), Image.LANCZOS)
+            got = Image.open(sample).convert("RGB")
+            a = np.asarray(expect, dtype=float)
+            b = np.asarray(got, dtype=float)
+            mse = float(((a - b) ** 2).mean()) / 65025.0
+        self.assertLess(mse, 0.01, "tile content diverged from the master (misaligned pyramid)")
+
+
 if __name__ == "__main__":
     unittest.main()
