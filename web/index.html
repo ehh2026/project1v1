@@ -102,25 +102,28 @@
 <button id="reset-view" type="button">Reset view</button>
 <div id="loading" class="loading" role="status">Loading the gallery map…</div>
 <script>
-(async function () {
+(function () {
   let inited = false;
   function fail(err) {
     console.error('Failed to load the gallery map:', err);
     document.getElementById('loading').classList.add('hidden');
+    document.getElementById('reset-view').setAttribute('hidden', '');
     if (!inited) {
       document.getElementById('map').innerHTML =
         '<div class="map-error" role="alert">This gallery map is temporarily unavailable. Please try again later.</div>';
     }
   }
-  let data;
-  try {
-    const res = await fetch('data/locations.json');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    data = await res.json();
-  } catch (err) {
-    return fail(err);
-  }
-  const { width: W, height: H, image } = data.map;
+
+  (async function () {
+    let data;
+    try {
+      const res = await fetch('data/locations.json');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      data = await res.json();
+    } catch (err) {
+      return fail(err);
+    }
+    const { width: W, height: H, image } = data.map;
 
   // Coordinate contract: nx/ny are [0,1] fractions, origin top-left of the image.
   // CRS.Simple y increases upward, so lat = (1 - ny) * H and lng = nx * W.
@@ -218,12 +221,11 @@
       popup.appendChild(bio);
     }
     for (const img of loc.images ?? []) {
-      // Only allow image paths inside our own bundle.
-      if (!/^images\/content\/[\w\-. ]+\/[\w\-. ]+$/.test(img.file)) continue;
       const fig = document.createElement('figure');
       fig.className = 'popup-figure';
 
-      // Pre-baked missing entries still show a concise placeholder plus the
+      // Pre-baked missing entries carry a bare filename (no bundle path to
+      // validate), but still render a concise placeholder plus the
       // caption/alt text, so a gap is never silently omitted.
       if (img.missing) {
         const msg = document.createElement('div');
@@ -231,6 +233,9 @@
         msg.textContent = 'Image not available';
         fig.appendChild(msg);
         fig.classList.add('popup-unavailable');
+      } else if (!/^images\/content\/[\w\-. ]+\/[\w\-. ]+$/.test(img.file)) {
+        // Only allow image paths inside our own bundle.
+        continue;
       } else {
         const el = document.createElement('img');
         el.src = img.file;
@@ -344,30 +349,45 @@
   window.addEventListener('resize', () => {
     refreshPopupOptions();
     map.invalidateSize();
-    const p = map.getPopup();
-    if (p && p.isOpen()) p.update();
+    if (currentPopup && currentPopup.isOpen()) currentPopup.update();
   });
   refreshPopupOptions();
 
   // Reflect the open popup's location in the URL without adding history, and
   // move focus into the popup predictably so Escape/close can hand it back.
   let popupOrigin = null;
+  let currentPopup = null;
   map.on('popupopen', (e) => {
-    const source = e.popup && e.popup._source;
+    currentPopup = e.popup || null;
+    const source = currentPopup && currentPopup._source;
     if (source && source.options && source.options.id) {
       popupOrigin = source;
       history.replaceState(null, '', '#location=' + encodeURIComponent(source.options.id));
     }
-    const container = e.popup.getElement();
+    const container = currentPopup && currentPopup.getElement();
     if (container) {
-      container.setAttribute('tabindex', '-1');
-      container.focus({ preventScroll: true });
+      // Focus the internal scroll region (not just the wrapper): give it a
+      // tabindex + name so keyboard users can scroll long bios (WCAG 2.1.1)
+      // while Escape keeps closing from Leaflet's keydown binding.
+      const scroller = container.querySelector('.leaflet-popup-content');
+      if (scroller) {
+        scroller.setAttribute('tabindex', '0');
+        scroller.setAttribute('role', 'region');
+        scroller.setAttribute('aria-label',
+          source && source.options ? source.options.title || 'Location details' : 'Location details');
+        scroller.focus({ preventScroll: true });
+      } else {
+        container.setAttribute('tabindex', '-1');
+        container.focus({ preventScroll: true });
+      }
     }
   });
   map.on('popupclose', () => {
+    currentPopup = null;
     if (popupOrigin && popupOrigin._icon) popupOrigin._icon.focus({ preventScroll: true });
     popupOrigin = null;
   });
+  })().catch((err) => fail(err));
 })();
 </script>
 </body>
