@@ -63,6 +63,17 @@ generated `web/images/` and `web/data/` are **gitignored** — rerun the script 
 - All on-disk paths (map, crops, content images) are ASCII-safe and match the renderer's
   allow list `^images/(base|crops|content)/[\w\-. ]+` — the pre-bake sanitizes names accordingly.
 
+## Accessibility notes
+
+- Pins are `role="button"` (Leaflet sets it for `keyboard: true`) with an `aria-label`
+  from the location name; Enter opens via Leaflet's keypress handler, Space toggles,
+  and Leaflet's `autoPanOnFocus` pans a focused pin into view. Escape closes a popup
+  (`closeOnEscapeKey`) and focus returns to the originating marker.
+- Contrast (measured 2026-09-09, WCAG relative-luminance formula): pin fill `#e04a5e`
+  vs page background `#0d1b2a` = **4.4:1** (border `#ffffff` vs background = 17.4:1);
+  focus ring `#ffd166` on the dark background = 12.1:1. Pins may sit on mid-toned map
+  areas, where the 2px white ring supplies the delineation.
+
 ## Run locally
 
 ```sh

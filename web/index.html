@@ -14,7 +14,7 @@
   /* Drawn pin: teardrop via border-radius trick (no image asset needed) */
   .map-pin {
     width: 26px; height: 26px;
-    background: #b23a48;
+    background: #e04a5e;
     border: 2px solid #fff;
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
@@ -30,8 +30,19 @@
   .leaflet-popup-content-wrapper {
     max-width: min(680px, 94vw);
     border-radius: 10px;
+    touch-action: pan-y;
   }
-  .leaflet-popup-content { margin: 16px 20px; line-height: 1.5; font-size: 1rem; }
+  .leaflet-popup-content {
+    margin: 16px 18px 16px 20px; line-height: 1.5; font-size: 1rem;
+    /* Portrait-phone usability: cap the popup to the viewport and scroll
+       content internally so long bios + multiple images never pin the map
+       off-screen or fight the browser chrome. */
+    max-height: calc(100vh - 140px);
+    max-height: calc(100dvh - 140px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
   .popup-title { margin: 0 0 4px; font-size: 1.3rem; }
   @media (max-width: 640px) {
     .leaflet-popup-content { font-size: 1.05rem; }
@@ -43,6 +54,31 @@
   .popup-figure img { width: 100%; height: auto; display: block; border-radius: 4px; }
   .popup-caption { font-size: .8rem; color: #555; margin-top: 4px; }
   .leaflet-popup-content p { margin: 6px 0; }
+  .popup-unavailable-msg { font-style: italic; color: #888; font-size: .85rem; padding: 8px 0; }
+  .popup-figure.popup-unavailable img { display: none; }
+
+  /* Loading / failure states */
+  .loading {
+    position: fixed; inset: 0; z-index: 3000;
+    display: flex; align-items: center; justify-content: center;
+    background: #0d1b2a; color: #e0e6ed;
+    font-family: Georgia, 'Times New Roman', serif; font-size: 1.1rem;
+  }
+  .loading.hidden { display: none; }
+  .map-error {
+    height: 100%; display: flex; align-items: center; justify-content: center;
+    text-align: center; padding: 0 24px; color: #e0e6ed;
+    font-family: Georgia, 'Times New Roman', serif; font-size: 1.15rem;
+  }
+  /* Reset view control */
+  #reset-view {
+    position: absolute; z-index: 1000; top: 10px; right: 10px;
+    font-family: system-ui, sans-serif; font-size: .95rem;
+    padding: 8px 14px; border: 1px solid rgba(255,255,255,.45); border-radius: 6px;
+    background: rgba(13,27,42,.88); color: #e0e6ed; cursor: pointer;
+  }
+  #reset-view:hover { background: rgba(13,27,42,.97); }
+  #reset-view:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
 
   /* Accessibility: instructions for assistive tech only */
   .visually-hidden {
@@ -59,12 +95,31 @@
 <h1 class="visually-hidden">Interactive World Map</h1>
 <p class="visually-hidden">
   Browse with the mouse or touch. Keyboard users: press Tab to reach location
-  pins, press Enter to open a location's information, and press Escape to close it.
+  pins, press Enter to open a location, press Space to close or reopen it, and
+  press Escape to close it.
 </p>
 <div id="map" role="region" aria-label="Interactive world map"></div>
+<button id="reset-view" type="button">Reset view</button>
+<div id="loading" class="loading" role="status">Loading the gallery map…</div>
 <script>
 (async function () {
-  const data = await (await fetch('data/locations.json')).json();
+  let inited = false;
+  function fail(err) {
+    console.error('Failed to load the gallery map:', err);
+    document.getElementById('loading').classList.add('hidden');
+    if (!inited) {
+      document.getElementById('map').innerHTML =
+        '<div class="map-error" role="alert">This gallery map is temporarily unavailable. Please try again later.</div>';
+    }
+  }
+  let data;
+  try {
+    const res = await fetch('data/locations.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    data = await res.json();
+  } catch (err) {
+    return fail(err);
+  }
   const { width: W, height: H, image } = data.map;
 
   // Coordinate contract: nx/ny are [0,1] fractions, origin top-left of the image.
@@ -72,12 +127,13 @@
   const bounds = [[0, 0], [H, W]];
   const map = L.map('map', {
     crs: L.CRS.Simple,
-minZoom: -2,
-  maxZoom: 6,
+    maxZoom: 6,
     zoomControl: true,
     attributionControl: false,
   });
   map.fitBounds(bounds);
+  document.getElementById('loading').classList.add('hidden');
+  inited = true;
 
   // Whole-map tile pyramid (Stage 3A): the 4096 px base stays the initial
   // overview; tiles take over at/above the pyramid's minimum (map) zoom so
@@ -106,6 +162,21 @@ minZoom: -2,
   }
   map.on('zoomend moveend resize viewreset', syncBase);
   syncBase();
+
+  // Viewport-derived zoom-out and Reset view (Stage 3A): the allowed minimum
+  // zoom comes from fitting the whole map to the current viewport (plus one
+  // intentional overview step), recomputed on layout/resize, and Reset returns
+  // to the full-map view. No fixed magic minZoom value.
+  function computeReset() {
+    const fit = Math.floor(map.getBoundsZoom(bounds)) - 1;
+    map.setMinZoom(Math.max(fit, -4));
+  }
+  computeReset();
+  map.on('resize', computeReset);
+  document.getElementById('reset-view').addEventListener('click', () => {
+    map.closePopup();
+    map.fitBounds(bounds);
+  });
 
   const pinIcon = L.divIcon({
     className: '',
@@ -147,16 +218,39 @@ minZoom: -2,
       popup.appendChild(bio);
     }
     for (const img of loc.images ?? []) {
-      if (img.missing) continue;
       // Only allow image paths inside our own bundle.
       if (!/^images\/content\/[\w\-. ]+\/[\w\-. ]+$/.test(img.file)) continue;
       const fig = document.createElement('figure');
       fig.className = 'popup-figure';
-      const el = document.createElement('img');
-      el.src = img.file;
-      el.alt = img.altText || loc.name;
-      el.loading = 'lazy';
-      fig.appendChild(el);
+
+      // Pre-baked missing entries still show a concise placeholder plus the
+      // caption/alt text, so a gap is never silently omitted.
+      if (img.missing) {
+        const msg = document.createElement('div');
+        msg.className = 'popup-unavailable-msg';
+        msg.textContent = 'Image not available';
+        fig.appendChild(msg);
+        fig.classList.add('popup-unavailable');
+      } else {
+        const el = document.createElement('img');
+        el.src = img.file;
+        el.alt = img.altText || loc.name;
+        el.loading = 'lazy';
+        el.addEventListener('load', () => {
+          const p = marker.getPopup();
+          if (p && p.isOpen()) p.update();
+        });
+        el.addEventListener('error', () => {
+          const msg = document.createElement('div');
+          msg.className = 'popup-unavailable-msg';
+          msg.textContent = 'Image not available';
+          fig.classList.add('popup-unavailable');
+          fig.prepend(msg);
+          const p = marker.getPopup();
+          if (p && p.isOpen()) p.update();
+        });
+        fig.appendChild(el);
+      }
       if (img.altText) {
         const cap = document.createElement('figcaption');
         cap.className = 'popup-caption';
@@ -177,7 +271,7 @@ minZoom: -2,
     // autoPanOnFocus (default true) pans a focused pin into view.
     marker.on('keydown', (e) => {
       const key = e.originalEvent.key;
-      if (key === ' ') {
+      if (key === ' ' || key === 'Spacebar') {
         e.originalEvent.preventDefault();
         marker.togglePopup();
       }
@@ -238,6 +332,23 @@ minZoom: -2,
   window.addEventListener('hashchange', handleDeepLink);
   handleDeepLink();
 
+  // Portrait-phone usability: keep the Leaflet maxWidth in line with the
+  // viewport and reposition an open popup after rotations/resizes.
+  function refreshPopupOptions() {
+    const maxW = Math.max(300, Math.min(680, Math.floor(window.innerWidth * 0.94)));
+    for (const marker of markerById.values()) {
+      const p = marker.getPopup();
+      if (p) p.options.maxWidth = maxW;
+    }
+  }
+  window.addEventListener('resize', () => {
+    refreshPopupOptions();
+    map.invalidateSize();
+    const p = map.getPopup();
+    if (p && p.isOpen()) p.update();
+  });
+  refreshPopupOptions();
+
   // Reflect the open popup's location in the URL without adding history, and
   // move focus into the popup predictably so Escape/close can hand it back.
   let popupOrigin = null;
@@ -254,7 +365,7 @@ minZoom: -2,
     }
   });
   map.on('popupclose', () => {
-    if (popupOrigin && popupOrigin._icon) popupOrigin.focus({ preventScroll: true });
+    if (popupOrigin && popupOrigin._icon) popupOrigin._icon.focus({ preventScroll: true });
     popupOrigin = null;
   });
 })();
