@@ -64,7 +64,7 @@ Completed plans move to [../completed/](../completed/). Parked plans (core done,
 ## Maintenance rules
 
 1. **New multi-step work** — create a plan here with front-matter, add a row to the tables above, add one bullet to [TO_DO.md](../../TO_DO.md).
-2. **Composite-pin work** — before resuming it, move the [composite-pin dashboard](../inactive/composite-pins-program.md) and its chosen child plan back to `active/`, then register the work there; keep phase detail in child plans, not `TO_DO.md`.
+2. **Composite-pin work** — before resuming it, move the [composite-pin dashboard](../inactive/composite-pins-program.md) and its chosen child plan back to `active/`, then add/update both the active-plan index in this README and `composite-pins-program.md`; keep phase detail in child plans, not `TO_DO.md`.
 3. **Plan finishes** — move file to `../completed/`, update [CHANGELOG.md](../../../CHANGELOG.md), remove or shorten the `TO_DO.md` bullet.
 4. **Investigations** — live in [../../assessments/](../../assessments/); feature how-to in [../../guides/](../../guides/).
 5. **Historical only** — move to [../../archive/planning/](../../archive/planning/), not `docs/` root.

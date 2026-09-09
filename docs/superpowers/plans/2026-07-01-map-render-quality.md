@@ -397,7 +397,7 @@ implementation slice.
 If measurements or unavailable hardware require a plan note:
 
 ```powershell
-git add docs\exec-plans\active\zoom-performance-appearance-plan.md
+git add docs\exec-plans\inactive\zoom-performance-appearance-plan.md
 git commit -m "docs: record map rendering verification"
 ```
 

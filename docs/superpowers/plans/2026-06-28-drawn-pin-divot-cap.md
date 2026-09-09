@@ -537,7 +537,7 @@ Keep only the remaining human gate:
   head placement, including extension lines, hover, drag, and zoom.
 ```
 
-Do not archive the active exec plan until that visual gate passes.
+Do not mark the exec plan complete until that visual gate passes.
 
 - [x] **Step 3: Run focused tests**
 

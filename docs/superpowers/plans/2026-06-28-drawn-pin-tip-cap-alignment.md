@@ -556,6 +556,6 @@ Confirm no unrelated files were reverted and no generated artifacts were added.
 - [ ] **Step 6: Commit bookkeeping**
 
 ```powershell
-git add docs\TO_DO.md docs\exec-plans\active\drawn-pin-tip-cap-plan.md docs\superpowers\plans\2026-06-28-drawn-pin-tip-cap-alignment.md CHANGELOG.md
+git add docs\TO_DO.md docs\exec-plans\inactive\drawn-pin-tip-cap-plan.md docs\superpowers\plans\2026-06-28-drawn-pin-tip-cap-alignment.md CHANGELOG.md
 git commit -m "docs: record shaft-aligned pin tip caps"
 ```

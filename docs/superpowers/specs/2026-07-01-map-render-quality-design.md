@@ -161,7 +161,7 @@ Implementation must:
   gated settled full-map render cache;
 - add a user-visible `[Unreleased]` changelog entry;
 - run focused tests and `.\scripts\verify.ps1`;
-- archive the active exec plan only when all of its remaining unrelated phases
+- archive the exec plan only when all of its remaining unrelated phases
   are complete.
 
 ## Out of Scope

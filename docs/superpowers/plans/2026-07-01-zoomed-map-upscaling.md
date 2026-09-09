@@ -1544,7 +1544,7 @@ Expected: both documentation scripts pass and `git diff --check` is empty.
 - [ ] **Step 8: Commit finish bookkeeping**
 
 ```powershell
-git add docs\exec-plans\active\zoom-performance-appearance-plan.md docs\TO_DO.md CHANGELOG.md docs\superpowers\plans\2026-07-01-zoomed-map-upscaling.md
+git add docs\exec-plans\inactive\zoom-performance-appearance-plan.md docs\TO_DO.md CHANGELOG.md docs\superpowers\plans\2026-07-01-zoomed-map-upscaling.md
 git commit -m "docs: record zoomed map rendering rollout"
 ```
 

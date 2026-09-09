@@ -40,7 +40,7 @@ Catalog of repository documentation. Start from [AGENTS.md](../AGENTS.md) for ag
 
 | Doc | Description |
 |-----|-------------|
-| [exec-plans/active/](exec-plans/active/) | In-progress work — composite pins: [composite-pins-program.md](exec-plans/inactive/composite-pins-program.md) |
+| [exec-plans/active/](exec-plans/active/) | In-progress work — composite-pin work is parked in [exec-plans/inactive/](exec-plans/inactive/), including [composite-pins-program.md](exec-plans/inactive/composite-pins-program.md) |
 | [exec-plans/completed/](exec-plans/completed/) | Finished plans |
 | [exec-plans/tech-debt-tracker.md](exec-plans/tech-debt-tracker.md) | Known debt index (links to plans) |
 
