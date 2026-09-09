@@ -2,7 +2,7 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/) or, when paused, [exec-plans/inactive/](exec-plans/inactive/).
 
-**Last updated:** September 8, 2026
+**Last updated:** September 9, 2026
 
 ## Website (TOP PRIORITY — do this next)
 

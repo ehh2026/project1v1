@@ -26,8 +26,24 @@ import sys
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_WEB = os.path.join(REPO_ROOT, "web")
 
-IMAGE_ALLOW_RE = re.compile(r"^images/(base|crops|tiles|content)/[\w\-. ]+")
 ID_RE = re.compile(r"^[a-z0-9-]+$")
+
+
+def _allowed_image_path(path: str) -> bool:
+    """True when a manifest image path matches the renderer's allow list: single
+    ASCII segments under images/, never `.` / `..`, and the same character class
+    the site's JS uses (no dot-directory traversal)."""
+    if not isinstance(path, str) or not path or "//" in path or "\\" in path:
+        return False
+    parts = path.split("/")
+    if parts[0] != "images" or any(p in (".", "..", "") for p in parts):
+        return False
+    if len(parts) == 3 and parts[1] in ("base", "crops", "tiles"):
+        return bool(re.fullmatch(r"[\w\-. ]+", parts[2]))
+    if len(parts) == 4 and parts[1] == "content":
+        return (bool(re.fullmatch(r"[\w\-. ]+", parts[2]))
+                and bool(re.fullmatch(r"[\w\-. ]+", parts[3])))
+    return False
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import prepare_web_assets as pwa  # noqa: E402  (heavy deps stay lazy)
@@ -80,7 +96,7 @@ def check(web_dir: str) -> int:
             if img.get("missing"):
                 continue
             f = img.get("file")
-            if not f or not IMAGE_ALLOW_RE.match(f):
+            if not f or not _allowed_image_path(f):
                 errors.append(f"image path outside allow list: {lid} -> {f!r}")
             elif not os.path.isfile(os.path.join(web_dir, f)):
                 errors.append(f"image missing on disk: {lid} -> {f}")
@@ -89,7 +105,10 @@ def check(web_dir: str) -> int:
     crop_bytes = 0
     for c in data.get("crops") or []:
         f = c.get("file")
-        if not f or not os.path.isfile(os.path.join(web_dir, f)):
+        if not f or not _allowed_image_path(f):
+            errors.append(f"crop path outside allow list: {f!r}")
+            continue
+        if not os.path.isfile(os.path.join(web_dir, f)):
             errors.append(f"crop missing on disk: {f!r}")
             continue
         crop_bytes += os.path.getsize(os.path.join(web_dir, f))
@@ -107,6 +126,10 @@ def check(web_dir: str) -> int:
             errors.append("tiles block present but levels empty")
         if tiles.get("tileSize") != pwa.TILE_SIZE:
             errors.append(f"tileSize {tiles.get('tileSize')} != {pwa.TILE_SIZE}")
+        if tiles.get("baseZoom") != pwa.TILE_BASE_ZOOM:
+            errors.append(f"baseZoom {tiles.get('baseZoom')} != {pwa.TILE_BASE_ZOOM}")
+        if not all(isinstance(z, int) for z in levels):
+            errors.append(f"tile levels must be integers: {levels!r}")
         url = tiles.get("url") or ""
         if "images/tiles/{z}/{x}/{y}.jpg" not in url:
             errors.append(f"unexpected tile URL template: {url!r}")

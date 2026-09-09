@@ -95,8 +95,8 @@
 <h1 class="visually-hidden">Interactive World Map</h1>
 <p class="visually-hidden">
   Browse with the mouse or touch. Keyboard users: press Tab to reach location
-  pins, press Enter to open a location, press Space to close or reopen it, and
-  press Escape to close it.
+  pins, press Enter or Space to open a focused pin's information, and press
+  Escape to close an open popup.
 </p>
 <div id="map" role="region" aria-label="Interactive world map"></div>
 <button id="reset-view" type="button">Reset view</button>
@@ -136,7 +136,8 @@
   });
   map.fitBounds(bounds);
   document.getElementById('loading').classList.add('hidden');
-  inited = true;
+  // inited is set only after the whole build below succeeds, so any failure
+  // still surfaces the error state instead of a blank-but-'ready' map.
 
   // Whole-map tile pyramid (Stage 3A): the 4096 px base stays the initial
   // overview; tiles take over at/above the pyramid's minimum (map) zoom so
@@ -233,10 +234,15 @@
         msg.textContent = 'Image not available';
         fig.appendChild(msg);
         fig.classList.add('popup-unavailable');
-      } else if (!/^images\/content\/[\w\-. ]+\/[\w\-. ]+$/.test(img.file)) {
-        // Only allow image paths inside our own bundle.
-        continue;
       } else {
+        // Only allow single-folder image paths inside our own bundle, and
+        // reject `.` / `..` segments outright (defense in depth — the pre-bake
+        // already guarantees ASCII-safe names inside the allow list).
+        const imgPath = /^images\/content\/([\w\-. ]+)\/([\w\-. ]+)$/.exec(img.file || '');
+        if (!imgPath || imgPath[1] === '.' || imgPath[1] === '..' ||
+            imgPath[2] === '.' || imgPath[2] === '..' || (img.file || '').includes('//')) {
+          continue;
+        }
         const el = document.createElement('img');
         el.src = img.file;
         el.alt = img.altText || loc.name;
@@ -268,9 +274,13 @@
     marker.bindPopup(popup, { maxWidth: 680 });
     markerById.set(loc.id, marker);
     marker.addTo(map);
-    if (marker._icon) {
-      marker._icon.setAttribute('aria-label', loc.name);
-    }
+    // Accessible name on the pin. Leaflet rebuilds the icon element when the
+    // marker is re-added (e.g. after a view reset), so re-apply on 'add' too.
+    const labelPin = () => {
+      if (marker._icon) marker._icon.setAttribute('aria-label', loc.name);
+    };
+    labelPin();
+    marker.on('add', labelPin);
     // Keyboard basics (Stage 3A): toggle the popup with Space. Enter is already
     // handled by Leaflet's bindPopup keypress handler (opens), and Leaflet's
     // autoPanOnFocus (default true) pans a focused pin into view.
@@ -335,6 +345,9 @@
     marker.openPopup();
   }
   window.addEventListener('hashchange', handleDeepLink);
+  // Size popups for the viewport before a deep link opens one, so a direct
+  // load on a portrait phone never flashes a 680 px popup.
+  refreshPopupOptions();
   handleDeepLink();
 
   // Portrait-phone usability: keep the Leaflet maxWidth in line with the
@@ -387,6 +400,8 @@
     if (popupOrigin && popupOrigin._icon) popupOrigin._icon.focus({ preventScroll: true });
     popupOrigin = null;
   });
+
+  inited = true;
   })().catch((err) => fail(err));
 })();
 </script>
