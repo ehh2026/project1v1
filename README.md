@@ -2,6 +2,8 @@
 
 A Windows desktop application that displays a full-screen, high-resolution world map with interactive location markers. Users can click on geographic locations to view detailed content in popup subwindows.
 
+Also includes a **static web app** for gallery website deployment.
+
 ## How to Use
 
 Use Excel file with labeled locations/people and add pixel coordinates.
@@ -53,6 +55,34 @@ dotnet build InteractiveWorldMap.sln
 dotnet test Tests/InteractiveWorldMap.Tests.csproj
 dotnet run --project InteractiveWorldMap.csproj   # Windows UI
 ```
+
+## Web App
+
+The project includes a static web app in the `web/` directory for gallery website deployment. It uses Leaflet.js to display an interactive map with the same content as the desktop app.
+
+### Web App Commands
+
+```bash
+# Generate/regenerate web assets from content
+py -3 scripts\prepare_web_assets.py
+
+# Verify generated bundle coherence
+py -3 scripts\verify_web_bundle.py web
+
+# Run web app locally
+cd web
+py -3 -m http.server
+# Then open http://localhost:8000/
+```
+
+### Web App Structure
+
+- `index.html` - Main application (committed)
+- `data/locations.json` - Generated location manifest
+- `images/` - Generated optimized images and tiles
+- `vendor/leaflet/` - Self-hosted Leaflet 1.9.4
+
+See [web/README.md](web/README.md) for detailed schema and accessibility notes.
 
 ## Project Structure
 
