@@ -135,24 +135,24 @@ minZoom: -2,
 
   const ZOOM_THRESHOLD = 1;
   function cropBounds(c) {
-    return [[ (1 - c.ny1) * H, c.nx0 * W ], [ (1 - c.ny0) * H, c.nx1 * W ]];
+    return L.latLngBounds([ (1 - c.ny1) * H, c.nx0 * W ], [ (1 - c.ny0) * H, c.nx1 * W ]);
   }
   function updateCrops() {
     const z = map.getZoom();
     const near = map.getBounds().pad(0.5);
     crops.forEach((c) => {
       const active = cropLayers.get(c);
-      const needed = z >= ZOOM_THRESHOLD && near.intersects(cropBounds(c));
+      const cb = cropBounds(c);
+      const needed = z >= ZOOM_THRESHOLD && near.intersects(cb);
       if (needed && !active) {
-        const overlay = L.imageOverlay(c.file, cropBounds(c)).addTo(map);
-        cropLayers.set(c, overlay);
+        cropLayers.set(c, L.imageOverlay(c.file, cb).addTo(map));
       } else if (!needed && active) {
         active.remove();
         cropLayers.delete(c);
       }
     });
   }
-  map.on('zoomend moveend', updateCrops);
+  map.on('zoomend moveend resize viewreset', updateCrops);
   updateCrops();
 })();
 </script>

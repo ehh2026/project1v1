@@ -114,8 +114,12 @@ class CropBudgetTests(unittest.TestCase):
     def test_split_reduces_bounding_box_area(self):
         wide = [_Loc(i * 0.01, i * 0.01) for i in range(60, 0, -1)]
         a, b = pwa._split_group(wide)
-        area = lambda g, pad=pwa.CROP_PAD_X: (max(x["nx"] for x in g) - min(x["nx"] for x in g) + 2 * pad / pwa.MASTER_W)
-        self.assertLess(max(area(a), area(b)), area(wide))
+
+        def box_area(group):
+            nx0, ny0, nx1, ny1 = pwa._crop_bounds(group)
+            return (nx1 - nx0) * (ny1 - ny0)
+
+        self.assertLess(max(box_area(a), box_area(b)), box_area(wide))
 
     def test_save_crop_for_budget_small_bytes_passes_through(self):
         try:
@@ -140,9 +144,92 @@ class CropBudgetTests(unittest.TestCase):
             img.save(path, "JPEG", quality=95)
             self.assertGreater(os.path.getsize(path), 2000)
             os.remove(path)
-            pwa._save_crop_for_budget(img, path, 2000)
+            self.assertTrue(pwa._save_crop_for_budget(img, path, 2000))
             self.assertTrue(os.path.isfile(path))
             self.assertLessEqual(os.path.getsize(path), 2000)
+
+
+class _FakePILImage:
+    """Stand-in for PIL.Image so cut_crops' split loop is testable offline."""
+    MAX_IMAGE_PIXELS = 200_000_000
+    LANCZOS = 1
+
+    class _FakeMaster:
+        def __init__(self, w, h):
+            self.width, self.height = w, h
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def crop(self, box):
+            return _FakePILImage._FakeCrop(box)
+
+    class _FakeCrop:
+        def __init__(self, box):
+            self.box = box
+
+        def convert(self, mode):
+            return self
+
+        def save(self, *args, **kwargs):
+            return None
+
+        def resize(self, size, resample):
+            self._size = size
+            return self
+
+        @property
+        def width(self):
+            return self._size[0] if getattr(self, "_size", None) else self.box[2] - self.box[0]
+
+        @property
+        def height(self):
+            return self._size[1] if getattr(self, "_size", None) else self.box[3] - self.box[1]
+
+    @classmethod
+    def open(cls, path):
+        return cls._FakeMaster(16397, 11085)
+
+
+class CutCropsIntegrationTests(unittest.TestCase):
+    def _clusters(self, count=10):
+        return [[{"name": f"p{i}", "nx": 0.2 + i * 0.03, "ny": 0.3 + i * 0.02} for i in range(count)]]
+
+    def _run_cut_crops(self, clusters, max_pixels):
+        import types
+        with tempfile.TemporaryDirectory() as out:
+            saved = []
+            fake_modules = {"PIL.Image": _FakePILImage, "PIL": types.ModuleType("PIL")}
+            with mock.patch.dict(sys.modules, fake_modules) as _md:
+                with mock.patch.object(pwa, "CROP_MAX_PIXELS", max_pixels):
+                    with mock.patch.object(pwa, "_save_crop_for_budget",
+                                   side_effect=lambda img, path, mb: (saved.append(path) or open(path, "wb").close() or True)):
+                        crops = pwa.cut_crops(clusters, out)
+            return crops, saved
+
+    def test_oversized_groups_split_and_numbering_stays_gapless(self):
+        clusters = self._clusters()
+        crops, saved = self._run_cut_crops(clusters, max_pixels=6_000_000)
+        self.assertGreater(len(crops), 1)
+        files = [c["file"] for c in crops]
+        self.assertEqual(files, sorted(files))
+        expected = [f"images/crops/crop_{i + 1:02d}.jpg" for i in range(len(crops))]
+        self.assertEqual(files, expected)
+        self.assertEqual(len(saved), len(crops))
+        for c in crops:
+            self.assertLessEqual(c["nx0"], c["nx1"])
+            self.assertLessEqual(c["ny0"], c["ny1"])
+            self.assertTrue(c["members"])
+
+    def test_singleton_over_pixel_budget_still_emits_fallback_crop(self):
+        clusters = [[{"name": "solo", "nx": 0.5, "ny": 0.5}]]
+        crops, saved = self._run_cut_crops(clusters, max_pixels=1_000_000)
+        self.assertEqual(len(crops), 1)
+        self.assertEqual(crops[0]["members"], ["solo"])
+        self.assertEqual(len(saved), 1)
 
 
 if __name__ == "__main__":

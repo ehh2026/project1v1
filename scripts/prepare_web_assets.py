@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -341,18 +342,32 @@ def _save_crop_for_budget(crop, path: str, max_bytes: int) -> bool:
     for _ in range(8):
         if os.path.getsize(path) <= max_bytes:
             return True
-        if im.width < 300:
+        if min(im.width, im.height) < 300:
             break
         im = im.resize((round(im.width * 0.75), round(im.height * 0.75)), _PILImage.LANCZOS)
         im.save(path, "JPEG", quality=60, progressive=True, optimize=True)
     return os.path.getsize(path) <= max_bytes
 
 
+def _fit_and_save(master, box: tuple[int, int, int, int], path: str) -> tuple[bool, int]:
+    """Cut, downscale to the decoded-pixel budget, and encode to the byte
+    budget. Returns (fit, final_bytes). Used as the last-resort fallback for
+    groups that cannot be split further (single pins)."""
+    from PIL import Image as _PILImage
+    img = master.crop(box).convert("RGB")
+    if img.width * img.height > CROP_MAX_PIXELS:
+        target = math.sqrt(float(CROP_MAX_PIXELS) / (img.width * img.height))
+        img = img.resize((round(img.width * target), round(img.height * target)), _PILImage.LANCZOS)
+    fits = _save_crop_for_budget(img, path, CROP_MAX_BYTES)
+    return fits, os.path.getsize(path)
+
+
 def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
     """Cut one full-res crop per dense cluster from the 16397×11085 master,
     keeping every crop within the per-image decoded-pixel and byte budgets by
     splitting oversized transitive groups. Single pins always get their own
-    padded crop (min 1). Returns manifest entries with normalized bounds."""
+    padded crop (min 1), downscaled if they somehow exceed the budgets.
+    Returns manifest entries with normalized bounds."""
     from collections import deque
     from PIL import Image
     Image.MAX_IMAGE_PIXELS = 200_000_000
@@ -368,16 +383,15 @@ def cut_crops(clusters: list[list[dict]], out_dir: str) -> list[dict]:
             nx0, ny0, nx1, ny1 = _crop_bounds(group)
             box = (round(nx0 * master.width), round(ny0 * master.height),
                    round(nx1 * master.width), round(ny1 * master.height))
-            if (box[2] - box[0]) * (box[3] - box[1]) > CROP_MAX_PIXELS:
+            if (box[2] - box[0]) * (box[3] - box[1]) > CROP_MAX_PIXELS and len(group) >= 2:
                 print(f"  crop group of {len(group)} pins exceeds {CROP_MAX_PIXELS / 1e6:.0f} MP; splitting")
                 work.extendleft(reversed(_split_group(group)))
                 continue
             name = f"crop_{idx + 1:02d}.jpg"
             path = os.path.join(out_dir, name)
-            fits = _save_crop_for_budget(master.crop(box).convert("RGB"), path, CROP_MAX_BYTES)
+            fits, size = _fit_and_save(master, box, path)
             if not fits:
                 print(f"  WARNING: {name} still exceeds {CROP_MAX_BYTES / 1e6:.2f} MB after re-encode/scale; keeping scaled copy")
-            size = os.path.getsize(path)
             crops.append({
                 "file": f"images/crops/{name}",
                 "nx0": nx0, "ny0": ny0, "nx1": nx1, "ny1": ny1,
