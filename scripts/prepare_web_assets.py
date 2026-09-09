@@ -173,6 +173,20 @@ def web_safe_name(original_basename: str) -> str:
     return f"{safe_stem}.{digest}{ext.lower()}"
 
 
+def is_filesystem_root(path: str) -> bool:
+    """Return whether a resolved path is the root of its filesystem."""
+    drive, _ = os.path.splitdrive(path)
+    return path == os.path.realpath(drive + os.path.sep)
+
+
+def is_strict_descendant(path: str, parent: str) -> bool:
+    """Return whether a resolved path is below, rather than equal to, parent."""
+    try:
+        return path != parent and os.path.commonpath((path, parent)) == parent
+    except ValueError:  # Paths on different Windows drives are never contained.
+        return False
+
+
 def parse_locations_json(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as fh:
         data = json.load(fh)
@@ -369,6 +383,9 @@ def main() -> int:
     if out_root == os.path.realpath(REPO_ROOT):
         print("Refusing to use the repo root as --out (would delete ./images and ./data)", file=sys.stderr)
         return 3
+    if is_filesystem_root(out_root):
+        print("Refusing to use the filesystem root as --out (would delete /images and /data)", file=sys.stderr)
+        return 3
 
     web_images = os.path.join(out_root, "images")
     web_data = os.path.join(out_root, "data")
@@ -396,7 +413,7 @@ def main() -> int:
         folder_real = os.path.realpath(folder)
         # Contain folder_real within content_dir (workbook names are untrusted).
         content_real = os.path.realpath(content_dir)
-        if not (folder_real == content_real or folder_real.startswith(content_real + os.sep)):
+        if not is_strict_descendant(folder_real, content_real):
             print(f"  WARNING: {loc['name']}: path escapes content set; skipping location")
             continue
         image_names = loc["images"]
