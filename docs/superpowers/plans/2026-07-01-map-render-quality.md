@@ -10,7 +10,7 @@
 
 **Design:** [2026-07-01-map-render-quality-design.md](../specs/2026-07-01-map-render-quality-design.md)
 
-**Owning exec plan:** [zoom-performance-appearance-plan.md](../../exec-plans/active/zoom-performance-appearance-plan.md), items 2.6 and 2.7
+**Owning exec plan:** [zoom-performance-appearance-plan.md](../../exec-plans/inactive/zoom-performance-appearance-plan.md), items 2.6 and 2.7
 
 ---
 
@@ -22,7 +22,7 @@
 - Modify `MainWindow.Navigation.partial.cs`: select `Linear` before animation keyframes are materialized.
 - Modify `Services/AnimationFrameCache.cs`: invalidate frames rendered with the prior pixel policy.
 - Verify, but do not otherwise modify, `Services/ZoomedRegionCache.cs`: its settled zoom path remains `Fant`.
-- Modify `docs/exec-plans/active/zoom-performance-appearance-plan.md`, `docs/TO_DO.md`, and `CHANGELOG.md`: completion bookkeeping and deferred follow-ups.
+- Modify `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`, `docs/TO_DO.md`, and `CHANGELOG.md`: completion bookkeeping and deferred follow-ups.
 
 ## Task 1: Correct Settled Full-Map Rendering
 
@@ -303,7 +303,7 @@ git commit -m "fix: smooth map animation resampling"
 
 **Files:**
 - No source changes expected.
-- Record results in: `docs/exec-plans/active/zoom-performance-appearance-plan.md`
+- Record results in: `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`
 
 - [x] **Step 1: Run the complete automated gate**
 
@@ -406,7 +406,7 @@ If no documentation changes were needed, do not create an empty commit.
 ## Task 4: Completion Bookkeeping
 
 **Files:**
-- Modify: `docs/exec-plans/active/zoom-performance-appearance-plan.md`
+- Modify: `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`
 - Modify: `docs/TO_DO.md`
 - Modify: `CHANGELOG.md`
 

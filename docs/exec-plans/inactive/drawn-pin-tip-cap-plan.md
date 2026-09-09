@@ -1,10 +1,12 @@
 ---
-status: active
+status: inactive
 owner: agent
 started: 2026-06-23
+parked: 2026-09-08
+parked_reason: User-directed hold pending reprioritization of composite-pin work
 needs_review: false
 requirements_ref: drawn-pin-tip-cap
-parent_program: docs/exec-plans/active/composite-pins-program.md
+parent_program: docs/exec-plans/inactive/composite-pins-program.md
 depends_on: docs/exec-plans/completed/drawn-pin-model-separation-plan.md
 ---
 

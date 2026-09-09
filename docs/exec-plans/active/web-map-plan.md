@@ -6,13 +6,7 @@ started: 2026-09-05
 
 # Web Map Plan — Gallery Website Version
 
-**Status:** Active — Stage 1 + Stage 2 MVP built (branch `web-map-mvp`, PR #35)
-
-> ⚠️ **Blocking human check before PR #35 leaves draft:** the two smoke tests at the bottom of Stage 2 have NOT been done yet —
-> 1. **Browser pass** (`py -3 -m http.server` in `web/`, open `index.html` and `test-projection.html`, confirm pins sit correctly and popups show content)
-> 2. **Phone pass** (same URL via PC's LAN IP, zoom into NYC, judge sharpness — decides whether Stage 3's regional crops happen)
->
-> Do not merge #35 until both are done.
+**Status:** Active — Stage 1 + Stage 2 MVP built, browser/phone-smoked, and merged in PR #35. Stage 3A is the launch-parity work; Stage 3B is optional enrichment.
 **Created:** September 5, 2026
 **Assessment:** [docs/assessments/WEB_ADAPTATION_ASSESSMENT.md](../../assessments/WEB_ADAPTATION_ASSESSMENT.md) (read this first for the "why")
 **Owner note:** This plan assumes a solo, non-professional developer, one gallery, no ongoing content updates expected. It is deliberately staged so that each stage produces something usable even if later stages never happen.
@@ -27,11 +21,11 @@ A website version of the map that gives a web visitor the **same experience as a
 |---|---|
 | Technology | Plain static site: HTML/CSS/JS + **Leaflet** with `L.imageOverlay` + `CRS.Simple` |
 | Backend | None. Static hosting (GitHub Pages, Netlify, or gallery's own host) |
-| Map rendering | **Intermediate base first** (~4096 px progressive JPEG — required: iOS Safari refuses >~16.7 MP single images, and the 45 MP desktop base would render blank on iPhones). Free overzoom beyond native resolution is accepted at launch. **Regional high-res crops** from the 16397-px master are a conditional Stage 3 add: only if phone testing shows dense clusters (NYC etc.) look too soft when zoomed. Sparse regions staying soft at deep zoom is an accepted trade-off |
+| Map rendering | **Intermediate base first** (~4096 px progressive JPEG — required: iOS Safari refuses >~16.7 MP single images, and the 45 MP desktop base would render blank on iPhones). Stage 3A adds a bounded Leaflet tile pyramid for sharp roaming at mid/deep zoom. Regional master crops remain a lazy, pin-area optimization, but must never be eagerly downloaded or exceed the same per-image device budget |
 | Markers | Simple drawn pins (CSS/SVG). **Composite-pin rendering is not ported.** |
 | Cluster markers | Existing **stamp image + count badge** asset |
-| Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
-| Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
+| Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Include a visible Reset view control; zoom-out room is calculated from the current viewport, not a fixed magic `minZoom` |
+| Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images. Each location gets a stable web ID that survives harmless source-row reordering |
 | Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in [web/README.md](../../../web/README.md) (done, committed) and validated against the desktop loader's output before Stage 2 runs |
 | Content updates | Not expected. Pipeline exists but cadence is "rerun the script if content ever changes" |
 | Desktop app | Untouched. Shares content, no shared code |
@@ -71,8 +65,8 @@ Meanwhile, gather facts locally:
 - [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **31.8 MB never-referenced in-repo** (70 files), CSV at `TestResults/unused-assets.csv`. Updated to path-aware matching after CodeRabbit review: a referenced path must match the relative path (or a unique basename), so same-named files in `Extras/` can no longer hide behind `Assets/` matches. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~10 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
   - **Audit contract (so results are trustworthy):** reference sources = all `*.json` and `*.xlsx` under `Images&Content/` + all repo code/config (`*.cs`, `*.xaml`, `*.json`). Composite-pin composition rules are covered because `Assets/Pins_v2/` is implicitly referenced (code-driven patterns) and shared pin asset names appear in config/code. Location folders are implicitly referenced (directory enumeration at runtime). Anything outside the audit's authority must be excluded by hand before deletion.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
-- [x] Write `scripts/prepare_web_assets.py` (done 2026-09-06 on branch `web-map-mvp`, run against Demo-Content: 38 locations, base map 2.0 MB, total payload 3.38 MB). **Note:** source data turned out to be **pixel coordinates** (see corrected coordinate contract in Stage 2) — the script normalizes to `[0,1]` fractions. Remaining production work: rerun on the machine with real content (`--content-set ...\Production-Content`).
-- [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
+- [x] Write `scripts/prepare_web_assets.py` (done 2026-09-06 on branch `web-map-mvp`, run against Demo-Content: 38 locations, base map 2.0 MB, pre-crop total payload 3.38 MB). Later demo crops added 4.2 MB; before production deployment, regenerate and record the **current** total, initial-transfer total, crop count, largest crop dimensions, and largest crop bytes. **Note:** source data turned out to be **pixel coordinates** (see corrected coordinate contract in Stage 2) — the script normalizes to `[0,1]` fractions. Remaining production work: rerun on the machine with real content (`--content-set ...\Production-Content`).
+- [ ] Phone-network sanity check before deployment: on a representative mid-range phone under cellular throttling, record first paint, time to usable map, and initial bytes/requests. Crops and tiles not in or near the viewport must not be part of the initial transfer; only if the measured result is unacceptable revisit dimensions/encoding — record the numbers in this plan.
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
 
@@ -113,31 +107,39 @@ Tasks:
 - [x] **Projection fixture:** `web/test-projection.html` machine-checks corner round-trips; every location plotted for eyeballing (written 2026-09-06)
 - [x] Load `web/data/locations.json`; one CSS-drawn pin per location (done)
 - [x] Click → popup styled like a simplified kiosk content window: images (lazy-loaded) + pre-baked altText/captions + bio text (done)
-- [x] Responsive: `viewport` meta, popup capped at min(360px, 82vw), initial `fitBounds`, pinch zoom via Leaflet (done; needs human browser confirmation)
+- [x] Responsive: `viewport` meta, initial `fitBounds`, pinch zoom via Leaflet, and a current popup CSS cap of `min(680px, 94vw)` (desktop/phone smoke completed; Stage 3A still makes the Leaflet option, height, scrolling, and post-image-load layout responsive)
 - [x] Local test: HTTP smoke over `py -3 -m http.server` — all bundle files 200 (2026-09-06)
 - [x] **Human browser + phone pass (done 2026-09-06, owner):** desktop OK; phone (iPhone via Parallels-bridged LAN) — renders ✓ (16.7 MP limit cleared), pinch zoom ✓, pins open ✓, popups readable-but-narrow, map "blurry but not terrible" when zoomed, rotation fine. Actions taken: `maxZoom` 4→6 for more zoom headroom, popups widened to min(680px,94vw) with a mobile font bump; crop overlays are doing the heavy lifting until the Stage 3 tile pyramid lands (planned).
 - [x] **Phone sharpness check (done 2026-09-06):** owner zoomed on iPhone — "blurry but not terrible". Crops confirmed working; whole-map sharpness awaits the planned Stage 3 tile pyramid.
-- [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` unions nearby locations (radius 500 master px, **min 1 pin** — owner decision, people zoom on single pins) and cuts full-res crops from the master (`images/crops/crop_NN.jpg` + bounds), and `index.html` fades those overlays in at zoom ≥ 1. Demo: 7 crops / 4.2 MB.
-- [ ] **Intermediate whole-map layer (planned, Stage 3):** add a Leaflet tile pyramid at ~8192 px (one intermediate level) so panning any region at mid-zoom stays sharp beyond the 4096 base — must be tiles, not a single image, because an 8192×5539 image (~45 MP) exceeds the iPhone ~16.7 MP render limit. Structure the pyramid generator so a **second, higher-resolution level (~16384 px, the master's native size)** can be enabled later behind a flag if roaming sharpness is still insufficient. This replaces the crops for empty-region zooming; crops remain the cheap path for pin areas.
+- [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` unions nearby locations (radius 500 master px, **min 1 pin** — owner decision, people zoom on single pins) and cuts master crops (`images/crops/crop_NN.jpg` + bounds). Demo: 7 crops / 4.2 MB. Current overlays are opacity-hidden rather than network-lazy; Stage 3A replaces that behavior before production testing.
+- [ ] **Intermediate whole-map layer (Stage 3A):** add a Leaflet tile pyramid at ~8192 px so panning any region at mid-zoom stays sharp beyond the 4096 base — tiles, not a single image, because an 8192×5539 image (~45 MP) exceeds the iPhone ~16.7 MP render limit. Define a 256 or 512 px tile size, deterministic `{z}/{x}/{y}` layout, exact image bounds, `noWrap`, and bounded tile requests outside the map. Generate and test an optional ~16384 px native-master level behind an explicit build flag only if measured roaming sharpness still needs it. Verify corner/location alignment, no visible seams, and tile fetching on the target iPhone.
 - [ ] **Follow-up polish (noted, not blocking):** keyboard Tab reaches the pins but does not center the focused marker in view; teardrop CSS pins stay.
 
 **Exit criteria:** every location clickable, every popup shows its real content, on desktop and a phone.
 
-## Stage 3 — Experience parity pass (~3–5 days)
+## Stage 3A — Launch-parity pass (~5–8 days)
 
-- [x] **Regional crops (conditional, only if Stage 2's phone sharpness check failed):** `prepare_web_assets.py` computes dense-cluster bounding boxes (min 1 pin) and cuts full-res crops from the 16397-px master → `web/images/crops/`, with crop bounds embedded in `web/data/locations.json` under the `crops` key; `index.html` adds each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ 1 and view intersects bounds)
-- [ ] Clustering: group nearby pins (leaflet.markercluster or the existing `LocationClusterer` logic ported); cluster marker = **stamp image + count badge**
-- [ ] Deep links: `#location=<id>` opens that location's popup (shareable links)
-- [ ] Accessibility basics: keyboard tab-through pins (focus ring, Enter opens), `aria-label` = location name, `alt` from the pre-baked `altText` field (captions are pre-bake inputs only — no renderer-time lookup), check pin/badge contrast against the map
-- [ ] Gallery polish: brand fonts/colors per Stage 0 answers; loading state; error state if a popup image is missing
-- [ ] Portrait-phone pass: initial zoom/center sane, popup fits small screens, no gesture conflicts
+- [ ] **Lazy, device-safe regional crops:** retain the existing master crops for pin areas, but create an overlay only when it is in/near the viewport at the zoom threshold; remove it when it is no longer relevant. Opacity zero is not lazy loading. Add generator limits for maximum decoded pixels per crop (below the iPhone single-image limit), maximum crop bytes, and total crop payload; split or fall back to tiles when a transitive `min 1` group would exceed a limit. Record production measurements.
+- [ ] **Whole-map tile pyramid:** implement and verify the Stage 2 tile contract. The 4096 px base remains the initial overview; tiles load only as zoom and viewport require them. Keep crop and tile layering exact at their shared normalized bounds.
+- [ ] **Stable deep links:** `#location=<stable-id>` opens, pans to, and focuses the marker/popup; invalid IDs fail harmlessly. Generate IDs from an authoritative source identifier or a persisted mapping, never current row order (`loc_001` etc.). Test a rebuild with reordered source rows and direct-load/back-forward behavior.
+- [ ] **Accessibility basics:** use a map `region` with concise keyboard instructions rather than applying `role="application"` to the whole map. Pins have visible focus rings, accessible names, Enter/Space behavior, and pan into view on focus. Opening a popup moves focus predictably; Escape/close returns it to the originating marker. Images use pre-baked `altText` directly (captions are pre-bake inputs only — no renderer-time lookup). Check pin/badge contrast; any cluster control has an accessible count/name.
+- [ ] **Gallery resilience:** apply Stage 0 brand answers; provide loading and data-load failure states; for a missing or failed popup image, preserve its caption/alt text and show a concise unavailable-image message rather than silently omitting it. Update Leaflet popup layout/auto-pan after lazy images load.
+- [ ] **Portrait-phone popup usability:** set the Leaflet `maxWidth` option and CSS width from the available viewport (not CSS alone), use `max-height: calc(100dvh - safe margins)` and an internal scroll container, and leave comfortable close/control margins. Test a long bio plus multiple images in portrait and landscape with no gesture conflict.
+- [ ] **Viewport-derived zoom-out and reset:** derive allowed minimum zoom from `map.getBoundsZoom(bounds)` after initial layout and resize, permit one intentional overview step, and expose Reset view. Do not select a fixed `-3`/`-4` value without testing viewport sizes.
+- [ ] **Regression gates:** extend pre-bake tests for stable/unique IDs, normalized bounds, crop pixel/byte/total-payload budgets, and deterministic tile manifest/layout. Run browser checks for projection, deep-link direct-load/back-forward, tile seams, lazy crop requests, failed image state, keyboard/focus return, and portrait popup scroll.
 
-**Exit criteria:** a gallery visitor and a phone user both get shapes-and-content parity with the kiosk; a shareable link opens a specific location.
+**Exit criteria:** a gallery visitor and a phone user get shapes-and-content parity with the kiosk; a shareable link opens a specific location; initial mobile transfer excludes distant crops/tiles; and the Stage 3A keyboard, focus, popup, error, and tile checks pass.
+
+## Stage 3B — Optional enrichment (post-launch or only if the density/content review justifies it)
+
+- [ ] **Clustering:** first validate that production pin density makes clustering more legible than individual pins. If it does, self-host the chosen implementation and use the existing stamp image + count badge; cluster activation must zoom/reveal individual pins, retain keyboard support and an accessible count/name, and still allow a deep link to reveal/open its target marker.
+- [ ] **Clustering test override:** use a documented query parameter such as `?clusters=0` / `?clusters=1` for testing rather than a customer-facing toggle or a source-only constant. The default is the selected gallery behavior.
+- [ ] **Image lightbox with zoom:** only add this if standard popup images prove insufficient. Generate a separate, lazy-on-tap fullscreen derivative with an explicit resolution/byte budget; do not pretend the ≤1600 px popup derivative supports meaningful zoom. Use a self-hosted/lightweight implementation with a labelled modal, caption, close control, Escape, focus trap/return, and touch handling isolated from Leaflet. Test screen-reader and phone pinch/pan/close behavior.
 
 ## Stage 4 — Deploy & handoff (~1–2 days)
 
 - [ ] Deploy `web/` to chosen host (gallery CMS page via iframe, or Netlify/GitHub Pages URL)
-- [ ] Verify embed in the gallery's actual website page; fix width/height quirks
+- [ ] Verify embed in the gallery's actual website page; fix width/height quirks and confirm relative asset paths, caching, tile/image requests, deep links, and mobile viewport behavior on the real host
 - [ ] Write `web/README.md`: what it is, how to rebuild (`scripts/prepare_web_assets.py` + redeploy) *if* content ever changes — aimed at a non-developer
 - [ ] Archive this plan; update TO_DO.md and CHANGELOG.md
 
@@ -148,12 +150,14 @@ Tasks:
 - A11y audit (NVDA/VoiceOver session, WCAG 2.1 AA fixes)
 - Analytics events + consent banner
 - PWA / offline caching
-- Full-map OpenSeadragon deep-zoom tiling — superseded by the planned Leaflet intermediate/high-resolution pyramid in Stage 3 unless OpenSeadragon's deep-zoom UI is specifically wanted
+- Full-map OpenSeadragon deep-zoom tiling — superseded by the planned Leaflet intermediate/high-resolution pyramid in Stage 3A unless OpenSeadragon's deep-zoom UI is specifically wanted
 - GeoJSON export from the pre-bake for future map platforms
 
 ## Risks & Notes
 
 - **Content rights (Stage 0)** is the only true blocker found so far; everything else is engineering comfort.
-- If the base map is >5–6 MB even optimized, prefer tiles over blurring/prerender tricks.
+- If the base map is >5–6 MB even optimized, prefer tiles over blurring/prerender tricks. A visible-but-zero-opacity crop is still a network request; do not include distant crops in initial mobile transfer.
+- Treat the iPhone ~16.7 MP ceiling as a per-decoded-image crop limit as well as a whole-map limit. Transitive proximity groups can be much larger than their individual pins.
+- Stage 3A is the launch-critical work. Clustering and image zoom are deliberately Stage 3B so a tile system, deep links, and accessible mobile popups are not delayed by optional interaction complexity.
 - The pre-bake scripts are Windows-friendly (`py -3`) and use only Pillow + stdlib, matching repo tooling conventions ([scripts/README.md](../../../scripts/README.md)).
 - Do not touch `Models/`, `Services/` or the WPF app; the desktop build and tests must stay green (`.\scripts\verify.ps1`) after any repo change in this plan.

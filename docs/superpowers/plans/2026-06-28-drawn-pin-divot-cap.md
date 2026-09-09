@@ -24,7 +24,7 @@
 - Modify `MainWindow.DeveloperTuning.partial.cs`: apply/reload the new event fields.
 - Modify `visual-config.json`: explicit new defaults while keeping `Style: "None"`.
 - Modify focused tests under `Tests/`: geometry, config, renderer, validation, and wiring.
-- Modify `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`, `docs/TO_DO.md`, and `CHANGELOG.md`: corrected intent and completion state.
+- Modify `docs/exec-plans/inactive/drawn-pin-tip-cap-plan.md`, `docs/TO_DO.md`, and `CHANGELOG.md`: corrected intent and completion state.
 
 ### Task 1: Add Stroke Config With Legacy Fallbacks — Complete
 
@@ -517,7 +517,7 @@ git commit -m "feat: tune pin divot width and line weight"
 ### Task 5: Documentation, Visual Check, And Completion Gate — In Progress
 
 **Files:**
-- Modify: `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`
+- Modify: `docs/exec-plans/inactive/drawn-pin-tip-cap-plan.md`
 - Modify: `docs/TO_DO.md`
 - Modify: `CHANGELOG.md`
 

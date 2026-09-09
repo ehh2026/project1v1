@@ -57,7 +57,7 @@ individually. Live WPF mode comparison/default selection remains Task 8.
 - `Tests/MapImageRenderingPolicyTests.cs`
 - `InteractiveWorldMap.sln` — include the comparison tool.
 - `scripts/README.md` — document comparison generation.
-- `docs/exec-plans/active/zoom-performance-appearance-plan.md`
+- `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`
 - `docs/TO_DO.md`
 - `CHANGELOG.md`
 
@@ -1447,7 +1447,7 @@ git commit -m "feat: generate zoom resampler comparisons"
 
 **Files:**
 
-- Modify: `docs/exec-plans/active/zoom-performance-appearance-plan.md`
+- Modify: `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`
 - Modify: `docs/TO_DO.md`
 - Modify: `CHANGELOG.md`
 - Modify: `docs/superpowers/plans/2026-07-01-zoomed-map-upscaling.md`
@@ -1495,7 +1495,7 @@ the exact blocker and leave only that verification scope active.
 - [ ] **Step 4: Update the owning active plan**
 
 Under item 2.7 in
-`docs/exec-plans/active/zoom-performance-appearance-plan.md`, record:
+`docs/exec-plans/inactive/zoom-performance-appearance-plan.md`, record:
 
 - physical-pixel settled rendering status;
 - cache-identity status and schema version 8;

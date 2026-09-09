@@ -1,34 +1,23 @@
 # Interactive World Map — Backlog
 
-Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/). Composite-pin work is coordinated in [composite-pins-program.md](exec-plans/active/composite-pins-program.md).
+Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/) or, when paused, [exec-plans/inactive/](exec-plans/inactive/).
 
-**Last updated:** September 5, 2026
+**Last updated:** September 8, 2026
 
 ## Website (TOP PRIORITY — do this next)
 
-- [ ] Gallery website version of the map — [staged plan](exec-plans/active/web-map-plan.md) and [assessment](assessments/WEB_ADAPTATION_ASSESSMENT.md). **Stage 3:** tile pyramid for mid-zoom sharpness, marker clustering (stamp + badge), `#location=` deep links, keyboard-focus centering, accessibility basics, and gallery branding. **Stage 4:** deploy and validate the actual gallery embed after the Stage 0 decisions on host/iframe target, web-publishing rights, and brand fonts/colors.
+- [ ] Gallery website version of the map — [staged plan](exec-plans/active/web-map-plan.md) and [assessment](assessments/WEB_ADAPTATION_ASSESSMENT.md). **Stage 3A:** lazy, bounded crops; tile pyramid; stable deep links; accessible mobile popups; and gallery branding. **Stage 3B:** optional clustering/lightbox only if production review justifies them. **Stage 4:** deploy and validate the actual gallery embed after the Stage 0 decisions on host/iframe target, web-publishing rights, and brand fonts/colors.
 
 ## Zoom & animation
 
-- [ ] Finish smooth/fast zoom performance + appearance — [zoom-performance-appearance-plan.md](exec-plans/active/zoom-performance-appearance-plan.md). Phase 1, Phase 2a, and the high-quality full-map/animation scaling code are complete; the rendering slice still needs live full-map and zoom-in/out visual confirmation after Windows app-control approval timed out. Other remaining work includes shadow/effect cost, the keyframe bitmap I/O decision, marker crispness, shadow-opacity consistency, and noisy-warning cleanup. Rendering verification: [2026-07-01-map-render-quality.md](superpowers/plans/2026-07-01-map-render-quality.md).
 - [ ] Review zoom-out implementation against zoom-in: compare rendering path, animation timing, smoothness, and image quality; optimize or share behavior where appropriate.
 - [ ] Consider additional full-map presentation modes (`Uniform`, `UniformToFill`, letterboxed, or cropped) behind config/Runtime Tuning. Keep `Fill` as the current default; any implementation must share destination bounds across the image, marker and hit-target placement, source/screen conversion, and zoom animation frames.
 - [ ] Consider a DPI- and physical-resolution-aware settled full-map render cache if direct `Fant` rendering consistently exceeds 33 ms on target hardware or produces repeated resize/return-to-map frame gaps above 33 ms. Key it by source identity, output pixel size, DPI, and presentation mode; invalidate it when any key input changes.
 
-## Composite pins & manual layouts
-
-Dashboard: [composite-pins-program.md](exec-plans/active/composite-pins-program.md)
-
-- [ ] Fix or remove composite pins that overstretch shadow
-- [ ] Manual GUI smoke only: generated AutoSeed loading — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md), Phase 3. Code and automated shared-path/load-key coverage are done; confirm in the running app for at least two seeded clusters.
-- [ ] Manual GUI smoke only: layout persistence robustness — [manual-layout-seed-alignment-plan.md](exec-plans/active/manual-layout-seed-alignment-plan.md), Phase 5. Per-user storage, crash-proof load, size-independent full-map keys, and source-space saved positions are code complete; confirm a full-map layout survives resize and lands correctly.
-- [ ] Explore post-render smooth black outline on composite pins (runtime, after shaft+head compose) — assess vs baked `outline_dark_*` asset variants; see feasibility notes in [composite-pins-program.md](exec-plans/active/composite-pins-program.md) or new exec plan if pursued
-- [ ] Composite mode: user UI to reassign pin head asset (`HeadSourcePath` / `pin_XX_head.png` — effectively head color) — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today heads are auto-picked by location hash; only **shaft** has right-click override; verify reassigned head persists on manual layout save/reload; infrastructure exists: `ManualLayoutMarker.HeadSourcePath`, enricher on save, replay via `preferredHeadSourcePath`; missing: head picker UI like shaft menu)
-- [ ] Drawn mode: user UI to pick pin head color from a fixed palette and persist per location in manual layout save — [manual-layout-pin-appearance-plan.md](exec-plans/active/manual-layout-pin-appearance-plan.md) (today: random color at create; `SetPinColor` exists but no picker or layout field)
-- [ ] Do not use bright yellow pin heads unless manually assigned
-- [ ] Manual visual acceptance: drawn-pin divot caps — [drawn-pin-tip-cap-plan.md](exec-plans/active/drawn-pin-tip-cap-plan.md). Code and automated coverage are complete; compare `ScreenHorizontal` and `ShaftAligned` on normal/inverted/angled pins, then smoke drag/hover/zoom behavior.
-
 ## Inactive (optional polish)
+
+- [ ] On hold: finish smooth/fast zoom performance + appearance — [plan](exec-plans/inactive/zoom-performance-appearance-plan.md). Phase 1, Phase 2a, and high-quality scaling are complete; remaining rendering confirmation and polish await reprioritization.
+- [ ] On hold: composite-pin/manual-layout program — [dashboard](exec-plans/inactive/composite-pins-program.md). This includes shadow/stretch follow-up, generated AutoSeed/persistence GUI smoke ([seed plan](exec-plans/inactive/manual-layout-seed-alignment-plan.md)), composite/drawn pin appearance pickers ([appearance plan](exec-plans/inactive/manual-layout-pin-appearance-plan.md)), and drawn-pin cap visual acceptance ([cap plan](exec-plans/inactive/drawn-pin-tip-cap-plan.md)).
 
 - [ ] Manual GUI smoke only: verify content click/tap presentation, Translate independence, companion hiding/restoration, and Back cleanup in the running WPF app — [plan](exec-plans/inactive/content-presentation-mode-plan.md). Core code and automated verification are complete; parked because Windows app-control approval timed out.
 - [ ] Composite head visual polish — shaft collar clip (§8.4 step 4), pin_09/10 shading (step 5), `TargetHeadRadiusPx` tuning (step 6) — [composite-pin-head-placement-fix-plan.md](exec-plans/inactive/composite-pin-head-placement-fix-plan.md)

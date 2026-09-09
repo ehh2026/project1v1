@@ -33,7 +33,7 @@ commit.
 - Modify `Tests/PinTipCapGeometryTests.cs`: shaft-relative geometry and fallbacks.
 - Modify `Tests/TuningPanelWiringTests.cs`: UI and event-flow source guards.
 - Modify `docs/TO_DO.md`: defer the unreproduced cap-inside-head incident.
-- Modify `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`: record alignment implementation and remaining visual gate.
+- Modify `docs/exec-plans/inactive/drawn-pin-tip-cap-plan.md`: record alignment implementation and remaining visual gate.
 - Modify `CHANGELOG.md`: describe the new opt-in alignment mode.
 
 No new production file is required. All touched production files remain below the
@@ -487,7 +487,7 @@ git commit -m "feat: tune drawn pin tip cap alignment"
 
 **Files:**
 - Modify: `docs/TO_DO.md`
-- Modify: `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`
+- Modify: `docs/exec-plans/inactive/drawn-pin-tip-cap-plan.md`
 - Modify: `CHANGELOG.md`
 - Modify: `docs/superpowers/plans/2026-06-28-drawn-pin-tip-cap-alignment.md`
 
@@ -507,7 +507,7 @@ screen-horizontal versus shaft-aligned visual comparison and interaction smoke.
 
 - [ ] **Step 2: Update plan and changelog**
 
-In `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`, record:
+In `docs/exec-plans/inactive/drawn-pin-tip-cap-plan.md`, record:
 
 - alignment enum and compatibility default;
 - shaft-relative geometry and fallback;

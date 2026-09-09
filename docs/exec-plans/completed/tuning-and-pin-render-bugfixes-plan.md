@@ -383,7 +383,7 @@ dotnet test Tests\InteractiveWorldMap.Tests.csproj --no-restore
 
 ## Task 8: Documentation & plan state
 
-**Files:** `docs/TO_DO.md`, `CHANGELOG.md`, `docs/exec-plans/active/README.md`, `docs/exec-plans/active/composite-pins-program.md`, `code-review-2026-06-21T19-48-42.md`
+**Files:** `docs/TO_DO.md`, `CHANGELOG.md`, `docs/exec-plans/active/README.md`, `docs/exec-plans/inactive/composite-pins-program.md`, `code-review-2026-06-21T19-48-42.md`
 
 - [ ] **Step 1:** Tick resolved findings in `code-review-2026-06-21T19-48-42.md` (or add a "Resolved" note per ID with the commit/task).
 - [ ] **Step 2:** Update the `docs/TO_DO.md` "Developer tooling" bullet to point at this plan and mark sub-items as they land.

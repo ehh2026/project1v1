@@ -12,22 +12,15 @@ started: YYYY-MM-DD
 
 ## Program dashboards
 
-| Plan | Scope |
-|------|--------|
-| [composite-pins-program.md](composite-pins-program.md) | Umbrella for all composite-pin and manual-layout tracks |
+No program dashboards are active. The composite-pin dashboard is on hold in [../inactive/composite-pins-program.md](../inactive/composite-pins-program.md).
 
 ## Active plans
 
 | Plan | Scope |
 |------|--------|
 | [web-map-plan.md](web-map-plan.md) | Static website version of the map for the gallery (Leaflet + pre-baked content; desktop+mobile; no editing tools) |
-| [composite-pins-unzoomed-plan.md](composite-pins-unzoomed-plan.md) | Roll composite pins to all individual markers + edit mode |
-| [manual-layout-seed-alignment-plan.md](manual-layout-seed-alignment-plan.md) | Shared runtime/seed placement path + reliable seed loading |
-| [manual-layout-pin-appearance-plan.md](manual-layout-pin-appearance-plan.md) | Add manual-layout pin head and drawn color override UI |
-| [zoom-performance-appearance-plan.md](zoom-performance-appearance-plan.md) | Smooth/fast zoom: remove per-frame logging/alloc/effect/I-O overhead + appearance polish |
 | [test-coverage-5pct-increase-plan.md](test-coverage-5pct-increase-plan.md) | Increase service-layer unit coverage toward the next coverage target |
 | [windows-portable-release-plan.md](windows-portable-release-plan.md) | Self-contained `win-x64` portable zip, package-local configuration tool, and GitHub Release workflow |
-| [drawn-pin-tip-cap-plan.md](drawn-pin-tip-cap-plan.md) | ⚠️ NEEDS REVIEW — opt-in horizontal or concave cap at the drawn pin shaft tip |
 
 ## Recently completed (moved to ../completed/)
 
@@ -40,6 +33,11 @@ started: YYYY-MM-DD
 - `service-testability-refactoring-plan.md` - Refactored narrow service dependencies for isolated service tests; added ManualLayoutAssignmentEnricher, CompositePinApplicationService SaveIfMissed, and AnimationFrameCache tests - moved 2026-08-11
 
 - `refactoring-assessment-followthrough-plan.md` — Remaining assessment debt (map metadata, ApplicationState, spatial clusterer, Excel streaming, ContentLoader LRU); Phase 18b deferred — moved 2026-07-30
+
+## On hold (moved to ../inactive/)
+
+- `composite-pins-program.md`, `composite-pins-unzoomed-plan.md`, `manual-layout-seed-alignment-plan.md`, `manual-layout-pin-appearance-plan.md`, and `drawn-pin-tip-cap-plan.md` — composite-pin/manual-layout work paused by user direction, moved 2026-09-08
+- `zoom-performance-appearance-plan.md` — zoom-performance work paused by user direction, moved 2026-09-08
 
 - `content-auto-fullscreen-open-fix-plan.md` - Prevent marker-open mouse/touch release from immediately toggling content presentation mode - moved 2026-07-22
 
@@ -66,7 +64,7 @@ Completed plans move to [../completed/](../completed/). Parked plans (core done,
 ## Maintenance rules
 
 1. **New multi-step work** — create a plan here with front-matter, add a row to the tables above, add one bullet to [TO_DO.md](../../TO_DO.md).
-2. **Composite-pin work** — also register in [composite-pins-program.md](composite-pins-program.md); keep phase detail in child plans, not `TO_DO.md`.
+2. **Composite-pin work** — before resuming it, move the [composite-pin dashboard](../inactive/composite-pins-program.md) and its chosen child plan back to `active/`, then register the work there; keep phase detail in child plans, not `TO_DO.md`.
 3. **Plan finishes** — move file to `../completed/`, update [CHANGELOG.md](../../../CHANGELOG.md), remove or shorten the `TO_DO.md` bullet.
 4. **Investigations** — live in [../../assessments/](../../assessments/); feature how-to in [../../guides/](../../guides/).
 5. **Historical only** — move to [../../archive/planning/](../../archive/planning/), not `docs/` root.

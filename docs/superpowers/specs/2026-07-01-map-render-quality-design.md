@@ -155,7 +155,7 @@ policy corrections in existing owners, and touched C# files remain below the
 Implementation must:
 
 - update the rendering-quality items in
-  `docs/exec-plans/active/zoom-performance-appearance-plan.md`;
+  `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`;
 - narrow the corresponding `docs/TO_DO.md` bullet as phases complete;
 - retain separate backlog bullets for aspect/display modes and the evidence-
   gated settled full-map render cache;

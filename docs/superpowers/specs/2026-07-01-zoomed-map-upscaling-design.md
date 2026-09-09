@@ -257,7 +257,7 @@ Implementation must:
 
 - link its implementation plan from the zoom-quality item in `docs/TO_DO.md`;
 - update item 2.7 in
-  `docs/exec-plans/active/zoom-performance-appearance-plan.md`;
+  `docs/exec-plans/inactive/zoom-performance-appearance-plan.md`;
 - narrow or remove completed TO_DO scope and retain only unimplemented
   alternatives;
 - update `[Unreleased]` in `CHANGELOG.md`;

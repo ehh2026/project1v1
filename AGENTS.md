@@ -85,7 +85,7 @@ Violations are caught by `Tests/Architecture/LayerDependencyTests.cs`.
 | Agent failure log | [docs/agent-failures.md](docs/agent-failures.md) |
 | Golden principles | [docs/design-docs/golden-principles.md](docs/design-docs/golden-principles.md) |
 | Human backlog | [docs/TO_DO.md](docs/TO_DO.md) (short bullets; detail in exec plans) |
-| Active work | [docs/exec-plans/active/](docs/exec-plans/active/) — composite pins: [composite-pins-program.md](docs/exec-plans/active/composite-pins-program.md) |
+| Active work | [docs/exec-plans/active/](docs/exec-plans/active/) — composite pins: [composite-pins-program.md](docs/exec-plans/inactive/composite-pins-program.md) |
 | Tech debt | [docs/exec-plans/tech-debt-tracker.md](docs/exec-plans/tech-debt-tracker.md) |
 | Doc maintenance rules | [docs/agent-workflows.md](docs/agent-workflows.md#documentation-maintenance) |
 | Formal spec | [.kiro/specs/interactive-world-map/](.kiro/specs/interactive-world-map/) |

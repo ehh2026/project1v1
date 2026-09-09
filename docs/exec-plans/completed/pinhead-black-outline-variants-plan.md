@@ -182,7 +182,7 @@ public void BuildPlan_WhenHeadAssetVariantConfigured_UsesVariantHeadPath()
 
 - Modify: `Tests/CompositePinPlanningServiceTests.cs`
 - Modify: `Services/CompositePinPlanningService.cs`
-- Modify: `docs/exec-plans/active/composite-pins-program.md` (dashboard row)
+- Modify: `docs/exec-plans/inactive/composite-pins-program.md` (dashboard row)
 
 - [ ] **Step 1: Add failing planning-service tests**
 
@@ -303,7 +303,7 @@ Current `ComputeConfigHash` ends with `$"{config.ShaftAssetVariant}:{config.Head
 
 - [ ] **Step 6: Update program dashboard**
 
-In [composite-pins-program.md](../active/composite-pins-program.md), change the Head visibility row from `Planned` to `In Progress` with next action `Finish Task 2 planning tests; generate head variants (Tasks 3–4)`.
+In [composite-pins-program.md](../inactive/composite-pins-program.md), change the Head visibility row from `Planned` to `In Progress` with next action `Finish Task 2 planning tests; generate head variants (Tasks 3–4)`.
 
 - [ ] **Step 7: Run focused tests and confirm pass**
 
@@ -618,14 +618,14 @@ In `docs/TO_DO.md`, mark the pinhead item `[x]` with paths to generated variants
 1. Move this file to `docs/exec-plans/completed/pinhead-black-outline-variants-plan.md`.
 2. Add completion front-matter (`completed: YYYY-MM-DD`).
 3. Update [active/README.md](../active/README.md) — remove active row; add completed row with verify date.
-4. Update [composite-pins-program.md](../active/composite-pins-program.md) — Head visibility status `Complete`; next action `Review/select default head variant`.
+4. Update [composite-pins-program.md](../inactive/composite-pins-program.md) — Head visibility status `Complete`; next action `Review/select default head variant`.
 
 - [ ] **Step 4: Commit (when requested by human)**
 
 Stage the full scope (code, script, assets, docs). Example:
 
 ```powershell
-git add Models/PinPartConfig.cs Services/CompositePinRenderPlanBuilder.cs Services/CompositePinPlanningService.cs Services/CompositePinLayoutContentHasher.cs Tests/CompositePinRenderPlanBuilderTests.cs Tests/CompositePinPlanningServiceTests.cs Tests/CompositePinLayoutContentHasherTests.cs Tests/VisualConfigServiceTests.cs scripts/create_head_asset_variants.py scripts/README.md visual-config.json "Images&Content/Pins_v2/parts/head_variants" docs/TO_DO.md docs/guides/VISUAL_CONFIG.md docs/exec-plans/active/composite-pins-program.md docs/exec-plans/active/README.md docs/exec-plans/completed/pinhead-black-outline-variants-plan.md CHANGELOG.md
+git add Models/PinPartConfig.cs Services/CompositePinRenderPlanBuilder.cs Services/CompositePinPlanningService.cs Services/CompositePinLayoutContentHasher.cs Tests/CompositePinRenderPlanBuilderTests.cs Tests/CompositePinPlanningServiceTests.cs Tests/CompositePinLayoutContentHasherTests.cs Tests/VisualConfigServiceTests.cs scripts/create_head_asset_variants.py scripts/README.md visual-config.json "Images&Content/Pins_v2/parts/head_variants" docs/TO_DO.md docs/guides/VISUAL_CONFIG.md docs/exec-plans/inactive/composite-pins-program.md docs/exec-plans/active/README.md docs/exec-plans/completed/pinhead-black-outline-variants-plan.md CHANGELOG.md
 git commit -m "Add pinhead outline variants"
 ```
 
