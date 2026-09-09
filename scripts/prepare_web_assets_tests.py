@@ -83,5 +83,275 @@ class PathSafetyTests(unittest.TestCase):
             self.assertFalse(pwa.is_strict_descendant(sibling, content_real))
 
 
+class _Loc(dict):
+    """Tiny location holder so tests read like prepare_web_assets data."""
+    def __init__(self, nx, ny):
+        super().__init__(nx=nx, ny=ny)
+
+
+class CropBudgetTests(unittest.TestCase):
+    def test_crop_bounds_pad_each_axis_with_own_master_dimension(self):
+        nx0, ny0, nx1, ny1 = pwa._crop_bounds([_Loc(0.5, 0.5)])
+        self.assertAlmostEqual(nx1 - nx0, 2 * pwa.CROP_PAD_X / pwa.MASTER_W)
+        self.assertAlmostEqual(ny1 - ny0, 2 * pwa.CROP_PAD_Y / pwa.MASTER_H)
+        self.assertAlmostEqual(nx0, 0.5 - pwa.CROP_PAD_X / pwa.MASTER_W)
+        self.assertAlmostEqual(ny1, 0.5 + pwa.CROP_PAD_Y / pwa.MASTER_H)
+
+    def test_crop_bounds_clamp_to_map_unit_square(self):
+        nx0, ny0, nx1, ny1 = pwa._crop_bounds([_Loc(0.0, 1.0)])
+        self.assertEqual(nx0, 0.0)
+        self.assertEqual(ny1, 1.0)
+
+    def test_split_group_halves_along_longer_axis(self):
+        wide = [_Loc(0.1, 0.5), _Loc(0.2, 0.5), _Loc(0.3, 0.5), _Loc(0.4, 0.5)]
+        a, b = pwa._split_group(wide)
+        self.assertTrue(a and b)
+        self.assertEqual(len(a) + len(b), len(wide))
+
+    def test_split_group_single_pin_cannot_split(self):
+        self.assertEqual(pwa._split_group([_Loc(0.5, 0.5)]), [])
+
+    def test_split_reduces_bounding_box_area(self):
+        wide = [_Loc(i * 0.01, i * 0.01) for i in range(60, 0, -1)]
+        a, b = pwa._split_group(wide)
+
+        def box_area(group):
+            nx0, ny0, nx1, ny1 = pwa._crop_bounds(group)
+            return (nx1 - nx0) * (ny1 - ny0)
+
+        self.assertLess(max(box_area(a), box_area(b)), box_area(wide))
+
+    def test_save_crop_for_budget_small_bytes_passes_through(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow not installed")
+        import tempfile as _tmp
+        with _tmp.TemporaryDirectory() as d:
+            path = os.path.join(d, "x.jpg")
+            img = Image.new("RGB", (64, 64), "navy")
+            self.assertTrue(pwa._save_crop_for_budget(img, path, 10_000_000))
+
+    def test_save_crop_for_budget_tiny_budget_shrinks_to_fit(self):
+        try:
+            from PIL import Image
+        except ImportError:
+            self.skipTest("Pillow not installed")
+        import tempfile as _tmp
+        with _tmp.TemporaryDirectory() as d:
+            path = os.path.join(d, "x.jpg")
+            img = Image.new("RGB", (1200, 1200), "white")
+            img.save(path, "JPEG", quality=95)
+            self.assertGreater(os.path.getsize(path), 2000)
+            os.remove(path)
+            self.assertTrue(pwa._save_crop_for_budget(img, path, 2000))
+            self.assertTrue(os.path.isfile(path))
+            self.assertLessEqual(os.path.getsize(path), 2000)
+
+
+class _FakePILImage:
+    """Stand-in for PIL.Image so cut_crops' split loop is testable offline."""
+    MAX_IMAGE_PIXELS = 200_000_000
+    LANCZOS = 1
+
+    class _FakeMaster:
+        def __init__(self, w, h):
+            self.width, self.height = w, h
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+        def crop(self, box):
+            return _FakePILImage._FakeCrop(box)
+
+    class _FakeCrop:
+        def __init__(self, box):
+            self.box = box
+
+        def convert(self, mode):
+            return self
+
+        def save(self, *args, **kwargs):
+            return None
+
+        def resize(self, size, resample):
+            self._size = size
+            return self
+
+        @property
+        def width(self):
+            return self._size[0] if getattr(self, "_size", None) else self.box[2] - self.box[0]
+
+        @property
+        def height(self):
+            return self._size[1] if getattr(self, "_size", None) else self.box[3] - self.box[1]
+
+    @classmethod
+    def open(cls, path):
+        return cls._FakeMaster(16397, 11085)
+
+
+class CutCropsIntegrationTests(unittest.TestCase):
+    def _clusters(self, count=10):
+        return [[{"name": f"p{i}", "nx": 0.2 + i * 0.03, "ny": 0.3 + i * 0.02} for i in range(count)]]
+
+    def _run_cut_crops(self, clusters, max_pixels):
+        import types
+        with tempfile.TemporaryDirectory() as out:
+            saved = []
+            fake_modules = {"PIL.Image": _FakePILImage, "PIL": types.ModuleType("PIL")}
+            with mock.patch.dict(sys.modules, fake_modules) as _md:
+                with mock.patch.object(pwa, "CROP_MAX_PIXELS", max_pixels):
+                    with mock.patch.object(pwa, "_save_crop_for_budget",
+                                   side_effect=lambda img, path, mb: (saved.append(path) or open(path, "wb").close() or True)):
+                        crops = pwa.cut_crops(clusters, out)
+            return crops, saved
+
+    def test_oversized_groups_split_and_numbering_stays_gapless(self):
+        clusters = self._clusters()
+        crops, saved = self._run_cut_crops(clusters, max_pixels=6_000_000)
+        self.assertGreater(len(crops), 1)
+        files = [c["file"] for c in crops]
+        self.assertEqual(files, sorted(files))
+        expected = [f"images/crops/crop_{i + 1:02d}.jpg" for i in range(len(crops))]
+        self.assertEqual(files, expected)
+        self.assertEqual(len(saved), len(crops))
+        for c in crops:
+            self.assertLessEqual(c["nx0"], c["nx1"])
+            self.assertLessEqual(c["ny0"], c["ny1"])
+            self.assertTrue(c["members"])
+
+    def test_singleton_over_pixel_budget_still_emits_fallback_crop(self):
+        clusters = [[{"name": "solo", "nx": 0.5, "ny": 0.5}]]
+        crops, saved = self._run_cut_crops(clusters, max_pixels=1_000_000)
+        self.assertEqual(len(crops), 1)
+        self.assertEqual(crops[0]["members"], ["solo"])
+        self.assertEqual(len(saved), 1)
+
+
+class StableIdTests(unittest.TestCase):
+    def test_slug_rules(self):
+        self.assertEqual(pwa.stable_location_id("Kevin"), "kevin")
+        self.assertEqual(pwa.stable_location_id("Dr. Henry Rosin"), "dr-henry-rosin")
+        self.assertEqual(pwa.stable_location_id("Mr. and Mrs. C.C. Wang"), "mr-and-mrs-c-c-wang")
+        self.assertEqual(pwa.stable_location_id("  Spacing   Pad  "), "spacing-pad")
+        self.assertEqual(pwa.stable_location_id("Müller"), "muller")
+
+    def test_ids_are_identical_when_rows_reorder(self):
+        a = [{"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
+             {"name": "Test", "nx": 0.5, "ny": 0.6, "images": []},
+             {"name": "Test2", "nx": 0.7, "ny": 0.8, "images": []},
+             {"name": "Kevin", "nx": 0.31, "ny": 0.41, "images": []}]
+        b = [dict(x) for x in reversed(a)]
+        ids_a = pwa.assign_location_ids(a)
+        ids_b = pwa.assign_location_ids(b)
+        by_name_coords = lambda x: sorted((l["name"], l["nx"], l["ny"], cid)
+                                          for l, cid in zip(x[0], x[1]))
+        self.assertEqual(by_name_coords((a, ids_a)), by_name_coords((b, ids_b)))
+
+    def test_duplicate_names_get_stable_suffixes(self):
+        locs = [{"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
+                {"name": "Kevin", "nx": 0.5, "ny": 0.6, "images": []}]
+        ids = pwa.assign_location_ids(locs)
+        # First (content-ordered) occurrence keeps the bare slug.
+        self.assertEqual(set(ids), {"kevin", "kevin-1"})
+
+    def test_duplicate_ordering_is_by_content_not_row(self):
+        locs = [{"name": "Kevin", "nx": 0.5, "ny": 0.6, "images": []},
+                {"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []}]
+        ids = pwa.assign_location_ids(locs)
+        self.assertEqual(ids, ["kevin-1", "kevin"])
+
+    def test_real_slug_collision_is_bumped_not_duplicated(self):
+        # A location literally named "Kevin-1" shares the suffixed id that a
+        # duplicate "Kevin" would otherwise receive: ids must stay unique.
+        locs = [{"name": "Kevin", "nx": 0.1, "ny": 0.2, "images": []},
+                {"name": "Kevin", "nx": 0.3, "ny": 0.4, "images": []},
+                {"name": "Kevin-1", "nx": 0.2, "ny": 0.3, "images": []}]
+        ids = pwa.assign_location_ids(locs)
+        self.assertEqual(len(set(ids)), len(ids))
+        self.assertGreater(len(ids), len([i for i in ids if i == "kevin-1"]))
+
+
+class TilePyramidTests(unittest.TestCase):
+    def test_level_dimensions_double_per_level(self):
+        w5, h5 = pwa._level_dimensions(5, 4096, 2769)
+        self.assertEqual(w5, 8192)
+        self.assertEqual(h5, 5538)
+        w6, h6 = pwa._level_dimensions(6, 4096, 2769)
+        self.assertEqual(w6, 16384)
+        self.assertEqual(h6, 11076)
+
+    def test_tile_source_box_center_tile_geometry(self):
+        level_w, level_h = pwa._level_dimensions(5, 4096, 2769)
+        sx = 16397 / float(level_w)
+        sy = 11085 / float(level_h)
+        box, top_pad = pwa._tile_source_box(16, -11, level_w, level_h, sx, sy)
+        self.assertEqual(top_pad, 0)
+        x0, y0, x1, y1 = box
+        # Tile covers x in [4096, 4352) and y-down in [2722, 2978) level px.
+        self.assertAlmostEqual(x0, 4096 * sx, delta=1)
+        self.assertAlmostEqual(x1, 4352 * sx, delta=1)
+        self.assertAlmostEqual(y0, 2722 * sy, delta=1)
+        self.assertAlmostEqual(y1, 2978 * sy, delta=1)
+
+    def test_tile_source_box_top_row_pads(self):
+        level_w, level_h = pwa._level_dimensions(5, 4096, 2769)
+        sx = 16397 / float(level_w)
+        sy = 11085 / float(level_h)
+        box, top_pad = pwa._tile_source_box(0, -22, level_w, level_h, sx, sy)
+        # Row -22 starts at y-down 5538 - 5632 = -94 (94 px blank above the map).
+        self.assertEqual(top_pad, 94)
+        self.assertEqual(box[1], 0)
+
+    def test_tile_alignment_matches_master_sample(self):
+        try:
+            import numpy as np
+            from PIL import Image
+        except ImportError:
+            self.skipTest("numpy/Pillow not installed")
+        master_path = os.path.join(pwa.MASTER_MAP)
+        # Browser-fetch path for the manifest URL template {z}/{x}/{y}. The box
+        # is the HARD-CODED expected output of the generator for tile (16,-11)
+        # at level 5 — recomputed independently, not via _tile_source_box, so a
+        # future formula break (e.g. the {x}/{y} transposition) fails here.
+        web_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web")
+        sample = os.path.join(web_dir, "images", "tiles", "5", "16", "-11.jpg")
+        if not os.path.isfile(master_path):
+            self.skipTest("master map not present")
+        if not os.path.isdir(os.path.join(web_dir, "images", "tiles")):
+            self.skipTest("no generated tile pyramid present")
+        # Missing generated tile should FAIL, not skip: a layout/axis regression
+        # (e.g. a {y}/{x} transposition) must surface here.
+        self.assertTrue(os.path.isfile(sample),
+                        "sample tile tiles/5/16/-11.jpg not generated (layout/axis regression?)")
+        Image.MAX_IMAGE_PIXELS = 200_000_000
+        box = (8198, 5448, 8711, 5961)  # master px for level-5 tile x=16, y=-11
+        with Image.open(master_path) as master:
+            master = master.convert("RGB")
+            expect = master.crop(box).resize((256, 256), Image.LANCZOS)
+            got = Image.open(sample).convert("RGB")
+            a = np.asarray(expect, dtype=float)
+            b = np.asarray(got, dtype=float)
+            mse = float(((a - b) ** 2).mean()) / 65025.0
+        self.assertLess(mse, 0.01, "tile content diverged from the master (misaligned pyramid)")
+
+
+class WebBundleCoherenceTests(unittest.TestCase):
+    """Artifact-level gate: the generated web/ bundle must satisfy the manifest
+    contract. Runs whenever a generated bundle is present (skips otherwise)."""
+
+    def test_generated_bundle_passes_coherence_gate(self):
+        import verify_web_bundle as vwb
+        web_dir = os.path.join(os.path.dirname(vwb.__file__), "..", "web")
+        if not os.path.isfile(os.path.join(web_dir, "data", "locations.json")):
+            self.skipTest("no generated web bundle present")
+        rc = vwb.check(os.path.abspath(web_dir))
+        self.assertEqual(rc, 0, "generated web bundle violated the coherence contract")
+
+
 if __name__ == "__main__":
     unittest.main()

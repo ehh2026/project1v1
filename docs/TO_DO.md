@@ -2,11 +2,11 @@
 
 Human steering list. Implementation detail lives in [exec-plans/active/](exec-plans/active/) or, when paused, [exec-plans/inactive/](exec-plans/inactive/).
 
-**Last updated:** September 8, 2026
+**Last updated:** September 9, 2026
 
 ## Website (TOP PRIORITY — do this next)
 
-- [ ] Gallery website version of the map — [staged plan](exec-plans/active/web-map-plan.md) and [assessment](assessments/WEB_ADAPTATION_ASSESSMENT.md). **Stage 3A:** lazy, bounded crops; tile pyramid; stable deep links; accessible mobile popups; and gallery branding. **Stage 3B:** optional clustering/lightbox only if production review justifies them. **Stage 4:** deploy and validate the actual gallery embed after the Stage 0 decisions on host/iframe target, web-publishing rights, and brand fonts/colors.
+- [ ] Gallery website version of the map — [staged plan](exec-plans/active/web-map-plan.md) and [assessment](assessments/WEB_ADAPTATION_ASSESSMENT.md). **Stage 3A engineering is code-complete:** lazy size-bounded crops, 8192 px tile pyramid (native level opt-in), stable `#location=` deep links, accessibility basics, gallery-resilience states, portrait-phone popups, viewport-derived zoom-out + Reset, and automated regression gates. Remaining Stage 3A: human browser/phone checks (tile seams/fetching, deep-link back/forward, keyboard/focus return, failed-image state, portrait popup scroll), Stage 0 brand answers, and production-content rerun. **Stage 3B:** optional clustering/lightbox only if production review justifies them. **Stage 4:** deploy and validate the actual gallery embed.
 
 ## Zoom & animation
 
