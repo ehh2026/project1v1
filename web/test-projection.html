@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Projection fixture — web map</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<style>
+  body { margin: 16px; font: 14px/1.5 monospace; }
+  #map { height: 420px; width: 100%; }
+  table { border-collapse: collapse; margin-top: 12px; }
+  td, th { border: 1px solid #ccc; padding: 3px 10px; }
+  .pass { color: #0a7d00; font-weight: bold; }
+  .fail { color: #b00020; font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>Projection fixture</h1>
+<p>
+Checks the web coordinate mapping against the desktop coordinate convention
+(top-left origin, x right, y down): <code>lng = nx*W</code>, <code>lat = (1-ny)*H</code>.
+Green = machine check passed. Then eyeball: the red corner markers must sit exactly on
+the image corners, and the "Kevin" marker must sit where the desktop app places it
+(NYC area on the map).
+</p>
+<div id="map"></div>
+<table id="results"></table>
+<script>
+(async function () {
+  const data = await (await fetch('data/locations.json')).json();
+  const { width: W, height: H, image } = data.map;
+  const bounds = [[0, 0], [H, W]];
+  const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 3 });
+  L.imageOverlay(image, bounds).addTo(map);
+  map.fitBounds(bounds);
+
+  const rows = [];
+  const toLatLng = (nx, ny) => [(1 - ny) * H, nx * W];
+
+  // Machine checks: corner round-trips and marker positions.
+  const checks = [
+    ['corner NW', 0, 0, [H, 0]],
+    ['corner NE', 1, 0, [H, W]],
+    ['corner SW', 0, 1, [0, 0]],
+    ['corner SE', 1, 1, [0, W]],
+  ];
+  for (const [name, nx, ny, expected] of checks) {
+    const ll = toLatLng(nx, ny);
+    const ok = Math.abs(ll[0] - expected[0]) < 1e-9 && Math.abs(ll[1] - expected[1]) < 1e-9;
+    rows.push([name, `nx=${nx}, ny=${ny}`, `[${ll[0]}, ${ll[1]}]`, ok]);
+    L.circleMarker(ll, { radius: 10, color: '#d00', weight: 3 }).addTo(map)
+      .bindTooltip(name, { permanent: true, direction: 'top' });
+  }
+
+  // Eyeball check: every real location gets a small marker.
+  for (const loc of data.locations) {
+    L.circleMarker(toLatLng(loc.nx, loc.ny), { radius: 5, color: '#0044cc' })
+      .addTo(map).bindTooltip(loc.name, { direction: 'top' });
+  }
+  rows.push(['locations loaded', data.locations.length, 'blue markers', data.locations.length > 0]);
+
+  const table = document.getElementById('results');
+  table.innerHTML = '<tr><th>check</th><th>input</th><th>result</th><th>status</th></tr>' +
+    rows.map(([a, b, c, ok]) =>
+      `<tr><td>${a}</td><td>${b}</td><td>${c}</td><td class="${ok ? 'pass' : 'fail'}">${ok ? 'PASS' : 'FAIL'}</td></tr>`
+    ).join('');
+})();
+</script>
+</body>
+</html>

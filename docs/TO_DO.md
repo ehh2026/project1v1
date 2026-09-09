@@ -6,7 +6,7 @@ Human steering list. Implementation detail lives in [exec-plans/active/](exec-pl
 
 ## Website (TOP PRIORITY — do this next)
 
-- [ ] Build the gallery website version of the map: static site (Leaflet + pre-baked content), desktop + mobile, read-only visitor experience, no editing tools — staged plan in [web-map-plan.md](exec-plans/active/web-map-plan.md). **Current status (2026-09-05):** PR #34 holds assessment + plan + `scripts/audit_unused_assets.py` (audit run: 70 files / 31.8 MB unused, CSV in `TestResults/`). Stage 0 local recon ✅, Stage 1 audit ✅; still to do: human-confirm audit candidates, then **Stage 2 (web/ MVP) starts on the next PR**. Rationale and options analysis: [WEB_ADAPTATION_ASSESSMENT.md](assessments/WEB_ADAPTATION_ASSESSMENT.md).
+- [ ] Gallery website version of the map — [staged plan](exec-plans/active/web-map-plan.md) and [assessment](assessments/WEB_ADAPTATION_ASSESSMENT.md). **Stage 3:** tile pyramid for mid-zoom sharpness, marker clustering (stamp + badge), `#location=` deep links, keyboard-focus centering, accessibility basics, and gallery branding. **Stage 4:** deploy and validate the actual gallery embed after the Stage 0 decisions on host/iframe target, web-publishing rights, and brand fonts/colors.
 
 ## Zoom & animation
 

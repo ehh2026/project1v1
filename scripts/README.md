@@ -52,6 +52,8 @@ All output remains in git-ignored `artifacts\`. The package script copies `relea
 | `advisory_code_health_tests.py` | Manual | stdlib | Unit checks for the advisory code-health parser |
 | `doc_gardening.py` | Weekly CI | stdlib | Doc drift: links, AGENTS/TO_DO size, active plan registry, front-matter. Incomplete active plans older than 30 days warn only (same policy as `verify_taste.py`). |
 | `audit_unused_assets.py` | Manual | stdlib | Read-only audit of `Images&Content/`: lists files never referenced by any json/xlsx/code source (location folders and `Assets/Pins_v2/` count as implicitly referenced); optional `--csv` report |
+| `audit_unused_assets_tests.py` | Manual | stdlib | Regression tests for the audit script's reference matching (`py -3 -m unittest scripts.audit_unused_assets_tests`) |
+| `prepare_web_assets.py` | Manual (web pre-bake, see [web-map-plan.md](../docs/exec-plans/active/web-map-plan.md)) | venv (Pillow) | Builds the static `web/` bundle: intermediate base map from the 181 MP master, bounded popup-image derivatives, `web/data/locations.json` with normalized coords + pre-baked altText. Run with the repo venv python |
 | `split_pin_parts.py` | Manual | venv | Split extracted pins into parts |
 | `create_shaft_asset_variants.py` | Manual | venv | Generate shaft contrast variants: outer (`outline_dark_7px`), inner (`inner_dark_3px`), or combo (`outline_dark_6px_in2px`); writes preview grids |
 | `create_head_asset_variants.py` | Manual | venv | Generate black-outline head variants (`outline_black_2px` through `outline_black_14px`); writes per-variant `preview_heads.png` grids |
@@ -87,7 +89,7 @@ Run the local complexity gate directly:
 
 ```powershell
 py -3 -m pip install lizard
-py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
+py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" -x "*vendor*" .
 ```
 
 ## Related docs

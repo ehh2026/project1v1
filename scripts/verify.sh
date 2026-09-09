@@ -69,7 +69,7 @@ if [[ "$RUN_DOTNET" == true ]]; then
   fi
 
   echo "[7/9] Lizard complexity gate"
-  python3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" .
+  python3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scripts*" -x "*TestResults*" -x "*vendor*" .
 fi
 
 echo "[8/9] doc link check"

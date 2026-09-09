@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Interactive World Map</title>
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<script src="vendor/leaflet/leaflet.js"></script>
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #0d1b2a; font-family: Georgia, 'Times New Roman', serif; }
+  #map { height: 100%; width: 100%; background: #0d1b2a; }
+
+  /* Drawn pin: teardrop via border-radius trick (no image asset needed) */
+  .map-pin {
+    width: 26px; height: 26px;
+    background: #b23a48;
+    border: 2px solid #fff;
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 4px rgba(0,0,0,.5);
+    cursor: pointer;
+  }
+  .map-pin::after {
+    content: ""; position: absolute; inset: 6px;
+    background: #fff; border-radius: 50%;
+  }
+
+  /* Popup styling */
+  .leaflet-popup-content-wrapper {
+    max-width: min(680px, 94vw);
+    border-radius: 10px;
+  }
+  .leaflet-popup-content { margin: 16px 20px; line-height: 1.5; font-size: 1rem; }
+  .popup-title { margin: 0 0 4px; font-size: 1.3rem; }
+  @media (max-width: 640px) {
+    .leaflet-popup-content { font-size: 1.05rem; }
+    .popup-title { font-size: 1.4rem; }
+  }
+  .popup-address { color: #777; font-style: italic; margin: 0 0 8px; font-size: .85rem; }
+  .popup-bio { font-size: .9rem; margin: 8px 0; white-space: pre-line; }
+  .popup-figure { margin: 8px 0 0; }
+  .popup-figure img { width: 100%; height: auto; display: block; border-radius: 4px; }
+  .popup-caption { font-size: .8rem; color: #555; margin-top: 4px; }
+  .leaflet-popup-content p { margin: 6px 0; }
+</style>
+</head>
+<body>
+<div id="map" role="application" aria-label="Interactive world map"></div>
+<script>
+(async function () {
+  const data = await (await fetch('data/locations.json')).json();
+  const { width: W, height: H, image } = data.map;
+
+  // Coordinate contract: nx/ny are [0,1] fractions, origin top-left of the image.
+  // CRS.Simple y increases upward, so lat = (1 - ny) * H and lng = nx * W.
+  const bounds = [[0, 0], [H, W]];
+  const map = L.map('map', {
+    crs: L.CRS.Simple,
+minZoom: -2,
+  maxZoom: 6,
+    zoomControl: true,
+    attributionControl: false,
+  });
+  L.imageOverlay(image, bounds).addTo(map);
+  map.fitBounds(bounds);
+
+  const pinIcon = L.divIcon({
+    className: '',
+    html: '<div class="map-pin" role="img"></div>',
+    iconSize: [26, 26],
+    iconAnchor: [13, 26],
+    popupAnchor: [0, -26],
+  });
+
+  for (const loc of data.locations) {
+    const marker = L.marker([(1 - loc.ny) * H, loc.nx * W], {
+      icon: pinIcon,
+      title: loc.name,
+      alt: loc.name,
+      keyboard: true,
+    });
+
+    // Build popups as DOM nodes (textContent, not HTML strings) — workbook
+    // values are untrusted text and may contain characters like '<' or quotes.
+    const popup = document.createElement('div');
+
+    const title = document.createElement('h2');
+    title.className = 'popup-title';
+    title.textContent = loc.name;
+    popup.appendChild(title);
+
+    if (loc.address) {
+      const p = document.createElement('p');
+      p.className = 'popup-address';
+      p.textContent = loc.address;
+      popup.appendChild(p);
+    }
+    if (loc.bio) {
+      const bio = document.createElement('div');
+      bio.className = 'popup-bio';
+      bio.textContent = loc.bio;
+      popup.appendChild(bio);
+    }
+    for (const img of loc.images ?? []) {
+      if (img.missing) continue;
+      // Only allow image paths inside our own bundle.
+      if (!/^images\/content\/[\w\-. ]+\/[\w\-. ]+$/.test(img.file)) continue;
+      const fig = document.createElement('figure');
+      fig.className = 'popup-figure';
+      const el = document.createElement('img');
+      el.src = img.file;
+      el.alt = img.altText || loc.name;
+      el.loading = 'lazy';
+      fig.appendChild(el);
+      if (img.altText) {
+        const cap = document.createElement('figcaption');
+        cap.className = 'popup-caption';
+        cap.textContent = img.altText;
+        fig.appendChild(cap);
+      }
+      popup.appendChild(fig);
+    }
+
+    marker.bindPopup(popup, { maxWidth: 680 });
+    marker.addTo(map);
+  }
+
+  // Regional high-res crops: swap in a sharper overlay when zoomed into a cluster.
+  const crops = data.crops ?? [];
+  const cropLayers = crops.map((c) => {
+    const bounds = [[ (1 - c.ny1) * H, c.nx0 * W ], [ (1 - c.ny0) * H, c.nx1 * W ]];
+    return { overlay: L.imageOverlay(c.file, bounds).addTo(map), c };
+  });
+  cropLayers.forEach(({ overlay, c }) => overlay.setOpacity(0));
+
+  const ZOOM_THRESHOLD = 1;
+  function updateCrops() {
+    const z = map.getZoom();
+    const vb = map.getBounds();
+    cropLayers.forEach(({ overlay, c }) => {
+      const cb = overlay.getBounds();
+      const visible = z >= ZOOM_THRESHOLD && vb.intersects(cb);
+      overlay.setOpacity(visible ? 1 : 0);
+    });
+  }
+  map.on('zoomend moveend', updateCrops);
+  updateCrops();
+})();
+</script>
+</body>
+</html>

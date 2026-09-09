@@ -6,7 +6,13 @@ started: 2026-09-05
 
 # Web Map Plan — Gallery Website Version
 
-**Status:** Active — next up
+**Status:** Active — Stage 1 + Stage 2 MVP built (branch `web-map-mvp`, PR #35)
+
+> ⚠️ **Blocking human check before PR #35 leaves draft:** the two smoke tests at the bottom of Stage 2 have NOT been done yet —
+> 1. **Browser pass** (`py -3 -m http.server` in `web/`, open `index.html` and `test-projection.html`, confirm pins sit correctly and popups show content)
+> 2. **Phone pass** (same URL via PC's LAN IP, zoom into NYC, judge sharpness — decides whether Stage 3's regional crops happen)
+>
+> Do not merge #35 until both are done.
 **Created:** September 5, 2026
 **Assessment:** [docs/assessments/WEB_ADAPTATION_ASSESSMENT.md](../../assessments/WEB_ADAPTATION_ASSESSMENT.md) (read this first for the "why")
 **Owner note:** This plan assumes a solo, non-professional developer, one gallery, no ongoing content updates expected. It is deliberately staged so that each stage produces something usable even if later stages never happen.
@@ -26,7 +32,7 @@ A website version of the map that gives a web visitor the **same experience as a
 | Cluster markers | Existing **stamp image + count badge** asset |
 | Interaction model | **Free pan/zoom anywhere** (scroll/pinch) — unlike the kiosk's cluster-click-only zoom. Web visitors expect standard map behavior; the cluster crops keep dense regions sharp regardless of zoom path |
 | Content pipeline | One-time pre-bake: Excel/`locations.json` + image folders → one web `locations.json` + optimized images |
-| Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in `web/data/README` (produced Stage 1) and validated against the desktop loader's output before Stage 2 runs |
+| Pre-bake authority | Mirror desktop precedence exactly (`ContentLoader.LoadLocationsAsync`): **Excel first, `locations.json` as fallback**. Web `locations.json` schema documented in [web/README.md](../../../web/README.md) (done, committed) and validated against the desktop loader's output before Stage 2 runs |
 | Content updates | Not expected. Pipeline exists but cadence is "rerun the script if content ever changes" |
 | Desktop app | Untouched. Shares content, no shared code |
 
@@ -61,18 +67,11 @@ Meanwhile, gather facts locally:
   - Desktop full-res zoom source: `Assets/World Map 1976.jpg` — 16397×11085, 54.5 MB, 181 MP (`ContentFileNames.FullResolutionWorldMapFileName`; triggers Pillow's decompression-bomb guard at default settings)
   - Unreferenced map variants: `World Map Extra Large copy.jpg` (14.6 MB), `World Map Large.jpg` (2.9 MB), `Large_World_Map_bright.jpg` (3.0 MB)
   - Production content is **not in the repo** (`Production-Content/` is a `.gitkeep` placeholder); demo set lives in `Demo-Content/`
-  - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — Leaflet `imageOverlay` bounds must come from the app's geographic bounds, not assumed `-90..90`
+  - Note: map aspect is 1.48:1, not classic 2:1 equirectangular — the overlay is placed in the map image's own pixel-normalized space (see the coordinate contract below), never assumed geographic `-90..90`
 - [x] Write `scripts/audit_unused_assets.py` and run it (2026-09-05): **31.8 MB never-referenced in-repo** (70 files), CSV at `TestResults/unused-assets.csv`. Updated to path-aware matching after CodeRabbit review: a referenced path must match the relative path (or a unique basename), so same-named files in `Extras/` can no longer hide behind `Assets/` matches. Biggest items: three unused map variants (~20.5 MB) + Extras pin-extraction experiments (~10 MB, already excluded from the public package). The expected ~50+ MB saving on the **web bundle** is real once the web ships an optimized downscaled map instead of the 11.8/54.5 MB desktop sources.
   - **Audit contract (so results are trustworthy):** reference sources = all `*.json` and `*.xlsx` under `Images&Content/` + all repo code/config (`*.cs`, `*.xaml`, `*.json`). Composite-pin composition rules are covered because `Assets/Pins_v2/` is implicitly referenced (code-driven patterns) and shared pin asset names appear in config/code. Location folders are implicitly referenced (directory enumeration at runtime). Anything outside the audit's authority must be excluded by hand before deletion.
 - [ ] Human-confirm the audit candidates; record decisions in this plan (desktop package pruning is a separate decision — only web-bundle exclusion is in scope here)
-- [ ] Write `scripts/prepare_web_assets.py` (venv + Pillow, `Image.MAX_IMAGE_PIXELS = None` required — the 181 MP master trips Pillow's safety limit):
-  1. **Base:** open `World Map 1976.jpg` (16397×11085), downscale to ~4096 px wide (≤ 16.7 MP), save as progressive JPEG quality ~82 → `web/images/map-base.jpg` (expected 3–5 MB)
-  2. **Popup images (bounded derivatives):** for each per-location image emit a web derivative (max 1600 px on the long edge, progressive JPEG q80 or WebP q80) into `web/images/content/<Location>/`, **and** print the per-image byte size + total payload. Originals are retained only if a measured requirement justifies them (e.g. a "view large" affordance); report that too. Separately, copy `didactic.txt` / `*-caption.txt` sidecars unchanged (caption text → altText; see step 4).
-  3. Emit `web/data/locations.json` for the chosen content set (Excel-first precedence, validated against desktop loader output)
-  4. **Alt-text contract (CodeRabbit, 2026-09-05):** in `web/data/locations.json`, every image entry gets `altText` populated **at pre-bake time**: caption text if a caption exists in `CaptionsByImageFileName`/caption sidecars, else a safe fallback `"<Location name> image <N>"`. No empty `alt` attributes may ship — blocked-popup-with-missing-alt is a launch failure (it breaks the Stage 3 accessibility basics). The web renderer consumes `altText` directly and has **no runtime dependency** on `CaptionsByImageFileName` or sidecar files — those are pre-bake inputs only.
-  4. **Do not build the cluster-crop step yet** — gate it behind the Stage 2 phone test
-  - Must run on the machine holding the real production content (`Production-Content/` is not committed). Note `web/` build output itself is also not committed — it's generated on demand; if the gallery later wants the built site version-controlled, that needs its own repo/pipeline decision.
-- [ ] **Stage 2 starts on a new PR** — this PR stays docs+script only.
+- [x] Write `scripts/prepare_web_assets.py` (done 2026-09-06 on branch `web-map-mvp`, run against Demo-Content: 38 locations, base map 2.0 MB, total payload 3.38 MB). **Note:** source data turned out to be **pixel coordinates** (see corrected coordinate contract in Stage 2) — the script normalizes to `[0,1]` fractions. Remaining production work: rerun on the machine with real content (`--content-set ...\Production-Content`).
 - [ ] Phone-network sanity check once the MVP loads: time the first paint on a mid-range phone over cellular throttling; only if unacceptable, revisit re-encoding quality (still same dimensions) or progressive JPEG — record the measured numbers in this plan
 
 **Exit criteria:** `web/data/` + `web/images/` built from a script, total payload reported, never-referenced report produced and reviewed.
@@ -81,11 +80,11 @@ Meanwhile, gather facts locally:
 
 New top-level `web/` folder (static; not referenced by the WPF build).
 
-**Coordinate contract (decided — CodeRabbit finding, 2026-09-05):**
+**Coordinate contract (decided — CodeRabbit finding, corrected 2026-09-06 after reading the real data):** the source data is **pixel coordinates, not lat/lon** — Excel columns E/F are on the 8198×5542 base-image frame (what the app uses), columns B/C and `locations.json` `PixelX/PixelY` are on the 16397×11085 master frame. There is no geographic data anywhere.
 
-- `web/data/locations.json` and `crops.json` carry **raw lat/lon only — never pre-baked pixels**. `CoordinateMapper.LatLongToScreen` is top-down (lat +90 → y=0), while Leaflet `CRS.Simple` y increases upward; mixing pixel spaces here is the easiest way to flip the map. Staying in lat/lon entirely avoids the conversion: markers take `[lat, lon]` directly, and the overlay bounds are geographic
-- Overlay bounds: `L.imageOverlay(url, [[-90, -180], [90, 180]])` matches the app's full-world mapping. Note the image aspect (1.48:1) differs from the full-world equirectangular 2:1 — the overlay will stretch slightly in latitude, which exactly mirrors the desktop's own linear mapping; accept the same behavior for parity
-- **Fixture before any marker work:** assert the four image corners and two known locations (e.g. New York, London) land at the same lat/lon in both `CoordinateMapper` and the Leaflet map — a tiny `web/test-projection.html` page that prints expected vs actual, checked by eye in one browser run
+- `web/data/locations.json` carries **normalized `[0,1]` fractions (`nx`, `ny`), origin top-left** — never raw pixels, never lat/lon. The pre-bake normalizes from whichever frame the row used
+- The site uses `CRS.Simple` with `L.imageOverlay(image, [[0, 0], [H, W]])` where W×H is the *base web image* size (from the pre-bake manifest); markers map as `lng = nx*W`, `lat = (1-ny)*H` (CRS.Simple y increases upward, the image convention is y-down — hence the `1-ny`)
+- **Fixture before marker work ship:** `web/test-projection.html` machine-checks corner round-trips and plots every location over the base image for one eyeball pass in a browser (HTTP smoke of all bundle files done 2026-09-06; **the eyeball pass is still a pending human checkbox below**)
 
 **Minimal working skeleton** (saves tutorial-hunting; adapted from the coordinate contract):
 
@@ -96,11 +95,13 @@ New top-level `web/` folder (static; not referenced by the WPF build).
 <script src="vendor/leaflet/leaflet.js"></script>
 <div id="map"></div>
 <script>
-  const bounds = [[-90, -180], [90, 180]];          // full-world, matches CoordinateMapper mapping
+  const data = await (await fetch('data/locations.json')).json();
+  const { width: W, height: H, image } = data.map;
+  const bounds = [[0, 0], [H, W]];                 // pixel space of the base image
   const map = L.map('map', { crs: L.CRS.Simple, minZoom: -2, maxZoom: 4 });
-  L.imageOverlay('images/map-base.jpg', bounds).addTo(map);
+  L.imageOverlay(image, bounds).addTo(map);
   map.fitBounds(bounds);
-  // markers: L.marker([lat, lon]).addTo(map).bindPopup(...)  — lat/lon raw from locations.json
+  // markers: L.marker([(1 - loc.ny) * H, loc.nx * W])  — normalized fractions in, Leaflet lat/lng out
 </script>
 ```
 
@@ -108,19 +109,23 @@ New top-level `web/` folder (static; not referenced by the WPF build).
 
 Tasks:
 
-- [ ] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` per the coordinate contract above. Base = `web/images/map-base.jpg` (~4096 px progressive)
-- [ ] **Projection fixture (do this before marker work):** `web/test-projection.html` prints expected vs actual for the four image corners + two known cities (New York, London), checked once by eye in a browser
-- [ ] Load `web/data/locations.json`; place one simple drawn pin marker per location
-- [ ] Click → popup styled like a simplified kiosk content window: images (lazy-loaded) + captions + bio text
-- [ ] Responsive: works on desktop browser and phone; initial view fitted to the map; pinch zoom on mobile
-- [ ] Local test: `py -3 -m http.server` in `web/`, verify in Chrome/Edge/Firefox + phone over LAN
-- [ ] **Phone sharpness check:** zoom into the densest cluster (NYC) on a phone. If pins/city labels are unacceptably soft, promote the regional-crop work into Stage 3; if fine, crops stay deferred
+- [x] `web/index.html`: full-viewport Leaflet map, `CRS.Simple`, `L.imageOverlay` per the coordinate contract above (done 2026-09-06, commit on web-map-mvp; base = 4096×2769 progressive, 2.0 MB actual)
+- [x] **Projection fixture:** `web/test-projection.html` machine-checks corner round-trips; every location plotted for eyeballing (written 2026-09-06)
+- [x] Load `web/data/locations.json`; one CSS-drawn pin per location (done)
+- [x] Click → popup styled like a simplified kiosk content window: images (lazy-loaded) + pre-baked altText/captions + bio text (done)
+- [x] Responsive: `viewport` meta, popup capped at min(360px, 82vw), initial `fitBounds`, pinch zoom via Leaflet (done; needs human browser confirmation)
+- [x] Local test: HTTP smoke over `py -3 -m http.server` — all bundle files 200 (2026-09-06)
+- [x] **Human browser + phone pass (done 2026-09-06, owner):** desktop OK; phone (iPhone via Parallels-bridged LAN) — renders ✓ (16.7 MP limit cleared), pinch zoom ✓, pins open ✓, popups readable-but-narrow, map "blurry but not terrible" when zoomed, rotation fine. Actions taken: `maxZoom` 4→6 for more zoom headroom, popups widened to min(680px,94vw) with a mobile font bump; crop overlays are doing the heavy lifting until the Stage 3 tile pyramid lands (planned).
+- [x] **Phone sharpness check (done 2026-09-06):** owner zoomed on iPhone — "blurry but not terrible". Crops confirmed working; whole-map sharpness awaits the planned Stage 3 tile pyramid.
+- [x] **Regional crops (triggered 2026-09-06 — desktop zoom was too soft):** `prepare_web_assets.py` unions nearby locations (radius 500 master px, **min 1 pin** — owner decision, people zoom on single pins) and cuts full-res crops from the master (`images/crops/crop_NN.jpg` + bounds), and `index.html` fades those overlays in at zoom ≥ 1. Demo: 7 crops / 4.2 MB.
+- [ ] **Intermediate whole-map layer (planned, Stage 3):** add a Leaflet tile pyramid at ~8192 px (one intermediate level) so panning any region at mid-zoom stays sharp beyond the 4096 base — must be tiles, not a single image, because an 8192×5539 image (~45 MP) exceeds the iPhone ~16.7 MP render limit. Structure the pyramid generator so a **second, higher-resolution level (~16384 px, the master's native size)** can be enabled later behind a flag if roaming sharpness is still insufficient. This replaces the crops for empty-region zooming; crops remain the cheap path for pin areas.
+- [ ] **Follow-up polish (noted, not blocking):** keyboard Tab reaches the pins but does not center the focused marker in view; teardrop CSS pins stay.
 
 **Exit criteria:** every location clickable, every popup shows its real content, on desktop and a phone.
 
 ## Stage 3 — Experience parity pass (~3–5 days)
 
-- [ ] **Conditional — regional crops, only if Stage 2's phone sharpness check failed:** extend `prepare_web_assets.py` to compute dense-cluster bounding boxes from `locations.json` and cut full-res crops from the 16397-px master → `web/images/crops/` + `web/data/crops.json`; in the site, add each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ threshold and view intersects bounds; keep overlay count small, single-digit regions)
+- [x] **Regional crops (conditional, only if Stage 2's phone sharpness check failed):** `prepare_web_assets.py` computes dense-cluster bounding boxes (min 1 pin) and cuts full-res crops from the 16397-px master → `web/images/crops/`, with crop bounds embedded in `web/data/locations.json` under the `crops` key; `index.html` adds each crop as a second `L.imageOverlay` toggled on `zoomend` (zoom ≥ 1 and view intersects bounds)
 - [ ] Clustering: group nearby pins (leaflet.markercluster or the existing `LocationClusterer` logic ported); cluster marker = **stamp image + count badge**
 - [ ] Deep links: `#location=<id>` opens that location's popup (shareable links)
 - [ ] Accessibility basics: keyboard tab-through pins (focus ring, Enter opens), `aria-label` = location name, `alt` from the pre-baked `altText` field (captions are pre-bake inputs only — no renderer-time lookup), check pin/badge contrast against the map
@@ -143,7 +148,7 @@ Tasks:
 - A11y audit (NVDA/VoiceOver session, WCAG 2.1 AA fixes)
 - Analytics events + consent banner
 - PWA / offline caching
-- Full-map OpenSeadragon tiling of the entire 16397-px master — unnecessary once regional crops cover the dense areas; revisit only if web users routinely zoom into non-cluster regions and complain
+- Full-map OpenSeadragon deep-zoom tiling — superseded by the planned Leaflet intermediate/high-resolution pyramid in Stage 3 unless OpenSeadragon's deep-zoom UI is specifically wanted
 - GeoJSON export from the pre-bake for future map platforms
 
 ## Risks & Notes

@@ -32,7 +32,7 @@
 
 ### What the app actually is (matters a lot for the web)
 - A **single high-resolution world map image** rendered full-screen.
-- Markers placed by a **custom equirectangular lon/lat → pixel projection** (`Utilities/CoordinateMapper`).
+- Markers placed by a linear projection over the map image. **`CoordinateMapper` is written as an equirectangular lon/lat → pixel mapping, but the actual stored data is pixel coordinates** (Excel E/F on the 8198×5542 half-size frame, B/C and `locations.json` on the 16397×11085 master frame) — discovered while building the web MVP, 2026-09-06. There is no geographic lat/lon in the dataset; the web version works purely in normalized image fractions, which is closer to what the app effectively does anyway.
 - Clickable pins → popups over static images/text from `locations.json` + location folders.
 - Desktop-only extras layered on top: manual layout editor, dev tools, seed generators, watchdog, visual-config overlays.
 
@@ -62,7 +62,7 @@ Plain HTML/CSS/JS (or TypeScript) + **Leaflet** (image overlay, custom CRS) or *
 
 **Pros:**
 - Smallest possible scope; no backend, no Windows dependency, trivial hosting cost.
-- Reuses the *content* and the *projection math* (CoordinateMapper's equirectangular formula is ~20 lines and ports literally).
+- Reuses the *content*, and marker placement is trivial: the data is image-pixel coordinates, so porting is pure normalization (see corrected coordinate contract in the execution plan). No GIS math involved.
 - Leaflet gives zoom, pan, clustering (`leaflet.markercluster`), and mobile/touch support out of the box — things the WPF app had to hand-build.
 - Cheapest to host and maintain for a gallery; embeddable via iframe if they want it inside an existing CMS page.
 
@@ -120,7 +120,7 @@ Previous version of this doc listed .NET MAUI. It does not run in browsers and t
 
 ### Reusable as-is (the real asset)
 - **Content:** `Images&Content/` — 193 MB of PNGs/JPGs, `locations.json`, location folders, the Excel source. Directly web-hostable after a size/optimization pass.
-- **Projection math:** `Utilities/CoordinateMapper` equirectangular mapping — trivially portable to any language (~20 lines).
+- **Placement math:** marker positions are stored as pixel coordinates on the map image (not lat/lon — corrected 2026-09-06). `Utilities/CoordinateMapper` also exposes an unused-for-data equirectangular lon/lat mapping; the web needs only normalize-to-fraction + scale, nothing geographic.
 - **Data model shape:** `Models/` (Location, composite pins, VisualConfig defaults) — ports to TypeScript interfaces or is consumed as JSON directly.
 
 ### Reusable only if staying in .NET (Options B/C)
@@ -134,7 +134,7 @@ Previous version of this doc listed .NET MAUI. It does not run in browsers and t
 ## Technical Challenges (re-calibrated after external review)
 
 1. **Map image size in browser.** If the source map is very high resolution, naive single-image loading is slow on the web. Mitigations: build a tile pyramid (gdal2tiles / libvips) for **OpenSeadragon deep-zoom**, or pre-render 2–3 resolution tiers for Leaflet (Leaflet also supports tiled image layers via plugins — OSD is not the only option). First step of the prototype: record the actual map pixel dimensions and decide single-image vs tiles from data, not guesswork. Note the libraries differ in feel: OpenSeadragon is zoom-centric; Leaflet treats pan/zoom as equal citizens and has the richer marker ecosystem.
-2. **Projection fidelity.** CoordinateMapper's assumption (linear lon→x across the image width) remains valid; just verify the web image isn't re-cropped/resized relative to the coordinates. Keep the authoritative bounds in `locations.json`/config and derive the overlay bounds from it.
+2. **Placement fidelity.** Source coordinates are image pixels (corrected understanding, 2026-09-06); the web just needs the same affine "fraction of the image" math. Verify the web image isn't re-cropped/resized relative to the desktop's reference frame; keep the authoritative pixel frame documented in the plan.
 3. **Content weight (193 MB).** Fine for CDN, but popups should lazy-load images. Optimization specifics the pre-bake step should own: convert to **WebP/AVIF** with fallbacks (25–50% smaller than PNG/JPG), generate responsive sizes (`srcset` for thumbnail/medium/full), native `loading="lazy"`, and optional blur-up placeholders for large images.
    - **Asset pruning, measured (not estimated):** the audit script (`scripts/audit_unused_assets.py`, run 2026-09-05, path-aware matching) found **70 files / 31.8 MB never-referenced in-repo** — three unused map variants (~20.5 MB) plus `Extras/Pins` extraction experiments (~10 MB, already excluded from the desktop package). Larger savings on the **web bundle** come from shipping the intermediate ~4096 px base (~3–5 MB) instead of the desktop's 11.8 MB base / 54.5 MB master. Human review required before excluding anything: see the CSV at `TestResults/unused-assets.csv`; desktop-package pruning is a separate decision from web-bundle exclusion.
 4. **Excel ingestion.** Browsers shouldn't parse Excel. Pre-bake to JSON at build time (T1) or keep ingestion server-side (Option C). This also removes ClosedXML/Excel concerns from the web surface entirely.
@@ -181,5 +181,5 @@ Previous version of this doc listed .NET MAUI. It does not run in browsers and t
 
 - [ARCHITECTURE.md](../../ARCHITECTURE.md) — layer rules; note the web front end would be a new top-most layer consuming content, not a new consumer of Services.
 - [docs/guides/CONTENT_SETS.md](../guides/CONTENT_SETS.md) — Demo vs Production content the web pre-bake would key off.
-- [Utilities/CoordinateMapper.cs](../../Utilities/CoordinateMapper.cs) — the equirectangular math to port.
+- [Models/MapMetadata.cs](../../Models/MapMetadata.cs) — canonical map dimensions and the pixel-coordinate frames the web linear mapping must match (locations are image pixels, not geographic coordinates — see the normalized-coordinate contract in the plan).
 - [docs/TO_DO.md](../TO_DO.md) — backlog item for web version.
