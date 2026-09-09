@@ -4,7 +4,7 @@
 
 ## Project
 
-Windows desktop app (WPF / .NET 6 / C#) displaying a full-screen interactive world map with clickable location markers and content popups.
+Windows desktop app (WPF / .NET 6 / C#) displaying a full-screen interactive world map with clickable location markers and content popups. Also includes a **static web app** in `web/` for gallery website deployment.
 
 ## Non-Negotiable Finish Bookkeeping
 
@@ -34,6 +34,11 @@ dotnet run --project InteractiveWorldMap.csproj   # Windows UI only
 .\toggle-dev-tools.bat -State on               # Enable/disable in-app developer tools (on|off|toggle)
 .\configure.bat                                 # Show which config file controls what, on this machine
 
+# Web app (static site in web/)
+py -3 scripts\prepare_web_assets.py              # Generate/regenerate web assets from content
+py -3 scripts\verify_web_bundle.py web          # Verify generated bundle coherence
+cd web && py -3 -m http.server                   # Run web app locally (http://localhost:8000/)
+
 # Local quality gates
 dotnet format InteractiveWorldMap.sln --verify-no-changes
 py -3 scripts\summarize_coverage.py --results-directory TestResults\verify-coverage --min-line-coverage 45 --min-branch-coverage 40
@@ -59,6 +64,7 @@ py -3 -m lizard -C 20 -x "*Tests*" -x "*Tools*" -x "*bin*" -x "*obj*" -x "*scrip
 | `Tests/` | xUnit tests including architecture structural tests |
 | `scripts/` | Verification, log query, Python tooling — see [scripts/README.md](scripts/README.md) |
 | `Images&Content/` | `Assets/` (maps, pin parts), `Demo-Content/` / `Production-Content/` (Excel, `locations.json`, location folders), `Extras/` — see [CONTENT_SETS.md](docs/guides/CONTENT_SETS.md) |
+| `web/` | Static web app for gallery deployment — Leaflet-based map, generated assets, see [web/README.md](web/README.md) |
 | `visual-config.default.json` | Checked-in UI/debug config defaults (deserialize to `Models/VisualConfig`). A per-machine `visual-config.json` is seeded next to the built exe and overrides these; user values win on merge. |
 
 ## Architecture Rules
