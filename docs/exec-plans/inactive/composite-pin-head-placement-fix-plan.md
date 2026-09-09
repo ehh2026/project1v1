@@ -5,12 +5,12 @@ started: 2026-06-07
 parked: 2026-06-09
 completed_phases: 1-3
 requirements_ref: composite-pin-head-placement-fix
-parent_program: ../active/composite-pins-program.md
+parent_program: ../inactive/composite-pins-program.md
 ---
 
 # Composite Pin Head Placement Fix Plan
 
-Program dashboard: [composite-pins-program.md](../active/composite-pins-program.md)
+Program dashboard: [composite-pins-program.md](../inactive/composite-pins-program.md)
 
 **Status:** Phases 1–3 complete — `dotnet test` passes; manual visual check OK (2026-06-09). Optional polish deferred — §8.4 steps 4–6 tracked in [TO_DO.md](../../TO_DO.md) inactive section.
 **Scope:** `CompositePinRenderPlanBuilder.cs`, head-placement logic only

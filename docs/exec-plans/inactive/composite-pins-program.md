@@ -1,8 +1,10 @@
 ---
-status: active
+status: inactive
 owner: agent
 started: 2026-06-08
 role: program-dashboard
+parked: 2026-09-08
+parked_reason: User-directed hold pending reprioritization of composite-pin work
 ---
 
 # Composite Pins Program

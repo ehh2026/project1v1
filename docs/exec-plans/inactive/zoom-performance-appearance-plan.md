@@ -1,7 +1,9 @@
 ---
-status: active
+status: inactive
 owner: agent
 started: 2026-06-23
+parked: 2026-09-08
+parked_reason: User-directed hold pending reprioritization of zoom work
 requirements_ref: zoom-performance-appearance
 ---
 

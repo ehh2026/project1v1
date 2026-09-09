@@ -9,7 +9,7 @@ parent_program: composite-pins-program.md
 
 # Pin Rendering Improvements Plan
 
-Program dashboard: [composite-pins-program.md](../active/composite-pins-program.md)
+Program dashboard: [composite-pins-program.md](../inactive/composite-pins-program.md)
 
 ## Overview
 

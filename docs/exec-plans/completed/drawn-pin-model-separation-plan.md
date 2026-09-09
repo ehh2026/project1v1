@@ -1,4 +1,4 @@
-﻿---
+---
 status: completed
 owner: agent
 started: 2026-06-21
@@ -1280,8 +1280,8 @@ Expected: pass, proving manual-layout drawn pins no longer rely on hidden built-
 - Modify: `docs/TO_DO.md`
 - Modify: `CHANGELOG.md`
 - Modify: `docs/exec-plans/active/README.md`
-- Modify: `docs/exec-plans/active/composite-pins-program.md`
-- Modify: `docs/exec-plans/active/drawn-pin-tip-cap-plan.md`
+- Modify: `docs/exec-plans/inactive/composite-pins-program.md`
+- Modify: `docs/exec-plans/inactive/drawn-pin-tip-cap-plan.md`
 - Modify: `docs/exec-plans/completed/tuning-and-pin-render-bugfixes-plan.md`
 - Modify: `docs/exec-plans/completed/remove-pins-jpg-legacy-path-plan.md`
 - Move: `docs/exec-plans/active/drawn-pin-model-separation-plan.md` to `docs/exec-plans/completed/drawn-pin-model-separation-plan.md`

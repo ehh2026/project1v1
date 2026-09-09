@@ -566,4 +566,4 @@ Assets generated under `Images&Content/Pins_v2/parts/shaft_variants/outline_dark
 - At least one complete baked shaft variant set exists for all 12 pin shafts.
 - Visual review selects a default or records why asset variants were insufficient.
 - `.\scripts\verify.ps1` passes.
-- `docs/exec-plans/active/composite-pins-program.md`, `docs/TO_DO.md`, `docs/guides/VISUAL_CONFIG.md`, and `CHANGELOG.md` reflect the implemented outcome.
+- `docs/exec-plans/inactive/composite-pins-program.md`, `docs/TO_DO.md`, `docs/guides/VISUAL_CONFIG.md`, and `CHANGELOG.md` reflect the implemented outcome.

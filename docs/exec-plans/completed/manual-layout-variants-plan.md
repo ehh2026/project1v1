@@ -22,7 +22,7 @@ Related design doc: [MANUAL_LAYOUT_EDITOR.md](../../guides/MANUAL_LAYOUT_EDITOR.
 
 ---
 
-Prerequisite note: [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) Phase 3 (reliable seed loading) remains open for full auto-seed rollout; variant storage and UI do not depend on it.
+Prerequisite note: [manual-layout-seed-alignment-plan.md](../inactive/manual-layout-seed-alignment-plan.md) Phase 3 (reliable seed loading) remains open for full auto-seed rollout; variant storage and UI do not depend on it.
 
 ## Problem
 
@@ -41,7 +41,7 @@ Users can save, name, list, load, and delete layout variants per group key. Auto
 ## 2026-06-08 Review Notes
 
 - Direction is solid and matches the current model shape, but the first draft was underspecified around selected-variant fallback, delete/default rules, and how `LayoutEditorController` tracks the active variant.
-- The seed-generator file path was conditional, not current-state fact: `Tools/ManualLayoutSeedGenerator/Program.cs` only exists after [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) creates it. Today, `scripts/generate_manual_layout_seeds.ps1` is the active generator.
+- The seed-generator file path was conditional, not current-state fact: `Tools/ManualLayoutSeedGenerator/Program.cs` only exists after [manual-layout-seed-alignment-plan.md](../inactive/manual-layout-seed-alignment-plan.md) creates it. Today, `scripts/generate_manual_layout_seeds.ps1` is the active generator.
 - Variant saves must preserve composite assignment fields (`PairId`, `HeadSourcePath`) added by the composite-pin manual-layout phases; otherwise switching variants can silently change shaft/head choices.
 
 ## Current State (already implemented)
@@ -179,7 +179,7 @@ public sealed record ManualLayoutSummary(
 | Action | Path |
 |--------|------|
 | Modify | `scripts/generate_manual_layout_seeds.ps1` if seed alignment Phase 1 has not created the console tool yet |
-| Modify | `Tools/ManualLayoutSeedGenerator/Program.cs` after [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) Phase 1 exists |
+| Modify | `Tools/ManualLayoutSeedGenerator/Program.cs` after [manual-layout-seed-alignment-plan.md](../inactive/manual-layout-seed-alignment-plan.md) Phase 1 exists |
 | Modify | `Services/ManualLayoutManager.cs` |
 
 ### Tasks

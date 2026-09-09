@@ -17,7 +17,7 @@ cached render plans; coordination with multi-variant layout management.
 **Parent plan:** [pin-parts-composite-placement-plan.md](pin-parts-composite-placement-plan.md)  
 **Fix context:** [composite-pin-head-placement-fix-plan.md](../inactive/composite-pin-head-placement-fix-plan.md)  
 **Variant UI/API (Phase 5 scope):** [manual-layout-variants-plan.md](../completed/manual-layout-variants-plan.md) — canonical plan for multi-variant storage and picker UI  
-**Seed alignment:** [manual-layout-seed-alignment-plan.md](../active/manual-layout-seed-alignment-plan.md) — `SourceExtendedX/Y` on seed markers; user saves still use angle/length replay
+**Seed alignment:** [manual-layout-seed-alignment-plan.md](../inactive/manual-layout-seed-alignment-plan.md) — `SourceExtendedX/Y` on seed markers; user saves still use angle/length replay
 
 ---
 

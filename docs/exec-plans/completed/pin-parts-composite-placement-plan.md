@@ -4,7 +4,7 @@ owner: agent
 started: 2026-06-05
 revised: 2026-06-09
 requirements_ref: pin-parts-composite-placement
-parent_program: ../active/composite-pins-program.md
+parent_program: ../inactive/composite-pins-program.md
 ---
 
 # Pin Parts Composite Placement Plan
@@ -16,11 +16,11 @@ Use the split `Pins_v2/parts` assets to render composite pins where:
 - the head is rotated so its residual stub sits on top of the shaft
 - shaft choice favors the closest native angle/length, with optional residual rotation
 
-Program dashboard: [composite-pins-program.md](../active/composite-pins-program.md)
+Program dashboard: [composite-pins-program.md](../inactive/composite-pins-program.md)
 
 This plan supersedes the single-bitmap assumptions in [PIN_IMAGE_PLACEMENT_ASSESSMENT.md](../../archive/planning/PIN_IMAGE_PLACEMENT_ASSESSMENT.md) where useful.
 
-**Overall status (2026-06-09):** Phases 1-6 complete for the extended-marker MVP. Manual-layout replay, assignment persistence, disk cache, head-anchor fix, common-angle endpoint coverage, regenerated composite preview grids, and the full Windows verification gate are complete. Non-extended / unzoomed composite rollout is tracked in [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md).
+**Overall status (2026-06-09):** Phases 1-6 complete for the extended-marker MVP. Manual-layout replay, assignment persistence, disk cache, head-anchor fix, common-angle endpoint coverage, regenerated composite preview grids, and the full Windows verification gate are complete. Non-extended / unzoomed composite rollout is tracked in [composite-pins-unzoomed-plan.md](../inactive/composite-pins-unzoomed-plan.md).
 
 ## Execution Checklist
 
@@ -48,7 +48,7 @@ This plan supersedes the single-bitmap assumptions in [PIN_IMAGE_PLACEMENT_ASSES
 - [x] Keep the current single-bitmap pin path available during rollout
 - [x] Gate composite-pin rendering behind an explicit config switch or staged integration seam
 - [x] Use composite pins first for extended markers only
-- [x] Leave non-extended pins on legacy rendering until extended-marker behavior is stable *(intentional MVP — see [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md))*
+- [x] Leave non-extended pins on legacy rendering until extended-marker behavior is stable *(intentional MVP — see [composite-pins-unzoomed-plan.md](../inactive/composite-pins-unzoomed-plan.md))*
 - [x] Avoid replacing edit-mode or manual-layout workflows until composite hit-testing and anchoring are verified
 
 ## Goal
@@ -710,7 +710,7 @@ Tasks:
 - [x] For non-extended pins, decide one of:
   - keep legacy single-pin rendering
   - create a default short segment pointing inward from the nearest map edge
-  - **Decision:** keep legacy for non-extended markers (MVP); unzoomed rollout deferred to [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md).
+  - **Decision:** keep legacy for non-extended markers (MVP); unzoomed rollout deferred to [composite-pins-unzoomed-plan.md](../inactive/composite-pins-unzoomed-plan.md).
 - [x] Update marker sizing and hit-testing so wrapper bounds match the composed pin bounds.
   - `ApplyRenderPlanToMarker` sets `marker.Width`/`Height` from plan bounds and positions by tip anchor.
 - [x] Preserve existing extension hover highlighting, or redefine it around shaft visuals.
@@ -732,7 +732,7 @@ Current implementation status (2026-06-09):
 - edit mode uses legacy draggable pins; **Auto Assign Pins** and exit replay restore composites at saved endpoints
 - shaft override via right-click context menu; assignments persisted on save (`PairId`, `HeadSourcePath`)
 - render-plan disk cache keyed by layout content + geometry + config hashes
-- **Out of scope here:** composite pins on unzoomed/non-extended individual markers -> [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md)
+- **Out of scope here:** composite pins on unzoomed/non-extended individual markers -> [composite-pins-unzoomed-plan.md](../inactive/composite-pins-unzoomed-plan.md)
 
 ## Phase 6: Verification and tuning
 
@@ -796,7 +796,7 @@ Current implementation status:
    - [x] heuristic cap/body/cap segmented stretch — **implemented**
    - manual overrides only if heuristics fail
 3. Non-extended image pins:
-   - ~~keep legacy rendering~~ — **superseded 2026-06-09:** Option A stub segment per [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md) Phase 0
+   - ~~keep legacy rendering~~ — **superseded 2026-06-09:** Option A stub segment per [composite-pins-unzoomed-plan.md](../inactive/composite-pins-unzoomed-plan.md) Phase 0
    - [x] **Option A stub segment** — `DefaultStubLengthPixels = 24`, screen-up direction; unzoomed individual markers yes; unzoomed `ClusterMarker` aggregates no
    - convert all image pins to composite markers (Phases 2–3 of unzoomed plan)
 4. Head/shaft pairing:
@@ -822,7 +822,7 @@ Current implementation status:
 
 ## Follow-on work
 
-Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](../active/composite-pins-unzoomed-plan.md)
+Unzoomed and all-marker composite rollout: [composite-pins-unzoomed-plan.md](../inactive/composite-pins-unzoomed-plan.md)
 
 Manual-layout integration, edit-mode roundtrip, shaft overrides, render-plan caching, and
 multi-variant layout management: [composite-pins-manual-layout-phases-plan.md](composite-pins-manual-layout-phases-plan.md)

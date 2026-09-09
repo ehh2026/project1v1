@@ -1,8 +1,10 @@
 ---
-status: active
+status: inactive
 owner: agent
 started: 2026-06-07
-last_updated: 2026-06-20
+last_updated: 2026-09-08
+parked: 2026-09-08
+parked_reason: User-directed hold pending reprioritization of composite-pin work
 requirements_ref: composite-pins-unzoomed
 parent_program: composite-pins-program.md
 parent_plan: pin-parts-composite-placement-plan.md
